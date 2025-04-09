@@ -1,0 +1,15 @@
+<h2>Add a New Question</h2>
+<form (ngSubmit)="submitQuestion()" #questionForm="ngForm">
+  <label>Question:</label>
+  <input type="text" name="text" [(ngModel)]="question.text" required />
+
+  <label>Options:</label>
+  <div *ngFor="let option of question.options; let i = index">
+    <input type="text" [(ngModel)]="question.options[i]" name="option{{i}}" required />
+  </div>
+
+  <label>Correct Option Index (0-3):</label>
+  <input type="number" name="correctOption" [(ngModel)]="question.correctOption" required min="0" max="3" />
+
+  <button type="submit">Submit</button>
+</form>
