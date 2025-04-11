@@ -1,15 +1,30 @@
 <h2>Add a New Question</h2>
-<form (ngSubmit)="submitQuestion()" #questionForm="ngForm">
+<form (ngSubmit)="submitQuestion()">
   <label>Question:</label>
   <input type="text" name="text" [(ngModel)]="question.text" required />
 
-  <label>Options:</label>
-  <div *ngFor="let option of question.options; let i = index">
-    <input type="text" [(ngModel)]="question.options[i]" name="option{{i}}" required />
-  </div>
+  <br /><label>Options:</label><br />
+  <input type="text" [(ngModel)]="question.options[0]" name="option0" required /><br />
+  <input type="text" [(ngModel)]="question.options[1]" name="option1" required /><br />
+  <input type="text" [(ngModel)]="question.options[2]" name="option2" /><br />
+  <input type="text" [(ngModel)]="question.options[3]" name="option3" /><br />
 
   <label>Correct Option Index (0-3):</label>
-  <input type="number" name="correctOption" [(ngModel)]="question.correctOption" required min="0" max="3" />
+  <input type="number" [(ngModel)]="question.correctOption" name="correctOption" min="0" max="3" required />
 
+  <br /><br />
+  <label>Branch:</label>
+  <input type="text" [(ngModel)]="question.branch" name="branch" required /><br />
+
+  <label>Subject:</label>
+  <input type="text" [(ngModel)]="question.subject" name="subject" required /><br />
+
+  <label>Topic:</label>
+  <input type="text" [(ngModel)]="question.topic" name="topic" /><br />
+
+  <label>Subtopic:</label>
+  <input type="text" [(ngModel)]="question.subtopic" name="subtopic" /><br />
+
+  <br />
   <button type="submit">Submit</button>
 </form>

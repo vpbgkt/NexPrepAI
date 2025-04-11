@@ -1,38 +1,32 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { QuestionService } from '../../services/question.service';
+import { Question } from '../../models/question.model';
 
 @Component({
   selector: 'app-add-question',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
   templateUrl: './add-question.component.html',
-  styleUrls: ['./add-question.component.scss']
+  standalone: true,
+  imports: [CommonModule, FormsModule]
 })
 export class AddQuestionComponent {
-  question = {
+  question: Question = {
     text: '',
     options: ['', '', '', ''],
-    correctOption: 0
+    correctOption: 0,
+    branch: '',
+    subject: '',
+    topic: '',
+    subtopic: ''
   };
 
-  constructor(private http: HttpClient) {}
+  constructor(private questionService: QuestionService) {}
 
   submitQuestion() {
-    this.http.post('http://localhost:3000/api/questions/add', this.question)
-      .subscribe({
-        next: (response) => {
-          console.log('Question added:', response);
-          alert('Question added successfully!');
-        },
-        error: (error) => {
-          console.error('Error adding question:', error);
-          alert('Error adding question!');
-        },
-        complete: () => {
-          console.log('Request completed.');
-        }
-      });
+    this.questionService.addQuestion(this.question).subscribe({
+      next: () => alert('Question submitted successfully!'),
+      error: (err) => console.error('Submission failed:', err)
+    });
   }
 }
