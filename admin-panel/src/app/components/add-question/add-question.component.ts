@@ -12,7 +12,7 @@ import { Question } from '../../models/question.model';
 })
 export class AddQuestionComponent {
   question: Question = {
-    text: '',
+    questionText: '',
     options: ['', '', '', ''],
     correctOption: 0,
     branch: '',

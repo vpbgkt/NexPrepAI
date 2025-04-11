@@ -1,9 +1,11 @@
 export interface Question {
-  text: string;
+  questionText: string;
   options: string[];
   correctOption: number;
+  explanation?: string;
+  difficulty?: string;
   branch: string;
-  subject: string;
+  subject?: string;
   topic?: string;
   subtopic?: string;
 }

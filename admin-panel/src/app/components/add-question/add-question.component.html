@@ -1,7 +1,7 @@
 <h2>Add a New Question</h2>
 <form (ngSubmit)="submitQuestion()">
   <label>Question:</label>
-  <input type="text" name="text" [(ngModel)]="question.text" required />
+  <input type="text" name="questionText" [(ngModel)]="question.questionText" required />
 
   <br /><label>Options:</label><br />
   <input type="text" [(ngModel)]="question.options[0]" name="option0" required /><br />
@@ -17,7 +17,7 @@
   <input type="text" [(ngModel)]="question.branch" name="branch" required /><br />
 
   <label>Subject:</label>
-  <input type="text" [(ngModel)]="question.subject" name="subject" required /><br />
+  <input type="text" [(ngModel)]="question.subject" name="subject" /><br />
 
   <label>Topic:</label>
   <input type="text" [(ngModel)]="question.topic" name="topic" /><br />
