@@ -1,32 +1,37 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { QuestionService } from '../../services/question.service';
-import { Question } from '../../models/question.model';
 
 @Component({
   selector: 'app-add-question',
-  templateUrl: './add-question.component.html',
   standalone: true,
-  imports: [CommonModule, FormsModule]
+  imports: [CommonModule, FormsModule],
+  templateUrl: './add-question.component.html',
+  styleUrls: ['./add-question.component.scss'], // or remove if the CSS file is missing
 })
 export class AddQuestionComponent {
-  question: Question = {
+  question = {
     questionText: '',
-    options: ['', '', '', ''],
-    correctOption: 0,
+    options: [
+      { text: '', isCorrect: false },
+      { text: '', isCorrect: false },
+      { text: '', isCorrect: false },
+      { text: '', isCorrect: false },
+    ],
+    difficulty: '',
     branch: '',
     subject: '',
     topic: '',
-    subtopic: ''
+    subtopic: '',
   };
 
-  constructor(private questionService: QuestionService) {}
+  branches: any[] = [];
+  subjects: any[] = [];
+  topics: any[] = [];
+  subtopics: any[] = [];
 
-  submitQuestion() {
-    this.questionService.addQuestion(this.question).subscribe({
-      next: () => alert('Question submitted successfully!'),
-      error: (err) => console.error('Submission failed:', err)
-    });
+  addQuestion() {
+    console.log('Form submitted:', this.question);
+    // TODO: Add your actual API POST logic here
   }
 }

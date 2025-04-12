@@ -1,11 +1,10 @@
 export interface Question {
   questionText: string;
-  options: string[];
-  correctOption: number;
+  options: { text: string; isCorrect: boolean }[];
+  branchId: string;
+  subjectId: string;
+  topicId: string;
+  subtopicId: string;
+  difficulty: '' | 'Easy' | 'Medium' | 'Hard'; // <-- updated here
   explanation?: string;
-  difficulty?: string;
-  branch: string;
-  subject?: string;
-  topic?: string;
-  subtopic?: string;
 }

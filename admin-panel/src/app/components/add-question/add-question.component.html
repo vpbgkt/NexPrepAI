@@ -1,30 +1,46 @@
-<h2>Add a New Question</h2>
-<form (ngSubmit)="submitQuestion()">
+<form (ngSubmit)="addQuestion()">
   <label>Question:</label>
-  <input type="text" name="questionText" [(ngModel)]="question.questionText" required />
+  <input type="text" [(ngModel)]="question.questionText" name="questionText" required />
 
-  <br /><label>Options:</label><br />
-  <input type="text" [(ngModel)]="question.options[0]" name="option0" required /><br />
-  <input type="text" [(ngModel)]="question.options[1]" name="option1" required /><br />
-  <input type="text" [(ngModel)]="question.options[2]" name="option2" /><br />
-  <input type="text" [(ngModel)]="question.options[3]" name="option3" /><br />
+  <div *ngFor="let option of question.options; let i = index">
+    <label>Option {{ i + 1 }}:</label>
+    <input [(ngModel)]="option.text" name="option{{ i }}" required />
+    <label>
+      <input
+        type="checkbox"
+        [(ngModel)]="option.isCorrect"
+        name="isCorrect{{ i }}"
+      />
+      Correct
+    </label>
+  </div>
 
-  <label>Correct Option Index (0-3):</label>
-  <input type="number" [(ngModel)]="question.correctOption" name="correctOption" min="0" max="3" required />
+  <label>Difficulty:</label>
+  <select [(ngModel)]="question.difficulty" name="difficulty" required>
+    <option value="Easy">Easy</option>
+    <option value="Medium">Medium</option>
+    <option value="Hard">Hard</option>
+  </select>
 
-  <br /><br />
   <label>Branch:</label>
-  <input type="text" [(ngModel)]="question.branch" name="branch" required /><br />
+  <select [(ngModel)]="question.branch" name="branch" required>
+    <option *ngFor="let branch of branches" [value]="branch._id">{{ branch.name }}</option>
+  </select>
 
   <label>Subject:</label>
-  <input type="text" [(ngModel)]="question.subject" name="subject" /><br />
+  <select [(ngModel)]="question.subject" name="subject" required>
+    <option *ngFor="let subject of subjects" [value]="subject._id">{{ subject.name }}</option>
+  </select>
 
   <label>Topic:</label>
-  <input type="text" [(ngModel)]="question.topic" name="topic" /><br />
+  <select [(ngModel)]="question.topic" name="topic" required>
+    <option *ngFor="let topic of topics" [value]="topic._id">{{ topic.name }}</option>
+  </select>
 
   <label>Subtopic:</label>
-  <input type="text" [(ngModel)]="question.subtopic" name="subtopic" /><br />
+  <select [(ngModel)]="question.subtopic" name="subtopic" required>
+    <option *ngFor="let subtopic of subtopics" [value]="subtopic._id">{{ subtopic.name }}</option>
+  </select>
 
-  <br />
-  <button type="submit">Submit</button>
+  <button type="submit">Add Question</button>
 </form>
