@@ -1,0 +1,24 @@
+// models/Question.js
+const mongoose = require('mongoose');
+
+const optionSchema = new mongoose.Schema({
+  text: { type: String, required: true },
+  isCorrect: { type: Boolean, required: true },
+});
+
+const questionSchema = new mongoose.Schema({
+  questionText: { type: String, required: true },
+  options: [optionSchema],
+  branch: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', required: true },
+  subject: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: true },
+  topic: { type: mongoose.Schema.Types.ObjectId, ref: 'Topic', required: true },
+  subtopic: { type: mongoose.Schema.Types.ObjectId, ref: 'Subtopic', required: true },
+  difficulty: {
+    type: String,
+    enum: ['Easy', 'Medium', 'Hard'],
+    required: true,
+  },
+  explanation: { type: String },
+});
+
+module.exports = mongoose.model('Question', questionSchema);

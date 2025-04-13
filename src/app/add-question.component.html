@@ -1,0 +1,22 @@
+<h2>Add Question</h2>
+
+<form (submit)="submit(); $event.preventDefault();">
+  <label for="questionText">Question:</label><br />
+  <textarea [(ngModel)]="questionText" name="questionText" rows="3" cols="50" required></textarea><br /><br />
+
+  <label>Options:</label><br />
+  <div *ngFor="let option of options; let i = index">
+    <input [(ngModel)]="options[i]" [name]="'option' + i" required />
+    <label>
+      <input
+        type="checkbox"
+        (change)="toggleCorrect(i)"
+        [checked]="correctAnswers.includes(i)"
+      />
+      Correct
+    </label>
+  </div>
+
+  <br />
+  <button type="submit">Add Question</button>
+</form>
