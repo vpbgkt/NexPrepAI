@@ -9,7 +9,6 @@ const resultRoutes = require('./routes/results'); // Import results route
 const submitRoutes = require('./routes/submit'); // Import submit route
 const testSeriesRoutes = require('./routes/testSeries'); // Import test series route
 const hierarchyRoutes = require('./routes/hierarchy'); // Import hierarchy route
-const branchesRoutes = require('./routes/branches'); // Import branches route
 
 // Load environment variables
 dotenv.config();
@@ -22,11 +21,10 @@ const PORT = process.env.PORT || 5000;
 
 // ✅ Setup CORS for GitHub Codespaces
 app.use(cors({
-  origin: [
-    'https://organic-sniffle-q576r964xp934w59-4200.app.github.dev'
-  ],
+  origin: 'http://localhost:4200',  // allow local frontend
   credentials: true
 }));
+
 
 // ✅ Debugging middleware
 app.use((req, res, next) => {
@@ -45,7 +43,6 @@ app.use('/api/results', resultRoutes);
 app.use('/api/submit', submitRoutes);
 app.use('/api/test-series', testSeriesRoutes);
 app.use('/api/hierarchy', hierarchyRoutes);
-app.use('/api/branches', branchesRoutes);
 app.use('/api/subjects', require('./routes/subject'));
 app.use('/api/topics', require('./routes/topic'));
 app.use('/api/subtopics', require('./routes/subtopic'));
