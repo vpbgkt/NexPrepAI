@@ -13,28 +13,33 @@ export class QuestionService {
 
   constructor(private http: HttpClient) {}
 
-  addQuestion(question: Question): Observable<any> {
-    const token = localStorage.getItem('token');
-    const headers = new HttpHeaders({
-      Authorization: `Bearer ${token}`
-    });
-
-    return this.http.post(`${this.apiUrl}/questions/add`, question, { headers }); // ✅ Uses this.apiUrl
+  addQuestion(questionData: any): Observable<any> {
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    return this.http.post(`${this.apiUrl}/questions/add`, questionData, { headers });
   }
 
   getBranches(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/hierarchy/branch`);
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    return this.http.get(`${this.apiUrl}/hierarchy/branch`, { headers });
   }
 
   getSubjects(branchId: string): Observable<any> {
-    return this.http.get(`${this.apiUrl}/hierarchy/subject?branchId=${branchId}`);
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    return this.http.get(`${this.apiUrl}/hierarchy/subject?branchId=${branchId}`, { headers });
   }
 
   getTopics(subjectId: string): Observable<any> {
-    return this.http.get(`${this.apiUrl}/hierarchy/topic?subjectId=${subjectId}`);
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    return this.http.get(`${this.apiUrl}/hierarchy/topic?subjectId=${subjectId}`, { headers });
   }
 
   getSubtopics(topicId: string): Observable<any> {
-    return this.http.get(`${this.apiUrl}/hierarchy/subtopic?topicId=${topicId}`);
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    return this.http.get(`${this.apiUrl}/hierarchy/subtopic?topicId=${topicId}`, { headers });
   }
 }

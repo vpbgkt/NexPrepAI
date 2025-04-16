@@ -36,8 +36,12 @@ export class AddQuestionComponent implements OnInit {
   subtopics: any[] = [];
 
   ngOnInit(): void {
-    this.questionService.getBranches().subscribe((data) => {
-      this.branches = data.branches || data;
+    this.questionService.getBranches().subscribe({
+      next: (data) => {
+        console.log('Branches payload:', data);
+        this.branches = Array.isArray(data) ? data : data.branches || [];
+      },
+      error: (err) => console.error('Error fetching branches:', err)
     });
   }
 
@@ -88,13 +92,26 @@ export class AddQuestionComponent implements OnInit {
       !this.question.difficulty ||
       !this.question.branchId ||
       !this.question.subjectId ||
-      !this.question.topicId
+      !this.question.topicId ||
+      !this.question.subtopicId
     ) {
       alert('Please fill out all fields.');
       return;
     }
 
-    this.questionService.addQuestion(this.question).subscribe({
+    // Build payload exactly as backend expects:
+    const payload = {
+      questionText: this.question.questionText,
+      options: this.question.options,
+      difficulty: this.question.difficulty,
+      branch: this.question.branchId,
+      subject: this.question.subjectId,
+      topic: this.question.topicId,
+      subtopic: this.question.subtopicId,
+      explanation: this.question.explanation
+    };
+
+    this.questionService.addQuestion(payload).subscribe({
       next: (res) => {
         alert('Question submitted successfully!');
         console.log('Submitted:', res);
