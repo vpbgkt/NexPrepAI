@@ -10,6 +10,7 @@
       <th>Subject</th>
       <th>Topic</th>
       <th>Subtopic</th>
+      <th>Actions</th>
     </tr>
   </thead>
   <tbody>
@@ -29,11 +30,15 @@
       <td>{{ q.subject?.name || q.subject }}</td>
       <td>{{ q.topic?.name || q.topic }}</td>
       <td>{{ q.subtopic?.name || q.subtopic }}</td>
+      <td>
+        <button (click)="onEdit(q._id)">Edit</button>
+        <button (click)="onDelete(q._id)">Delete</button>
+      </td>
     </tr>
 
     <!-- Show a message if there are no questions -->
     <tr *ngIf="questions.length === 0">
-      <td colspan="7">No questions found.</td>
+      <td colspan="8">No questions found.</td>
     </tr>
   </tbody>
 </table>

@@ -51,4 +51,24 @@ export class QuestionService {
     return this.http.get(`${this.apiUrl}/questions/all`, { headers });
   }
   
+  /** Delete a question by its ID */
+  deleteQuestion(id: string): Observable<any> {
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    return this.http.delete(`${this.apiUrl}/questions/${id}`, { headers });
+  }
+  
+  /** Update a question */
+  updateQuestion(id: string, questionData: any): Observable<any> {
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    return this.http.put(`${this.apiUrl}/questions/${id}`, questionData, { headers });
+  }
+
+  /** Fetch one question by ID */
+  getQuestionById(id: string): Observable<any> {
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    return this.http.get(`${this.apiUrl}/questions/${id}`, { headers });
+  }
 }

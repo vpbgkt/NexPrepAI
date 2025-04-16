@@ -1,0 +1,125 @@
+<h2>Edit Question</h2>
+<form (ngSubmit)="save()">
+  <!-- Question Text -->
+  <div>
+    <label for="questionText">Question:</label>
+    <input
+      id="questionText"
+      type="text"
+      [(ngModel)]="question.questionText"
+      name="questionText"
+      required
+    />
+  </div>
+
+  <!-- Options -->
+  <div *ngFor="let opt of question.options; let i = index">
+    <label>Option {{ i + 1 }}:</label>
+    <input
+      type="text"
+      [(ngModel)]="question.options[i].text"
+      name="option{{i}}"
+      required
+    />
+    <label>
+      <input
+        type="checkbox"
+        [(ngModel)]="question.options[i].isCorrect"
+        name="correct{{i}}"
+      />
+      Correct Answer
+    </label>
+  </div>
+
+  <!-- Difficulty -->
+  <div>
+    <label for="difficulty">Difficulty:</label>
+    <select
+      id="difficulty"
+      [(ngModel)]="question.difficulty"
+      name="difficulty"
+      required
+    >
+      <option value="">Select Difficulty</option>
+      <option value="Easy">Easy</option>
+      <option value="Medium">Medium</option>
+      <option value="Hard">Hard</option>
+    </select>
+  </div>
+
+  <!-- Branch Dropdown -->
+  <div>
+    <label for="branch">Branch:</label>
+    <select
+      id="branch"
+      [(ngModel)]="question.branchId"
+      name="branchId"
+      (change)="onBranchChange(question.branchId)"
+      required
+    >
+      <option value="">Select Branch</option>
+      <option *ngFor="let b of branches" [value]="b._id">{{ b.name }}</option>
+    </select>
+  </div>
+
+  <!-- Subject Dropdown -->
+  <div>
+    <label for="subject">Subject:</label>
+    <select
+      id="subject"
+      [(ngModel)]="question.subjectId"
+      name="subjectId"
+      (change)="onSubjectChange(question.subjectId)"
+      required
+    >
+      <option value="">Select Subject</option>
+      <option *ngFor="let s of subjects" [value]="s._id">{{ s.name }}</option>
+    </select>
+  </div>
+
+  <!-- Topic Dropdown -->
+  <div>
+    <label for="topic">Topic:</label>
+    <select
+      id="topic"
+      [(ngModel)]="question.topicId"
+      name="topicId"
+      (change)="onTopicChange(question.topicId)"
+      required
+    >
+      <option value="">Select Topic</option>
+      <option *ngFor="let t of topics" [value]="t._id">{{ t.name }}</option>
+    </select>
+  </div>
+
+  <!-- Subtopic Dropdown -->
+  <div>
+    <label for="subtopic">Subtopic:</label>
+    <select
+      id="subtopic"
+      [(ngModel)]="question.subtopicId"
+      name="subtopicId"
+      (change)="onSubtopicChange(question.subtopicId)"
+      required
+    >
+      <option value="">Select Subtopic</option>
+      <option *ngFor="let st of subtopics" [value]="st._id">{{ st.name }}</option>
+    </select>
+  </div>
+
+  <!-- Explanation (optional) -->
+  <div>
+    <label for="explanation">Explanation:</label>
+    <textarea
+      id="explanation"
+      [(ngModel)]="question.explanation"
+      name="explanation"
+    ></textarea>
+  </div>
+
+  <!-- Save Button -->
+  <div>
+    <button type="submit">Save Changes</button>
+    <button type="button" (click)="cancel()">Cancel</button>
+  </div>
+</form>
