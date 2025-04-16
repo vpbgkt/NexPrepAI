@@ -1,6 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
-
+import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { AddQuestionComponent } from './add-question.component';
 
 describe('AddQuestionComponent', () => {
@@ -10,11 +9,13 @@ describe('AddQuestionComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
+      providers: [
+        provideHttpClientTesting()
+      ],
       declarations: [AddQuestionComponent]
     })
     .compileComponents();
-
+  
     fixture = TestBed.createComponent(AddQuestionComponent);
     component = fixture.componentInstance;
     httpMock = TestBed.inject(HttpTestingController);

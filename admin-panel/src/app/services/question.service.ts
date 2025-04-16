@@ -21,4 +21,20 @@ export class QuestionService {
 
     return this.http.post(`${this.apiUrl}/questions/add`, question, { headers }); // ✅ Uses this.apiUrl
   }
+
+  getBranches(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/hierarchy/branch`);
+  }
+
+  getSubjects(branchId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/hierarchy/subject?branchId=${branchId}`);
+  }
+
+  getTopics(subjectId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/hierarchy/topic?subjectId=${subjectId}`);
+  }
+
+  getSubtopics(topicId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/hierarchy/subtopic?topicId=${topicId}`);
+  }
 }
