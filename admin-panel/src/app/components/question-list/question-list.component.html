@@ -1,1 +1,39 @@
-<p>question-list works!</p>
+<h2>Question List</h2>
+
+<table border="1" cellpadding="8" cellspacing="0">
+  <thead>
+    <tr>
+      <th>Question</th>
+      <th>Options</th>
+      <th>Difficulty</th>
+      <th>Branch</th>
+      <th>Subject</th>
+      <th>Topic</th>
+      <th>Subtopic</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Loop through questions -->
+    <tr *ngFor="let q of questions">
+      <td>{{ q.questionText }}</td>
+      <td>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          <li *ngFor="let o of q.options">
+            {{ o.text }}
+            <strong *ngIf="o.isCorrect" style="color: green;">(✓)</strong>
+          </li>
+        </ul>
+      </td>
+      <td>{{ q.difficulty }}</td>
+      <td>{{ q.branch?.name || q.branch }}</td>
+      <td>{{ q.subject?.name || q.subject }}</td>
+      <td>{{ q.topic?.name || q.topic }}</td>
+      <td>{{ q.subtopic?.name || q.subtopic }}</td>
+    </tr>
+
+    <!-- Show a message if there are no questions -->
+    <tr *ngIf="questions.length === 0">
+      <td colspan="7">No questions found.</td>
+    </tr>
+  </tbody>
+</table>

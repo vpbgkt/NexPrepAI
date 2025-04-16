@@ -42,4 +42,13 @@ export class QuestionService {
     const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
     return this.http.get(`${this.apiUrl}/hierarchy/subtopic?topicId=${topicId}`, { headers });
   }
+
+  // New method to fetch all questions
+  getQuestions(): Observable<any> {
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    // Call the correct endpoint:
+    return this.http.get(`${this.apiUrl}/questions/all`, { headers });
+  }
+  
 }

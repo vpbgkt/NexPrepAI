@@ -93,10 +93,15 @@ const addQuestion = async (req, res) => {
 // ✅ This function gets all questions
 const getAllQuestions = async (req, res) => {
   try {
-    const questions = await Question.find();
-    res.status(200).json(questions);
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to fetch questions' });
+    const questions = await Question.find()
+      .populate('branch', 'name')      // only pull in the `name` field
+      .populate('subject', 'name')
+      .populate('topic', 'name')
+      .populate('subtopic', 'name');
+    res.json(questions);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 

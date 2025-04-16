@@ -1,14 +1,14 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const connectDB = require('./config/db'); // Import DB connection function
-const authRoutes = require('./routes/auth');
-const questionRoutes = require('./routes/questions'); // Import questions route
-const testRoutes = require('./routes/tests'); // Import test routes
-const resultRoutes = require('./routes/results'); // Import results route
-const submitRoutes = require('./routes/submit'); // Import submit route
-const testSeriesRoutes = require('./routes/testSeries'); // Import test series route
-const hierarchyRoutes = require('./routes/hierarchy'); // Import hierarchy route
+const connectDB = require('./config/db');
+
+// Register all models for populate
+require('./models/Branch');
+require('./models/Subject');
+require('./models/Topic');
+require('./models/SubTopic');
+require('./models/Question');
 
 // Load environment variables
 dotenv.config();
@@ -19,40 +19,39 @@ connectDB();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ Setup CORS for GitHub Codespaces
+// CORS for local frontend
 app.use(cors({
-  origin: 'http://localhost:4200',  // allow local frontend
+  origin: 'http://localhost:4200',
   credentials: true
 }));
 
-
-// ✅ Debugging middleware
+// Debugging middleware
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path}`);
   next();
 });
 
-// Middleware
+// Body parser
 app.use(express.json());
 
 // API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/questions', questionRoutes);
-app.use('/api/tests', testRoutes);
-app.use('/api/results', resultRoutes);
-app.use('/api/submit', submitRoutes);
-app.use('/api/test-series', testSeriesRoutes);
-app.use('/api/hierarchy', hierarchyRoutes);
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/questions', require('./routes/questions'));
+app.use('/api/tests', require('./routes/tests'));
+app.use('/api/results', require('./routes/results'));
+app.use('/api/submit', require('./routes/submit'));
+app.use('/api/test-series', require('./routes/testSeries'));
+app.use('/api/hierarchy', require('./routes/hierarchy'));
 app.use('/api/subjects', require('./routes/subject'));
 app.use('/api/topics', require('./routes/topic'));
 app.use('/api/subtopics', require('./routes/subtopic'));
 
-// Sample Route
+// Health check
 app.get('/', (req, res) => {
   res.send('🚀 NexPrep API is running...');
 });
 
-// Start the server
+// Start server
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
