@@ -1,3 +1,51 @@
+<h2>Filter Questions</h2>
+
+<form (ngSubmit)="applyFilters()" #filterForm="ngForm" style="margin-bottom: 20px;">
+  <label>
+    Branch:
+    <select [(ngModel)]="filters.branch" name="branch" (change)="onBranchChange()">
+      <option value="">-- Select Branch --</option>
+      <option *ngFor="let branch of branches" [value]="branch._id">{{ branch.name }}</option>
+    </select>
+  </label>
+
+  <label>
+    Subject:
+    <select [(ngModel)]="filters.subject" name="subject" (change)="onSubjectChange()" [disabled]="!filters.branch">
+      <option value="">-- Select Subject --</option>
+      <option *ngFor="let subject of subjects" [value]="subject._id">{{ subject.name }}</option>
+    </select>
+  </label>
+
+  <label>
+    Topic:
+    <select [(ngModel)]="filters.topic" name="topic" (change)="onTopicChange()" [disabled]="!filters.subject">
+      <option value="">-- Select Topic --</option>
+      <option *ngFor="let topic of topics" [value]="topic._id">{{ topic.name }}</option>
+    </select>
+  </label>
+
+  <label>
+    Subtopic:
+    <select [(ngModel)]="filters.subtopic" name="subtopic" [disabled]="!filters.topic">
+      <option value="">-- Select Subtopic --</option>
+      <option *ngFor="let subtopic of subtopics" [value]="subtopic._id">{{ subtopic.name }}</option>
+    </select>
+  </label>
+
+  <label>
+    Difficulty:
+    <select [(ngModel)]="filters.difficulty" name="difficulty">
+      <option value="">-- All --</option>
+      <option value="Easy">Easy</option>
+      <option value="Medium">Medium</option>
+      <option value="Hard">Hard</option>
+    </select>
+  </label>
+
+  <button type="submit">Apply Filters</button>
+</form>
+
 <h2>Question List</h2>
 
 <table border="1" cellpadding="8" cellspacing="0">

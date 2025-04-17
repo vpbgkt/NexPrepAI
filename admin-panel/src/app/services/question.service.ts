@@ -92,4 +92,25 @@ export class QuestionService {
 
     return this.http.post(`${this.apiUrl}/hierarchy/subtopic`, data, { headers });
   }
+
+  filterQuestions(filters: {
+    branch: string;
+    subject?: string;
+    topic?: string;
+    subtopic?: string;
+    difficulty?: string;
+  }) {
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+
+    const params = new URLSearchParams();
+
+    params.append('branch', filters.branch);
+    if (filters.subject) params.append('subject', filters.subject);
+    if (filters.topic) params.append('topic', filters.topic);
+    if (filters.subtopic) params.append('subtopic', filters.subtopic);
+    if (filters.difficulty) params.append('difficulty', filters.difficulty);
+
+    return this.http.get(`${this.apiUrl}/questions/filter?${params.toString()}`, { headers });
+  }
 }

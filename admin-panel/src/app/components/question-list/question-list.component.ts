@@ -1,45 +1,130 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
 import { QuestionService } from '../../services/question.service';
+import { Question } from '../../models/question.model';
+import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-question-list',
   standalone: true,
-  imports: [ CommonModule ],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './question-list.component.html',
   styleUrls: ['./question-list.component.scss']
 })
 export class QuestionListComponent implements OnInit {
-  private questionService = inject(QuestionService);
-  private router = inject(Router);
-  questions: any[] = [];
+  questions: Question[] = [];
+  branches: any[] = [];
+  subjects: any[] = [];
+  topics: any[] = [];
+  subtopics: any[] = [];
 
-  /** Helper to load all questions */
-  loadQuestions() {
-    this.questionService.getQuestions().subscribe({
-      next: data => {
-        this.questions = Array.isArray(data) ? data : data.questions || [];
-      },
-      error: err => console.error('Error loading questions:', err)
-    });
-  }
+  filters = {
+    branch: '',
+    subject: '',
+    topic: '',
+    subtopic: '',
+    difficulty: ''
+  };
 
-  ngOnInit() {
+  constructor(private questionService: QuestionService, private router: Router) {}
+
+  ngOnInit(): void {
+    this.loadBranches();
     this.loadQuestions();
   }
 
-  /** Delete a question and reload the list */
-  onDelete(id: string) {
-    if (!confirm('Are you sure you want to delete this question?')) return;
-    this.questionService.deleteQuestion(id).subscribe({
-      next: () => this.loadQuestions(),
-      error: err => console.error('Error deleting question:', err)
+  loadBranches(): void {
+    this.questionService.getBranches().subscribe({
+      next: (res: any) => {
+        this.branches = res.branches || res;
+      },
+      error: (err: any) => {
+        console.error('Failed to load branches:', err);
+      }
     });
   }
 
-  /** Navigate to the edit page */
-  onEdit(id: string) {
-    this.router.navigate(['/questions/edit', id]);
+  onBranchChange(): void {
+    this.subjects = [];
+    this.topics = [];
+    this.subtopics = [];
+
+    if (this.filters.branch) {
+      this.questionService.getSubjects(this.filters.branch).subscribe({
+        next: (res: any) => {
+          this.subjects = res.subjects || res;
+        },
+        error: (err: any) => {
+          console.error('Failed to load subjects:', err);
+        }
+      });
+    }
+  }
+
+  onSubjectChange(): void {
+    this.topics = [];
+    this.subtopics = [];
+
+    if (this.filters.subject) {
+      this.questionService.getTopics(this.filters.subject).subscribe({
+        next: (res: any) => {
+          this.topics = res.topics || res;
+        },
+        error: (err: any) => {
+          console.error('Failed to load topics:', err);
+        }
+      });
+    }
+  }
+
+  onTopicChange(): void {
+    this.subtopics = [];
+
+    if (this.filters.topic) {
+      this.questionService.getSubtopics(this.filters.topic).subscribe({
+        next: (res: any) => {
+          this.subtopics = res.subtopics || res;
+        },
+        error: (err: any) => {
+          console.error('Failed to load subtopics:', err);
+        }
+      });
+    }
+  }
+
+  applyFilters(): void {
+    if (!this.filters.branch) {
+      alert('Please select at least a Branch to filter.');
+      return;
+    }
+
+    this.questionService.filterQuestions(this.filters).subscribe({
+      next: (res: any) => {
+        this.questions = res;
+      },
+      error: (err: any) => {
+        console.error('Failed to fetch filtered questions:', err);
+      }
+    });
+  }
+
+  loadQuestions(): void {
+    this.questionService.getQuestions().subscribe((data) => {
+      this.questions = data;
+    });
+  }
+
+  onEdit(id: string): void {
+    this.router.navigate(['/questions', id, 'edit']);
+  }
+
+  onDelete(id: string): void {
+    if (confirm('Are you sure you want to delete this question?')) {
+      this.questionService.deleteQuestion(id).subscribe(() => {
+        this.loadQuestions(); // refresh list after deletion
+      });
+    }
   }
 }
