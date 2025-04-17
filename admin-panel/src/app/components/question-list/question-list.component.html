@@ -44,6 +44,7 @@
   </label>
 
   <button type="submit">Apply Filters</button>
+  <button (click)="resetFilters()">Reset Filters</button>
 </form>
 
 <h2>Question List</h2>
@@ -79,8 +80,8 @@
       <td>{{ q.topic?.name || q.topic }}</td>
       <td>{{ q.subtopic?.name || q.subtopic }}</td>
       <td>
-        <button (click)="onEdit(q._id)">Edit</button>
-        <button (click)="onDelete(q._id)">Delete</button>
+        <button (click)="onEdit(q._id!)">Edit</button>
+        <button (click)="onDelete(q._id!)">Delete</button>
       </td>
     </tr>
 

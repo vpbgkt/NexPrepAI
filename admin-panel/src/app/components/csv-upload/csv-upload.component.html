@@ -1,0 +1,10 @@
+<h3>CSV Import Questions</h3>
+
+<input type="file" (change)="onFileSelected($event)" accept=".csv" />
+
+<div *ngIf="parsedQuestions.length > 0">
+  <p>{{ parsedQuestions.length }} questions parsed.</p>
+  <button (click)="submitToBackend()">Submit to Backend</button>
+</div>
+
+<p>{{ uploadMessage }}</p>

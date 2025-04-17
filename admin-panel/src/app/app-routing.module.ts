@@ -9,6 +9,7 @@ import { AddSubjectComponent } from './components/add-subject.component';
 import { authGuard } from './gaurds/auth.gaurd';
 import { AddTopicComponent } from './components/add-topic.component';
 import { AddSubtopicComponent } from './components/add-subtopic.component';
+import { CsvUploadComponent } from './components/csv-upload/csv-upload.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -20,6 +21,7 @@ export const routes: Routes = [
   { path: 'subjects/new', component: AddSubjectComponent },
   { path: 'topics/new', component: AddTopicComponent },
   { path: 'subtopics/new', component: AddSubtopicComponent },
+  { path: 'csv-import', component: CsvUploadComponent },
 ];
 
 @NgModule({

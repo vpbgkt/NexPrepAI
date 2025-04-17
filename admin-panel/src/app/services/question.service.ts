@@ -113,4 +113,14 @@ export class QuestionService {
 
     return this.http.get(`${this.apiUrl}/questions/filter?${params.toString()}`, { headers });
   }
+
+  importQuestions(qs: any[]): Observable<any> {
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    return this.http.post(
+      `${this.apiUrl}/questions/import-csv`,
+      qs,
+      { headers }
+    );
+  }
 }

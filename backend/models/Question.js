@@ -10,9 +10,9 @@ const questionSchema = new mongoose.Schema({
   questionText: { type: String, required: true },
   options: [optionSchema],
   branch: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', required: true },
-  subject: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: true },
-  topic: { type: mongoose.Schema.Types.ObjectId, ref: 'Topic', required: true },
-  subtopic: { type: mongoose.Schema.Types.ObjectId, ref: 'Subtopic', required: true },
+  subject: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: false },
+  topic: { type: mongoose.Schema.Types.ObjectId, ref: 'Topic', required: false },
+  subtopic: { type: mongoose.Schema.Types.ObjectId, ref: 'Subtopic', required: false },
   difficulty: {
     type: String,
     enum: ['Easy', 'Medium', 'Hard'],

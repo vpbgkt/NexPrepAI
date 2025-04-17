@@ -28,6 +28,12 @@ export class QuestionListComponent implements OnInit {
     difficulty: ''
   };
 
+  selectedBranch: string = '';
+  selectedSubject: string = '';
+  selectedTopic: string = '';
+  selectedSubtopic: string = '';
+  selectedDifficulty: string = '';
+
   constructor(private questionService: QuestionService, private router: Router) {}
 
   ngOnInit(): void {
@@ -108,6 +114,15 @@ export class QuestionListComponent implements OnInit {
         console.error('Failed to fetch filtered questions:', err);
       }
     });
+  }
+
+  resetFilters(): void {
+    this.selectedBranch = '';
+    this.selectedSubject = '';
+    this.selectedTopic = '';
+    this.selectedSubtopic = '';
+    this.selectedDifficulty = '';
+    this.loadQuestions(); // reload unfiltered questions
   }
 
   loadQuestions(): void {
