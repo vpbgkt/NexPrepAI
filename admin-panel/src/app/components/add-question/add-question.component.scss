@@ -1,0 +1,8 @@
+a {
+  cursor: pointer;
+  color: blue;
+  text-decoration: underline;
+  margin-left: 10px;
+  z-index: 10;   // Ensure it's clickable and above other elements
+  position: relative;
+}

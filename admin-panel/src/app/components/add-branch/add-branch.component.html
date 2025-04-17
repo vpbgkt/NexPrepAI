@@ -1,0 +1,26 @@
+<h2>Add New Branch</h2>
+
+<form #branchForm="ngForm" (ngSubmit)="addBranch(branchForm)">
+  <div>
+    <label for="branchName">Branch Name:</label>
+    <input
+      type="text"
+      id="branchName"
+      name="branchName"
+      [(ngModel)]="branchName"
+      required
+      placeholder="Enter Branch Name"
+    />
+    <div *ngIf="branchForm.controls['branchName']?.invalid && (branchForm.controls['branchName']?.touched || branchForm.submitted)" class="error">
+        Branch name is required.
+    </div>
+  </div>
+
+  <button type="submit" [disabled]="isLoading">
+    {{ isLoading ? 'Saving...' : 'Create Branch' }}
+  </button>
+
+  <button type="button" (click)="cancel()">
+    Cancel
+  </button>
+</form>

@@ -1,8 +1,9 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Question } from '../../models/question.model';
+import { FormsModule, NgForm } from '@angular/forms';
+import { finalize } from 'rxjs';
 import { QuestionService } from '../../services/question.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-add-question',
@@ -12,13 +13,12 @@ import { QuestionService } from '../../services/question.service';
   styleUrls: ['./add-question.component.scss'],
 })
 export class AddQuestionComponent implements OnInit {
-  questionService = inject(QuestionService);
+  private questionService = inject(QuestionService);
+  private router = inject(Router);
 
-  question: Question = {
+  question = {
     questionText: '',
     options: [
-      { text: '', isCorrect: false },
-      { text: '', isCorrect: false },
       { text: '', isCorrect: false },
       { text: '', isCorrect: false }
     ],
@@ -29,13 +29,18 @@ export class AddQuestionComponent implements OnInit {
     subtopicId: '',
     explanation: ''
   };
-
   branches: any[] = [];
   subjects: any[] = [];
   topics: any[] = [];
   subtopics: any[] = [];
 
+  isLoading = false;     // ← loading flag
+
   ngOnInit(): void {
+    this.fetchBranches();
+  }
+
+  fetchBranches() {
     this.questionService.getBranches().subscribe({
       next: (data) => {
         console.log('Branches payload:', data);
@@ -85,21 +90,22 @@ export class AddQuestionComponent implements OnInit {
     this.question.subtopicId = subtopicId;
   }
 
-  addQuestion() {
-    if (
-      !this.question.questionText ||
-      this.question.options.some((o) => !o.text) ||
-      !this.question.difficulty ||
-      !this.question.branchId ||
-      !this.question.subjectId ||
-      !this.question.topicId ||
-      !this.question.subtopicId
-    ) {
-      alert('Please fill out all fields.');
+  addOption() {
+    this.question.options.push({ text: '', isCorrect: false });
+  }
+
+  removeOption(index: number) {
+    if (this.question.options.length > 2) {
+      this.question.options.splice(index, 1);
+    }
+  }
+
+  addQuestion(form: NgForm) {
+    if (form.invalid) {
+      form.control.markAllAsTouched();  // trigger validation messages
       return;
     }
 
-    // Build payload exactly as backend expects:
     const payload = {
       questionText: this.question.questionText,
       options: this.question.options,
@@ -111,31 +117,22 @@ export class AddQuestionComponent implements OnInit {
       explanation: this.question.explanation
     };
 
-    this.questionService.addQuestion(payload).subscribe({
-      next: (res) => {
-        alert('Question submitted successfully!');
-        console.log('Submitted:', res);
-        // Reset form
-        this.question = {
-          questionText: '',
-          options: [
-            { text: '', isCorrect: false },
-            { text: '', isCorrect: false },
-            { text: '', isCorrect: false },
-            { text: '', isCorrect: false }
-          ],
-          difficulty: '',
-          branchId: '',
-          subjectId: '',
-          topicId: '',
-          subtopicId: '',
-          explanation: ''
-        };
-      },
-      error: (err) => {
-        alert('Error submitting question.');
-        console.error(err);
-      }
-    });
+    this.isLoading = true;
+    this.questionService.addQuestion(payload)
+      .pipe(finalize(() => this.isLoading = false))
+      .subscribe({
+        next: () => {
+          alert('Question submitted successfully!');
+          form.resetForm();
+        },
+        error: () => {
+          alert('Error submitting question.');
+        }
+      });
+  }
+
+  /** Navigate to Add Branch page */
+  goToAddBranch() {
+    this.router.navigate(['/branches/new']);
   }
 }

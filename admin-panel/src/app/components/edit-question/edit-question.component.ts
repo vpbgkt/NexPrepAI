@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm } from '@angular/forms';
+import { finalize } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { QuestionService } from '../../services/question.service';
 
@@ -19,8 +20,10 @@ export class EditQuestionComponent implements OnInit {
   id!: string;
   question: any = {
     questionText: '',
-    options: [{ text: '', isCorrect: false },{ text: '', isCorrect: false },
-              { text: '', isCorrect: false },{ text: '', isCorrect: false }],
+    options: [
+      { text: '', isCorrect: false },
+      { text: '', isCorrect: false }
+    ],
     difficulty: '',
     branchId: '',
     subjectId: '',
@@ -29,23 +32,18 @@ export class EditQuestionComponent implements OnInit {
     explanation: ''
   };
 
-  // Hierarchy lists
   branches: any[] = [];
   subjects: any[] = [];
   topics: any[] = [];
   subtopics: any[] = [];
 
+  isLoading = false;
+
   ngOnInit() {
-    // 1) Load all branches
     this.fetchBranches();
-
-    // 2) Get the question ID from the route
     this.id = this.route.snapshot.paramMap.get('id')!;
-
-    // 3) Fetch the question data
     this.questionService.getQuestionById(this.id).subscribe({
       next: data => {
-        // Prefill the form values
         this.question = {
           questionText: data.questionText,
           options: data.options,
@@ -56,8 +54,6 @@ export class EditQuestionComponent implements OnInit {
           subtopicId: data.subtopic._id || data.subtopic,
           explanation: data.explanation || ''
         };
-
-        // 4) Load dependent dropdowns in order
         this.fetchSubjects(this.question.branchId);
         this.fetchTopics(this.question.subjectId);
         this.fetchSubtopics(this.question.topicId);
@@ -66,7 +62,6 @@ export class EditQuestionComponent implements OnInit {
     });
   }
 
-  // Fetch all branches
   fetchBranches() {
     this.questionService.getBranches().subscribe({
       next: data => this.branches = Array.isArray(data) ? data : data.branches || [],
@@ -74,7 +69,6 @@ export class EditQuestionComponent implements OnInit {
     });
   }
 
-  // When branch changes (or on init), load subjects
   fetchSubjects(branchId: string) {
     this.questionService.getSubjects(branchId).subscribe({
       next: data => this.subjects = data.subjects || data,
@@ -82,7 +76,6 @@ export class EditQuestionComponent implements OnInit {
     });
   }
 
-  // When subject changes, load topics
   fetchTopics(subjectId: string) {
     this.questionService.getTopics(subjectId).subscribe({
       next: data => this.topics = data.topics || data,
@@ -90,7 +83,6 @@ export class EditQuestionComponent implements OnInit {
     });
   }
 
-  // When topic changes, load subtopics
   fetchSubtopics(topicId: string) {
     this.questionService.getSubtopics(topicId).subscribe({
       next: data => this.subtopics = data.subtopics || data,
@@ -98,7 +90,6 @@ export class EditQuestionComponent implements OnInit {
     });
   }
 
-  // Handlers for user changing dropdowns
   onBranchChange(branchId: string) {
     this.question.branchId = branchId;
     this.question.subjectId = '';
@@ -130,7 +121,12 @@ export class EditQuestionComponent implements OnInit {
     this.question.subtopicId = subtopicId;
   }
 
-  save() {
+  save(form: NgForm) {
+    if (form.invalid) {
+      form.control.markAllAsTouched();
+      return;
+    }
+
     const payload = {
       questionText: this.question.questionText,
       options: this.question.options,
@@ -141,19 +137,31 @@ export class EditQuestionComponent implements OnInit {
       subtopic: this.question.subtopicId,
       explanation: this.question.explanation
     };
-    this.questionService.updateQuestion(this.id, payload).subscribe({
-      next: () => {
-        alert('Question updated!');
-        this.router.navigate(['/questions']);
-      },
-      error: err => {
-        console.error('Update failed:', err);
-        alert('Failed to update.');
-      }
-    });
+    this.isLoading = true;
+    this.questionService.updateQuestion(this.id, payload)
+      .pipe(finalize(() => this.isLoading = false))
+      .subscribe({
+        next: () => {
+          alert('Question updated successfully!');
+          this.router.navigate(['/questions']);
+        },
+        error: () => alert('Failed to update.')
+      });
   }
 
   cancel() {
     this.router.navigate(['/questions']);
+  }
+
+  /** Add a new blank option */
+  addOption() {
+    this.question.options.push({ text: '', isCorrect: false });
+  }
+
+  /** Remove an option, leave at least two */
+  removeOption(index: number) {
+    if (this.question.options.length > 2) {
+      this.question.options.splice(index, 1);
+    }
   }
 }

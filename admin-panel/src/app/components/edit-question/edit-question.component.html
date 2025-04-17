@@ -1,15 +1,18 @@
 <h2>Edit Question</h2>
-<form (ngSubmit)="save()">
-  <!-- Question Text -->
+<form #form="ngForm" (ngSubmit)="save(form)">
+  <!-- Question Text with validation -->
   <div>
-    <label for="questionText">Question:</label>
+    <label>Question:</label>
     <input
-      id="questionText"
       type="text"
-      [(ngModel)]="question.questionText"
       name="questionText"
+      [(ngModel)]="question.questionText"
       required
+      #qt="ngModel"
     />
+    <div *ngIf="qt.invalid && (qt.touched || form.submitted)" class="error">
+      Question is required.
+    </div>
   </div>
 
   <!-- Options -->
@@ -27,8 +30,21 @@
         [(ngModel)]="question.options[i].isCorrect"
         name="correct{{i}}"
       />
-      Correct Answer
+      Correct
     </label>
+    <!-- Remove button -->
+    <button type="button"
+            (click)="removeOption(i)"
+            [disabled]="question.options.length <= 2">
+      Remove
+    </button>
+  </div>
+
+  <!-- Add new option button -->
+  <div>
+    <button type="button" (click)="addOption()">
+      + Add Option
+    </button>
   </div>
 
   <!-- Difficulty -->
@@ -36,15 +52,19 @@
     <label for="difficulty">Difficulty:</label>
     <select
       id="difficulty"
-      [(ngModel)]="question.difficulty"
       name="difficulty"
+      [(ngModel)]="question.difficulty"
       required
+      #diff="ngModel"
     >
       <option value="">Select Difficulty</option>
       <option value="Easy">Easy</option>
       <option value="Medium">Medium</option>
       <option value="Hard">Hard</option>
     </select>
+    <div *ngIf="diff.invalid && (diff.touched || form.submitted)" class="error">
+      Difficulty is required.
+    </div>
   </div>
 
   <!-- Branch Dropdown -->
@@ -52,14 +72,20 @@
     <label for="branch">Branch:</label>
     <select
       id="branch"
-      [(ngModel)]="question.branchId"
       name="branchId"
+      [(ngModel)]="question.branchId"
       (change)="onBranchChange(question.branchId)"
       required
+      #branchCtrl="ngModel"
     >
       <option value="">Select Branch</option>
       <option *ngFor="let b of branches" [value]="b._id">{{ b.name }}</option>
     </select>
+    <div *ngIf="branchCtrl.invalid && (branchCtrl.touched || form.submitted)" class="error">
+      Branch is required.
+    </div>
+    <!-- New Link to Add Branch -->
+    <a routerLink="/branches/new">+ Add Branch</a>
   </div>
 
   <!-- Subject Dropdown -->
@@ -67,14 +93,18 @@
     <label for="subject">Subject:</label>
     <select
       id="subject"
-      [(ngModel)]="question.subjectId"
       name="subjectId"
+      [(ngModel)]="question.subjectId"
       (change)="onSubjectChange(question.subjectId)"
       required
+      #subjectCtrl="ngModel"
     >
       <option value="">Select Subject</option>
       <option *ngFor="let s of subjects" [value]="s._id">{{ s.name }}</option>
     </select>
+    <div *ngIf="subjectCtrl.invalid && (subjectCtrl.touched || form.submitted)" class="error">
+      Subject is required.
+    </div>
   </div>
 
   <!-- Topic Dropdown -->
@@ -82,14 +112,18 @@
     <label for="topic">Topic:</label>
     <select
       id="topic"
-      [(ngModel)]="question.topicId"
       name="topicId"
+      [(ngModel)]="question.topicId"
       (change)="onTopicChange(question.topicId)"
       required
+      #topicCtrl="ngModel"
     >
       <option value="">Select Topic</option>
       <option *ngFor="let t of topics" [value]="t._id">{{ t.name }}</option>
     </select>
+    <div *ngIf="topicCtrl.invalid && (topicCtrl.touched || form.submitted)" class="error">
+      Topic is required.
+    </div>
   </div>
 
   <!-- Subtopic Dropdown -->
@@ -97,14 +131,18 @@
     <label for="subtopic">Subtopic:</label>
     <select
       id="subtopic"
-      [(ngModel)]="question.subtopicId"
       name="subtopicId"
+      [(ngModel)]="question.subtopicId"
       (change)="onSubtopicChange(question.subtopicId)"
       required
+      #subtopicCtrl="ngModel"
     >
       <option value="">Select Subtopic</option>
       <option *ngFor="let st of subtopics" [value]="st._id">{{ st.name }}</option>
     </select>
+    <div *ngIf="subtopicCtrl.invalid && (subtopicCtrl.touched || form.submitted)" class="error">
+      Subtopic is required.
+    </div>
   </div>
 
   <!-- Explanation (optional) -->
@@ -112,14 +150,16 @@
     <label for="explanation">Explanation:</label>
     <textarea
       id="explanation"
-      [(ngModel)]="question.explanation"
       name="explanation"
+      [(ngModel)]="question.explanation"
     ></textarea>
   </div>
 
   <!-- Save Button -->
   <div>
-    <button type="submit">Save Changes</button>
+    <button type="submit" [disabled]="isLoading">
+      {{ isLoading ? 'Saving...' : 'Save Changes' }}
+    </button>
     <button type="button" (click)="cancel()">Cancel</button>
   </div>
 </form>

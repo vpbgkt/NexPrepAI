@@ -1,18 +1,21 @@
-<form (ngSubmit)="addQuestion()">
+<form #form="ngForm" (ngSubmit)="addQuestion(form)">
   <!-- Question Text -->
   <div>
-    <label for="questionText">Question:</label>
+    <label>Question:</label>
     <input
-      id="questionText"
       type="text"
-      [(ngModel)]="question.questionText"
       name="questionText"
+      [(ngModel)]="question.questionText"
       required
+      #qt="ngModel"
     />
+    <div *ngIf="qt.invalid && (qt.touched || form.submitted)" class="error">
+      Question is required.
+    </div>
   </div>
 
   <!-- Options -->
-  <div *ngFor="let option of question.options; let i = index">
+  <div *ngFor="let opt of question.options; let i = index">
     <label>Option {{ i + 1 }}:</label>
     <input
       type="text"
@@ -26,24 +29,40 @@
         [(ngModel)]="question.options[i].isCorrect"
         name="correct{{i}}"
       />
-      Correct Answer
+      Correct
     </label>
+    <!-- Remove button -->
+    <button type="button"
+            (click)="removeOption(i)"
+            [disabled]="question.options.length <= 2">
+      Remove
+    </button>
+  </div>
+
+  <!-- Add new option button -->
+  <div>
+    <button type="button" (click)="addOption()">
+      + Add Option
+    </button>
   </div>
 
   <!-- Difficulty -->
   <div>
-    <label for="difficulty">Difficulty:</label>
+    <label>Difficulty:</label>
     <select
-      id="difficulty"
-      [(ngModel)]="question.difficulty"
       name="difficulty"
+      [(ngModel)]="question.difficulty"
       required
+      #diff="ngModel"
     >
-      <option value="">Select Difficulty</option>
-      <option value="Easy">Easy</option>
-      <option value="Medium">Medium</option>
-      <option value="Hard">Hard</option>
+      <option value="">Select</option>
+      <option>Easy</option>
+      <option>Medium</option>
+      <option>Hard</option>
     </select>
+    <div *ngIf="diff.invalid && (diff.touched || form.submitted)" class="error">
+      Difficulty is required.
+    </div>
   </div>
 
   <!-- Branch Dropdown -->
@@ -55,12 +74,19 @@
       name="branchId"
       (change)="onBranchChange(question.branchId)"
       required
+      #branchCtrl="ngModel"
     >
       <option value="">Select Branch</option>
       <option *ngFor="let b of branches" [value]="b._id">
         {{ b.name }}
       </option>
     </select>
+    <div *ngIf="branchCtrl.invalid && (branchCtrl.touched || form.submitted)" class="error">
+      Branch is required.
+    </div>
+
+    <!-- New Link to Add Branch -->
+    <button type="button" (click)="goToAddBranch()">+ Add Branch</button>
   </div>
 
   <!-- Subject Dropdown -->
@@ -72,12 +98,16 @@
       name="subjectId"
       (change)="onSubjectChange(question.subjectId)"
       required
+      #subjectCtrl="ngModel"
     >
       <option value="">Select Subject</option>
       <option *ngFor="let s of subjects" [value]="s._id">
         {{ s.name }}
       </option>
     </select>
+    <div *ngIf="subjectCtrl.invalid && (subjectCtrl.touched || form.submitted)" class="error">
+      Subject is required.
+    </div>
   </div>
 
   <!-- Topic Dropdown -->
@@ -89,12 +119,16 @@
       name="topicId"
       (change)="onTopicChange(question.topicId)"
       required
+      #topicCtrl="ngModel"
     >
       <option value="">Select Topic</option>
       <option *ngFor="let t of topics" [value]="t._id">
         {{ t.name }}
       </option>
     </select>
+    <div *ngIf="topicCtrl.invalid && (topicCtrl.touched || form.submitted)" class="error">
+      Topic is required.
+    </div>
   </div>
 
   <!-- Subtopic Dropdown -->
@@ -106,16 +140,20 @@
       name="subtopicId"
       (change)="onSubtopicChange(question.subtopicId)"
       required
+      #subtopicCtrl="ngModel"
     >
       <option value="">Select Subtopic</option>
       <option *ngFor="let st of subtopics" [value]="st._id">
         {{ st.name }}
       </option>
     </select>
+    <div *ngIf="subtopicCtrl.invalid && (subtopicCtrl.touched || form.submitted)" class="error">
+      Subtopic is required.
+    </div>
   </div>
 
-  <!-- Submit Button -->
-  <div>
-    <button type="submit">Add Question</button>
-  </div>
+  <!-- Submit Button + Spinner -->
+  <button type="submit" [disabled]="isLoading">
+    {{ isLoading ? 'Saving...' : 'Add Question' }}
+  </button>
 </form>
