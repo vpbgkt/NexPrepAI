@@ -1,0 +1,58 @@
+<h2>Create / Edit Test Series</h2>
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <label>
+    Name:
+    <input formControlName="name" />
+  </label>
+
+  <label>
+    Branch:
+    <select formControlName="branchId">
+      <option value="">— Select Branch —</option>
+      <option *ngFor="let b of branches" [value]="b._id">{{ b.name }}</option>
+    </select>
+  </label>
+
+  <label>
+    Subject:
+    <select formControlName="subjectId" [disabled]="subjects.length===0">
+      <option value="">— Select Subject —</option>
+      <option *ngFor="let s of subjects" [value]="s._id">{{ s.name }}</option>
+    </select>
+  </label>
+
+  <label>
+    Topic:
+    <select formControlName="topicId" [disabled]="topics.length===0">
+      <option value="">— Select Topic —</option>
+      <option *ngFor="let t of topics" [value]="t._id">{{ t.name }}</option>
+    </select>
+  </label>
+
+  <label>
+    Subtopic:
+    <select formControlName="subtopicId" [disabled]="subtopics.length===0">
+      <option value="">— Select Subtopic —</option>
+      <option *ngFor="let st of subtopics" [value]="st._id">{{ st.name }}</option>
+    </select>
+  </label>
+
+  <label>
+    # Questions:
+    <input type="number" formControlName="questionCount" />
+  </label>
+  <label>
+    Duration (mins):
+    <input type="number" formControlName="durationMinutes" />
+  </label>
+  <label>
+    Total Marks:
+    <input type="number" formControlName="totalMarks" />
+  </label>
+  <label>
+    Negative Marks:
+    <input type="number" formControlName="negativeMarks" />
+  </label>
+
+  <button type="submit" [disabled]="form.invalid">Save</button>
+</form>

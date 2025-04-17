@@ -9,6 +9,8 @@ require('./models/Subject');
 require('./models/Topic');
 require('./models/SubTopic');
 require('./models/Question');
+require('./models/TestSeries');   
+
 
 // Load environment variables
 dotenv.config();
@@ -40,11 +42,11 @@ app.use('/api/questions', require('./routes/questions'));
 app.use('/api/tests', require('./routes/tests'));
 app.use('/api/results', require('./routes/results'));
 app.use('/api/submit', require('./routes/submit'));
-app.use('/api/test-series', require('./routes/testSeries'));
 app.use('/api/hierarchy', require('./routes/hierarchy'));
 app.use('/api/subjects', require('./routes/subject'));
 app.use('/api/topics', require('./routes/topic'));
 app.use('/api/subtopics', require('./routes/subtopic'));
+app.use('/api/testSeries', require('./routes/testSeries'));
 
 // Health check
 app.get('/', (req, res) => {

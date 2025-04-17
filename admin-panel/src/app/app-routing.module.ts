@@ -10,6 +10,8 @@ import { authGuard } from './gaurds/auth.gaurd';
 import { AddTopicComponent } from './components/add-topic.component';
 import { AddSubtopicComponent } from './components/add-subtopic.component';
 import { CsvUploadComponent } from './components/csv-upload/csv-upload.component';
+import { TestSeriesListComponent } from './components/test-series-list/test-series-list.component';
+import { CreateTestSeriesComponent } from './components/create-test-series/create-test-series.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -22,6 +24,8 @@ export const routes: Routes = [
   { path: 'topics/new', component: AddTopicComponent },
   { path: 'subtopics/new', component: AddSubtopicComponent },
   { path: 'csv-import', component: CsvUploadComponent },
+  { path: 'test-series', component: TestSeriesListComponent, canActivate: [authGuard] },
+  { path: 'test-series/create', component: CreateTestSeriesComponent, canActivate: [authGuard] },
 ];
 
 @NgModule({
