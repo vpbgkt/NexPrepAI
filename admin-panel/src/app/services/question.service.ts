@@ -71,4 +71,25 @@ export class QuestionService {
     const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
     return this.http.get(`${this.apiUrl}/questions/${id}`, { headers });
   }
+
+  createSubject(data: { name: string; branchId: string | null }) {
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+
+    return this.http.post(`${this.apiUrl}/hierarchy/subject`, data, { headers });
+  }
+
+  createTopic(data: { name: string; subjectId: string | null }) {
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+
+    return this.http.post(`${this.apiUrl}/hierarchy/topic`, data, { headers });
+  }
+
+  createSubtopic(data: { name: string; topicId: string | null }) {
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+
+    return this.http.post(`${this.apiUrl}/hierarchy/subtopic`, data, { headers });
+  }
 }

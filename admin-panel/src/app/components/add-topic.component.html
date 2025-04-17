@@ -1,0 +1,55 @@
+<h2>Add New Topic</h2>
+
+<form #topicForm="ngForm" (ngSubmit)="submitTopic(topicForm)">
+  <div>
+    <label for="branch">Select Branch:</label>
+    <select
+      id="branch"
+      name="branch"
+      required
+      [(ngModel)]="selectedBranchId"
+      (change)="onBranchChange()"
+      ngModel
+    >
+      <option value="">-- Select Branch --</option>
+      <option value="none">None</option>
+      <option *ngFor="let branch of branches" [value]="branch._id">
+        {{ branch.name }}
+      </option>
+    </select>
+  </div>
+
+  <div>
+    <label for="subject">Select Subject:</label>
+    <select
+      id="subject"
+      name="subject"
+      required
+      [(ngModel)]="selectedSubjectId"
+      ngModel
+    >
+      <option value="">-- Select Subject --</option>
+      <option value="none">None</option>
+      <option *ngFor="let subject of subjects" [value]="subject._id">
+        {{ subject.name }}
+      </option>
+    </select>
+  </div>
+
+  <div>
+    <label for="topic">Topic Name:</label>
+    <input
+      type="text"
+      id="topic"
+      name="topic"
+      required
+      [(ngModel)]="topicName"
+    />
+  </div>
+
+  <button type="submit" [disabled]="isLoading">
+    {{ isLoading ? 'Saving...' : 'Create Topic' }}
+  </button>
+
+  <button type="button" (click)="cancel()">Cancel</button>
+</form>

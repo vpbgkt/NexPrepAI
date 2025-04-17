@@ -1,0 +1,37 @@
+<h2>Add New Subject</h2>
+
+<form #subjectForm="ngForm" (ngSubmit)="submitSubject(subjectForm)">
+  <div>
+    <label for="branch">Select Branch:</label>
+    <select
+      id="branch"
+      name="branch"
+      required
+      [(ngModel)]="selectedBranchId"
+      ngModel
+    >
+      <option value="">-- Select Branch --</option>
+      <option value="none">None</option>
+      <option *ngFor="let branch of branches" [value]="branch._id">
+        {{ branch.name }}
+      </option>
+    </select>
+  </div>
+
+  <div>
+    <label for="subject">Subject Name:</label>
+    <input
+      type="text"
+      id="subject"
+      name="subject"
+      required
+      [(ngModel)]="subjectName"
+    />
+  </div>
+
+  <button type="submit" [disabled]="isLoading">
+    {{ isLoading ? 'Saving...' : 'Create Subject' }}
+  </button>
+
+  <button type="button" (click)="cancel()">Cancel</button>
+</form>

@@ -135,4 +135,19 @@ export class AddQuestionComponent implements OnInit {
   goToAddBranch() {
     this.router.navigate(['/branches/new']);
   }
+
+  /** Navigate to Add Subject page */
+  goToAddSubject() {
+    this.router.navigate(['/subjects/new']);
+  }
+
+  /** Navigate to Add Topic page */
+  goToAddTopic(): void {
+    this.router.navigate(['/topics/new']);
+  }
+
+  /** Navigate to Add Subtopic page */
+  goToAddSubtopic(): void {
+    this.router.navigate(['/subtopics/new']);
+  }
 }

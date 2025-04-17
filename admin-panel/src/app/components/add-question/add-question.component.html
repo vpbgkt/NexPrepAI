@@ -108,6 +108,9 @@
     <div *ngIf="subjectCtrl.invalid && (subjectCtrl.touched || form.submitted)" class="error">
       Subject is required.
     </div>
+
+    <!-- New Link to Add Subject -->
+    <button type="button" (click)="goToAddSubject()">+ Add Subject</button>
   </div>
 
   <!-- Topic Dropdown -->
@@ -129,6 +132,9 @@
     <div *ngIf="topicCtrl.invalid && (topicCtrl.touched || form.submitted)" class="error">
       Topic is required.
     </div>
+
+    <!-- New Link to Add Topic -->
+    <button type="button" (click)="goToAddTopic()">+ Add Topic</button>
   </div>
 
   <!-- Subtopic Dropdown -->
@@ -150,6 +156,9 @@
     <div *ngIf="subtopicCtrl.invalid && (subtopicCtrl.touched || form.submitted)" class="error">
       Subtopic is required.
     </div>
+
+    <!-- New Link to Add Subtopic -->
+    <button type="button" (click)="goToAddSubtopic()">+ Add Subtopic</button>
   </div>
 
   <!-- Submit Button + Spinner -->
