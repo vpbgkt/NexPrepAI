@@ -108,7 +108,7 @@ const getAllQuestions = async (req, res) => {
 // 🔍 Filter questions by hierarchy
 const filterQuestions = async (req, res) => {
   try {
-    const { branch, subject, topic, subtopic } = req.query;
+    const { branch, subject, topic, subtopic, difficulty } = req.query;
 
     if (!branch) {
       return res.status(400).json({ message: 'Branch is required to filter questions' });
@@ -118,6 +118,7 @@ const filterQuestions = async (req, res) => {
     if (subject) filter.subject = subject;
     if (topic) filter.topic = topic;
     if (subtopic) filter.subtopic = subtopic;
+    if (difficulty) filter.difficulty = difficulty;
 
     const questions = await Question.find(filter)
       .populate('branch', 'name')
