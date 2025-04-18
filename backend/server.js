@@ -40,7 +40,6 @@ app.use(express.json());
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/questions', require('./routes/questions'));
 app.use('/api/tests', require('./routes/tests'));
-app.use('/api/results', require('./routes/results'));
 app.use('/api/submit', require('./routes/submit'));
 app.use('/api/hierarchy', require('./routes/hierarchy'));
 app.use('/api/subjects', require('./routes/subject'));
