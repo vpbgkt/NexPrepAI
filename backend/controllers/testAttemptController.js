@@ -13,6 +13,28 @@ exports.startTest = async (req, res) => {
 
     if (!series) return res.status(404).json({ message: 'Test not found' });
 
+    // 🔒 Check cooldown (3 hours = 10800000 ms)
+    const recent = await TestAttempt.findOne({
+      student: studentId,
+      series: seriesId,
+      submittedAt: { $exists: true }
+    }).sort({ submittedAt: -1 });
+
+    if (recent) {
+      const now = Date.now();
+      const last = new Date(recent.submittedAt).getTime();
+      const diff = now - last;
+
+      const cooldown = 3 * 60 * 60 * 1000; // 3 hours in ms
+
+      if (diff < cooldown) {
+        const remaining = Math.ceil((cooldown - diff) / (60 * 1000)); // in minutes
+        return res.status(429).json({
+          message: `Cooldown active. You can retake this test in ${remaining} minutes.`
+        });
+      }
+    }
+
     const attempt = new TestAttempt({
       series: series._id,
       student: studentId,
@@ -117,3 +139,125 @@ exports.submitTest = async (req, res) => {
     res.status(500).json({ message: 'Failed to submit test', error: err.message });
   }
 };
+
+exports.getMyTestAttempts = async (req, res) => {
+  try {
+    const studentId = req.user.userId;
+
+    const attempts = await TestAttempt.find({ student: studentId })
+      .populate({
+        path: 'series',
+        select: 'title examType year',
+        populate: { path: 'examType', select: 'code name' }
+      })
+      .sort({ submittedAt: -1 });
+
+    res.status(200).json(attempts);
+  } catch (err) {
+    console.error('❌ Error in getMyTestAttempts:', err);
+    res.status(500).json({ message: 'Failed to fetch attempts' });
+  }
+};
+
+exports.reviewAttempt = async (req, res) => {
+  try {
+    const attempt = await TestAttempt.findById(req.params.id)
+      .populate({
+        path: 'responses.question',
+        select: 'text options correctOptions'
+      })
+      .populate({
+        path: 'series',
+        select: 'title examType year',
+        populate: { path: 'examType', select: 'code name' }
+      });
+
+    if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
+
+    res.status(200).json({
+      _id: attempt._id,
+      series: attempt.series,
+      submittedAt: attempt.submittedAt,
+      score: attempt.score,
+      percentage: attempt.percentage,
+      responses: attempt.responses.map(r => ({
+        question: {
+          _id: r.question._id,
+          text: r.question.text,
+          options: r.question.options
+        },
+        selected: r.selected,
+        correctOptions: r.question.correctOptions,
+        earned: r.earned
+      }))
+    });
+  } catch (err) {
+    console.error('❌ reviewAttempt error:', err);
+    res.status(500).json({ message: 'Failed to review test' });
+  }
+};
+
+exports.getStudentStats = async (req, res) => {
+  try {
+    const studentId = req.user.userId;
+
+    const attempts = await TestAttempt.find({
+      student: studentId,
+      submittedAt: { $exists: true }
+    });
+
+    const total = attempts.length;
+    if (total === 0) return res.json({ total: 0 });
+
+    const totalScore = attempts.reduce((sum, a) => sum + (a.score || 0), 0);
+    const maxScore = attempts.reduce((sum, a) => sum + (a.maxScore || 0), 0);
+    const bestScore = Math.max(...attempts.map(a => a.percentage || 0));
+
+    res.json({
+      total,
+      averagePercentage: Math.round((totalScore / maxScore) * 100),
+      bestPercentage: bestScore
+    });
+  } catch (err) {
+    console.error('❌ getStudentStats error:', err);
+    res.status(500).json({ message: 'Failed to get stats' });
+  }
+};
+
+
+
+exports.getLeaderboardForSeries = async (req, res) => {
+    try {
+      const { seriesId } = req.params;
+  
+      const attempts = await TestAttempt.find({
+        series: seriesId,
+        submittedAt: { $exists: true }
+      })
+        .populate('student', 'name email')
+        .sort({ percentage: -1, submittedAt: 1 })
+        .limit(10);
+  
+      if (attempts.length === 0) {
+        return res.status(200).json({
+          leaderboard: [],
+          message: 'No submissions yet.'
+        });
+      }
+  
+      const leaderboard = attempts.map((a, i) => ({
+        rank: i + 1,
+        student: a.student?.name || a.student?.email || 'Anonymous',
+        score: a.score,
+        maxScore: a.maxScore,
+        percentage: a.percentage,
+        submittedAt: a.submittedAt
+      }));
+  
+      return res.status(200).json({ leaderboard });
+    } catch (err) {
+      console.error('❌ getLeaderboardForSeries error:', err);
+      res.status(500).json({ message: 'Failed to get leaderboard' });
+    }
+  };
+  

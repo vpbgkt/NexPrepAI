@@ -6,7 +6,8 @@ const {
   submitTest,
   getAllSubmissions,
   getSubmissionsByUser,
-  getLeaderboardForTest
+  // Commenting out getLeaderboardForTest as it is not currently in use
+  // getLeaderboardForTest
 } = require('../controllers/testController');
 const { authenticate, authorizeRole } = require('../middleware/authMiddleware');
 
@@ -21,7 +22,29 @@ router.get('/submissions', getAllSubmissions);
 // ✅ CREATE TEST
 router.post('/create', authenticate, authorizeRole('admin'), createTest);
 
-// ✅ SUBMIT TEST
+// ✅ GET USER'S SUBMISSIONS
+router.get('/my-submissions', authenticate, getSubmissionsByUser);
+
+// Commenting out getLeaderboardForTest as it is not currently in use
+// router.get('/leaderboard/:testId', authenticate, getLeaderboardForTest);
+
+// ✅ START TEST
+router.post('/start', verifyToken, startTest);
+
+const testController = require('../controllers/testAttemptController');
+
+// ✅ STATIC FIRST
+router.get('/my-attempts', verifyToken, testController.getMyTestAttempts);
+
+router.get('/review/:id', verifyToken, testController.reviewAttempt);
+
+router.get('/stats/me', verifyToken, testController.getStudentStats);
+
+router.get('/leaderboard/:seriesId', testController.getLeaderboardForSeries);
+
+router.get('/:id', getTestById); // ❌ This must be below
+
+// ↓ Keep this after static ones
 router.post('/:attemptId/submit', verifyToken, async (req, res) => {
   try {
     console.log('🚨 Inline submit route executing');
@@ -91,17 +114,5 @@ router.post('/:attemptId/submit', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Submit failed', error: err.message });
   }
 });
-
-// ✅ GET USER'S SUBMISSIONS
-router.get('/my-submissions', authenticate, getSubmissionsByUser);
-
-// ✅ GET TEST
-router.get('/:id', getTestById);
-
-// ✅ GET LEADERBOARD FOR TEST
-router.get('/leaderboard/:testId', authenticate, getLeaderboardForTest);
-
-// ✅ START TEST
-router.post('/start', verifyToken, startTest);
 
 module.exports = router;
