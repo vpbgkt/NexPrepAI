@@ -1,51 +1,44 @@
 const mongoose   = require('mongoose');
 const TestSeries = require('../models/TestSeries');   // ← make sure this points to /backend/models/tests.js
 const Question   = require('../models/Question');
+const getExamTypeId = require('../utils/getExamTypeId');
 
 // 1) Create a new TestSeries by sampling questions
 async function createTestSeries(req, res) {
   try {
     const {
-      name, branchId, subjectId, topicId, subtopicId,
-      questionCount, durationMinutes, totalMarks, negativeMarks
+      title,
+      duration,
+      negativeMarking,
+      totalMarks,
+      year,
+      examType,         // e.g., 'medical'
+      questions,        // [{ question, marks }]
+      sections          // optional
     } = req.body;
 
-    // Build filter with real ObjectIds
-    const filter = {};
-    if (branchId)   filter.branch   = new mongoose.Types.ObjectId(branchId);
-    if (subjectId)  filter.subject  = new mongoose.Types.ObjectId(subjectId);
-    if (topicId)    filter.topic    = new mongoose.Types.ObjectId(topicId);
-    if (subtopicId) filter.subtopic = new mongoose.Types.ObjectId(subtopicId);
+    if (!questions?.length && !sections?.length) {
+      return res.status(400).json({ message: 'Provide at least questions or sections' });
+    }
 
-    // Sample random questions
-    const sampled = await Question.aggregate([
-      { $match: filter },
-      { $sample: { size: parseInt(questionCount, 10) } }
-    ]);
-    console.log('Sampled questions count:', sampled.length);
-
-    // Save series
-    const series = new TestSeries({
-      name,
-      branch:    filter.branch,
-      subject:   filter.subject,
-      topic:     filter.topic,
-      subtopic:  filter.subtopic,
-      questions: sampled.map(q => q._id),
-      questionCount,
-      durationMinutes,
+    const newSeries = new TestSeries({
+      title,
+      duration,
+      negativeMarking,
       totalMarks,
-      negativeMarks
+      year,
+      examType: await getExamTypeId(examType),
+
+      ...(sections?.length > 0
+        ? { sections }
+        : { questions }) // fallback to flat if no sections
     });
-    const saved = await series.save();
 
-    console.log(`Saved TestSeries ${saved._id} with ${saved.questions.length} questions`);
-    return res.status(201).json(saved);
-
-  } catch (err) {
-    console.error('Error in createTestSeries:', err);
-    // Include the full stack in the response while debugging:
-    return res.status(500).json({ message: 'Server error', error: err.stack });
+    await newSeries.save();
+    res.status(201).json(newSeries);
+  } catch (error) {
+    console.error('❌ Failed to create test series:', error);  // 👈 this logs the real error to terminal
+    res.status(500).json({ message: 'Failed to create test series', error: error.message });
   }
 }
 
@@ -80,17 +73,63 @@ async function cloneTestSeries(req, res) {
 // 3) Get all TestSeries
 async function getAllTestSeries(req, res) {
   try {
-    // populate names so Angular can show them
-    const all = await TestSeries.find()
-      .populate('branch', 'name')
-      .populate('subject', 'name')
-      .populate('topic', 'name')
-      .populate('subtopic', 'name')
-      .sort({ createdAt: -1 });           // newest first
-    return res.json(all);
+    const { examType } = req.query;
+    const filter = {};
+
+    if (examType) {
+      const ExamType = require('../models/ExamType');
+      const type = await ExamType.findOne({ code: examType.toLowerCase() });
+      if (!type) return res.status(404).json({ message: 'Invalid exam type' });
+      filter.examType = type._id;
+    }
+
+    const all = await TestSeries.find(filter)
+      .populate('examType', 'code name')
+      .sort({ createdAt: -1 });
+
+    res.json(all);
   } catch (err) {
     console.error('Error in getAllTestSeries:', err);
-    return res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+async function createRandomTestSeries(req, res) {
+  try {
+    const {
+      examType,       // "medical"
+      count = 50,     // number of random questions
+      title = "Practice Paper",
+      duration = 90,
+      marksPerQuestion = 1
+    } = req.body;
+
+    const typeId = await getExamTypeId(examType);
+
+    const questions = await Question.aggregate([
+      { $match: { examType: typeId } },
+      { $sample: { size: parseInt(count, 10) } }
+    ]);
+
+    const formatted = questions.map(q => ({
+      question: q._id,
+      marks: marksPerQuestion
+    }));
+
+    const series = new TestSeries({
+      title,
+      examType: typeId,
+      duration,
+      totalMarks: formatted.length * marksPerQuestion,
+      negativeMarking: false,
+      questions: formatted
+    });
+
+    await series.save();
+    return res.status(201).json(series);
+  } catch (error) {
+    console.error('❌ Random paper error:', error);
+    res.status(500).json({ message: 'Failed to generate random paper' });
   }
 }
 
@@ -98,5 +137,6 @@ async function getAllTestSeries(req, res) {
 module.exports = {
   createTestSeries,
   cloneTestSeries,
-  getAllTestSeries
+  getAllTestSeries,
+  createRandomTestSeries
 };

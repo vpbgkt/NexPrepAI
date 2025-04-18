@@ -8,6 +8,7 @@ const Branch = require('../models/Branch');
 const Subject = require('../models/Subject');
 const Topic = require('../models/Topic');
 const SubTopic = require('../models/SubTopic');
+const getExamTypeId = require('../utils/getExamTypeId');
 
 const {
   createQuestion,
@@ -72,7 +73,9 @@ router.post('/import-csv', verifyToken, async (req, res) => {
         branch:   branchDoc._id,
         subject:  subjectDoc?._id,
         topic:    topicDoc?._id,
-        subtopic: subtopicDoc?._id
+        subtopic: subtopicDoc?._id,
+        marks: Number(q.marks) || 1,
+        examType: await getExamTypeId(q.examType || 'engineering'),
       });
 
       await newQ.save();

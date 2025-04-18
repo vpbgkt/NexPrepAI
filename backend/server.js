@@ -47,6 +47,7 @@ app.use('/api/subjects', require('./routes/subject'));
 app.use('/api/topics', require('./routes/topic'));
 app.use('/api/subtopics', require('./routes/subtopic'));
 app.use('/api/testSeries', require('./routes/testSeries'));
+app.use('/api/examTypes', require('./routes/examTypes'));
 
 // Health check
 app.get('/', (req, res) => {

@@ -3,6 +3,7 @@ const Branch = require('../models/Branch');
 const Subject = require('../models/Subject');
 const Topic = require('../models/Topic');
 const SubTopic = require('../models/SubTopic');
+const getExamTypeId = require('../utils/getExamTypeId');
 
 // Create a question
 const createQuestion = async (req, res) => {
@@ -49,6 +50,7 @@ const addQuestion = async (req, res) => {
       subject,
       topic,
       subtopic,
+      examType
     } = req.body;
 
     // Minimal required field validation
@@ -77,6 +79,7 @@ const addQuestion = async (req, res) => {
       subject: foundSubject?._id,
       topic: foundTopic?._id,
       subtopic: foundSubTopic?._id,
+      examType: await getExamTypeId(examType),
     });
 
     console.log('📦 Saving New Question:', newQuestion);
