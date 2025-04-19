@@ -1,3 +1,19 @@
+/**
+ * Controller: testSeriesController.js
+ * -------------------------------------
+ * Handles admin-side operations related to TestSeries creation and management.
+ *
+ * Functions:
+ * - createTestSeries(): Create a new test series with a set of questions or sections
+ * - createRandomTestSeries(): Sample random questions by criteria to create a test
+ * - cloneTestSeries(): Make a copy of an existing test series for reuse/editing
+ * - getAllTestSeries(): List all created test series with optional filters
+ *
+ * Works with:
+ * - models/TestSeries.js
+ * - models/Question.js
+ */
+
 const mongoose   = require('mongoose');
 const TestSeries = require('../models/TestSeries');   // ← make sure this points to /backend/models/tests.js
 const Question   = require('../models/Question');

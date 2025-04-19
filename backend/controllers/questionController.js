@@ -1,3 +1,20 @@
+/**
+ * Controller: questionController.js
+ * -------------------------------------
+ * Handles creation, fetching, and importing of questions into the system.
+ *
+ * Functions:
+ * - createQuestion(): Add a new question with tags (branch, subject, topic, etc.)
+ * - bulkUpload(): Import questions from a CSV (supports variable options, tags, marks)
+ * - getAllQuestions(): List all questions with optional filters (e.g., subject, topic)
+ *
+ * Auto-creates hierarchy entities if they don't exist (case-insensitive matching).
+ *
+ * Works with:
+ * - models/Question.js
+ * - models/Branch.js, Subject.js, Topic.js, SubTopic.js
+ */
+
 const Question = require('../models/Question');
 const Branch = require('../models/Branch');
 const Subject = require('../models/Subject');

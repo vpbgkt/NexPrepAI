@@ -1,117 +1,91 @@
-```markdown
-# 📚 NexPrep — Self‑Hosted Mock‑Exam Platform
+# 📚 NexPrep Backend API
 
-A full‑stack solution for creating, managing and taking test‑series/mock‑exams  
-— built with **Node + Express / MongoDB** on the backend and two **Angular** front‑ends:
-
-* **Admin Panel** (`admin‑panel/`) – for question entry, CSV import, hierarchy & paper builder  
-* **Student App** (`frontend/`)  – for login, test‑taking, timer, results _(work in progress)_
+NexPrep is a full-featured mock test and exam preparation platform designed for students in medical, engineering, and other competitive domains. This backend powers all core features — from test creation and submission to analytics and leaderboards.
 
 ---
 
-## ✨ Core Features
+## 🚀 Tech Stack
 
-| Area | Details |
-|------|---------|
-| **Hierarchical bank** | Branch → Subject → Topic → Subtopic (dynamic CRUD) |
-| **Question model** | Unlimited options, multi‑correct, difficulty, **marks per question**, image/Math support |
-| **CSV bulk import** | Arbitrary `option1..optionN`, `correctOptions`, `marks`, auto‑creates hierarchy nodes |
-| **JWT auth** | Roles: `admin`, `student` |
-| **TestSeries (paper)** | Fixed set of question IDs, duration, total & negative marks, `examType` tag |
-| **Random practice** | `$sample` aggregation can build ad‑hoc practice tests |
-| **Cloning** | `POST /api/testSeries/clone/:id` duplicates a paper in one click |
-| **Student attempts** | `TestAttempt` schema records answers, auto‑scores on submit |
-| **Analytics (roadmap)** | Section‑wise stats, accuracy per question, leaderboards |
+- **Node.js** + **Express**
+- **MongoDB** with **Mongoose**
+- **JWT-based Authentication**
+- **Role-based Authorization (admin/student)**
+- Optional: CSV import, cooldown logic, analytics, MathJax support
 
 ---
 
-## 🗂️ Repo Layout
+## 📦 Project Structure
 
-```
-NexPrep/
-├─ backend/                 # Express + Mongoose API
-│   ├─ models/              # Branch.js, Subject.js, Topic.js, Subtopic.js, Question.js …
-│   ├─ controllers/         # authController.js, testSeriesController.js …
-│   ├─ routes/              # /auth, /questions, /testSeries, /tests, /submit …
-│   ├─ middleware/          # verifyToken.js
-│   ├─ config/db.js         # Mongo connection helper
-│   └─ server.js            # App bootstrap
-├─ admin-panel/             # Angular 17 standalone (Admin UI)
-│   └─ src/app/             # components/, services/, models/
-└─ frontend/                # Angular (Student UI – optional, WIP)
-```
+backend/ ├── config/ # MongoDB config │ └── db.js │ ├── controllers/ # Business logic handlers │ ├── authController.js │ ├── questionController.js │ ├── testSeriesController.js │ └── testAttemptController.js │ ├── middleware/ # Token & role verification │ ├── authMiddleware.js │ └── verifyToken.js │ ├── models/ # MongoDB schema models │ ├── Question.js │ ├── Branch.js / Subject.js / Topic.js / SubTopic.js │ ├── TestSeries.js │ ├── TestAttempt.js │ └── ExamType.js │ ├── routes/ # API route handlers │ ├── auth.js │ ├── questions.js │ ├── tests.js │ ├── testSeries.js │ ├── examTypes.js │ ├── hierarchy.js │ └── subject/topic/subtopic.js │ ├── .env.sample # Sample environment variables ├── server.js # Entry point └── package.json
+
+
 
 ---
 
-## 🚀 Quick Start
-
-### 1. Backend
+## ⚙️ Setup Instructions
 
 ```bash
-cd backend
-cp .env.sample .env            # set MONGO_URI & JWT_SECRET
+# Clone the repo
+git clone https://github.com/vpbgkt/NexPrep.git
+cd NexPrep/backend
+
+# Install dependencies
 npm install
-npm run dev                    # nodemon on :5000
-```
 
-### 2. Admin Panel
+# Setup environment variables
+cp .env.sample .env
 
-```bash
-cd admin-panel
-npm install
-ng serve                       # Angular dev server on :4200
-```
+# Start the development server
+npm run dev
+📝 Make sure MongoDB URI and JWT_SECRET are set in .env.
 
-Open **http://localhost:4200** → log in with an admin user (see `/api/auth/register`).
+🔐 Authentication
+Uses JWT Tokens in Authorization: Bearer <token> header
 
----
+Roles: admin, student
 
-## 🔑 Environment Variables (`backend/.env`)
+📌 Key API Routes
 
-```env
-MONGO_URI=mongodb://localhost/nexprep
-JWT_SECRET=supersecret
-PORT=5000
-```
+Route	Method	Description
+/api/auth/register	POST	Register a new user
+/api/auth/login	POST	Login with credentials
+/api/questions/upload	POST	Upload questions via CSV
+/api/testSeries/create	POST	Create a mock test with or without sections
+/api/tests/start	POST	Start a test (student)
+/api/tests/:id/submit	POST	Submit and evaluate test
+/api/tests/review/:id	GET	View submitted answers
+/api/tests/leaderboard/:seriesId	GET	Top scorers per test
+/api/testAttempts/me	GET	View student's past attempts
+/api/tests/stats/me	GET	See performance summary
+🧠 Features
+Dynamic question tagging (branch, subject, topic, subtopic)
 
----
+Support for multiple correct answers
 
-## ⚙️ Important API Endpoints
+Sectioned mock papers
 
-| Method | URL | Description |
-|--------|-----|-------------|
-| **POST** | `/api/auth/login` | Admin/Student login → `{ token }` |
-| **POST** | `/api/questions/import-csv` | Upload CSV of questions |
-| **POST** | `/api/testSeries/create` | Create fixed paper (body includes `questions` array) |
-| **GET**  | `/api/testSeries` | List all papers (admin view) |
-| **POST** | `/api/testSeries/clone/:id` | Duplicate a paper |
-| **POST** | `/api/tests/start` | Student starts an attempt |
-| **POST** | `/api/submit` | Student submits answers |
-| **GET**  | `/api/results/:attemptId` | Detailed score sheet |
+Cooldown timer for retakes (3 hours)
 
-All protected routes require `Authorization: Bearer <jwt>`.
+CSV import with auto-tagging
 
----
+ExamType filters (e.g., NEET, AIIMS, GATE)
 
-## 🛣 Roadmap
+Per-question scoring and analytics
 
-1. **Section builder** inside TestSeries (Paper I / II, Physics/Chemistry…)  
-2. **Exam windows & attempt limits**  
-3. **Student Angular app** with timer, review flags, PWA offline cache  
-4. Image upload (S3/MinIO) & MathJax rendering  
-5. Stripe/Razorpay payments for premium mocks  
-6. Analytics dashboard: average, percentile, weak‑topic heatmap  
-7. CI/CD with Docker Compose + GitHub Actions
+✅ To-Do Next
+Global leaderboard
 
----
+Adaptive difficulty test generator
 
-## 🤝 Contributing
+PDF/export support
 
-PRs welcome! Please lint with ESLint / Prettier and follow Angular & Node best practices.
+Razorpay/Stripe for mock purchases
 
----
+Scorecard sharing via Email/WhatsApp
 
-## 📝 License
+👥 Author
+Vishal Prajapat
+🔗 GitHub: @vpbgkt
 
-MIT — © 2025 NexPrep
-```
+📄 License
+MIT License — feel free to use and expand it!
