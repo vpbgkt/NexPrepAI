@@ -1,3 +1,20 @@
+/**
+ * Middleware: authMiddleware.js
+ * -------------------------------------
+ * Provides role-based access control and user verification.
+ *
+ * Functions:
+ * - authenticate(): Validates JWT and adds `req.user`
+ * - authorizeRole(...roles): Restricts route access to specific roles (e.g., admin only)
+ *
+ * Used in:
+ * - Admin-only routes like TestSeries creation or Question upload
+ * - Routes requiring differentiated behavior by role
+ *
+ * Depends on:
+ * - jsonwebtoken
+ */
+
 const jwt = require('jsonwebtoken');
 
 const authenticate = (req, res, next) => {

@@ -1,4 +1,20 @@
 // middleware/verifyToken.js
+/**
+ * Middleware: verifyToken.js
+ * -------------------------------------
+ * Verifies JWT token sent via the `Authorization` header in the format:
+ * "Bearer <token>"
+ *
+ * If token is valid, attaches `req.user` with decoded user info and proceeds.
+ * If invalid or missing, responds with 401 Unauthorized.
+ *
+ * Used to protect student-facing and authenticated routes.
+ *
+ * Depends on:
+ * - jsonwebtoken
+ * - models/User.js (to check existence of user)
+ */
+
 const jwt = require('jsonwebtoken');
 
 const verifyToken = (req, res, next) => {
