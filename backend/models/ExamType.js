@@ -1,3 +1,18 @@
+/**
+ * Model: ExamType.js
+ * -------------------------------------
+ * Defines allowed exam types (e.g., 'medical', 'engineering').
+ *
+ * Fields:
+ * - code: Short lowercase identifier (e.g., 'neet', 'aiims')
+ * - name: Full display name (e.g., 'NEET 2025')
+ *
+ * Used in:
+ * - TestSeries tagging
+ * - Student dashboard filtering
+ * - CSV import classification
+ */
+
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 

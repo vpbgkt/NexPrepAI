@@ -1,4 +1,25 @@
 // models/Question.js
+/**
+ * Model: Question.js
+ * -------------------------------------
+ * Represents a single MCQ question.
+ *
+ * Fields:
+ * - questionText: The question statement
+ * - options: Array of option texts (A, B, C, D, etc.)
+ * - correctOptions: Array of correct option indices (supports multi-answer)
+ * - difficulty: Optional difficulty level
+ * - marks: Number of marks (default = 1)
+ * - examType: Optional tag like 'medical', 'engineering', etc.
+ * - askedIn: Array of past exams it appeared in (e.g., [{examName, year}])
+ * - branch / subject / topic / subtopic: Hierarchical tags
+ *
+ * Used for:
+ * - Test creation
+ * - Random sampling
+ * - Leaderboard and analytics
+ */
+
 const mongoose = require('mongoose');
 
 const optionSchema = new mongoose.Schema({

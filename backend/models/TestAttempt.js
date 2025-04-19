@@ -1,3 +1,23 @@
+/**
+ * Model: TestAttempt.js
+ * -------------------------------------
+ * Represents one student's attempt at a TestSeries.
+ *
+ * Fields:
+ * - series: Reference to the TestSeries taken
+ * - student: User ID of the student
+ * - responses: Array of { question, selected, earned }
+ * - score: Final score after evaluation
+ * - maxScore: Total possible marks
+ * - percentage: Score as a percentage
+ * - submittedAt: Timestamp of submission
+ *
+ * Used in:
+ * - Scoring
+ * - Review view
+ * - Cooldown & attempt limit enforcement
+ */
+
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 

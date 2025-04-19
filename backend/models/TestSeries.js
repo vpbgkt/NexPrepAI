@@ -1,3 +1,20 @@
+/**
+ * Model: TestSeries.js
+ * -------------------------------------
+ * Defines a full mock test (official-style or practice).
+ *
+ * Fields:
+ * - title, examType, totalMarks, duration, negativeMarking
+ * - questions: Flat array of question-mark objects
+ * - sections: Optional grouping of questions into sections (with titles)
+ * - startAt / endAt: Optional scheduled open/close windows
+ *
+ * Used in:
+ * - Admin panel for test creation
+ * - Student test player and dashboard
+ * - Leaderboard generation
+ */
+
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
