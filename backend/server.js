@@ -47,6 +47,11 @@ app.use('/api/subtopics', require('./routes/subtopic'));
 app.use('/api/testSeries', require('./routes/testSeries'));
 app.use('/api/examTypes', require('./routes/examTypes'));
 
+// Swagger Docs
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./swagger');
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 // Health check
 app.get('/', (req, res) => {
   res.send('🚀 NexPrep API is running...');

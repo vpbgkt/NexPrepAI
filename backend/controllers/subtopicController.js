@@ -1,3 +1,21 @@
+/**
+ * Controller: subtopicController.js
+ * -------------------------------------
+ * Handles SubTopic creation and retrieval, the lowest level in question hierarchy.
+ *
+ * Functions:
+ * - addSubTopic(): Adds a new subtopic under a topic
+ * - getAllSubTopics(): Retrieves all subtopics, optionally filtered by topic
+ *
+ * Used in:
+ * - Question tagging
+ * - Dynamic dropdowns in UI
+ *
+ * Depends on:
+ * - models/SubTopic.js
+ * - models/Topic.js
+ */
+
 const SubTopic = require('../models/SubTopic');
 
 const addSubTopic = async (req, res) => {

@@ -1,3 +1,18 @@
+/**
+ * Route: /api/auth
+ * -------------------------------------
+ * Public and private routes for user authentication.
+ *
+ * Routes:
+ * - POST /register         → Register a new user
+ * - POST /login            → Authenticate and return JWT token
+ * - GET  /me               → Get current logged-in user profile
+ *
+ * Uses:
+ * - authController.js
+ * - verifyToken middleware
+ */
+
 const express = require('express');
 const router = express.Router();
 const { register, login } = require('../controllers/authController');

@@ -1,0 +1,19 @@
+{
+  "id": "nexprep-local",
+  "name": "NexPrep Local Dev",
+  "values": [
+    {
+      "key": "token",
+      "value": "<your-jwt-token-here>",
+      "enabled": true
+    },
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment",
+  "_postman_exported_at": "2025-04-19T04:54:47.042996Z",
+  "_postman_exported_using": "Postman/10.0"
+}

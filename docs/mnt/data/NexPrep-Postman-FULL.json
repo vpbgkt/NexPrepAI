@@ -1,0 +1,330 @@
+{
+  "info": {
+    "_postman_id": "nexprep-20250419043912",
+    "name": "NexPrep API",
+    "description": "Postman collection for NexPrep Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"John Doe\", \"email\": \"john@example.com\", \"password\": \"123456\"}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/auth/register",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"john@example.com\", \"password\": \"123456\"}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/auth/login",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tests",
+      "item": [
+        {
+          "name": "Start Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"seriesId\": \"REPLACE_WITH_SERIES_ID\"}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/tests/start",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "tests",
+                "start"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Submit Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"responses\": [{\"question\": \"QID\", \"selected\": [0, 2]}]}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/tests/{{attemptId}}/submit",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "tests",
+                "{{attemptId}}",
+                "submit"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Test Series (Admin)",
+      "item": [
+        {
+          "name": "Create Test Series",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"NEET 2025 - Mock 1\", \"examType\": \"medical\", \"duration\": 180, \"totalMarks\": 720, \"negativeMarking\": true, \"questions\": [{\"question\": \"QUESTION_ID\", \"marks\": 4}]}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/testSeries/create",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "testSeries",
+                "create"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Clone Test Series",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/testSeries/clone/{{id}}",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "testSeries",
+                "clone",
+                "{{id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Test Series",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/testSeries",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "testSeries"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Review & Attempts",
+      "item": [
+        {
+          "name": "Review Test Attempt",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/tests/review/{{id}}",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "tests",
+                "review",
+                "{{id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "My Test Attempts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/tests/my-attempts",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "tests",
+                "my-attempts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get My Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/tests/stats/me",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "tests",
+                "stats",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Leaderboard for Series",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/tests/leaderboard/{{seriesId}}",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "tests",
+                "leaderboard",
+                "{{seriesId}}"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

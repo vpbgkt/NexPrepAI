@@ -16,6 +16,13 @@
  * - verifyToken middleware
  */
 
+/**
+ * @swagger
+ * tags:
+ *   name: Tests
+ *   description: Test-related routes for students
+ */
+
 const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/verifyToken');
@@ -29,6 +36,19 @@ const {
   getStudentStats,
   getLeaderboardForSeries
 } = require('../controllers/testAttemptController');
+
+/**
+ * @swagger
+ * /tests/start:
+ *   post:
+ *     summary: Start a new test attempt
+ *     tags: [Tests]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Test started successfully
+ */
 
 // ✅ START TEST
 router.post('/start', verifyToken, startTest);
