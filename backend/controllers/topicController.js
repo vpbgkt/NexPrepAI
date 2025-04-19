@@ -1,3 +1,21 @@
+/**
+ * Controller: topicController.js
+ * -------------------------------------
+ * Manages CRUD operations for the Topic entity, which falls under a Subject.
+ *
+ * Functions:
+ * - addTopic(): Creates a new topic within a subject
+ * - getAllTopics(): Lists all topics, optionally filtered by subject
+ *
+ * Used in:
+ * - Admin panel for question categorization
+ * - CSV import auto-tagging
+ *
+ * Depends on:
+ * - models/Topic.js
+ * - models/Subject.js
+ */
+
 const Topic = require('../models/Topic');
 
 const addTopic = async (req, res) => {

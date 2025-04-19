@@ -1,3 +1,18 @@
+/**
+ * Controller: authController.js
+ * -------------------------------------
+ * Handles user authentication and authorization logic.
+ *
+ * Functions:
+ * - register(): Creates a new user account (student or admin)
+ * - login(): Authenticates credentials and issues a JWT
+ * - getUserProfile(): Returns profile info of logged-in user
+ *
+ * Works with:
+ * - models/User.js
+ * - middleware/authMiddleware.js
+ */
+
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');

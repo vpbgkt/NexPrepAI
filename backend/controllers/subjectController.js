@@ -1,3 +1,21 @@
+/**
+ * Controller: subjectController.js
+ * -------------------------------------
+ * Manages CRUD operations for the Subject entity, which falls under a Branch.
+ *
+ * Functions:
+ * - addSubject(): Adds a new subject to a specific branch
+ * - getAllSubjects(): Retrieves all subjects, optionally filtered by branch
+ *
+ * Used in:
+ * - Admin panel dropdowns
+ * - CSV question import logic
+ *
+ * Depends on:
+ * - models/Subject.js
+ * - models/Branch.js
+ */
+
 const Subject = require('../models/Subject');
 
 // @desc Add a subject
