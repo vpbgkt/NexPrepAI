@@ -21,6 +21,8 @@ const Subject = require('../models/Subject');
 const Topic = require('../models/Topic');
 const SubTopic = require('../models/SubTopic');
 const getExamTypeId = require('../utils/getExamTypeId');
+const mongoose = require('mongoose');
+const ExamType = require('../models/ExamType');
 
 // Create a question
 const createQuestion = async (req, res) => {
@@ -54,59 +56,127 @@ const createQuestion = async (req, res) => {
 };
 
 // ✅ Add a new question
+const resolveEntityWithParent = async (Model, name, parentField, parentId) => {
+  if (!name || !parentId) return null;
+
+  // Try finding it
+  let doc = await Model.findOne({
+    name: new RegExp(`^${name}$`, 'i'),
+    [parentField]: parentId,
+  });
+
+  // Create if not found
+  if (!doc) {
+    doc = new Model({
+      name,
+      [parentField]: parentId,
+    });
+    await doc.save();
+  }
+
+  return doc;
+};
+
 const addQuestion = async (req, res) => {
   try {
-    console.log('📥 Incoming Request Body:', req.body);
-
     const {
       questionText,
       options,
-      explanation,
-      difficulty,
+      correctOptions,
       branch,
       subject,
       topic,
       subtopic,
-      examType
+      examType,
+      difficulty,
+      explanation,
+      explanations = [],
+      marks = 1,
+      askedIn = [],
+      status = "active",
+      version = 1
     } = req.body;
 
-    // Minimal required field validation
-    if (!questionText || !options || !branch) {
-      return res.status(400).json({ message: 'Missing required fields' });
+    console.log("📥 Incoming Request Body:", req.body);
+
+    // Step 1: Resolve Entities (string or ObjectId)
+    const resolveEntity = async (Model, value, key = "name") => {
+      if (!value) return null;
+      if (mongoose.Types.ObjectId.isValid(value)) return value;
+      let doc = await Model.findOne({ [key]: new RegExp(`^${value}$`, "i") });
+      if (!doc) {
+        doc = new Model({ [key]: value });
+        await doc.save();
+      }
+      return doc._id;
+    };
+
+    const branchDoc = await resolveEntity(Branch, branch);
+    const subjectDoc = await resolveEntity(Subject, subject, 'name', { branch: branchDoc._id });
+    const topicDoc = await resolveEntityWithParent(Topic, topic, 'subject', subjectDoc?._id);
+    const subtopicDoc = await resolveEntityWithParent(SubTopic, subtopic, 'topic', topicDoc?._id);
+    const examTypeId = await resolveEntity(ExamType, examType, "code");
+
+    // Step 2: Format options
+    const formattedOptions = options.map((opt) => ({
+      text: opt.text?.trim(),
+      isCorrect: opt.isCorrect
+    })).filter(o => o.text); // remove empty options
+
+    // Step 3: Parse correctOptions if it's still string
+    let formattedCorrectOptions = correctOptions;
+    if (typeof correctOptions === 'string') {
+      try {
+        formattedCorrectOptions = JSON.parse(correctOptions);
+      } catch {
+        formattedCorrectOptions = correctOptions.split('|').map(s => s.trim());
+      }
     }
 
-    // Validate branch existence
-    const foundBranch = await Branch.findById(branch);
-    if (!foundBranch) {
-      return res.status(400).json({ message: 'Invalid branch ID' });
+    // Step 4: Parse askedIn
+    let askedInArray = Array.isArray(askedIn) ? askedIn : [];
+    if (typeof askedIn === 'string') {
+      try {
+        askedInArray = JSON.parse(askedIn);
+      } catch {
+        askedInArray = [];
+      }
     }
 
-    // Optionally validate subject/topic/subtopic
-    const foundSubject = subject ? await Subject.findById(subject) : null;
-    const foundTopic = topic ? await Topic.findById(topic) : null;
-    const foundSubTopic = subtopic ? await SubTopic.findById(subtopic) : null;
+    // Step 5: Parse explanations
+    let explanationArray = Array.isArray(explanations) ? explanations : [];
+    if (typeof explanations === 'string') {
+      try {
+        explanationArray = JSON.parse(explanations);
+      } catch {
+        explanationArray = [];
+      }
+    }
 
-    // Save the question
-    const newQuestion = new Question({
+    const question = new Question({
       questionText,
-      options,
-      explanation,
+      options: formattedOptions,
+      correctOptions: formattedCorrectOptions,
+      branch: branchDoc,
+      subject: subjectDoc,
+      topic: topicDoc,
+      subtopic: subtopicDoc,
+      examType: examTypeId,
       difficulty,
-      branch,
-      subject: foundSubject?._id,
-      topic: foundTopic?._id,
-      subtopic: foundSubTopic?._id,
-      examType: await getExamTypeId(examType),
+      explanation,
+      explanations: explanationArray,
+      marks,
+      askedIn: askedInArray,
+      status,
+      version
     });
 
-    console.log('📦 Saving New Question:', newQuestion);
+    await question.save();
+    res.status(201).json(question);
 
-    await newQuestion.save();
-
-    res.status(201).json({ message: 'Question added successfully', question: newQuestion });
   } catch (error) {
-    console.error('❌ Error adding question:', error); // This will give the real issue
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error("❌ Error adding question:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 

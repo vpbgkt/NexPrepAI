@@ -1,9 +1,17 @@
+<p style="color: red;">📌 CSV Upload Component Loaded</p>
+
 <h3>CSV Import Questions</h3>
 
 <input type="file" (change)="onFileSelected($event)" accept=".csv" />
+<span *ngIf="parsedQuestions.length === 0" style="color: orange;">⚠️ No questions parsed</span>
 
 <div *ngIf="parsedQuestions.length > 0">
   <p>{{ parsedQuestions.length }} questions parsed.</p>
+
+  <!-- Preview parsed JSON -->
+  <pre>{{ parsedQuestions | json }}</pre>
+
+  <!-- Single Submit Button -->
   <button (click)="submitToBackend()">Submit to Backend</button>
 </div>
 

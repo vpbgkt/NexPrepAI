@@ -57,6 +57,47 @@ Route	Method	Description
 /api/tests/leaderboard/:seriesId	GET	Top scorers per test
 /api/testAttempts/me	GET	View student's past attempts
 /api/tests/stats/me	GET	See performance summary
+
+## ➕ Add Question API: /api/questions/add
+
+Use this API to add a new question into NexPrep backend with full structure:
+
+```json
+{
+  "questionText": "What is the acceleration due to gravity on Earth?",
+  "options": [
+    { "text": "9.8 m/s²", "isCorrect": true },
+    { "text": "10 m/s²", "isCorrect": false },
+    { "text": "9.2 m/s²", "isCorrect": false },
+    { "text": "8.9 m/s²", "isCorrect": false }
+  ],
+  "correctOptions": ["9.8 m/s²"],
+  "branch": "Medical",
+  "subject": "Physics",
+  "topic": "Mechanics",
+  "subtopic": "Gravitation",
+  "examType": "NEET",
+  "difficulty": "Easy",
+  "marks": 4,
+  "explanation": "Gravity at sea level is approximately 9.8 m/s².",
+  "explanations": [
+    { "type": "text", "label": "Basic", "content": "Gravity is a pull force towards Earth." },
+    { "type": "video", "label": "Watch this", "content": "https://youtube.com/xyz" }
+  ],
+  "askedIn": [{ "examName": "NEET", "year": 2022 }],
+  "status": "active",
+  "version": 1
+}
+```
+
+`branch`, `subject`, `topic`, `subtopic`, and `examType` can be names, not ObjectIds—system will resolve and auto-create them if needed.
+
+`correctOptions` should match exactly with the text of one or more entries in `options`.
+
+`explanations` is an array supporting text, video, pdf, or image.
+
+Response: 201 Created or appropriate error code.
+
 🧠 Features
 Dynamic question tagging (branch, subject, topic, subtopic)
 

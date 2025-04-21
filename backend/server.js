@@ -46,6 +46,8 @@ app.use('/api/topics', require('./routes/topic'));
 app.use('/api/subtopics', require('./routes/subtopic'));
 app.use('/api/testSeries', require('./routes/testSeries'));
 app.use('/api/examTypes', require('./routes/examTypes'));
+app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/dashboard', require('./routes/dashboard'));
 
 // Swagger Docs
 const swaggerUi = require('swagger-ui-express');

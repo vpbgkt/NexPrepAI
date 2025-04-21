@@ -40,5 +40,13 @@ const testAttemptSchema = new Schema({
   submittedAt: { type: Date }
 });
 
+// Added attemptNo field to the schema
+testAttemptSchema.add({
+  attemptNo: {
+    type: Number,
+    required: true
+  }
+});
+
 module.exports =
   mongoose.models.TestAttempt || mongoose.model('TestAttempt', testAttemptSchema);

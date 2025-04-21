@@ -18,6 +18,8 @@ const express = require('express');
 const router  = express.Router();
 const { createTestSeries, cloneTestSeries, getAllTestSeries, createRandomTestSeries } = require('../controllers/testSeriesController');
 const verifyToken = require('../middleware/verifyToken');
+const TestAttempt = require('../models/TestAttempt');
+const TestSeries = require('../models/TestSeries');
 
 // Create a new TestSeries
 router.post('/create', verifyToken, createTestSeries);
@@ -30,5 +32,33 @@ router.get('/', verifyToken, getAllTestSeries);
 
 // Create a random TestSeries
 router.post('/random', verifyToken, createRandomTestSeries);
+
+// Check the status of a TestSeries for a student
+router.get('/:id/status', verifyToken, async (req, res) => {
+  try {
+    const seriesId = req.params.id;
+    const studentId = req.user._id;
+
+    const series = await TestSeries.findById(seriesId);
+    if (!series) return res.status(404).json({ message: 'Test not found' });
+
+    const count = await TestAttempt.countDocuments({
+      series: seriesId,
+      student: studentId,
+    });
+
+    const attemptsLeft = Math.max(series.maxAttempts - count, 0);
+    const canAttempt = attemptsLeft > 0;
+
+    res.json({
+      canAttempt,
+      attemptsLeft,
+      maxAttempts: series.maxAttempts
+    });
+  } catch (err) {
+    console.error('❌ status check error:', err);
+    res.status(500).json({ message: 'Error checking status' });
+  }
+});
 
 module.exports = router;

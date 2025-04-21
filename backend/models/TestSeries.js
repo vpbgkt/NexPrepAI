@@ -39,7 +39,19 @@ const testSeriesSchema = new Schema({
   negativeMarking: { type: Boolean, default: false },
 
   questions: [questionWithMarksSchema], // For non-section papers
-  sections:  [sectionSchema]            // Optional section-wise layout
+  sections:  [sectionSchema],           // Optional section-wise layout
+  maxAttempts: { type: Number, default: 1 }, // Added maxAttempts field to the schema
+  mode: {
+    type: String,
+    enum: ['practice', 'live'],
+    default: 'practice'
+  },
+  startAt: {
+    type: Date
+  },
+  endAt: {
+    type: Date
+  }
 }, { timestamps: true });
 
 module.exports =

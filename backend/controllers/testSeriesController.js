@@ -30,7 +30,9 @@ async function createTestSeries(req, res) {
       year,
       examType,         // e.g., 'medical'
       questions,        // [{ question, marks }]
-      sections          // optional
+      sections,         // optional
+      startAt,          // start time
+      endAt             // end time
     } = req.body;
 
     if (!questions?.length && !sections?.length) {
@@ -44,6 +46,9 @@ async function createTestSeries(req, res) {
       totalMarks,
       year,
       examType: await getExamTypeId(examType),
+      mode: ['live', 'practice'].includes(req.body.mode) ? req.body.mode : 'practice',
+      startAt,
+      endAt,
 
       ...(sections?.length > 0
         ? { sections }
