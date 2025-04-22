@@ -29,6 +29,18 @@ const sectionSchema = new Schema({
   questions: [questionWithMarksSchema]
 });
 
+const variantSchema = new Schema({
+  code: {
+    type: String,
+    required: true       // e.g. 'A', 'B', 'C'
+  },
+  sections: [ sectionSchema ],
+  negativeMarking: {
+    type: Number,        // now accepts decimals like 0.25
+    default: 0
+  }
+});
+
 const testSeriesSchema = new Schema({
   title:        { type: String, required: true },
   examType:     { type: Schema.Types.ObjectId, ref: 'ExamType', required: true },
@@ -36,11 +48,10 @@ const testSeriesSchema = new Schema({
 
   duration:     { type: Number, required: true },
   totalMarks:   { type: Number, required: true },
-  negativeMarking: { type: Boolean, default: false },
 
-  questions: [questionWithMarksSchema], // For non-section papers
-  sections:  [sectionSchema],           // Optional section-wise layout
-  maxAttempts: { type: Number, default: 1 }, // Added maxAttempts field to the schema
+  variants:     [ variantSchema ],       // ← new multi‑form support
+
+  maxAttempts: { type: Number, default: 1 },
   mode: {
     type: String,
     enum: ['practice', 'live'],
