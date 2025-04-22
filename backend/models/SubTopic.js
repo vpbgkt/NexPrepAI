@@ -6,5 +6,5 @@ const subTopicSchema = new mongoose.Schema({
 });
 
 // Prevent OverwriteModelError by reusing an existing model if present
-module.exports = mongoose.models.Subtopic ||
-  mongoose.model('Subtopic', subTopicSchema);
+module.exports = mongoose.models.SubTopic ||
+  mongoose.model('SubTopic', subTopicSchema);

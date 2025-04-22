@@ -26,6 +26,17 @@ const responseSchema = new Schema({
   selected: [Number], // indices of selected options
 });
 
+const questionWithMarksSchema = new Schema({
+  question: { type: Schema.Types.ObjectId, ref: 'Question' },
+  marks: { type: Number, default: 1 }
+});
+
+const sectionSchema = new Schema({
+  title: { type: String, required: true },
+  order: Number,
+  questions: [questionWithMarksSchema]
+});
+
 const testAttemptSchema = new Schema({
   series:   { type: Schema.Types.ObjectId, ref: 'TestSeries', required: true },
   student:  { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -45,7 +56,12 @@ testAttemptSchema.add({
   attemptNo: {
     type: Number,
     required: true
-  }
+  },
+  // ← NEW: which form the student got
+  variantCode: { type: String },
+
+  // ← NEW: the exact sections/questions for that form
+  sections: [sectionSchema]
 });
 
 module.exports =
