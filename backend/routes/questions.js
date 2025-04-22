@@ -47,6 +47,7 @@ router.get('/filter', verifyToken, filterQuestions);
 router.post('/add', verifyToken, addQuestion);
 
 // ✅ Get all questions
+// (static route, placed before the dynamic one below)
 router.get('/all', verifyToken, getAllQuestions);
 
 // ✅ Create question (used by admin maybe)
@@ -196,12 +197,10 @@ router.post('/import-csv', verifyToken, async (req, res) => {
   }
 });
 
-// ✅ Get a specific question by ID — THIS MUST BE AT BOTTOM!
+// ✅ Get a specific question by ID
 router.get('/:id', verifyToken, getQuestionById);
-
 // ✅ Update question
 router.put('/:id', verifyToken, updateQuestion);
-
 // ✅ Delete question
 router.delete('/:id', verifyToken, deleteQuestion);
 

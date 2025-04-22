@@ -58,7 +58,8 @@ router.post('/:attemptId/submit', verifyToken, submitAttempt);
 
 // ✅ USER ATTEMPT ROUTES
 router.get('/my-attempts', verifyToken, getMyTestAttempts);
-router.get('/review/:id', verifyToken, reviewAttempt);
+// REVIEW (fixed to use the same param name the controller expects)
+router.get('/:attemptId/review', verifyToken, reviewAttempt);
 router.get('/stats/me', verifyToken, getStudentStats);
 router.get('/leaderboard/:seriesId', verifyToken, getLeaderboardForSeries);
 
