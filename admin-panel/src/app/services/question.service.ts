@@ -123,4 +123,8 @@ export class QuestionService {
       { headers }
     );
   }
+
+  getAll(): Observable<Question[]> {
+    return this.http.get<Question[]>(`${this.apiUrl}/questions/all`);
+  }
 }

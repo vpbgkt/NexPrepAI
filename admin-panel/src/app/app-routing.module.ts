@@ -12,6 +12,7 @@ import { AddSubtopicComponent } from './components/add-subtopic.component';
 import { CsvUploadComponent } from './components/csv-upload/csv-upload.component';
 import { TestSeriesListComponent } from './components/test-series-list/test-series-list.component';
 import { CreateTestSeriesComponent } from './components/create-test-series/create-test-series.component';
+import { BuildPaperComponent } from './components/build-paper/build-paper.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -26,6 +27,7 @@ export const routes: Routes = [
   { path: 'csv-import', component: CsvUploadComponent },
   { path: 'test-series', component: TestSeriesListComponent, canActivate: [authGuard] },
   { path: 'test-series/create', component: CreateTestSeriesComponent, canActivate: [authGuard] },
+  { path: 'build-paper', component: BuildPaperComponent },
 ];
 
 @NgModule({

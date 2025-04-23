@@ -42,4 +42,11 @@ export class TestSeriesService {
   clone(id: string): Observable<TestSeries> {
     return this.http.post<TestSeries>(`${this.baseUrl}/clone/${id}`, {});
   }
+
+  createSeries(payload: any): Observable<any> {
+    return this.http.post<any>(
+      `${this.baseUrl}/api/testSeries/create`,
+      payload
+    );
+  }
 }

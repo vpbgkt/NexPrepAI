@@ -1,3 +1,5 @@
+console.log('🏄 questionController.js loaded');
+
 /**
  * Controller: questionController.js
  * -------------------------------------
@@ -184,14 +186,13 @@ const addQuestion = async (req, res) => {
 const getAllQuestions = async (req, res) => {
   try {
     const questions = await Question.find()
-      .populate('branch', 'name')      // only pull in the `name` field
-      .populate('subject', 'name')
-      .populate('topic', 'name')
+      .populate('branch',   'name')
+      .populate('subject',  'name')
+      .populate('topic',    'name')
       .populate('subtopic', 'name');
-    res.json(questions);
+    return res.json(questions);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -223,7 +224,7 @@ const filterQuestions = async (req, res) => {
   }
 };
 
-// Get a single question by ID
+// ✅ Get a specific question by ID
 const getQuestionById = async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -232,12 +233,11 @@ const getQuestionById = async (req, res) => {
     }
     res.status(200).json(question);
   } catch (err) {
-    console.error('Error fetching question:', err);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
 
-// Update a question by ID
+// ✅ Update question
 const updateQuestion = async (req, res) => {
   try {
     const updatedQuestion = await Question.findByIdAndUpdate(
@@ -252,12 +252,11 @@ const updateQuestion = async (req, res) => {
 
     res.status(200).json(updatedQuestion);
   } catch (err) {
-    console.error('Error updating question:', err);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
 
-// Delete a question by ID
+// ✅ Delete question
 const deleteQuestion = async (req, res) => {
   try {
     const deleted = await Question.findByIdAndDelete(req.params.id);
@@ -266,7 +265,6 @@ const deleteQuestion = async (req, res) => {
     }
     res.status(200).json({ message: 'Question deleted successfully' });
   } catch (err) {
-    console.error('Error deleting question:', err);
     res.status(500).json({ message: 'Internal server error' });
   }
 };

@@ -61,12 +61,29 @@ exports.startTest = async (req, res) => {
       });
     }
 
+    // Choose one form at random (or use any assignment logic)
+    let selectedVariant;
+    if (series.variants?.length) {
+      const idx = Math.floor(
+        Math.random() * series.variants.length
+      );
+      selectedVariant = series.variants[idx];
+    }
+
     // ✅ Create the attempt
     const attempt = new TestAttempt({
       series: seriesId,
       student: req.user.userId,
       attemptNo: existingAttempts + 1,
       responses: [],
+
+      // ← if we picked a variant, store its code & sections
+      ...(selectedVariant
+        ? {
+            variantCode: selectedVariant.code,
+            sections: selectedVariant.sections
+          }
+        : {})
     });
 
     await attempt.save();
@@ -84,93 +101,61 @@ exports.startTest = async (req, res) => {
 
 exports.submitTest = async (req, res) => {
   try {
-    const attemptId = req.params.attemptId;
-    const { responses } = req.body;
+    const { attemptId, responses } = req.body;
 
-    const attempt = await TestAttempt.findById(attemptId).populate('series');
+    // Load the attempt, including the variant’s sections
+    const attempt = await TestAttempt
+      .findById(attemptId)
+      .populate('student', 'name')
+      .lean();
+
     if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
 
-    const { questions, sections, negativeMarking } = attempt.series;
-    const marksMap = new Map();
+    // Use the stored variant layout
+    const layout = attempt.sections;
 
-    if (sections?.length) {
-      for (const sec of sections) {
-        for (const q of sec.questions) {
-          marksMap.set(q.question.toString(), q.marks);
-        }
-      }
-    } else {
-      for (const q of questions) {
-        marksMap.set(q.question.toString(), q.marks);
-      }
-    }
+    // Initialize scoring
+    let totalScore = 0;
+    let maxScore   = 0;
 
-    let total = 0;
-    let max = 0;
-    const checked = [];
+    // Grade each question in each section (async-friendly)
+    for (const section of layout) {
+      for (const { question: qId, marks } of section.questions) {
+        maxScore += marks;
+        // find the student's response for this question
+        const resp = responses.find(r => r.question === qId.toString());
 
-    const startTime = Date.now();
+        // fetch the full Question doc to get correctOptions
+        const qDoc = await Question.findById(qId);
+        const correctArr = Array.isArray(qDoc.correctOptions)
+          ? qDoc.correctOptions
+          : [];
+        const selectedArr = Array.isArray(resp?.selectedOptions)
+          ? resp.selectedOptions
+          : [];
 
-    for (const { question, selected } of responses) {
-      const qDoc = await Question.findById(question);
-      if (!qDoc) continue;
+        // check if arrays match exactly
+        const isCorrect =
+          correctArr.length > 0 &&
+          correctArr.length === selectedArr.length &&
+          correctArr.sort().join(',') === selectedArr.sort().join(',');
 
-      const correct = qDoc.correctOptions?.sort().join(',') || '';
-      const given = (selected || []).sort().join(',');
-
-      const marks = marksMap.get(question) || 1;
-      max += marks;
-
-      const isCorrect = correct === given;
-      const earned = isCorrect ? marks : negativeMarking ? -0.25 * marks : 0;
-      total += earned;
-
-      const timeSpent = (Date.now() - startTime) / 1000;
-
-      checked.push({
-        question,
-        selected,
-        correctOptions: qDoc.correctOptions,
-        earned
-      });
-
-      // ✅ Update question analytics
-      const qAnalytics = await Question.findById(qDoc._id);
-      if (qAnalytics) {
-        const { correct, total } = qAnalytics.meta.accuracy;
-        const updatedTotal = total + 1;
-        const updatedCorrect = correct + (isCorrect ? 1 : 0);
-
-        const prevAvg = qAnalytics.meta.avgTime || 0;
-        const newAvg = (prevAvg * total + timeSpent) / updatedTotal;
-
-        qAnalytics.meta.accuracy.total = updatedTotal;
-        qAnalytics.meta.accuracy.correct = updatedCorrect;
-        qAnalytics.meta.avgTime = newAvg;
-
-        await qAnalytics.save();
+        totalScore += isCorrect ? marks : 0;
+        // TODO: implement negative marking by subtracting here if needed
       }
     }
 
-    // ✅ Save attempt
-    attempt.responses = checked;
-    attempt.score = total;
-    attempt.maxScore = max;
-    attempt.percentage = Math.round((total / max) * 100);
-    attempt.submittedAt = new Date();
-
-    await attempt.save();
-
-    return res.status(200).json({
-      score: total,
-      maxScore: max,
-      percentage: attempt.percentage,
-      breakdown: checked
+    // Update attempt record
+    await TestAttempt.findByIdAndUpdate(attemptId, {
+      score:    totalScore,
+      maxScore: maxScore,
+      responses
     });
 
+    return res.json({ totalScore, maxScore });
   } catch (err) {
-    console.error('🔥 submitTest error:', err);
-    res.status(500).json({ message: 'Submit failed', error: err.message });
+    console.error('Error in submitTest:', err);
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -195,39 +180,24 @@ exports.getMyTestAttempts = async (req, res) => {
 
 exports.reviewAttempt = async (req, res) => {
   try {
-    const attempt = await TestAttempt.findById(req.params.id)
-      .populate({
-        path: 'responses.question',
-        select: 'text options correctOptions'
-      })
-      .populate({
-        path: 'series',
-        select: 'title examType year',
-        populate: { path: 'examType', select: 'code name' }
-      });
-
+    const attempt = await TestAttempt
+      .findById(req.params.attemptId)
+      .populate('student', 'name')
+      .lean();
     if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
 
-    res.status(200).json({
-      _id: attempt._id,
-      series: attempt.series,
-      submittedAt: attempt.submittedAt,
-      score: attempt.score,
-      percentage: attempt.percentage,
-      responses: attempt.responses.map(r => ({
-        question: {
-          _id: r.question._id,
-          text: r.question.text,
-          options: r.question.options
-        },
-        selected: r.selected,
-        correctOptions: r.question.correctOptions,
-        earned: r.earned
-      }))
+    // Return the exact variant info and scoring
+    return res.json({
+      attemptId:   attempt._id,
+      variantCode: attempt.variantCode,
+      sections:    attempt.sections,
+      responses:   attempt.responses,
+      score:       attempt.score,
+      maxScore:    attempt.maxScore
     });
   } catch (err) {
-    console.error('❌ reviewAttempt error:', err);
-    res.status(500).json({ message: 'Failed to review test' });
+    console.error('Error in reviewAttempt:', err);
+    return res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -254,7 +224,7 @@ exports.getStudentStats = async (req, res) => {
     });
   } catch (err) {
     console.error('❌ getStudentStats error:', err);
-    res.status(500).json({ message: 'Failed to get stats' });
+    res.status  (500).json({ message: 'Failed to get stats' });
   }
 };
 
@@ -304,83 +274,94 @@ exports.submitAttempt = async (req, res) => {
       return res.status(403).json({ message: 'Only students are allowed to attempt tests.' });
     }
 
-    const attempt = await TestAttempt.findById(attemptId).populate('series');
+    // Load attempt with its stored variant details
+    const attempt = await TestAttempt
+      .findById(attemptId)
+      .populate('series', 'variants')
+      .lean();
+
     if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
 
-    const startTime = Date.now();
+    // Find the variant object that matches this attempt
+    const variant = attempt.series.variants.find(v => v.code === attempt.variantCode);
+    const negativeMarking = variant?.negativeMarking || 0;
 
-    const { questions, sections, negativeMarking } = attempt.series;
+    // Use the stored sections layout
+    const layout = attempt.sections;
     const marksMap = new Map();
 
-    if (sections?.length) {
-      for (const sec of sections) {
-        for (const q of sec.questions) {
-          marksMap.set(q.question.toString(), q.marks);
-        }
-      }
-    } else {
-      for (const q of questions) {
+    // Build a marks map from layout
+    layout.forEach(section => {
+      section.questions.forEach(q => {
         marksMap.set(q.question.toString(), q.marks);
-      }
-    }
+      });
+    });
 
     let total = 0;
-    let max = 0;
+    let max   = 0;
     const checked = [];
 
-    for (const { question, selected } of responses) {
-      const qDoc = await Question.findById(question);
-      if (!qDoc) continue;
-
-      const correct = qDoc.correctOptions?.sort().join(',') || '';
-      const given = (selected || []).sort().join(',');
-
+    // Grade each response
+    for (const { question, selectedOptions } of responses) {
       const marks = marksMap.get(question) || 1;
       max += marks;
 
-      const isCorrect = correct === given;
-      const earned = isCorrect ? marks : negativeMarking ? -0.25 * marks : 0;
+      // Fetch correctOptions
+      const qDoc = await Question.findById(question);
+      const correctArr = Array.isArray(qDoc.correctOptions)
+        ? qDoc.correctOptions
+        : [];
+      const selArr = Array.isArray(selectedOptions)
+        ? selectedOptions
+        : [];
+
+      const isCorrect = 
+        correctArr.length > 0 &&
+        correctArr.length === selArr.length &&
+        correctArr.sort().join(',') === selArr.sort().join(',');
+
+      const earned = isCorrect
+        ? marks
+        : -negativeMarking * marks;
 
       total += earned;
-      checked.push({ question, selected, correctOptions: qDoc.correctOptions, earned });
+      checked.push({ question, selectedOptions, earned });
 
-      const timeSpent = (Date.now() - startTime) / 1000; // in seconds
-
-      // update accuracy and avgTime
+      // Update per‑question analytics
       const qAnalytics = await Question.findById(qDoc._id);
-
       if (qAnalytics) {
-        const { correct, total } = qAnalytics.meta.accuracy;
-        const updatedTotal = total + 1;
-        const updatedCorrect = correct + (isCorrect ? 1 : 0);
+        const prevTotal = qAnalytics.meta.accuracy.total;
+        const prevCorrect = qAnalytics.meta.accuracy.correct;
+        const timeSpent = (Date.now() - attempt.startedAt) / 1000;
 
-        const prevAvg = qAnalytics.meta.avgTime || 0;
-        const newAvg = (prevAvg * total + timeSpent) / updatedTotal;
-
-        qAnalytics.meta.accuracy.total = updatedTotal;
-        qAnalytics.meta.accuracy.correct = updatedCorrect;
-        qAnalytics.meta.avgTime = newAvg;
+        qAnalytics.meta.accuracy.total   = prevTotal + 1;
+        qAnalytics.meta.accuracy.correct = prevCorrect + (isCorrect ? 1 : 0);
+        qAnalytics.meta.avgTime = 
+          ((qAnalytics.meta.avgTime * prevTotal) + timeSpent) 
+          / (prevTotal + 1);
 
         await qAnalytics.save();
       }
     }
 
-    attempt.responses = checked;
-    attempt.score = total;
-    attempt.maxScore = max;
-    attempt.percentage = Math.round((total / max) * 100);
-    attempt.submittedAt = new Date();
-
-    await attempt.save();
+    // Persist results
+    await TestAttempt.findByIdAndUpdate(attemptId, {
+      responses:   checked,
+      score:       total,
+      maxScore:    max,
+      percentage:  Math.round((total / max) * 100),
+      submittedAt: new Date()
+    });
 
     return res.status(200).json({
-      score: total,
-      maxScore: max,
-      percentage: attempt.percentage,
-      breakdown: checked
+      score:      total,
+      maxScore:   max,
+      percentage: Math.round((total / max) * 100),
+      breakdown:  checked
     });
+
   } catch (err) {
     console.error('🔥 submitAttempt failed:', err);
-    res.status(500).json({ message: 'Submit failed', error: err.message });
+    return res.status(500).json({ message: 'Submit failed', error: err.message });
   }
 };

@@ -31,12 +31,13 @@ async function createTestSeries(req, res) {
       examType,         // e.g., 'medical'
       questions,        // [{ question, marks }]
       sections,         // optional
+      variants,         // added variants
       startAt,          // start time
       endAt             // end time
     } = req.body;
 
-    if (!questions?.length && !sections?.length) {
-      return res.status(400).json({ message: 'Provide at least questions or sections' });
+    if (!questions?.length && !sections?.length && !variants?.length) {
+      return res.status(400).json({ message: 'Provide at least questions, sections, or variants' });
     }
 
     const newSeries = new TestSeries({
@@ -50,9 +51,11 @@ async function createTestSeries(req, res) {
       startAt,
       endAt,
 
-      ...(sections?.length > 0
-        ? { sections }
-        : { questions }) // fallback to flat if no sections
+      ...(variants?.length > 0
+        ? { variants }
+        : sections?.length > 0
+          ? { sections }
+          : { questions }) // fallback to flat if no sections or variants
     });
 
     await newSeries.save();

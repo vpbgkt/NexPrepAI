@@ -1,12 +1,14 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { provideHttpClient, withInterceptorsFromDi, HTTP_INTERCEPTORS } from '@angular/common/http';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { HttpClientModule } from '@angular/common/http';
 
 import { AppComponent } from './app.component';
 import { QuestionListComponent } from './components/question-list/question-list.component';
 import { AddQuestionComponent } from './components/add-question/add-question.component';
+import { BuildPaperComponent } from './components/build-paper/build-paper.component';
 import { AppRoutingModule } from './app-routing.module';
 import { AuthInterceptor } from './services/auth.interceptor';
 
@@ -14,13 +16,16 @@ import { AuthInterceptor } from './services/auth.interceptor';
   declarations: [
     AppComponent,
     QuestionListComponent,
-    AddQuestionComponent
+    AddQuestionComponent,
+    BuildPaperComponent
   ],
   imports: [
     BrowserModule,
     FormsModule,
-    CommonModule,
-    AppRoutingModule
+    CommonModule, // Explicitly added CommonModule
+    AppRoutingModule,
+    HttpClientModule,
+    ReactiveFormsModule
   ],
   providers: [
     provideHttpClient(withInterceptorsFromDi()),

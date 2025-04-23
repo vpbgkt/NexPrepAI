@@ -1,0 +1,51 @@
+<form [formGroup]="seriesForm" (ngSubmit)="onSubmit()">
+  <h2>Build Paper</h2>
+
+  <!-- Title -->
+  <label>Title</label>
+  <input formControlName="title" type="text" />
+
+  <!-- Exam Type -->
+  <label>Exam Type</label>
+  <select formControlName="examType">
+    <option *ngFor="let et of examTypes" [value]="et.code">{{ et.name }}</option>
+  </select>
+
+  <!-- Duration & Marks -->
+  <label>Duration (min)</label>
+  <input formControlName="duration" type="number" />
+  <label>Total Marks</label>
+  <input formControlName="totalMarks" type="number" />
+
+  <!-- Negative Marking -->
+  <label>Negative Marking</label>
+  <input formControlName="negativeMarking" type="number" step="0.25" />
+
+  <!-- Sections -->
+  <div formArrayName="sections">
+    <div *ngFor="let secCtrl of sections.controls; let i = index" [formGroupName]="i">
+      <h3>Section {{ i + 1 }}</h3>
+      <label>Section Title</label>
+      <input formControlName="title" type="text" />
+      <label>Order</label>
+      <input formControlName="order" type="number" />
+
+      <!-- Question selection -->
+      <div formArrayName="questions">
+        <div *ngFor="let qCtrl of getQuestions(i).controls; let j = index" [formGroupName]="j">
+          <select formControlName="question">
+            <option *ngFor="let q of questionsList" [value]="q._id">{{ q.questionText }}</option>
+          </select>
+          <input formControlName="marks" type="number" min="1" required placeholder="Marks" />
+          <button type="button" (click)="removeQuestion(i,j)">Remove Question</button>
+        </div>
+        <button type="button" (click)="addQuestion(i)">+ Add Question</button>
+      </div>
+
+      <button type="button" (click)="removeSection(i)">Remove Section</button>
+    </div>
+    <button type="button" (click)="addSection()">+ Add Section</button>
+  </div>
+
+  <button type="submit" [disabled]="seriesForm.invalid">Create Test Series</button>
+</form>
