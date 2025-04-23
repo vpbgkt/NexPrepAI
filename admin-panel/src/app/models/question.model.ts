@@ -1,6 +1,5 @@
 export interface Question {
-  _id?: string; // for edit/delete
-
+  _id: string;
   questionText: string;
   options: { text: string; isCorrect: boolean }[];
   difficulty: '' | 'Easy' | 'Medium' | 'Hard';
