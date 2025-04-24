@@ -1,0 +1,13 @@
+<div *ngIf="loading">Loading...</div>
+<div *ngIf="error">{{ error }}</div>
+<div *ngIf="!loading && !error">
+  <h2>Review Attempt</h2>
+  <div *ngFor="let section of reviewData.sections">
+    <h3>{{ section.title }}</h3>
+    <div *ngFor="let question of section.questions; let i = index">
+      <p>Q{{ i + 1 }}: {{ question.questionText }}</p>
+      <p>Your Answer: {{ reviewData.responses[i]?.selected }}</p>
+      <p>Correct Answer: {{ question.correctAnswer }}</p>
+    </div>
+  </div>
+</div>

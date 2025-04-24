@@ -45,4 +45,8 @@ export class TestService {
   reviewAttempt(attemptId: string): Observable<any> {
     return this.http.get<any>(`${this.base}/tests/${attemptId}/review`);
   }
+
+  getReview(attemptId: string) {
+    return this.http.get<any>(`${this.base}/tests/${attemptId}/review`);
+  }
 }
