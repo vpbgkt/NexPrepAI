@@ -1,0 +1,43 @@
+<div *ngIf="!attemptId">
+  <button (click)="start()">Start Exam</button>
+</div>
+
+<div *ngIf="attemptId">
+  <p>Time left: {{ formatTime(timeLeft) }}</p>
+
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <div formArrayName="responses">
+      <div
+        *ngFor="let ctrl of responses.controls; let i = index"
+        [formGroupName]="i"
+      >
+        <p>
+          Q{{ i + 1 }}:
+          {{
+            sections[ctrl.value.sectionIndex]
+              .questions[ctrl.value.questionIndex]
+              .questionText
+          }}
+        </p>
+        <div
+          *ngFor="
+            let opt of
+              sections[ctrl.value.sectionIndex]
+                .questions[ctrl.value.questionIndex]
+                .options
+          "
+        >
+          <label>
+            <input
+              type="radio"
+              value="{{opt.text}}"
+              formControlName="selected"
+            />
+            {{ opt.text }}
+          </label>
+        </div>
+      </div>
+    </div>
+    <button type="submit">Submit Exam</button>
+  </form>
+</div>

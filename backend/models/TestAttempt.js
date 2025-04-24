@@ -22,8 +22,10 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const responseSchema = new Schema({
-  question: { type: Schema.Types.ObjectId, ref: 'Question' },
-  selected: [Number], // indices of selected options
+  question:  { type: Schema.Types.ObjectId, ref: 'Question', required: true },
+  selected:  [{ type: String }],            // ← an array of strings
+  correctOptions: [{ type: String }],       // optional, if you store it
+  earned:    Number
 });
 
 const questionWithMarksSchema = new Schema({
