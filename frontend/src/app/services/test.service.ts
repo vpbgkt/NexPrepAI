@@ -49,4 +49,8 @@ export class TestService {
   getReview(attemptId: string) {
     return this.http.get<any>(`${this.base}/tests/${attemptId}/review`);
   }
+
+  getMyAttempts() {
+    return this.http.get<any[]>(`${this.base}/tests/my-attempts`);
+  }
 }

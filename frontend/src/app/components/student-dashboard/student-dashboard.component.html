@@ -1,0 +1,25 @@
+<div *ngIf="loading">Loading your attempts…</div>
+<div *ngIf="error">{{ error }}</div>
+
+<table *ngIf="!loading && !error">
+  <thead>
+    <tr>
+      <th>Mock</th>
+      <th>Score</th>
+      <th>Out Of</th>
+      <th>%</th>
+      <th>Review</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let a of attempts">
+      <td>{{ a.series.title }} ({{ a.series.year }})</td>
+      <td>{{ a.score }}</td>
+      <td>{{ a.maxScore }}</td>
+      <td>{{ a.percentage }}%</td>
+      <td>
+        <a [routerLink]="['/review', a._id]">Review</a>
+      </td>
+    </tr>
+  </tbody>
+</table>
