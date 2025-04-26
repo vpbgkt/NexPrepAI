@@ -25,7 +25,8 @@ const responseSchema = new Schema({
   question:  { type: Schema.Types.ObjectId, ref: 'Question', required: true },
   selected:  [{ type: String }],            // ← an array of strings
   correctOptions: [{ type: String }],       // optional, if you store it
-  earned:    Number
+  earned:    Number,
+  review:    { type: Boolean, default: false }
 });
 
 const questionWithMarksSchema = new Schema({

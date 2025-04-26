@@ -34,7 +34,8 @@ const {
   getMyTestAttempts,
   reviewAttempt,
   getStudentStats,
-  getLeaderboardForSeries
+  getLeaderboardForSeries,
+  saveProgress
 } = require('../controllers/testAttemptController');
 
 /**
@@ -55,6 +56,9 @@ router.post('/start', verifyToken, requireRole('student'), startTest);
 
 // ✅ SUBMIT TEST
 router.post('/:attemptId/submit', verifyToken, requireRole('student'), submitAttempt);
+
+// ✅ SAVE PROGRESS
+router.post('/:attemptId/save', verifyToken, requireRole('student'), saveProgress);
 
 // ✅ USER ATTEMPT ROUTES
 router.get('/my-attempts', verifyToken, getMyTestAttempts);

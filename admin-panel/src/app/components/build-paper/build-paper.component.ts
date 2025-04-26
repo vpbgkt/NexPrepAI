@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';import { CommonModule } from '@angular/common';
 
-import { TestSeriesService } from '../../services/test-series.service';
+import { TestSeriesService, TestSeries } from '../../services/test-series.service';
 import { ExamTypeService } from '../../services/exam-type.service';
 import { QuestionService } from '../../services/question.service';
 import { Question } from '../../models/question.model';
@@ -75,17 +75,10 @@ export class BuildPaperComponent implements OnInit {
   }
 
   onSubmit() {
-    if (this.seriesForm.invalid) return;
-    this.tsService.create(this.seriesForm.value)
+    this.tsService.create(this.seriesForm.value as Partial<TestSeries>)
       .subscribe(
-        res => {
-          console.log('✅ TestSeries created:', res);
-          alert('Series created! ID: ' + res._id);
-        },
-        err => {
-          console.error('❌ Create failed:', err);
-          alert('Failed to create series: ' + err.message);
-        }
+        (res: any) => { alert('Test Series created!'); },
+        (err: any) => { alert('Creation failed: ' + err.message); }
       );
   }
 }

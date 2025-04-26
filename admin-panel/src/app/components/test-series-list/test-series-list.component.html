@@ -1,19 +1,17 @@
-<h2>Test Series List</h2>
-<table *ngIf="testSeriesList.length; else empty">
-  <tr>
-    <th>Name</th><th>Questions</th><th>Duration</th><th>Actions</th>
-  </tr>
+<h2>Test Series</h2>
 
-  <tr *ngFor="let s of testSeriesList">
-    <td>{{ s.name }}</td>
-    <td>{{ s.questionCount }}</td>
-    <td>{{ s.durationMinutes }} min</td>
-    <td>
-      <button (click)="cloneSeries(s._id)">Clone</button>
-    </td>
-  </tr>
-</table>
+<div *ngIf="!seriesList.length">
+  No test series found. Create one!
+</div>
 
-<ng-template #empty>
-  <p>No test series found.</p>
-</ng-template>
+<ul *ngIf="seriesList.length">
+  <li *ngFor="let s of seriesList">
+    <h3>{{ s.title }}</h3>
+    <p>
+      Duration: {{ s.duration }} min |
+      Total Marks: {{ s.totalMarks }} |
+      Mode: {{ s.mode }} |
+      Max Attempts: {{ s.maxAttempts }}
+    </p>
+  </li>
+</ul>

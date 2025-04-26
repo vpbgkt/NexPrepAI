@@ -1,0 +1,17 @@
+.sidebar {
+  /* your styling: float left, narrow width… */
+}
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+.sidebar li {
+  cursor: pointer;
+  padding: 4px;
+}
+.sidebar li.current {
+  font-weight: bold;
+}
+.sidebar li.flagged {
+  background: #ffeeba;
+}

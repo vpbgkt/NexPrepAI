@@ -26,7 +26,6 @@ async function createTestSeries(req, res) {
       title,
       duration,
       negativeMarking,
-      totalMarks,
       year,
       examType,         // e.g., 'medical'
       questions,        // [{ question, marks }]
@@ -40,11 +39,16 @@ async function createTestSeries(req, res) {
       return res.status(400).json({ message: 'Provide at least questions, sections, or variants' });
     }
 
+    // Compute totalMarks
+    const totalMarks = sections.reduce((secSum, sec) => {
+      const secMarks = sec.questions.reduce((qSum, q) => qSum + (q.marks || 0), 0);
+      return secSum + secMarks;
+    }, 0);
+
     const newSeries = new TestSeries({
       title,
       duration,
       negativeMarking,
-      totalMarks,
       year,
       examType: await getExamTypeId(examType),
       mode: ['live', 'practice'].includes(req.body.mode) ? req.body.mode : 'practice',
@@ -55,7 +59,8 @@ async function createTestSeries(req, res) {
         ? { variants }
         : sections?.length > 0
           ? { sections }
-          : { questions }) // fallback to flat if no sections or variants
+          : { questions }), // fallback to flat if no sections or variants
+      totalMarks // Automatically computed
     });
 
     await newSeries.save();
@@ -156,6 +161,18 @@ async function createRandomTestSeries(req, res) {
     res.status(500).json({ message: 'Failed to generate random paper' });
   }
 }
+
+// Removed duplicate import
+// const TestSeries = require('../models/TestSeries');
+
+exports.getAllSeries = async (req, res) => {
+  try {
+    const list = await TestSeries.find().lean();
+    res.json(list);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
 
 // Export handlers as properties
 module.exports = {

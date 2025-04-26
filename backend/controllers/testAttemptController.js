@@ -37,11 +37,34 @@ exports.startTest = async (req, res) => {
     }
 
     // pick a variant if available
-    let selectedVariant;
+    let selectedVariant = undefined;
     if (series.variants?.length) {
-      const idx = Math.floor(Math.random() * series.variants.length);
-      selectedVariant = series.variants[idx];
+      selectedVariant = series.variants[
+        Math.floor(Math.random() * series.variants.length)
+      ];
     }
+
+    // assemble a raw layout of sections:
+    let rawLayout = [];
+    if (selectedVariant?.sections?.length) {
+      // use the chosen variant’s sections
+      rawLayout = selectedVariant.sections;
+    } else if (Array.isArray(series.sections) && series.sections.length) {
+      // use any sections defined on the series
+      rawLayout = series.sections;
+    } else if (Array.isArray(series.questions) && series.questions.length) {
+      // fallback: wrap a flat questions[] into one section
+      rawLayout = [{
+        title: 'All Questions',
+        order: 1,
+        questions: series.questions.map(qId => ({
+          question: qId,
+          marks: 1
+        }))
+      }];
+    }
+
+    const layout = rawLayout;
 
     // create the attempt
     const attempt = new TestAttempt({
@@ -55,7 +78,6 @@ exports.startTest = async (req, res) => {
     await attempt.save();
 
     // now build detailed sections for the frontend
-    const layout = selectedVariant?.sections || series.sections;
     const detailedSections = await Promise.all(
       layout.map(async sec => ({
         title: sec.title,
@@ -207,6 +229,25 @@ exports.submitTest = async (req, res) => {
     await attempt.save();
 
     res.json({ message: 'Submitted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ────────────────────────────────────────────────────────────────────────────────
+// saveProgress: saves the student's progress in the TestAttempt model
+// ────────────────────────────────────────────────────────────────────────────────
+exports.saveProgress = async (req, res) => {
+  try {
+    const { attemptId } = req.params;
+    const { responses } = req.body;  // array with question, selected, review
+
+    const attempt = await TestAttempt.findById(attemptId);
+    if (!attempt) return res.status(404).json({ message: 'Not found' });
+
+    attempt.responses = responses;
+    await attempt.save();
+    res.json({ message: 'Progress saved' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

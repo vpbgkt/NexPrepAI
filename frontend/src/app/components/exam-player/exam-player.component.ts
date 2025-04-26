@@ -8,6 +8,7 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TestService, StartTestResponse } from '../../services/test.service';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 @Component({
   selector: 'app-exam-player',
@@ -24,6 +25,7 @@ export class ExamPlayerComponent implements OnInit {
   form!: FormGroup;
   timeLeft = 0;
   timerHandle!: any;
+  currentQuestionIndex = 0;
 
   constructor(
     private fb: FormBuilder,
@@ -55,6 +57,18 @@ export class ExamPlayerComponent implements OnInit {
       },
       error: err => alert(err.error?.message || 'Failed to start test')
     });
+
+    this.form.valueChanges
+      .pipe(
+        debounceTime(2000),
+        distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b))
+      )
+      .subscribe(vals => {
+        this.testSvc.saveProgress(this.attemptId, vals).subscribe({
+          next: () => console.log('Progress auto-saved'),
+          error: err => console.warn('Auto-save failed', err)
+        });
+      });
   }
 
   // Typed getter for the responses FormArray
@@ -78,6 +92,7 @@ export class ExamPlayerComponent implements OnInit {
               this.fb.group({
                 question: [q.question],
                 selected: [''],          // single‐value selection
+                review:   [false],
                 sectionIndex: [sIdx],
                 questionIndex: [qIdx]
               })
@@ -145,6 +160,23 @@ export class ExamPlayerComponent implements OnInit {
     return `${m}:${s}`;
   }
 
+  // jump to a specific question
+  goToQuestion(i: number) {
+    this.currentQuestionIndex = i;
+  }
+
+  next() {
+    if (this.currentQuestionIndex < this.responses.length - 1) {
+      this.currentQuestionIndex++;
+    }
+  }
+
+  prev() {
+    if (this.currentQuestionIndex > 0) {
+      this.currentQuestionIndex--;
+    }
+  }
+
   private buildFormAndTimer() {
     // —— build the FormArray here ——
     this.form = this.fb.group({ responses: this.fb.array([]) });
@@ -154,6 +186,7 @@ export class ExamPlayerComponent implements OnInit {
           this.fb.group({
             question:     [q.question],
             selected:     [''],        // or [] if multi-select
+            review:       [false],
             sectionIndex: [sIdx],
             questionIndex:[qIdx]
           })
@@ -171,5 +204,7 @@ export class ExamPlayerComponent implements OnInit {
         this.submit();  // or however you finalize
       }
     }, 1000);
+
+    this.currentQuestionIndex = 0;
   }
 }

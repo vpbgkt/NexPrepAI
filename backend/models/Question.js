@@ -25,7 +25,7 @@ const { Schema } = mongoose;
 
 const optionSchema = new Schema({
   text: { type: String, required: true },
-  isCorrect: { type: Boolean, required: true }
+  isCorrect: { type: Boolean, required: true, default: false }
 });
 
 const explanationSchema = new Schema({

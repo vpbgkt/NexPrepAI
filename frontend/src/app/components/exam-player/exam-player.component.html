@@ -3,40 +3,68 @@
 </div>
 
 <div *ngIf="attemptId">
+  <aside class="sidebar">
+    <ul>
+      <li
+        *ngFor="let ctrl of responses.controls; let idx = index"
+        (click)="goToQuestion(idx)"
+        [class.current]="idx === currentQuestionIndex"
+        [class.flagged]="ctrl.value.review"
+      >
+        Q{{ idx + 1 }}
+      </li>
+    </ul>
+  </aside>
+
   <p>Time left: {{ formatTime(timeLeft) }}</p>
 
   <form [formGroup]="form" (ngSubmit)="submit()">
     <div formArrayName="responses">
-      <div
-        *ngFor="let ctrl of responses.controls; let i = index"
-        [formGroupName]="i"
-      >
-        <!-- Question text -->
-        <p>
-          Q{{ i + 1 }}:
-          {{
-            sections[ctrl.value.sectionIndex]
-              .questions[ctrl.value.questionIndex]
-              .questionText
-          }}
-        </p>
+      <ng-container *ngFor="let ctrl of responses.controls; let i = index">
+        <div *ngIf="i === currentQuestionIndex" [formGroupName]="i">
+          <!-- question markup -->
+          <p>
+            Q{{ i + 1 }}:
+            {{
+              sections[ctrl.value.sectionIndex]
+                .questions[ctrl.value.questionIndex]
+                .questionText
+            }}
+          </p>
 
-        <!-- Options -->
-        <div
-          *ngFor="let opt of sections[ctrl.value.sectionIndex].questions[ctrl.value.questionIndex].options; let oi = index"
-        >
+          <!-- Options -->
+          <div
+            *ngFor="let opt of sections[ctrl.value.sectionIndex].questions[ctrl.value.questionIndex].options; let oi = index"
+          >
+            <label>
+              <input
+                type="radio"
+                formControlName="selected"
+                [value]="oi"
+              />
+              {{ opt.text }}
+            </label>
+          </div>
+
           <label>
-            <input
-              type="radio"
-              formControlName="selected"
-              [value]="oi"
-            />
-            {{ opt.text }}
+            <input type="checkbox" formControlName="review" />
+            Mark for review
           </label>
-        </div>
-      </div>
-    </div>
 
-    <button type="submit">Submit Exam</button>
+          <button type="button" (click)="prev()" [disabled]="currentQuestionIndex===0">
+            Prev
+          </button>
+          <button type="button" (click)="next()" [disabled]="currentQuestionIndex===responses.length-1">
+            Next
+          </button>
+
+          <!-- only on last question show Submit -->
+          <button
+            *ngIf="currentQuestionIndex === responses.length-1"
+            type="submit"
+          >Submit Exam</button>
+        </div>
+      </ng-container>
+    </div>
   </form>
 </div>

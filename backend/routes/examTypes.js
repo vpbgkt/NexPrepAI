@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const { list, create } = require('../controllers/examTypeController');
-const verifyToken = require('../middleware/verifyToken');
+const { verifyToken } = require('../middleware/verifyToken');
 
 // Public: get list
 router.get('/', list);

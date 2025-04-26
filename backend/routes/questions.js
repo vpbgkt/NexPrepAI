@@ -2,7 +2,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
-const verifyToken = require('../middleware/verifyToken');
+const { verifyToken } = require('../middleware/verifyToken');
 const Question = require('../models/Question');
 const Branch = require('../models/Branch');
 const Subject = require('../models/Subject');

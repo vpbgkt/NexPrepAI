@@ -35,6 +35,14 @@ export class TestService {
     );
   }
 
+  // → New: save progress
+  saveProgress(attemptId: string, payload: any): Observable<any> {
+    return this.http.post<any>(
+      `${this.base}/tests/${attemptId}/save`,
+      payload
+    );
+  }
+
   // existing methods…
   reviewAttempt(attemptId: string): Observable<any> {
     return this.http.get<any>(`${this.base}/tests/${attemptId}/review`);

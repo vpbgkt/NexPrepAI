@@ -4,7 +4,7 @@ import { HierarchyService, Branch, Subject, Topic, Subtopic } from '../../servic
 import { TestSeriesService, TestSeries } from '../../services/test-series.service';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 
 @Component({
   standalone: true,
@@ -22,7 +22,8 @@ export class CreateTestSeriesComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private hierarchy: HierarchyService,
-    private tsService: TestSeriesService
+    private tsService: TestSeriesService,
+    private router: Router
   ) {
     this.form = this.fb.group({
       name: ['', Validators.required],
@@ -74,10 +75,10 @@ export class CreateTestSeriesComponent implements OnInit {
 
   submit(): void {
     if (this.form.invalid) return;
-    this.tsService.create(this.form.value as TestSeries)
-      .subscribe(() => {
-        alert('Test series created!');
-        this.form.reset();
-      });
+    this.tsService.create(this.form.value as Partial<TestSeries>)
+      .subscribe(
+        (res: any) => this.router.navigate(['/test-series']),
+        (err: any) => console.error('Create failed:', err)
+      );
   }
 }

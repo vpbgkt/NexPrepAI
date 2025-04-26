@@ -25,9 +25,14 @@ const questionWithMarksSchema = new Schema({
 
 const sectionSchema = new Schema({
   title: { type: String, required: true },
-  order: { type: Number },
-  questions: [questionWithMarksSchema]
-});
+  order: { type: Number, required: true },
+  questions: [
+    {
+      question: { type: Schema.Types.ObjectId, ref: 'Question', required: true },
+      marks: { type: Number, default: 1 }
+    }
+  ]
+}, { _id: false });
 
 const variantSchema = new Schema({
   code: {
@@ -48,6 +53,8 @@ const testSeriesSchema = new Schema({
 
   duration:     { type: Number, required: true },
   totalMarks:   { type: Number, required: true },
+
+  sections:     [ sectionSchema ],
 
   variants:     [ variantSchema ],       // ← new multi‑form support
 

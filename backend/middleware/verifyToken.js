@@ -17,37 +17,39 @@
 
 const jwt = require('jsonwebtoken');
 
-const verifyToken = (req, res, next) => {
+// 1. verifyToken attaches req.user
+function verifyToken(req, res, next) {
   const authHeader = req.headers['authorization'];
-  console.log('Incoming Auth Header:', authHeader); // Log the Authorization header
+  if (!authHeader) return res.status(401).json({ message: 'No token provided' });
 
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
-  console.log('Extracted Token:', token); // Log the actual token
+  const token = authHeader.split(' ')[1];
+  if (!token) return res.status(401).json({ message: 'Invalid token format' });
 
-  if (!token) {
-    console.log('Access Denied: No Token Provided!');
-    return res.status(401).json({ message: 'Access Denied: No Token Provided!' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Token is valid. Decoded payload:', decoded); // Log decoded payload
-    req.user = decoded;
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) return res.status(401).json({ message: 'Token invalid or expired' });
+    req.user = {
+      userId: decoded.userId,
+      role:   decoded.role
+    };
     next();
-  } catch (error) {
-    console.log('Invalid Token:', error.message); // Log the exact error
-    res.status(403).json({ message: 'Invalid Token' });
-  }
-};
+  });
+}
 
-exports.requireRole = (...allowedRoles) => {
+// 2. requireRole factory checks req.user.role
+function requireRole(role) {
   return (req, res, next) => {
-    if (!req.user || !allowedRoles.includes(req.user.role)) {
-      console.log('Access Denied: Insufficient Role');
-      return res.status(403).json({ message: 'Forbidden: Insufficient Role' });
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+    if (req.user.role !== role) {
+      return res.status(403).json({ message: 'Forbidden: insufficient privileges' });
     }
     next();
   };
-};
+}
 
-module.exports = verifyToken;
+// 3. Export both functions
+module.exports = {
+  verifyToken,
+  requireRole
+};

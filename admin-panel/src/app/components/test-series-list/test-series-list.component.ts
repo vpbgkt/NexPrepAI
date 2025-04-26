@@ -7,26 +7,22 @@ import { TestSeries, TestSeriesService } from '../../services/test-series.servic
   standalone: true,
   selector: 'app-test-series-list',
   templateUrl: './test-series-list.component.html',
+  styleUrls: ['./test-series-list.component.scss'],
   imports: [ CommonModule, RouterModule ]
 })
 export class TestSeriesListComponent implements OnInit {
-  testSeriesList: TestSeries[] = [];
+  seriesList: TestSeries[] = [];
 
-  constructor(private testSeriesService: TestSeriesService) {}
+  constructor(private tsSvc: TestSeriesService) {}
+
+  private loadAllSeries() {
+    this.tsSvc.getSeries().subscribe({
+      next: list => this.seriesList = list,
+      error: err  => console.error('Failed to load series', err)
+    });
+  }
 
   ngOnInit() {
     this.loadAllSeries();
-  }
-
-  loadAllSeries(): void {
-    this.testSeriesService.getAll().subscribe(data => this.testSeriesList = data);
-  }
-
-  cloneSeries(id?: string): void {
-    if (!id) return; // guard against undefined
-    this.testSeriesService.clone(id).subscribe(() => {
-      alert('Test series cloned successfully!');
-      this.loadAllSeries();
-    });
   }
 }

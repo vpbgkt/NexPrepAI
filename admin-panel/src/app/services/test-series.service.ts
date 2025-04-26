@@ -1,52 +1,29 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
 
 export interface TestSeries {
-  _id?: string;
-  name: string;
-  branchId: string;
-  subjectId?: string;
-  topicId?: string;
-  subtopicId?: string;
-  questionCount: number;
-  durationMinutes: number;
-  totalMarks: number;
-  negativeMarks?: number;
-  // any other fields you need
+  _id:         string;
+  title:       string;
+  examType:    string;    // or an object if you populate
+  duration:    number;
+  totalMarks:  number;
+  mode:        string;
+  maxAttempts: number;
 }
 
 @Injectable({ providedIn: 'root' })
 export class TestSeriesService {
-  private baseUrl = `${environment.apiUrl}/testSeries`;
+  private base = 'http://localhost:5000/api/testSeries';
 
   constructor(private http: HttpClient) {}
 
-  getAll(): Observable<TestSeries[]> {
-    return this.http.get<TestSeries[]>(this.baseUrl);   // GET /api/testSeries
+  getSeries(): Observable<TestSeries[]> {
+    return this.http.get<TestSeries[]>(this.base);
   }
 
-  create(series: TestSeries): Observable<TestSeries> {
-    return this.http.post<TestSeries>(`${this.baseUrl}/create`, series);
-  }
-
-  update(id: string, series: TestSeries): Observable<TestSeries> {
-    return this.http.put<TestSeries>(`${this.baseUrl}/update/${id}`, series);
-  }
-
-  delete(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/delete/${id}`);
-  }
-
-  clone(id: string): Observable<TestSeries> {
-    return this.http.post<TestSeries>(`${this.baseUrl}/clone/${id}`, {});
-  }
-
-  createSeries(payload: any): Observable<any> {
-    return this.http.post<any>(
-      `${this.baseUrl}/api/testSeries/create`,
-      payload
-    );
+  /** Create a new test series */
+  create(payload: Partial<TestSeries>): Observable<TestSeries> {
+    return this.http.post<TestSeries>(`${this.base}/create`, payload);
   }
 }
