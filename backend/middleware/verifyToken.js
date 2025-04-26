@@ -40,4 +40,14 @@ const verifyToken = (req, res, next) => {
   }
 };
 
+exports.requireRole = (...allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      console.log('Access Denied: Insufficient Role');
+      return res.status(403).json({ message: 'Forbidden: Insufficient Role' });
+    }
+    next();
+  };
+};
+
 module.exports = verifyToken;

@@ -189,6 +189,30 @@ exports.submitAttempt = async (req, res) => {
 };
 
 // ────────────────────────────────────────────────────────────────────────────────
+// submitTest: saves the student's answers in the TestAttempt model
+// ────────────────────────────────────────────────────────────────────────────────
+exports.submitTest = async (req, res) => {
+  try {
+    const { attemptId } = req.params;
+    const { responses } = req.body; // array of { question, selected }
+
+    const attempt = await TestAttempt.findById(attemptId);
+    if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
+
+    attempt.responses = responses.map(r => ({
+      question: r.question,
+      selected: r.selected
+    }));
+    attempt.submittedAt = new Date();
+    await attempt.save();
+
+    res.json({ message: 'Submitted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ────────────────────────────────────────────────────────────────────────────────
 // getMyTestAttempts, reviewAttempt, getStudentStats, getLeaderboardForSeries
 // ────────────────────────────────────────────────────────────────────────────────
 
@@ -210,22 +234,19 @@ exports.getMyTestAttempts = async (req, res) => {
 
 exports.reviewAttempt = async (req, res) => {
   try {
-    const attempt = await TestAttempt.findById(req.params.attemptId)
-      .populate('student', 'name')
+    const { attemptId } = req.params;
+    // Populate both the question reference and its correctOptions
+    const attempt = await TestAttempt.findById(attemptId)
+      .populate({
+        path: 'responses.question',
+        select: 'questionText options correctOptions',
+      })
       .lean();
-    if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
-
-    return res.json({
-      attemptId:   attempt._id,
-      variantCode: attempt.variantCode,
-      sections:    attempt.sections,
-      responses:   attempt.responses,
-      score:       attempt.score,
-      maxScore:    attempt.maxScore
-    });
+    if (!attempt) return res.status(404).json({ message: 'Not found' });
+    return res.json(attempt);
   } catch (err) {
-    console.error('❌ reviewAttempt error:', err);
-    return res.status(500).json({ message: 'Server error' });
+    console.error('❌ Error in reviewAttempt:', err);
+    return res.status(500).json({ message: 'Failed to load review', error: err.message });
   }
 };
 

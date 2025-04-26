@@ -2,19 +2,18 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+export interface TestSeries {
+  _id: string;
+  title: string;
+  year?: number;
+  // any other fields you need
+}
+
 export interface StartTestResponse {
   attemptId: string;
-  duration: number;
-  sections: Array<{
-    title: string;
-    order: number;
-    questions: Array<{
-      question: string;
-      marks: number;
-      questionText: string;
-      options: any[];
-    }>;
-  }>;
+  duration: number; // in minutes
+  questions?: any[]; // ← add this line
+  sections?: any[]; // your sections from the server
 }
 
 @Injectable({ providedIn: 'root' })
@@ -23,10 +22,12 @@ export class TestService {
 
   constructor(private http: HttpClient) {}
 
-  getSeries(seriesId: string): Observable<any> {
-    return this.http.get<any>(`${this.base}/testSeries/${seriesId}/sections`);
+  // → New: fetch all test series
+  getSeries(): Observable<TestSeries[]> {
+    return this.http.get<TestSeries[]>(`${this.base}/testSeries`);
   }
 
+  // → New: start a test
   startTest(seriesId: string): Observable<StartTestResponse> {
     return this.http.post<StartTestResponse>(
       `${this.base}/tests/start`,
@@ -34,23 +35,24 @@ export class TestService {
     );
   }
 
-  submitAttempt(attemptId: string, responses: any[]): Observable<any> {
-    // wrap in an object so backend sees { responses: [...] }
-    return this.http.post(
-      `${this.base}/tests/${attemptId}/submit`,
-      { responses }
-    );
-  }
-
+  // existing methods…
   reviewAttempt(attemptId: string): Observable<any> {
     return this.http.get<any>(`${this.base}/tests/${attemptId}/review`);
   }
 
-  getReview(attemptId: string) {
-    return this.http.get<any>(`${this.base}/tests/${attemptId}/review`);
+  getMyAttempts(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.base}/tests/my-attempts`);
   }
 
-  getMyAttempts() {
-    return this.http.get<any[]>(`${this.base}/tests/my-attempts`);
+  submitAttempt(attemptId: string, payload: any): Observable<any> {
+    return this.http.post<any>(
+      `${this.base}/tests/${attemptId}/submit`,
+      payload
+    );
+  }
+
+  /** New: fetch review details for an attempt */
+  getReview(attemptId: string): Observable<any> {
+    return this.http.get<any>(`${this.base}/tests/${attemptId}/review`);
   }
 }

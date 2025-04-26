@@ -1,0 +1,14 @@
+<h2>Student Register</h2>
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <label>Username</label>
+  <input formControlName="username" />
+  <label>Email</label>
+  <input formControlName="email" type="email" />
+  <label>Password</label>
+  <input formControlName="password" type="password" />
+  <button type="submit" [disabled]="form.invalid">Register</button>
+</form>
+<p>
+  Already have an account?
+  <a routerLink="/login">Login here</a>
+</p>

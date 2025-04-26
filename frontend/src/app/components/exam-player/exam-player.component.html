@@ -11,6 +11,7 @@
         *ngFor="let ctrl of responses.controls; let i = index"
         [formGroupName]="i"
       >
+        <!-- Question text -->
         <p>
           Q{{ i + 1 }}:
           {{
@@ -19,25 +20,23 @@
               .questionText
           }}
         </p>
+
+        <!-- Options -->
         <div
-          *ngFor="
-            let opt of
-              sections[ctrl.value.sectionIndex]
-                .questions[ctrl.value.questionIndex]
-                .options
-          "
+          *ngFor="let opt of sections[ctrl.value.sectionIndex].questions[ctrl.value.questionIndex].options; let oi = index"
         >
           <label>
             <input
               type="radio"
-              value="{{opt.text}}"
               formControlName="selected"
+              [value]="oi"
             />
             {{ opt.text }}
           </label>
         </div>
       </div>
     </div>
+
     <button type="submit">Submit Exam</button>
   </form>
 </div>

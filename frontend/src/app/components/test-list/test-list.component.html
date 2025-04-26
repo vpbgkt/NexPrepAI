@@ -1,0 +1,9 @@
+<h2>Available Tests</h2>
+<div *ngIf="loading">Loading tests…</div>
+<div *ngIf="error">{{ error }}</div>
+<ul *ngIf="!loading && !error">
+  <li *ngFor="let s of seriesList">
+    {{ s.title }} <span *ngIf="s.year">({{ s.year }})</span>
+    <button (click)="start(s._id)">Start Test</button>
+  </li>
+</ul>

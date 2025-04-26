@@ -3,7 +3,6 @@ import { BrowserModule } from '@angular/platform-browser';
 import { provideHttpClient, withInterceptorsFromDi, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { HttpClientModule } from '@angular/common/http';
 
 import { AppComponent } from './app.component';
 import { QuestionListComponent } from './components/question-list/question-list.component';
@@ -11,21 +10,26 @@ import { AddQuestionComponent } from './components/add-question/add-question.com
 import { BuildPaperComponent } from './components/build-paper/build-paper.component';
 import { AppRoutingModule } from './app-routing.module';
 import { AuthInterceptor } from './services/auth.interceptor';
+import { LoginComponent } from './components/login/login.component';
+import { RegisterComponent } from './components/register/register.component';
+import { LogoutComponent } from './components/logout/logout.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     QuestionListComponent,
     AddQuestionComponent,
-    BuildPaperComponent
+    BuildPaperComponent,
+    LoginComponent,
+    RegisterComponent,
+    LogoutComponent
   ],
   imports: [
     BrowserModule,
-    FormsModule,
-    CommonModule, // Explicitly added CommonModule
     AppRoutingModule,
-    HttpClientModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    FormsModule,
+    CommonModule
   ],
   providers: [
     provideHttpClient(withInterceptorsFromDi()),

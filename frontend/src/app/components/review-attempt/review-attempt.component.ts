@@ -14,7 +14,8 @@ export class ReviewAttemptComponent implements OnInit {
   attemptId!: string;
   reviewData: any;
   loading = true;
-  error: string | null = null;
+  error = '';
+  attempt: any;
 
   constructor(
     private route: ActivatedRoute,
@@ -23,15 +24,27 @@ export class ReviewAttemptComponent implements OnInit {
 
   ngOnInit() {
     this.attemptId = this.route.snapshot.paramMap.get('attemptId')!;
-    this.testSvc.getReview(this.attemptId).subscribe({
-      next: (data) => {
-        this.reviewData = data;
-        this.loading = false;
-      },
-      error: (err) => {
-        this.error = 'Failed to load review data';
-        this.loading = false;
-      }
+    this.testSvc.reviewAttempt(this.attemptId).subscribe({
+      next: data => this.attempt = data,
+      error: err => alert(err.error?.message || 'Failed to load review')
     });
+  }
+
+  // Helper to render the student’s answer text
+  getAnswerText(r: any): string {
+    if (!r.selected?.length) return 'No answer';
+    return r.selected
+      .map((i: number) => r.question.options[i].text)
+      .join(', ');
+  }
+
+  // Helper to render the correct answer texts
+  getCorrectText(r: any): string {
+    // r.question.correctOptions is an array of strings
+    if (!r.question.correctOptions?.length) {
+      return 'N/A';
+    }
+    // Join the stored correct-texts
+    return r.question.correctOptions.join(', ');
   }
 }

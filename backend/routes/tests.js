@@ -25,7 +25,7 @@
 
 const express = require('express');
 const router = express.Router();
-const verifyToken = require('../middleware/verifyToken');
+const { verifyToken, requireRole } = require('../middleware/verifyToken');
 const { authenticate, authorizeRole } = require('../middleware/authMiddleware');
 
 const {
@@ -51,15 +51,15 @@ const {
  */
 
 // ✅ START TEST
-router.post('/start', verifyToken, startTest);
+router.post('/start', verifyToken, requireRole('student'), startTest);
 
 // ✅ SUBMIT TEST
-router.post('/:attemptId/submit', verifyToken, submitAttempt);
+router.post('/:attemptId/submit', verifyToken, requireRole('student'), submitAttempt);
 
 // ✅ USER ATTEMPT ROUTES
 router.get('/my-attempts', verifyToken, getMyTestAttempts);
 // REVIEW (fixed to use the same param name the controller expects)
-router.get('/:attemptId/review', verifyToken, reviewAttempt);
+router.get('/:attemptId/review', verifyToken, requireRole('student'), reviewAttempt);
 router.get('/stats/me', verifyToken, getStudentStats);
 router.get('/leaderboard/:seriesId', verifyToken, getLeaderboardForSeries);
 

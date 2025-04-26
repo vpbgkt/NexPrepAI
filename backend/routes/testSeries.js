@@ -17,21 +17,34 @@
 const express = require('express');
 const router  = express.Router();
 const { createTestSeries, cloneTestSeries, getAllTestSeries, createRandomTestSeries } = require('../controllers/testSeriesController');
-const verifyToken = require('../middleware/verifyToken');
+const { verifyToken, requireRole } = require('../middleware/verifyToken');
 const TestAttempt = require('../models/TestAttempt');
 const TestSeries = require('../models/TestSeries');
 
-// Create a new TestSeries
-router.post('/create', verifyToken, createTestSeries);
+// Only admins & superadmins can create/update/delete series
+router.post(
+  '/create',
+  verifyToken,
+  requireRole('admin'),
+  createTestSeries
+);
 
-// Clone an existing TestSeries
-router.post('/clone/:id', verifyToken, cloneTestSeries);
+router.post(
+  '/clone/:id',
+  verifyToken,
+  requireRole('admin'),
+  cloneTestSeries
+);
 
 // NEW: list everything
 router.get('/', verifyToken, getAllTestSeries);
 
-// Create a random TestSeries
-router.post('/random', verifyToken, createRandomTestSeries);
+router.post(
+  '/random',
+  verifyToken,
+  requireRole('admin'),
+  createRandomTestSeries
+);
 
 // Check the status of a TestSeries for a student
 router.get('/:id/status', verifyToken, async (req, res) => {
