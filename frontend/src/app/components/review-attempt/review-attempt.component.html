@@ -1,3 +1,7 @@
+<button class="btn btn-outline-primary btn-sm mb-3" (click)="downloadPdf()">
+  Download PDF scorecard
+</button>
+
 <div *ngIf="attempt">
   <h2>Review: {{ attempt.series.title }}</h2>
   <div *ngFor="let r of attempt.responses; let idx = index">

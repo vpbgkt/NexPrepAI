@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { TestService } from '../../services/test.service';
+import { saveAs } from 'file-saver';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-review-attempt',
@@ -19,7 +21,8 @@ export class ReviewAttemptComponent implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
-    private testSvc: TestService
+    private testSvc: TestService,
+    private http: HttpClient // ← inject HttpClient
   ) {}
 
   ngOnInit() {
@@ -46,5 +49,17 @@ export class ReviewAttemptComponent implements OnInit {
     }
     // Join the stored correct-texts
     return r.question.correctOptions.join(', ');
+  }
+
+  downloadPdf(): void {
+    const url = `http://localhost:5000/api/tests/${this.attemptId}/pdf`;
+    this.http.get(url, {
+      responseType: 'blob',
+      headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` }
+    }).subscribe({
+      next: (blob: Blob) => saveAs(blob, `scorecard-${this.attemptId}.pdf`),
+      error: (err: any) =>
+        alert(err.error?.message || 'PDF download failed')
+    });
   }
 }

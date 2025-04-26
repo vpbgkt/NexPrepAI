@@ -35,7 +35,8 @@ const {
   reviewAttempt,
   getStudentStats,
   getLeaderboardForSeries,
-  saveProgress
+  saveProgress,
+  generatePdf
 } = require('../controllers/testAttemptController');
 
 /**
@@ -66,5 +67,11 @@ router.get('/my-attempts', verifyToken, getMyTestAttempts);
 router.get('/:attemptId/review', verifyToken, requireRole('student'), reviewAttempt);
 router.get('/stats/me', verifyToken, getStudentStats);
 router.get('/leaderboard/:seriesId', verifyToken, getLeaderboardForSeries);
+
+// Generate a PDF result sheet for one attempt
+router.get('/:attemptId/pdf',
+           verifyToken,
+           requireRole('student'),
+           generatePdf);
 
 module.exports = router;

@@ -3,6 +3,8 @@ import { BrowserModule } from '@angular/platform-browser';
 import { provideHttpClient, withInterceptorsFromDi, HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs';
 
 import { AppComponent } from './app.component';
 import { QuestionListComponent } from './components/question-list/question-list.component';
@@ -38,4 +40,10 @@ import { LogoutComponent } from './components/logout/logout.component';
   ],
   bootstrap: [AppComponent]
 })
-export class AppModule { }
+export class AppModule {
+  constructor(router: Router) {
+    router.events
+      .pipe(filter(e => e instanceof NavigationEnd))
+      .subscribe(e => console.log('NAV →', (e as NavigationEnd).urlAfterRedirects));
+  }
+}

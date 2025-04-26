@@ -1,6 +1,8 @@
 const TestSeries   = require('../models/TestSeries');
 const TestAttempt  = require('../models/TestAttempt');
 const Question     = require('../models/Question');
+const PDFDocument = require('pdfkit');
+const moment = require('moment');
 
 // ────────────────────────────────────────────────────────────────────────────────
 // startTest: creates a new TestAttempt and returns detailed question data
@@ -343,5 +345,57 @@ exports.getLeaderboardForSeries = async (req, res) => {
   } catch (err) {
     console.error('❌ getLeaderboardForSeries error:', err);
     return res.status(500).json({ message: 'Failed to get leaderboard' });
+  }
+};
+
+exports.generatePdf = async (req, res) => {
+  try {
+    const attemptId = req.params.attemptId;
+
+    const attempt = await TestAttempt.findById(attemptId)
+      .populate('student', 'username email')
+      .populate('series', 'title examType')
+      .lean();
+
+    if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
+
+    // 1) Kick-off streaming PDF response
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=scorecard-${attemptId}.pdf`);
+
+    const doc = new PDFDocument({ margin: 40 });
+    doc.pipe(res);
+
+    // 2) Header
+    doc.fontSize(18).text('NexPrep Scorecard', { align: 'center' });
+    doc.moveDown(0.5);
+    doc.fontSize(12).text(`Series: ${attempt.series.title}`);
+    doc.text(`Attempt #: ${attempt.attemptNo}`);
+    doc.text(`Student : ${attempt.student.username} (${attempt.student.email})`);
+    doc.text(`Date    : ${moment(attempt.submittedAt).format('YYYY-MM-DD  HH:mm')}`);
+    doc.moveDown();
+
+    // 3) Big score
+    doc.fontSize(22).fillColor('#1565c0')
+       .text(`${attempt.score} / ${attempt.maxScore}`, { align: 'center' })
+       .fillColor('black')
+       .fontSize(12)
+       .text(`Percentage: ${attempt.percentage}%`, { align: 'center' });
+    doc.moveDown();
+
+    // 4) Section breakdown (if any)
+    if (attempt.sections?.length) {
+      doc.fontSize(14).text('Section Breakdown');
+      attempt.sections.forEach(sec => {
+        doc.fontSize(12).list([`${sec.title}  –  ${sec.questions.length} Qs`]);
+      });
+      doc.moveDown();
+    }
+
+    doc.text('Thank you for using NexPrep.', { align: 'center' });
+    doc.end(); // triggers stream end
+  } catch (err) {
+    console.error('PDF gen error:', err);
+    res.status(500).json({ message: 'PDF generation failed', error: err.message });
   }
 };

@@ -1,57 +1,80 @@
-import { NgModule } from '@angular/core';
+import { NgModule }            from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { QuestionListComponent } from './components/question-list/question-list.component';
-import { AddQuestionComponent } from './components/add-question/add-question.component';
-import { LoginComponent } from './components/login/login.component';
-import { EditQuestionComponent } from './components/edit-question/edit-question.component';
-import { AddBranchComponent } from './components/add-branch/add-branch.component';
-import { AddSubjectComponent } from './components/add-subject.component';
-import { AddTopicComponent } from './components/add-topic.component';
-import { AddSubtopicComponent } from './components/add-subtopic.component';
-import { CsvUploadComponent } from './components/csv-upload/csv-upload.component';
-import { TestSeriesListComponent } from './components/test-series-list/test-series-list.component';
-import { CreateTestSeriesComponent } from './components/create-test-series/create-test-series.component';
-import { BuildPaperComponent } from './components/build-paper/build-paper.component';
-import { RegisterComponent } from './components/register/register.component';
-import { LogoutComponent } from './components/logout/logout.component';
-import { AdminGuard } from './guards/admin.guard';
-import { StudentGuard } from './guards/student.guard';
+
+import { LoginComponent }        from './components/login/login.component';
+import { RegisterComponent }     from './components/register/register.component';
+import { LogoutComponent }       from './components/logout/logout.component';
 import { StudentDashboardComponent } from './components/student-dashboard/student-dashboard.component';
 
-export const routes: Routes = [
-  { path: '', redirectTo: '/login', pathMatch: 'full' },
-  { path: 'login', component: LoginComponent },
-  { path: 'register', component: RegisterComponent },
-  { path: 'logout', component: LogoutComponent },
-  { path: 'questions', component: QuestionListComponent },
-  { path: 'add-question', component: AddQuestionComponent },
-  { path: 'questions/edit/:id', component: EditQuestionComponent },
-  { path: 'branches/new', component: AddBranchComponent },
-  { path: 'subjects/new', component: AddSubjectComponent },
-  { path: 'topics/new', component: AddTopicComponent },
-  { path: 'subtopics/new', component: AddSubtopicComponent },
-  { path: 'csv-import', component: CsvUploadComponent },
-  { path: 'test-series', component: TestSeriesListComponent },
-  { path: 'test-series/create', component: CreateTestSeriesComponent },
-  { path: 'build-paper', component: BuildPaperComponent },
-  { path: 'student-dashboard', component: StudentDashboardComponent, canActivate: [StudentGuard] },
+import { TestSeriesListComponent }   from './components/test-series-list/test-series-list.component';
+import { CreateTestSeriesComponent } from './components/create-test-series/create-test-series.component';
+import { BuildPaperComponent }       from './components/build-paper/build-paper.component';
+import { SeriesAnalyticsComponent }  from './components/series-analytics/series-analytics.component';  // ← analytics
 
-  // all admin pages
+import { QuestionListComponent }      from './components/question-list/question-list.component';
+import { AddQuestionComponent }       from './components/add-question/add-question.component';
+import { EditQuestionComponent }      from './components/edit-question/edit-question.component';
+
+import { AddBranchComponent }     from './components/add-branch/add-branch.component';
+import { AddSubjectComponent }    from './components/add-subject.component';
+import { AddTopicComponent } from './components/add-topic.component';
+import { AddSubtopicComponent }   from './components/add-subtopic.component';
+import { CsvUploadComponent }     from './components/csv-upload/csv-upload.component';
+
+import { AdminGuard }   from './guards/admin.guard';
+import { StudentGuard } from './guards/student.guard';
+
+export const routes: Routes = [
+  // Public
+  { path: '',            redirectTo: 'login', pathMatch: 'full' },
+  { path: 'login',       component: LoginComponent },
+  { path: 'register',    component: RegisterComponent },
+  { path: 'logout',      component: LogoutComponent },
+
+  // Analytics (per-series) at top level
+  {
+    path: 'series/:seriesId/analytics',
+    component: SeriesAnalyticsComponent,
+    canActivate: [AdminGuard]
+  },
+
+  // Student-only
+  {
+    path: 'student-dashboard',
+    component: StudentDashboardComponent,
+    canActivate: [StudentGuard]
+  },
+
+  // Admin-only block
   {
     path: '',
     canActivate: [AdminGuard],
     children: [
-      { path: 'test-series-list', component: TestSeriesListComponent },
-      // …other admin routes…
+      // Test Series
+      { path: 'test-series',          component: TestSeriesListComponent },
+      { path: 'test-series/create',   component: CreateTestSeriesComponent },
+      { path: 'build-paper',          component: BuildPaperComponent },
+
+      // Question bank
+      { path: 'questions',            component: QuestionListComponent },
+      { path: 'add-question',         component: AddQuestionComponent },
+      { path: 'questions/edit/:id',   component: EditQuestionComponent },
+
+      // Hierarchy CRUD
+      { path: 'branches/new',   component: AddBranchComponent },
+      { path: 'subjects/new',   component: AddSubjectComponent },
+      { path: 'topics/new',     component: AddTopicComponent },
+      { path: 'subtopics/new',  component: AddSubtopicComponent },
+      { path: 'csv-import',     component: CsvUploadComponent },
     ]
   },
 
-  // fallback
-  { path: '**', redirectTo: 'login' }
+  // Catch-all
+  { path: '**', pathMatch: 'full', redirectTo: 'login', data: { reason: 'no-match' } }
 ];
 
 @NgModule({
   imports: [RouterModule.forRoot(routes)],
-  exports: [RouterModule]
+  exports: [RouterModule],
 })
-export class AppRoutingModule {}
+export class AppRoutingModule { }

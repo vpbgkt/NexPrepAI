@@ -1,0 +1,31 @@
+<h2 class="mb-4">
+  Analytics for Series&nbsp;<code>{{ seriesId }}</code>
+</h2>
+
+<div class="stats mb-4">
+  <span class="badge bg-primary me-2">
+    Attempts: {{ totalAttempts }}
+  </span>
+  <span class="badge bg-success">
+    Avg&nbsp;Time: {{ averageTimeMin }} min
+  </span>
+</div>
+
+<div class="mb-3">
+  <button class="btn btn-sm btn-outline-primary" (click)="downloadCsv()">
+    Download attempts CSV
+  </button>
+</div>
+
+<!-- Score distribution bar chart -->
+<div style="max-width:640px;">
+  <canvas baseChart
+          [data]="barData"
+          [options]="barOpts"
+          chartType="bar">
+  </canvas>
+</div>
+
+<p *ngIf="!barData.labels?.length" class="mt-3 text-muted">
+  No submissions yet.
+</p>
