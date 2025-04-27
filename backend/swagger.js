@@ -14,135 +14,163 @@ const options = {
         description: 'Local dev server',
       },
     ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
+        }
+      },
+      schemas: {
+        ObjectId: {
+          type: 'string',
+          pattern: '^[0-9a-fA-F]{24}$'
+        },
+        QuestionHistory: {
+          type: 'object',
+          properties: {
+            testSeries: { $ref: '#/components/schemas/ObjectId' },
+            title:    { type: 'string' },
+            askedAt:  { type: 'string', format: 'date-time'}
+          }
+        },
+        Question: {
+          type: 'object',
+          required: [
+            'branch','examType','questionText','options','correctOptions','marks','type'
+          ],
+          properties: {
+            _id:          { $ref: '#/components/schemas/ObjectId' },
+            branch:       { $ref: '#/components/schemas/ObjectId' },
+            subject:      { $ref: '#/components/schemas/ObjectId' },
+            topic:        { $ref: '#/components/schemas/ObjectId' },
+            subTopic:     { $ref: '#/components/schemas/ObjectId' },
+            examType:     { type: 'string', enum: ['medical','engineering','board','general'] },
+            questionText: { type: 'string' },
+            images: {
+              type: 'array',
+              items: { type: 'string', format: 'url' }
+            },
+            options: {
+              type: 'array',
+              items: { type: 'string' },
+              minItems: 2
+            },
+            correctOptions: {
+              type: 'array',
+              items: { type: 'integer' },
+              minItems: 1
+            },
+            marks:         { type: 'number', minimum: 0 },
+            negativeMarks: { type: 'number', minimum: 0 },
+            difficulty: {
+              type: 'string',
+              enum: ['Easy','Medium','Hard']
+            },
+            type: {
+              type: 'string',
+              enum: ['single','multiple','integer','matrix']
+            },
+            explanations: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  type:    { type: 'string', enum: ['text','video','pdf','image'] },
+                  label:   { type: 'string' },
+                  content: { type: 'string' }
+                }
+              }
+            },
+            questionHistory: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/QuestionHistory' }
+            },
+            stats: {
+              type: 'object',
+              properties: {
+                shown:     { type: 'integer' },
+                correct:   { type: 'integer' },
+                totalTime: { type: 'integer' }
+              }
+            },
+            status: { type: 'string', enum: ['active','inactive','draft'] },
+            version: { type: 'integer' },
+            createdBy: { $ref: '#/components/schemas/ObjectId' },
+            updatedBy: { $ref: '#/components/schemas/ObjectId' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' }
+          }
+        },
+        SectionEntry: {
+          type: 'object',
+          required: ['title', 'order', 'questions'],
+          properties: {
+            title: { type: 'string', example: 'Section 1' },
+            order: { type: 'integer', example: 1 },
+            questions: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['question', 'marks'],
+                properties: {
+                  question: {
+                    $ref: '#/components/schemas/ObjectId',
+                    description: 'Question _id'
+                  },
+                  marks: { type: 'number', example: 1 }
+                }
+              }
+            }
+          }
+        },
+        TestSeries: {
+          type: 'object',
+          required: ['title', 'duration', 'examType', 'sections'],
+          properties: {
+            title: { type: 'string', example: 'Sample 5-Q Medical Paper' },
+            duration: { type: 'integer', example: 10, description: 'minutes' },
+            examType: {
+              $ref: '#/components/schemas/ObjectId',
+              description: 'ExamType _id'
+            },
+            sections: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/SectionEntry' }
+            }
+          }
+        }
+      }
+    },
     paths: {
       '/api/questions/add': {
         post: {
           summary: 'Add a new question',
           tags: ['Questions'],
-          security: [
-            {
-              bearerAuth: [],
-            },
-          ],
+          security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
             content: {
               'application/json': {
                 schema: {
-                  type: 'object',
-                  required: ['questionText', 'options', 'correctOptions', 'branch', 'examType'],
-                  properties: {
-                    questionText: {
-                      type: 'string',
-                    },
-                    options: {
-                      type: 'array',
-                      items: {
-                        type: 'object',
-                        properties: {
-                          text: {
-                            type: 'string',
-                          },
-                          isCorrect: {
-                            type: 'boolean',
-                          },
-                        },
-                      },
-                    },
-                    correctOptions: {
-                      type: 'array',
-                      items: {
-                        type: 'string',
-                      },
-                    },
-                    branch: {
-                      type: 'string',
-                      example: 'Medical',
-                    },
-                    subject: {
-                      type: 'string',
-                      example: 'Physics',
-                    },
-                    topic: {
-                      type: 'string',
-                      example: 'Mechanics',
-                    },
-                    subtopic: {
-                      type: 'string',
-                      example: 'Gravitation',
-                    },
-                    examType: {
-                      type: 'string',
-                      example: 'NEET',
-                    },
-                    difficulty: {
-                      type: 'string',
-                      example: 'Easy',
-                    },
-                    marks: {
-                      type: 'number',
-                      example: 4,
-                    },
-                    explanation: {
-                      type: 'string',
-                    },
-                    explanations: {
-                      type: 'array',
-                      items: {
-                        type: 'object',
-                        properties: {
-                          type: {
-                            type: 'string',
-                            enum: ['text', 'video', 'pdf', 'image'],
-                          },
-                          label: {
-                            type: 'string',
-                          },
-                          content: {
-                            type: 'string',
-                          },
-                        },
-                      },
-                    },
-                    askedIn: {
-                      type: 'array',
-                      items: {
-                        type: 'object',
-                        properties: {
-                          examName: {
-                            type: 'string',
-                          },
-                          year: {
-                            type: 'integer',
-                          },
-                        },
-                      },
-                    },
-                    status: {
-                      type: 'string',
-                      enum: ['active', 'inactive'],
-                    },
-                    version: {
-                      type: 'integer',
-                      example: 1,
-                    },
-                  },
-                },
-              },
-            },
+                  $ref: '#/components/schemas/Question'
+                }
+              }
+            }
           },
           responses: {
             '201': {
-              description: 'Question created successfully',
+              description: 'Question created successfully'
             },
             '400': {
-              description: 'Validation error',
+              description: 'Validation error'
             },
             '500': {
-              description: 'Server error',
-            },
-          },
-        },
+              description: 'Server error'
+            }
+          }
+        }
       },
       '/api/questions/import-csv': {
         post: {
@@ -156,43 +184,7 @@ const options = {
                 schema: {
                   type: 'array',
                   items: {
-                    type: 'object',
-                    properties: {
-                      questionText: { type: 'string' },
-                      options: { type: 'string', example: 'Option1|Option2|Option3' },
-                      correctOptions: { type: 'string', example: 'Option1' },
-                      explanation: { type: 'string' },
-                      difficulty: {
-                        type: 'string',
-                        enum: ['Easy', 'Medium', 'Hard']
-                      },
-                      marks: { type: 'number' },
-                      branch: { type: 'string' },
-                      subject: { type: 'string' },
-                      topic: { type: 'string' },
-                      subtopic: { type: 'string' },
-                      examType: { type: 'string' },
-                      explanations: {
-                        type: 'string',
-                        example: '[{"type":"text","label":"Concept","content":"g is acceleration."}]'
-                      },
-                      askedIn: {
-                        type: 'string',
-                        example: '[{"examName":"NEET","year":2022}]'
-                      },
-                      status: {
-                        type: 'string',
-                        enum: ['active', 'inactive']
-                      },
-                      version: { type: 'integer' }
-                    },
-                    required: [
-                      'questionText',
-                      'options',
-                      'correctOptions',
-                      'branch',
-                      'subject'
-                    ]
+                    $ref: '#/components/schemas/Question'
                   }
                 }
               }
@@ -203,6 +195,27 @@ const options = {
             '207': { description: 'Partial success with some errors' },
             '400': { description: 'Bad Request' },
             '500': { description: 'Internal Server Error' }
+          }
+        }
+      },
+      '/api/testSeries/create': {
+        post: {
+          summary: 'Create a new TestSeries',
+          tags: ['TestSeries'],
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/TestSeries'
+                }
+              }
+            }
+          },
+          responses: {
+            '201': { description: 'TestSeries created' },
+            '400': { description: 'Validation error' }
           }
         }
       }
