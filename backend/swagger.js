@@ -46,15 +46,24 @@ const options = {
             subject:      { $ref: '#/components/schemas/ObjectId' },
             topic:        { $ref: '#/components/schemas/ObjectId' },
             subTopic:     { $ref: '#/components/schemas/ObjectId' },
-            examType:     { type: 'string', enum: ['medical','engineering','board','general'] },
+            examType:     { $ref: '#/components/schemas/ObjectId', description: 'ExamType _id' },
             questionText: { type: 'string' },
             images: {
               type: 'array',
-              items: { type: 'string', format: 'url' }
+              items: { type: 'string', description: 'Image URL' }
             },
             options: {
               type: 'array',
-              items: { type: 'string' },
+              description: 'Each option can include an optional image',
+              items: {
+                type: 'object',
+                required: ['text','isCorrect'],
+                properties: {
+                  text: { type: 'string' },
+                  img:  { type: 'string', description: 'optional image URL' },
+                  isCorrect: { type: 'boolean' }
+                }
+              },
               minItems: 2
             },
             correctOptions: {
@@ -66,7 +75,8 @@ const options = {
             negativeMarks: { type: 'number', minimum: 0 },
             difficulty: {
               type: 'string',
-              enum: ['Easy','Medium','Hard']
+              enum: ['Easy','Medium','Hard','Not-mentioned'],
+              default: 'Medium'
             },
             type: {
               type: 'string',
