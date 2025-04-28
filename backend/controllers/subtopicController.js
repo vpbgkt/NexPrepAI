@@ -38,7 +38,22 @@ const getAllSubTopics = async (req, res) => {
   }
 };
 
+const updateSubTopic = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedSubTopic = await SubTopic.findByIdAndUpdate(id, req.body, { new: true });
+    if (!updatedSubTopic) {
+      return res.status(404).json({ message: 'SubTopic not found' });
+    }
+    res.status(200).json(updatedSubTopic);
+  } catch (error) {
+    console.error('Error updating subtopic:', error);
+    res.status(500).json({ message: 'Failed to update subtopic', error: error.message });
+  }
+};
+
 module.exports = {
   addSubTopic,
   getAllSubTopics,
+  updateSubTopic,
 };

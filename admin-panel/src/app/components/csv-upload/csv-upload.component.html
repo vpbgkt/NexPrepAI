@@ -8,9 +8,6 @@
 <div *ngIf="parsedQuestions.length > 0">
   <p>{{ parsedQuestions.length }} questions parsed.</p>
 
-  <!-- Preview parsed JSON -->
-  <pre>{{ parsedQuestions | json }}</pre>
-
   <!-- Single Submit Button -->
   <button (click)="submitToBackend()">Submit to Backend</button>
 </div>

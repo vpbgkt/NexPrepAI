@@ -116,10 +116,6 @@ exports.startTest = async (req, res) => {
 // ────────────────────────────────────────────────────────────────────────────────
 exports.submitAttempt = async (req, res) => {
   try {
-    // Commented out debug logs for production readiness
-    // console.log('❗️ submitAttempt req.body:', JSON.stringify(req.body, null, 2));
-    // console.log('❗️ req.body.responses is:', req.body.responses);
-
     const attemptId = req.params.attemptId;
     const { responses } = req.body;
 
@@ -127,40 +123,38 @@ exports.submitAttempt = async (req, res) => {
       return res.status(403).json({ message: 'Only students can submit tests.' });
     }
 
-    // load the attempt document (not lean, so we can save it)
     const attempt = await TestAttempt.findById(attemptId);
     if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
 
-    // build a quick map of marks per question
-    const marksMap = new Map();
-    attempt.sections.forEach(sec =>
-      sec.questions.forEach(q => marksMap.set(q.question.toString(), q.marks))
-    );
-
-    // find negative marking for this variant
     const series = await TestSeries.findById(attempt.series);
-    const variant = series.variants.find(v => v.code === attempt.variantCode);
-    const negativeMarking = variant?.negativeMarking || 0;
 
     let total = 0, max = 0;
     const checked = [];
 
-    // grade each submitted response
     for (const { question, selected } of responses) {
-      const marks = marksMap.get(question.toString()) || 0;
+      const qEntry = attempt.sections
+        .flatMap(sec => sec.questions)
+        .find(q => q.question.toString() === question.toString());
+
+      if (!qEntry) continue;
+
+      const marks = qEntry.marks || 0;
       max += marks;
 
-      // fetch the question doc to get correctOptions
       const qDoc = await Question.findById(question);
       const correctArr = Array.isArray(qDoc.correctOptions) ? qDoc.correctOptions : [];
-      const selArr     = Array.isArray(selected)               ? selected               : [];
+      const selArr = Array.isArray(selected) ? selected : [];
 
       const isCorrect =
         correctArr.length > 0 &&
         correctArr.length === selArr.length &&
         correctArr.sort().join(',') === selArr.sort().join(',');
 
-      const earned = isCorrect ? marks : -negativeMarking * marks;
+      const nm = qEntry.negativeMarks != null
+        ? qEntry.negativeMarks
+        : (series.negativeMarkEnabled ? series.negativeMarkValue : 0);
+
+      const earned = isCorrect ? marks : -nm;
       total += earned;
 
       checked.push({
@@ -169,42 +163,20 @@ exports.submitAttempt = async (req, res) => {
         correctOptions: correctArr,
         earned
       });
-
-      // update per-question analytics
-      const qAnalytics = await Question.findById(question);
-      if (qAnalytics) {
-        const prevTotal   = qAnalytics.meta.accuracy.total;
-        const prevCorrect = qAnalytics.meta.accuracy.correct;
-        const timeSpent   = (Date.now() - (attempt.startedAt?.getTime() || Date.now())) / 1000;
-
-        qAnalytics.meta.accuracy.total   = prevTotal + 1;
-        qAnalytics.meta.accuracy.correct = prevCorrect + (isCorrect ? 1 : 0);
-        qAnalytics.meta.avgTime =
-          ((qAnalytics.meta.avgTime * prevTotal) + timeSpent) / (prevTotal + 1);
-
-        await qAnalytics.save();
-      }
     }
 
-    // persist results back to the same document
-    attempt.responses   = checked;
-    attempt.score       = total;
-    attempt.maxScore    = max;
-    attempt.percentage  = max > 0 ? Math.round((total / max) * 100) : 0;
+    attempt.responses = checked;
+    attempt.score = total;
+    attempt.maxScore = max;
+    attempt.percentage = max > 0 ? Math.round((total / max) * 100) : 0;
     attempt.submittedAt = new Date();
     await attempt.save();
 
-    // Commented out final debug log
-    // console.log(
-    //   '🛢️ Saved attempt document:',
-    //   await TestAttempt.findById(attemptId).lean()
-    // );
-
     return res.status(200).json({
-      score:      total,
-      maxScore:   max,
+      score: total,
+      maxScore: max,
       percentage: attempt.percentage,
-      breakdown:  checked
+      breakdown: checked
     });
   } catch (err) {
     console.error('🔥 submitAttempt failed:', err);

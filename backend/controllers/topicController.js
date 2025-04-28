@@ -38,7 +38,22 @@ const getAllTopics = async (req, res) => {
   }
 };
 
+const updateTopic = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedTopic = await Topic.findByIdAndUpdate(id, req.body, { new: true });
+    if (!updatedTopic) {
+      return res.status(404).json({ message: 'Topic not found' });
+    }
+    res.status(200).json(updatedTopic);
+  } catch (error) {
+    console.error('Error updating topic:', error);
+    res.status(500).json({ message: 'Failed to update topic', error: error.message });
+  }
+};
+
 module.exports = {
   addTopic,
   getAllTopics,
+  updateTopic,
 };

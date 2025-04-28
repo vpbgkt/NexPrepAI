@@ -14,13 +14,34 @@
  */
 
 const mongoose = require('mongoose');
-const { Schema } = mongoose;
+const { Schema, model } = mongoose;
+const ObjectId = Schema.Types.ObjectId;
 
-const examTypeSchema = new Schema({
-  code:   { type: String, lowercase: true, trim: true, unique: true },
-  name:   { type: String, required: true },
-  active: { type: Boolean, default: true },
-});
+const examTypeSchema = new Schema(
+  {
+    code: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true
+    }, // Removed unique: true
 
-module.exports =
-  mongoose.models.ExamType || mongoose.model('ExamType', examTypeSchema);
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true
+    }, // Removed unique: true
+    createdBy: { type: ObjectId, ref: 'User' },
+    active: { type: Boolean, default: true },
+  },
+  { timestamps: true }
+);
+
+// ─── Unique index on code (case-insensitive) ────────────
+examTypeSchema.index(
+  { code: 1 },
+  { unique: true, collation: { locale: 'en', strength: 2 } }
+);
+
+module.exports = model('ExamType', examTypeSchema);

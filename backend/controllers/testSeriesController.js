@@ -174,10 +174,25 @@ exports.getAllSeries = async (req, res) => {
   }
 };
 
+exports.updateTestSeries = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedTestSeries = await TestSeries.findByIdAndUpdate(id, req.body, { new: true });
+    if (!updatedTestSeries) {
+      return res.status(404).json({ message: 'TestSeries not found' });
+    }
+    res.status(200).json(updatedTestSeries);
+  } catch (error) {
+    console.error('Error updating test series:', error);
+    res.status(500).json({ message: 'Failed to update test series', error: error.message });
+  }
+};
+
 // Export handlers as properties
 module.exports = {
   createTestSeries,
   cloneTestSeries,
   getAllTestSeries,
-  createRandomTestSeries
+  createRandomTestSeries,
+  updateTestSeries: exports.updateTestSeries // Use exports reference instead of direct reference
 };

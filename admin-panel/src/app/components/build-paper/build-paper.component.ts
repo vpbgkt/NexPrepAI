@@ -39,7 +39,7 @@ export class BuildPaperComponent implements OnInit {
     });
 
     // Fetch exam types & questions
-    this.etService.getAll().subscribe(list => this.examTypes = list);
+    this.etService.getAll().subscribe((list: any[]) => this.examTypes = list);
     this.qService.getAll().subscribe((list: Question[]) => this.questionsList = list);
   }
 

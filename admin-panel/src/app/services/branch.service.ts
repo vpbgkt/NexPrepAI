@@ -5,12 +5,13 @@ import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class BranchService {
-  private apiUrl = environment.apiUrl + '/hierarchy';
+  private apiUrl = `${environment.apiUrl}/hierarchy`;
 
   constructor(private http: HttpClient) {}
 
   getBranches(): Observable<any[]> {
-    const headers = new HttpHeaders({ Authorization: `Bearer ${localStorage.getItem('token')}` });
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
     return this.http.get<any[]>(`${this.apiUrl}/branch`, { headers });
   }
 

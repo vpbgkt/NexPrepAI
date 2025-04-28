@@ -20,7 +20,8 @@ const { Schema } = mongoose;
 
 const questionWithMarksSchema = new Schema({
   question: { type: Schema.Types.ObjectId, ref: 'Question' },
-  marks: { type: Number, default: 1 }
+  marks: { type: Number, default: 1 },
+  negativeMarks: { type: Number, default: null } // null → use series default
 });
 
 const sectionSchema = new Schema({
@@ -29,7 +30,8 @@ const sectionSchema = new Schema({
   questions: [
     {
       question: { type: Schema.Types.ObjectId, ref: 'Question', required: true },
-      marks: { type: Number, default: 1 }
+      marks: { type: Number, default: 1 },
+      negativeMarks: { type: Number, default: null } // null → use series default
     }
   ]
 }, { _id: false });
@@ -52,7 +54,9 @@ const testSeriesSchema = new Schema({
   year:         { type: Number },
 
   duration:     { type: Number, required: true },
-  totalMarks:   { type: Number, required: true },
+  totalMarks:   { type: Number, default: 0 },   // NEW
+  negativeMarkEnabled: { type: Boolean, default: false },
+  negativeMarkValue: { type: Number, default: 0 },
 
   sections:     [ sectionSchema ],
 
@@ -71,6 +75,22 @@ const testSeriesSchema = new Schema({
     type: Date
   }
 }, { timestamps: true });
+
+// Pre-save hook to auto-calculate totalMarks
+testSeriesSchema.pre('save', function (next) {
+  let sum = 0;
+
+  if (this.sections?.length) {
+    this.sections.forEach(sec =>
+      sec.questions.forEach(q => { sum += (q.marks || 1); })
+    );
+  } else if (this.questions?.length) {
+    this.questions.forEach(q => { sum += (q.marks || 1); });
+  }
+
+  this.totalMarks = sum;
+  next();
+});
 
 module.exports =
   mongoose.models.TestSeries || mongoose.model('TestSeries', testSeriesSchema);

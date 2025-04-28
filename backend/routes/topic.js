@@ -16,15 +16,30 @@
  * - respective Mongoose model
  */
 
-const express = require('express');
-const router = express.Router();
+const express = require('express');                // ✅ use Express
+const router  = express.Router();
 
 const { addTopic, getAllTopics } = require('../controllers/topicController');
+const topicController = require('../controllers/topicController');   // ✔︎ add this line
+const auditFields = require('../middleware/auditFields'); // NEW
+const { verifyToken, requireRole } = require('../middleware/verifyToken'); // ✔︎ add requireRole
 
 // Add a new topic
-router.post('/add', addTopic);
+router.post('/add',
+  verifyToken,
+  requireRole('admin'),
+  auditFields, // NEW
+  addTopic
+);
 
 // Get all topics
 router.get('/all', getAllTopics);
+
+router.put('/:id',
+  verifyToken,
+  requireRole('admin'),
+  auditFields, // NEW
+  topicController.updateTopic
+);
 
 module.exports = router;

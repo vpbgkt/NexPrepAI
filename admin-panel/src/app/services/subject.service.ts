@@ -4,20 +4,29 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
-export class ExamTypeService {
-  private apiUrl = environment.apiUrl; // e.g. http://localhost:5000/api
+export class SubjectService {
+  private apiUrl = `${environment.apiUrl}/hierarchy`;
 
   constructor(private http: HttpClient) {}
 
-  getExamTypes(): Observable<any[]> {
+  // Fetch subjects for a given branch
+  getSubjects(branchId: string): Observable<any[]> {
     const token = localStorage.getItem('token')!;
     const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
-    return this.http.get<any[]>(`${this.apiUrl}/examTypes`, { headers });
+    return this.http.get<any[]>(
+      `${this.apiUrl}/subject?branchId=${branchId}`,
+      { headers }
+    );
   }
 
-  getAll(): Observable<any[]> {
+  // Create a new subject under a branch
+  createSubject(name: string, branchId: string): Observable<any> {
     const token = localStorage.getItem('token')!;
     const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
-    return this.http.get<any[]>(`${this.apiUrl}/examTypes`, { headers });
+    return this.http.post<any>(
+      `${this.apiUrl}/subject`,
+      { name, branch: branchId },
+      { headers }
+    );
   }
 }

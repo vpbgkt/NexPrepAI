@@ -16,15 +16,29 @@
  * - respective Mongoose model
  */
 
-const express = require('express');
-const router = express.Router();
-const { verifyToken } = require('../middleware/verifyToken');
+const express = require('express');                // ✅ use Express
+const router  = express.Router();
+const { verifyToken, requireRole } = require('../middleware/verifyToken'); // ✔︎ add requireRole
 const { addSubject, getAllSubjects } = require('../controllers/subjectController');
+const auditFields = require('../middleware/auditFields'); // NEW
+const subjectController = require('../controllers/subjectController');   // ✔︎ add this line
 
 // Add a new subject
-router.post('/add', verifyToken, addSubject);
+router.post('/add',
+  verifyToken,
+  requireRole('admin'),
+  auditFields, // NEW
+  addSubject
+);
 
 // Get all subjects
 router.get('/all', verifyToken, getAllSubjects);
+
+router.put('/:id',
+  verifyToken,
+  requireRole('admin'),
+  auditFields, // NEW
+  subjectController.updateSubject
+);
 
 module.exports = router;

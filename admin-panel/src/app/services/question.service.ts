@@ -127,4 +127,9 @@ export class QuestionService {
   getAll(): Observable<Question[]> {
     return this.http.get<Question[]>(`${this.apiUrl}/questions/all`);
   }
+
+  /** Fetch list of exam types for the dropdown */
+  getExamTypes(): Observable<{ _id: string; code: string; name: string }[]> {
+    return this.http.get<{ _id: string; code: string; name: string }[]>(`${this.apiUrl}/examTypes`);
+  }
 }

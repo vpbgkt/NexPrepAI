@@ -44,7 +44,24 @@ const getAllSubjects = async (req, res) => {
   }
 };
 
+// @desc Update a subject
+// @route PUT /api/subjects/:id
+const updateSubject = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedSubject = await Subject.findByIdAndUpdate(id, req.body, { new: true });
+    if (!updatedSubject) {
+      return res.status(404).json({ message: 'Subject not found' });
+    }
+    res.status(200).json(updatedSubject);
+  } catch (error) {
+    console.error('Error updating subject:', error);
+    res.status(500).json({ message: 'Failed to update subject', error: error.message });
+  }
+};
+
 module.exports = {
   addSubject,
   getAllSubjects,
+  updateSubject,
 };

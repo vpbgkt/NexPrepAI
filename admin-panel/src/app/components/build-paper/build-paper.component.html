@@ -21,6 +21,19 @@
   <label>Negative Marking</label>
   <input formControlName="negativeMarking" type="number" step="0.25" />
 
+  <!-- Negative Marking Configuration -->
+  <label>
+    <input type="checkbox" formControlName="negativeMarkEnabled" />
+    Enable negative marking?
+  </label>
+  <input
+    type="number"
+    formControlName="negativeMarkValue"
+    [disabled]="!seriesForm.get('negativeMarkEnabled')?.value"
+    placeholder="Negative Mark Value"
+    step="0.25"
+  />
+
   <!-- Sections -->
   <div formArrayName="sections">
     <div *ngFor="let secCtrl of sections.controls; let i = index" [formGroupName]="i">

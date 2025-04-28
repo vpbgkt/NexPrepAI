@@ -14,18 +14,21 @@
  * - verifyToken middleware
  */
 
-const express = require('express');
+const express = require('express');                // ✅ use Express
 const router  = express.Router();
 const { createTestSeries, cloneTestSeries, getAllTestSeries, createRandomTestSeries } = require('../controllers/testSeriesController');
-const { verifyToken, requireRole } = require('../middleware/verifyToken');
+const { verifyToken, requireRole } = require('../middleware/verifyToken'); // ✔︎ add requireRole
 const TestAttempt = require('../models/TestAttempt');
 const TestSeries = require('../models/TestSeries');
+const auditFields = require('../middleware/auditFields'); // NEW
+const testSeriesController = require('../controllers/testSeriesController');   // ✔︎ add this line
 
 // Only admins & superadmins can create/update/delete series
 router.post(
   '/create',
   verifyToken,
   requireRole('admin'),
+  auditFields, // NEW
   createTestSeries
 );
 
@@ -73,5 +76,20 @@ router.get('/:id/status', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Error checking status' });
   }
 });
+
+console.log(
+  'DEBUG PUT /testSeries',
+  typeof verifyToken,
+  typeof requireRole('admin'),
+  typeof auditFields,
+  typeof testSeriesController.updateTestSeries
+);
+
+router.put('/:id',
+  verifyToken,
+  requireRole('admin'),
+  auditFields, // NEW
+  testSeriesController.updateTestSeries
+);
 
 module.exports = router;

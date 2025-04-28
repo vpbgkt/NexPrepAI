@@ -61,6 +61,22 @@ const createQuestion = async (req, res) => {
 const resolveEntityWithParent = async (Model, name, parentField, parentId) => {
   if (!name || !parentId) return null;
 
+  // If it's a valid ObjectId, try to find it by ID first
+  if (mongoose.Types.ObjectId.isValid(name)) {
+    try {
+      const docById = await Model.findById(name);
+      if (docById) return docById;
+      
+      // If not found by ID, don't create a new entity with ObjectId as name
+      console.log(`No ${Model.modelName} found with ID: ${name}`);
+      return null;
+    } catch (err) {
+      console.log(`Error finding ${Model.modelName} by ID:`, err);
+      return null;
+    }
+  }
+
+  // It's not an ObjectId, so proceed with name-based lookup
   // Try finding it
   let doc = await Model.findOne({
     name: new RegExp(`^${name}$`, 'i'),
@@ -83,47 +99,84 @@ const addQuestion = async (req, res) => {
   try {
     const {
       questionText,
-      options,
+      options = [],
       correctOptions,
       branch,
       subject,
       topic,
-      subtopic,
+      subTopic, // Changed from subtopic to match the frontend's parameter name
       examType,
       difficulty,
       explanation,
       explanations = [],
       marks = 1,
+      negativeMarks = 0,
+      images = [],
       askedIn = [],
       status = "active",
-      version = 1
+      version = 1,
+      questionHistory = []
     } = req.body;
+    
+    // Parse negativeMarks as float to prevent integer casting
+    const negativeMarksFloat = parseFloat(negativeMarks);
 
     console.log("📥 Incoming Request Body:", req.body);
 
     // Step 1: Resolve Entities (string or ObjectId)
     const resolveEntity = async (Model, value, key = "name") => {
       if (!value) return null;
-      if (mongoose.Types.ObjectId.isValid(value)) return value;
-      let doc = await Model.findOne({ [key]: new RegExp(`^${value}$`, "i") });
-      if (!doc) {
-        doc = new Model({ [key]: value });
-        await doc.save();
+      
+      // If it's a valid ObjectId, find the document by ID
+      if (mongoose.Types.ObjectId.isValid(value)) {
+        try {
+          const doc = await Model.findById(value);
+          if (doc) return doc._id; // If found, return the ObjectId
+          
+          // If not found (deleted entity), return null instead of recreating
+          console.log(`No ${Model.modelName} found with ID: ${value}`);
+          return null;
+        } catch (err) {
+          console.log(`Error finding ${Model.modelName} by ID:`, err);
+          return null;
+        }
       }
+
+      // Handle string values (create if not found)
+      let doc;
+      if (Model.modelName === 'ExamType') {
+        doc = new Model({ code: value, name: value });
+      } else {
+        doc = new Model({ [key]: value });
+      }
+      await doc.save();
       return doc._id;
     };
 
     const branchDoc = await resolveEntity(Branch, branch);
-    const subjectDoc = await resolveEntity(Subject, subject, 'name', { branch: branchDoc._id });
+    const subjectDoc = await resolveEntity(Subject, subject, 'name', { branch: branchDoc?._id });
     const topicDoc = await resolveEntityWithParent(Topic, topic, 'subject', subjectDoc?._id);
-    const subtopicDoc = await resolveEntityWithParent(SubTopic, subtopic, 'topic', topicDoc?._id);
-    const examTypeId = await resolveEntity(ExamType, examType, "code");
+    const subtopicDoc = await resolveEntityWithParent(SubTopic, subTopic, 'topic', topicDoc?._id);
+    // Ensure examType has a default value if not provided
+    const examTypeId = examType ? await resolveEntity(ExamType, examType, "code") : 'general';
 
-    // Step 2: Format options
-    const formattedOptions = options.map((opt) => ({
-      text: opt.text?.trim(),
-      isCorrect: opt.isCorrect
-    })).filter(o => o.text); // remove empty options
+    // Step 2: Validate and format options
+    const formattedOptions = options.map((opt) => {
+      if (typeof opt === 'string') {
+        return { text: opt.trim(), isCorrect: false };
+      } else if (typeof opt === 'object' && opt.text) {
+        return { 
+          text: opt.text.trim(), 
+          img: opt.img || '',  // Preserve the img property
+          isCorrect: !!opt.isCorrect 
+        };
+      }
+      return null;
+    }).filter(o => o && o.text); // Remove invalid or empty options
+
+    if (formattedOptions.length < 2) {
+      return res.status(400).json({ message: "At least two options are required." });
+    }
 
     // Step 3: Parse correctOptions if it's still string
     let formattedCorrectOptions = correctOptions;
@@ -155,6 +208,12 @@ const addQuestion = async (req, res) => {
       }
     }
 
+    // Step 6: Validate difficulty
+    const validDifficulties = ["Easy", "Medium", "Hard"];
+    const difficultyValue = validDifficulties.includes(difficulty) ? 
+                           difficulty : 
+                           'Not-mentioned'; // Default to "Not-mentioned" instead of null
+
     const question = new Question({
       questionText,
       options: formattedOptions,
@@ -162,15 +221,19 @@ const addQuestion = async (req, res) => {
       branch: branchDoc,
       subject: subjectDoc,
       topic: topicDoc,
-      subtopic: subtopicDoc,
+      subTopic: subtopicDoc,  // Changed from "subtopic" to "subTopic" to match the schema
       examType: examTypeId,
-      difficulty,
+      difficulty: difficultyValue,
       explanation,
       explanations: explanationArray,
       marks,
+      negativeMarks: negativeMarksFloat,
+      images,
+      questionHistory,
       askedIn: askedInArray,
       status,
-      version
+      version,
+      createdBy: req.user?.userId || req.user?.id || req.user?._id  // Check all possible user ID properties
     });
 
     await question.save();

@@ -1,168 +1,135 @@
-<form #form="ngForm" (ngSubmit)="addQuestion(form)">
-  <!-- Question Text -->
+<form #f="ngForm" (ngSubmit)="addQuestion(f)">
+
+  <!-- Question text -->
   <div>
     <label>Question:</label>
-    <input
-      type="text"
-      name="questionText"
-      [(ngModel)]="question.questionText"
-      required
-      #qt="ngModel"
-    />
-    <div *ngIf="qt.invalid && (qt.touched || form.submitted)" class="error">
-      Question is required.
-    </div>
+    <input type="text" name="qText" [(ngModel)]="question.questionText" required #qT="ngModel"/>
+    <div *ngIf="qT.invalid && (qT.touched || f.submitted)" class="error">Question is required</div>
+  </div>
+
+  <!-- Question Image URLs -->
+  <div>
+    <label>Question Image URL(s):</label>
+    <textarea rows="2" [(ngModel)]="question.images[0]" name="qImg"></textarea>
+    <small>Pipe-separate multiple URLs (https://example.com/img1.jpg|https://example.com/img2.jpg)</small>
   </div>
 
   <!-- Options -->
   <div *ngFor="let opt of question.options; let i = index">
-    <label>Option {{ i + 1 }}:</label>
-    <input
-      type="text"
-      [(ngModel)]="question.options[i].text"
-      name="option{{i}}"
-      required
-    />
-    <label>
-      <input
-        type="checkbox"
-        [(ngModel)]="question.options[i].isCorrect"
-        name="correct{{i}}"
-      />
-      Correct
-    </label>
-    <!-- Remove button -->
-    <button type="button"
-            (click)="removeOption(i)"
-            [disabled]="question.options.length <= 2">
-      Remove
-    </button>
+    <label>Option {{i+1}}:</label>
+    <input type="text" name="opt{{i}}" [(ngModel)]="opt.text" required #oCtrl="ngModel"/>
+    <input type="text" placeholder="img URL" [(ngModel)]="opt.img" name="img{{i}}"/>
+    <label><input type="checkbox" name="ok{{i}}" [(ngModel)]="opt.isCorrect"/> Correct</label>
+    <button type="button" (click)="removeOption(i)" [disabled]="question.options.length<=2">Remove</button>
+    <div *ngIf="oCtrl.invalid && (oCtrl.touched || f.submitted)" class="error">Option {{i+1}} required</div>
   </div>
+  <button type="button" (click)="addOption()">+ Add Option</button>
 
-  <!-- Add new option button -->
-  <div>
-    <button type="button" (click)="addOption()">
-      + Add Option
-    </button>
-  </div>
-
-  <!-- Difficulty -->
+  <!-- Difficulty / type -->
   <div>
     <label>Difficulty:</label>
-    <select
-      name="difficulty"
-      [(ngModel)]="question.difficulty"
-      required
-      #diff="ngModel"
-    >
-      <option value="">Select</option>
-      <option>Easy</option>
-      <option>Medium</option>
-      <option>Hard</option>
+    <select name="diff" [(ngModel)]="question.difficulty">
+      <option value="">Not-mentioned</option>
+      <option>Easy</option><option>Medium</option><option>Hard</option>
     </select>
-    <div *ngIf="diff.invalid && (diff.touched || form.submitted)" class="error">
-      Difficulty is required.
-    </div>
   </div>
 
-  <!-- Branch Dropdown -->
   <div>
-    <label for="branch">Branch:</label>
-    <select
-      id="branch"
-      [(ngModel)]="question.branchId"
-      name="branchId"
-      (change)="onBranchChange(question.branchId)"
-      required
-      #branchCtrl="ngModel"
-    >
-      <option value="">Select Branch</option>
-      <option *ngFor="let b of branches" [value]="b._id">
-        {{ b.name }}
-      </option>
+    <label>Type:</label>
+    <select name="type" [(ngModel)]="question.type">
+      <option value="single">Single</option>
+      <option value="multiple">Multiple</option>
+      <option value="integer">Integer</option>
+      <option value="matrix">Matrix</option>
     </select>
-    <div *ngIf="branchCtrl.invalid && (branchCtrl.touched || form.submitted)" class="error">
-      Branch is required.
-    </div>
-
-    <!-- New Link to Add Branch -->
-    <button type="button" (click)="goToAddBranch()">+ Add Branch</button>
   </div>
 
-  <!-- Subject Dropdown -->
+  <!-- marks -->
   <div>
-    <label for="subject">Subject:</label>
-    <select
-      id="subject"
-      [(ngModel)]="question.subjectId"
-      name="subjectId"
-      (change)="onSubjectChange(question.subjectId)"
-      required
-      #subjectCtrl="ngModel"
-    >
-      <option value="">Select Subject</option>
-      <option *ngFor="let s of subjects" [value]="s._id">
-        {{ s.name }}
-      </option>
-    </select>
-    <div *ngIf="subjectCtrl.invalid && (subjectCtrl.touched || form.submitted)" class="error">
-      Subject is required.
-    </div>
-
-    <!-- New Link to Add Subject -->
-    <button type="button" (click)="goToAddSubject()">+ Add Subject</button>
+    <label>Marks:</label>
+    <input type="number" min="0" name="marks" [(ngModel)]="question.marks" required/>
   </div>
-
-  <!-- Topic Dropdown -->
   <div>
-    <label for="topic">Topic:</label>
-    <select
-      id="topic"
-      [(ngModel)]="question.topicId"
-      name="topicId"
-      (change)="onTopicChange(question.topicId)"
-      required
-      #topicCtrl="ngModel"
-    >
-      <option value="">Select Topic</option>
-      <option *ngFor="let t of topics" [value]="t._id">
-        {{ t.name }}
-      </option>
-    </select>
-    <div *ngIf="topicCtrl.invalid && (topicCtrl.touched || form.submitted)" class="error">
-      Topic is required.
-    </div>
-
-    <!-- New Link to Add Topic -->
-    <button type="button" (click)="goToAddTopic()">+ Add Topic</button>
+    <label>Neg Marks:</label>
+    <input type="number" min="0" name="neg" [(ngModel)]="question.negativeMarks" required/>
   </div>
 
-  <!-- Subtopic Dropdown -->
+  <!-- Exam type -->
   <div>
-    <label for="subtopic">Subtopic:</label>
-    <select
-      id="subtopic"
-      [(ngModel)]="question.subtopicId"
-      name="subtopicId"
-      (change)="onSubtopicChange(question.subtopicId)"
-      required
-      #subtopicCtrl="ngModel"
-    >
-      <option value="">Select Subtopic</option>
-      <option *ngFor="let st of subtopics" [value]="st._id">
-        {{ st.name }}
-      </option>
+    <label>Exam type:</label>
+    <select name="ex" [(ngModel)]="question.examTypeId">
+      <option value="">— select or none —</option> <!-- updated placeholder -->
+      <option *ngFor="let e of examTypes" [value]="e._id">{{e.name}}</option>
     </select>
-    <div *ngIf="subtopicCtrl.invalid && (subtopicCtrl.touched || form.submitted)" class="error">
-      Subtopic is required.
-    </div>
-
-    <!-- New Link to Add Subtopic -->
-    <button type="button" (click)="goToAddSubtopic()">+ Add Subtopic</button>
   </div>
 
-  <!-- Submit Button + Spinner -->
-  <button type="submit" [disabled]="isLoading">
-    {{ isLoading ? 'Saving...' : 'Add Question' }}
-  </button>
+  <!-- Branch / Subject / Topic / Subtopic -->
+  <div>
+    <label>Branch:</label>
+    <select name="br" [(ngModel)]="question.branchId" (change)="onBranchChange(question.branchId)">
+      <option value="">Not-mentioned</option>
+      <option *ngFor="let b of branches" [value]="b._id">{{b.name}}</option>
+    </select>
+    <button type="button" (click)="goToAddBranch()">+Add</button>
+  </div>
+
+  <div>
+    <label>Subject:</label>
+    <select name="subj" [(ngModel)]="question.subjectId" (change)="onSubjectChange(question.subjectId)">
+      <option value="">Not-mentioned</option>
+      <option *ngFor="let s of subjects" [value]="s._id">{{s.name}}</option>
+    </select>
+    <button type="button" (click)="goToAddSubject()">+Add</button>
+  </div>
+
+  <div>
+    <label>Topic:</label>
+    <select name="top" [(ngModel)]="question.topicId" (change)="onTopicChange(question.topicId)">
+      <option value="">Not-mentioned</option>
+      <option *ngFor="let t of topics" [value]="t._id">{{t.name}}</option>
+    </select>
+    <button type="button" (click)="goToAddTopic()">+Add</button>
+  </div>
+
+  <div>
+    <label>Subtopic:</label>
+    <select name="subtop" [(ngModel)]="question.subtopicId">
+      <option value="">Not-mentioned</option>
+      <option *ngFor="let st of subtopics" [value]="st._id">{{st.name}}</option>
+    </select>
+    <button type="button" (click)="goToAddSubtopic()">+Add</button>
+  </div>
+
+  <!-- appearance -->
+  <div>
+    <label>Appearance:</label>
+    <input type="text" placeholder="Exam" [(ngModel)]="histEntry.examName" name="histExam"/>
+    <input type="number" min="1900" [max]="currentYear" [(ngModel)]="histEntry.year" name="histYr"/>
+    <button type="button" (click)="addHistory()">Add</button>
+  </div>
+  <ul *ngIf="histList.length">
+    <li *ngFor="let h of histList">{{h.examName}} – {{h.year}}</li>
+  </ul>
+
+  <!-- explanations -->
+  <div>
+    <label>Explanations:</label>
+    <div *ngFor="let exp of explanations; let i=index">
+      <select [(ngModel)]="exp.type" name="t{{i}}">
+        <option *ngFor="let k of explanationTypes" [value]="k">{{k}}</option>
+      </select>
+      <input type="text" placeholder="Label" [(ngModel)]="exp.label" name="l{{i}}">
+      <input
+        type="text"
+        placeholder="Content URL / text"
+        required
+        [(ngModel)]="exp.content"
+        name="c{{i}}"
+      />
+      <button type="button" (click)="removeExplanation(i)">Remove</button>
+    </div>
+    <button type="button" (click)="addExplanation()">+ Add Explanation</button>
+  </div>
+
+  <button type="submit">Submit</button>
 </form>

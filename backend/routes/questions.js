@@ -1,16 +1,20 @@
-// All import statements
+// backend/routes/questions.js
+// ------------------------------------------------------------------
+// Question routes (add / create / CSV import / CRUD / filter)
+// ------------------------------------------------------------------
+
 const express = require('express');
-const mongoose = require('mongoose');
-const router = express.Router();
+const router  = express.Router();
+
 const { verifyToken } = require('../middleware/verifyToken');
-const Question = require('../models/Question');
-const Branch = require('../models/Branch');
-const Subject = require('../models/Subject');
-const Topic = require('../models/Topic');
-const SubTopic = require('../models/SubTopic');
-const ExamType = require('../models/ExamType'); // Added this line
-const getExamTypeId = require('../utils/getExamTypeId');
-const { isValidObjectId } = require('mongoose');
+const auditFields     = require('../middleware/auditFields');
+
+const Question  = require('../models/Question');
+const Branch    = require('../models/Branch');
+const Subject   = require('../models/Subject');
+const Topic     = require('../models/Topic');
+const SubTopic  = require('../models/SubTopic');
+const ExamType  = require('../models/ExamType');
 
 const {
   createQuestion,
@@ -22,186 +26,152 @@ const {
   addQuestion,
 } = require('../controllers/questionController');
 
+// ───────── helper to find or create by name / id ─────────
+const { isValidObjectId } = require('mongoose');
 async function resolveEntity(Model, value, key = 'name') {
+  if (!value) return null;
+
   if (isValidObjectId(value)) {
     const doc = await Model.findById(value);
     if (doc) return doc;
   }
-
   let doc = await Model.findOne({ [key]: new RegExp(`^${value}$`, 'i') });
   if (!doc) {
-    if (Model.modelName === 'ExamType') {
-      doc = new Model({ code: value, name: value }); // ✅ fix for ExamType
-    } else {
-      doc = new Model({ [key]: value });
-    }
+    doc = key === 'code' ? new Model({ code: value, name: value })
+                         : new Model({ [key]: value });
     await doc.save();
   }
   return doc;
 }
 
-// ✅ Route to filter questions by branch, subject, topic, subtopic
+// ───────────────────────── Routes ─────────────────────────
+
+// Filter
 router.get('/filter', verifyToken, filterQuestions);
 
-// ✅ Add a new question
-router.post('/add', verifyToken, addQuestion);
+// Add single question (JSON)
+router.post('/add', verifyToken, auditFields, addQuestion);
 
-// ✅ Get all questions
-// (static route, placed before the dynamic one below)
+// Get all questions
 router.get('/all', verifyToken, getAllQuestions);
 
-// ✅ Create question (used by admin maybe)
+// Admin create form endpoint (optional)
 router.post('/create', verifyToken, createQuestion);
 
-// ✅ Import CSV questions
+// ---------- CSV IMPORT ------------------------------------------------
 router.post('/import-csv', verifyToken, async (req, res) => {
   try {
-    const questions = Array.isArray(req.body) ? req.body : [];
-    if (!questions.length) {
-      return res.status(400).json({ message: 'No questions found in request body.' });
-    }
+    const rows = Array.isArray(req.body) ? req.body : [];
+    if (!rows.length) return res.status(400).json({ message: 'No data' });
 
-    const inserted = [];
-    const errors = [];
+    const errors       = [];
+    const docsToInsert = [];
 
-    for (const [index, q] of questions.entries()) {
+    const allowedDifficulties = ['Easy', 'Medium', 'Hard'];
+    const allowedTypes        = ['single', 'multiple', 'integer', 'matrix'];
+    const allowedExpTypes     = ['text', 'video', 'pdf', 'image'];
+
+    for (const [i, row] of rows.entries()) {
       try {
-        const {
-          questionText,
-          options,
-          correctOptions,
-          explanation,
-          difficulty,
-          branch: branchName,
-          subject: subjectName,
-          topic: topicName,
-          subtopic: subtopicName,
-          examType: examTypeName,
-          marks,
-          askedIn,
-          explanations,
-          version,
-          status
-        } = q;
+        // ─── Resolve hierarchy docs ──────────────────────────────
+        const branchDoc   = await resolveEntity(Branch,   row.branch);
+        const subjectDoc  = await resolveEntity(Subject,  row.subject);
+        const topicDoc    = await resolveEntity(Topic,    row.topic);
+        const subTopicDoc = await resolveEntity(SubTopic, row.subtopic);
+        const examTypeDoc = await resolveEntity(ExamType, row.examType || 'default', 'code');
 
-        const branchDoc = await resolveEntity(Branch, branchName);
         if (!branchDoc) {
-          errors.push(`Row ${index + 1}: Invalid branch '${branchName}'`);
+          errors.push({ row: i + 2, error: `Invalid branch '${row.branch}'` });
           continue;
         }
 
-        let subjectDoc = await Subject.findOne({ name: new RegExp(`^${subjectName}$`, 'i'), branch: branchDoc._id });
-        if (!subjectDoc && subjectName) {
-          subjectDoc = new Subject({ name: subjectName, branch: branchDoc._id });
-          await subjectDoc.save();
+        // ─── Validate & parse new columns ───────────────────────
+        const difficulty = (row.difficulty || 'Medium').trim();
+        if (!allowedDifficulties.includes(difficulty)) {
+          errors.push({ row: i + 2, error: `Invalid difficulty '${difficulty}'` });
+          continue;
         }
 
-        let topicDoc = null;
-        if (subjectDoc && topicName) {
-          topicDoc = await Topic.findOne({ name: new RegExp(`^${topicName}$`, 'i'), subject: subjectDoc._id });
-          if (!topicDoc) {
-            topicDoc = new Topic({ name: topicName, subject: subjectDoc._id });
-            await topicDoc.save();
+        const qType = (row.type || 'single').trim();
+        if (!allowedTypes.includes(qType)) {
+          errors.push({ row: i + 2, error: `Invalid type '${qType}'` });
+          continue;
+        }
+
+        const negativeMarks = parseFloat(row.negativeMarks || 0) || 0;
+
+        // explanations.text | .video | .pdf | .image
+        const explanations = [];
+        for (const kind of allowedExpTypes) {
+          const col = `explanations.${kind}`;
+          if (row[col]) {
+            row[col].split('|').forEach(txt =>
+              explanations.push({ type: kind, label: '', content: txt.trim() })
+            );
           }
         }
 
-        let subtopicDoc = null;
-        if (topicDoc && subtopicName) {
-          subtopicDoc = await SubTopic.findOne({ name: new RegExp(`^${subtopicName}$`, 'i'), topic: topicDoc._id });
-          if (!subtopicDoc) {
-            subtopicDoc = new SubTopic({ name: subtopicName, topic: topicDoc._id });
-            await subtopicDoc.save();
-          }
+        // ─── Options & correct options parsing ──────────────────
+        const opts = (row.options || '').split('|').map(s => s.trim());
+        const correctOpts = (row.correctOptions || '')
+          .split('|')
+          .map(s => s.trim())
+          .filter(Boolean);
+
+        if (opts.length < 2) {
+          errors.push({ row: i + 2, error: 'Less than 2 options' });
+          continue;
+        }
+        if (!correctOpts.length) {
+          errors.push({ row: i + 2, error: 'No correctOptions' });
+          continue;
         }
 
-        const examTypeDoc = await resolveEntity(ExamType, examTypeName || 'Default', 'code');
-
-        let optionTexts = [];
-        let correctOpts = [];
-
-        if (Array.isArray(options)) {
-          if (typeof options[0] === 'string') {
-            optionTexts = options;
-          } else {
-            optionTexts = options.map((o) => o.text?.trim() || '');
-            correctOpts = options.filter(o => o.isCorrect).map(o => o.text?.trim() || '');
-          }
-        } else if (typeof options === 'string') {
-          optionTexts = options.split('|').map(s => s.trim());
-        }
-
-        if (typeof correctOptions === 'string') {
-          if (correctOptions.trim().startsWith('[')) {
-            correctOpts = JSON.parse(correctOptions);
-          } else {
-            correctOpts = correctOptions.split('|').map(opt => opt.trim());
-          }
-        } else if (Array.isArray(correctOptions)) {
-          correctOpts = correctOptions;
-        }
-
-        const optionsArray = optionTexts.map(text => ({
-          text,
-          isCorrect: correctOpts.includes(text)
-        }));
-
-        const askedInData = (() => {
-          try {
-            const parsed = typeof askedIn === 'string' ? JSON.parse(askedIn) : askedIn;
-            return Array.isArray(parsed) ? parsed : [{ examName: 'NEET', year: new Date().getFullYear() }];
-          } catch {
-            return [{ examName: 'NEET', year: new Date().getFullYear() }];
-          }
-        })();
-
-        const newQ = new Question({
-          questionText,
-          options: optionsArray,
-          correctOptions: correctOpts,
-          branch: branchDoc._id,
-          subject: subjectDoc?._id,
-          topic: topicDoc?._id,
-          subtopic: subtopicDoc?._id,
+        // ─── Build doc ──────────────────────────────────────────
+        docsToInsert.push({
+          branch:   branchDoc._id,
+          subject:  subjectDoc?._id,
+          topic:    topicDoc?._id,
+          subTopic: subTopicDoc?._id,
           examType: examTypeDoc._id,
-          difficulty: difficulty || 'Medium',
-          marks: parseFloat(marks) || 4,
-          explanation: explanation || '',
-          explanations: Array.isArray(explanations) ? explanations : [],
-          askedIn: askedInData,
-          version: version || 1,
-          status: status || 'active',
-          meta: {
-            accuracy: { correct: 0, total: 0 },
-            avgTime: 0
-          }
+
+          questionText: row.questionText,
+          images:       (row.images || '').split('|').map(s => s.trim()).filter(Boolean),
+
+          options: opts,
+          correctOptions: correctOpts.map(opt => opts.indexOf(opt)).filter(i => i >= 0),
+
+          marks:         Number(row.marks || 1),
+          negativeMarks, difficulty, type: qType,
+          explanations,
+
+          askedIn: row.askedIn ? JSON.parse(row.askedIn) : [],
+          status:  row.status || 'active',
+          version: row.version ? Number(row.version) : 1
         });
-
-        await newQ.save();
-        inserted.push(newQ);
-
       } catch (err) {
-        console.error(`Error processing row ${index + 1}:`, err.message);
-        errors.push(`Row ${index + 1}: ${err.message}`);
+        errors.push({ row: i + 2, error: err.message });
       }
     }
 
-    if (errors.length) {
-      res.status(207).json({ message: 'Partial import', insertedCount: inserted.length, errors });
-    } else {
-      res.status(201).json({ message: 'Questions imported successfully', insertedCount: inserted.length });
-    }
+    if (docsToInsert.length) await Question.insertMany(docsToInsert);
 
-  } catch (error) {
-    console.error('Fatal import error:', error.message);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    const code = errors.length ? 207 : 201;
+    res.status(code).json({
+      message: errors.length ? 'Partial import' : 'Import successful',
+      inserted: docsToInsert.length,
+      errors
+    });
+
+  } catch (err) {
+    console.error('Fatal CSV import error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
-// ✅ Get a specific question by ID
-router.get('/:id', verifyToken, getQuestionById);
-// ✅ Update question
-router.put('/:id', verifyToken, updateQuestion);
-// ✅ Delete question
+// ------------------ CRUD routes ------------------------------
+router.get('/:id',   verifyToken, getQuestionById);
+router.put('/:id',   verifyToken, auditFields, updateQuestion);
 router.delete('/:id', verifyToken, deleteQuestion);
 
 module.exports = router;
