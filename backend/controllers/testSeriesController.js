@@ -17,7 +17,6 @@
 const mongoose   = require('mongoose');
 const TestSeries = require('../models/TestSeries');   // ← make sure this points to /backend/models/tests.js
 const Question   = require('../models/Question');
-const getExamTypeId = require('../utils/getExamTypeId');
 
 // 1) Create a new TestSeries by sampling questions
 async function createTestSeries(req, res) {
@@ -25,48 +24,52 @@ async function createTestSeries(req, res) {
     const {
       title,
       duration,
-      negativeMarking,
+      mode,
+      type,
       year,
-      examType,         // e.g., 'medical'
-      questions,        // [{ question, marks }]
-      sections,         // optional
-      variants,         // added variants
-      startAt,          // start time
-      endAt             // end time
+      maxAttempts,
+      sections,
+      variants,
+      startAt,
+      endAt,
+      family,
+      stream,
+      paper,
+      shift,
+      createdBy
     } = req.body;
 
-    if (!questions?.length && !sections?.length && !variants?.length) {
-      return res.status(400).json({ message: 'Provide at least questions, sections, or variants' });
+    // Fixed user ID access - verifyToken middleware stores it as req.user.userId
+    const userId = createdBy || req.user?.userId;
+    
+    if (!userId) {
+      console.log('DEBUG: User data available:', req.user); // Add debug logging
+      return res.status(400).json({ message: 'User ID is required but not found' });
     }
-
-    // Compute totalMarks
-    const totalMarks = sections.reduce((secSum, sec) => {
-      const secMarks = sec.questions.reduce((qSum, q) => qSum + (q.marks || 0), 0);
-      return secSum + secMarks;
-    }, 0);
 
     const newSeries = new TestSeries({
       title,
+      family,
+      stream,
+      paper,
+      shift,
       duration,
-      negativeMarking,
+      mode,
+      type,
       year,
-      examType: await getExamTypeId(examType),
-      mode: ['live', 'practice'].includes(req.body.mode) ? req.body.mode : 'practice',
+      maxAttempts,
       startAt,
       endAt,
-
-      ...(variants?.length > 0
-        ? { variants }
-        : sections?.length > 0
-          ? { sections }
-          : { questions }), // fallback to flat if no sections or variants
-      totalMarks // Automatically computed
+      ...(variants?.length > 0 ? { variants }
+        : sections?.length > 0 ? { sections }
+        : { questions: req.body.questions }),
+      createdBy: userId  // Use the correctly accessed userId
     });
 
     await newSeries.save();
     res.status(201).json(newSeries);
   } catch (error) {
-    console.error('❌ Failed to create test series:', error);  // 👈 this logs the real error to terminal
+    console.error('Error creating test series:', error);
     res.status(500).json({ message: 'Failed to create test series', error: error.message });
   }
 }
@@ -102,18 +105,7 @@ async function cloneTestSeries(req, res) {
 // 3) Get all TestSeries
 async function getAllTestSeries(req, res) {
   try {
-    const { examType } = req.query;
-    const filter = {};
-
-    if (examType) {
-      const ExamType = require('../models/ExamType');
-      const type = await ExamType.findOne({ code: examType.toLowerCase() });
-      if (!type) return res.status(404).json({ message: 'Invalid exam type' });
-      filter.examType = type._id;
-    }
-
-    const all = await TestSeries.find(filter)
-      .populate('examType', 'code name')
+    const all = await TestSeries.find()
       .sort({ createdAt: -1 });
 
     res.json(all);
@@ -126,17 +118,13 @@ async function getAllTestSeries(req, res) {
 async function createRandomTestSeries(req, res) {
   try {
     const {
-      examType,       // "medical"
       count = 50,     // number of random questions
       title = "Practice Paper",
       duration = 90,
       marksPerQuestion = 1
     } = req.body;
 
-    const typeId = await getExamTypeId(examType);
-
     const questions = await Question.aggregate([
-      { $match: { examType: typeId } },
       { $sample: { size: parseInt(count, 10) } }
     ]);
 
@@ -147,7 +135,6 @@ async function createRandomTestSeries(req, res) {
 
     const series = new TestSeries({
       title,
-      examType: typeId,
       duration,
       totalMarks: formatted.length * marksPerQuestion,
       negativeMarking: false,
@@ -177,11 +164,22 @@ exports.getAllSeries = async (req, res) => {
 exports.updateTestSeries = async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedTestSeries = await TestSeries.findByIdAndUpdate(id, req.body, { new: true });
-    if (!updatedTestSeries) {
+
+    // only allow these specific fields (optional)
+    const fields = [
+      'title', 'family', 'stream', 'paper', 'shift', 'duration',
+      'negativeMarkEnabled', 'negativeMarkValue', 'mode', 'type',
+      'year', 'maxAttempts', 'sections', 'variants', 'startAt', 'endAt'
+    ];
+    const payload = {};
+    fields.forEach(f => { if (req.body[f] !== undefined) payload[f] = req.body[f]; });
+    payload.updatedBy = req.user._id;
+
+    const updated = await TestSeries.findByIdAndUpdate(id, payload, { new: true });
+    if (!updated) {
       return res.status(404).json({ message: 'TestSeries not found' });
     }
-    res.status(200).json(updatedTestSeries);
+    res.status(200).json(updated);
   } catch (error) {
     console.error('Error updating test series:', error);
     res.status(500).json({ message: 'Failed to update test series', error: error.message });

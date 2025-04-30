@@ -4,7 +4,7 @@
  * Defines a full mock test (official-style or practice).
  *
  * Fields:
- * - title, examType, totalMarks, duration, negativeMarking
+ * - title, totalMarks, duration, negativeMarking
  * - questions: Flat array of question-mark objects
  * - sections: Optional grouping of questions into sections (with titles)
  * - startAt / endAt: Optional scheduled open/close windows
@@ -20,8 +20,8 @@ const { Schema } = mongoose;
 
 const questionWithMarksSchema = new Schema({
   question: { type: Schema.Types.ObjectId, ref: 'Question' },
-  marks: { type: Number, default: 1 },
-  negativeMarks: { type: Number, default: null } // null → use series default
+  marks: { type: Number, required: true },
+  negativeMarks: { type: Number, default: 0 } // null → use series default
 });
 
 const sectionSchema = new Schema({
@@ -30,8 +30,8 @@ const sectionSchema = new Schema({
   questions: [
     {
       question: { type: Schema.Types.ObjectId, ref: 'Question', required: true },
-      marks: { type: Number, default: 1 },
-      negativeMarks: { type: Number, default: null } // null → use series default
+      marks: { type: Number, required: true },
+      negativeMarks: { type: Number, default: 0 } // null → use series default
     }
   ]
 }, { _id: false });
@@ -41,22 +41,15 @@ const variantSchema = new Schema({
     type: String,
     required: true       // e.g. 'A', 'B', 'C'
   },
-  sections: [ sectionSchema ],
-  negativeMarking: {
-    type: Number,        // now accepts decimals like 0.25
-    default: 0
-  }
+  sections: [ sectionSchema ]
 });
 
 const testSeriesSchema = new Schema({
   title:        { type: String, required: true },
-  examType:     { type: Schema.Types.ObjectId, ref: 'ExamType', required: true },
   year:         { type: Number },
 
   duration:     { type: Number, required: true },
   totalMarks:   { type: Number, default: 0 },   // NEW
-  negativeMarkEnabled: { type: Boolean, default: false },
-  negativeMarkValue: { type: Number, default: 0 },
 
   sections:     [ sectionSchema ],
 
@@ -73,7 +66,29 @@ const testSeriesSchema = new Schema({
   },
   endAt: {
     type: Date
-  }
+  },
+  type: { type: String, enum: ['official', 'practice', 'live'], required: true },
+  family: {
+    type: Schema.Types.ObjectId,
+    ref: 'ExamFamily',
+    required: true
+  },
+  stream: {
+    type: Schema.Types.ObjectId,
+    ref: 'ExamStream',
+    required: true
+  },
+  paper: {
+    type: Schema.Types.ObjectId,
+    ref: 'ExamPaper',
+    required: true
+  },
+  shift: {
+    type: Schema.Types.ObjectId,
+    ref: 'ExamShift',
+    required: true
+  },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
 
 // Pre-save hook to auto-calculate totalMarks

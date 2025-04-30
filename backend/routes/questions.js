@@ -9,25 +9,29 @@ const router  = express.Router();
 const { verifyToken } = require('../middleware/verifyToken');
 const auditFields     = require('../middleware/auditFields');
 
+// ⭐ one consistent import – no chance of missing a function
+const questionCtrl = require('../controllers/questionController');
+
+/* ──────────────── READ / FILTER ───────────────── */
+// router.get('/filter', verifyToken, questionCtrl.filterQuestions);
+router.get('/all',    verifyToken, questionCtrl.getAllQuestions);
+router.get('/:id',    verifyToken, questionCtrl.getQuestionById);
+
+/* ──────────────── CREATE / UPDATE / DELETE ────── */
+router.post('/add',   verifyToken, auditFields, questionCtrl.addQuestion);
+router.put('/:id',    verifyToken, auditFields, questionCtrl.updateQuestion);
+router.delete('/:id', verifyToken,              questionCtrl.deleteQuestion);
+
+/* ──────────────── CSV IMPORT (kept unchanged) ─── */
 const Question  = require('../models/Question');
 const Branch    = require('../models/Branch');
 const Subject   = require('../models/Subject');
 const Topic     = require('../models/Topic');
 const SubTopic  = require('../models/SubTopic');
 const ExamType  = require('../models/ExamType');
-
-const {
-  createQuestion,
-  getAllQuestions,
-  getQuestionById,
-  updateQuestion,
-  deleteQuestion,
-  filterQuestions,
-  addQuestion,
-} = require('../controllers/questionController');
+const { isValidObjectId } = require('mongoose');
 
 // ───────── helper to find or create by name / id ─────────
-const { isValidObjectId } = require('mongoose');
 async function resolveEntity(Model, value, key = 'name') {
   if (!value) return null;
 
@@ -43,20 +47,6 @@ async function resolveEntity(Model, value, key = 'name') {
   }
   return doc;
 }
-
-// ───────────────────────── Routes ─────────────────────────
-
-// Filter
-router.get('/filter', verifyToken, filterQuestions);
-
-// Add single question (JSON)
-router.post('/add', verifyToken, auditFields, addQuestion);
-
-// Get all questions
-router.get('/all', verifyToken, getAllQuestions);
-
-// Admin create form endpoint (optional)
-router.post('/create', verifyToken, createQuestion);
 
 // ---------- CSV IMPORT ------------------------------------------------
 router.post('/import-csv', verifyToken, async (req, res) => {
@@ -168,10 +158,5 @@ router.post('/import-csv', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
-
-// ------------------ CRUD routes ------------------------------
-router.get('/:id',   verifyToken, getQuestionById);
-router.put('/:id',   verifyToken, auditFields, updateQuestion);
-router.delete('/:id', verifyToken, deleteQuestion);
 
 module.exports = router;

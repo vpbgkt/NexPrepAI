@@ -10,6 +10,21 @@ export interface TestSeries {
   totalMarks:  number;
   mode:        string;
   maxAttempts: number;
+  type:        string; // official, practice, live
+  year:        number | null;
+  examBody:    string | null;
+  startAt:     Date | null;
+  endAt:       Date | null;
+  family:      string; // ObjectId reference
+  sections?:   Array<{
+    title: string;
+    order: number;
+    questions: Array<{
+      question: string; // ObjectId reference
+      marks: number;
+      negativeMarks: number;
+    }>;
+  }>;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -25,5 +40,10 @@ export class TestSeriesService {
   /** Create a new test series */
   create(payload: Partial<TestSeries>): Observable<TestSeries> {
     return this.http.post<TestSeries>(`${this.base}/create`, payload);
+  }
+
+  /** Update an existing test series */
+  update(id: string, payload: Partial<TestSeries>): Observable<TestSeries> {
+    return this.http.put<TestSeries>(`${this.base}/${id}`, payload);
   }
 }

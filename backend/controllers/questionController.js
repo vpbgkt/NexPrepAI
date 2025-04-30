@@ -1,343 +1,196 @@
-console.log('🏄 questionController.js loaded');
+// backend/controllers/questionController.js
+// -----------------------------------------
+// CRUD controller for Question documents.
+// Multilingual (en / hi) content is stored in `translations`.
+//
+// NOTE: audit middleware should already put `req.user.userId` on the
+//       request object. If you use another field, adjust it below.
 
-/**
- * Controller: questionController.js
- * -------------------------------------
- * Handles creation, fetching, and importing of questions into the system.
- *
- * Functions:
- * - createQuestion(): Add a new question with tags (branch, subject, topic, etc.)
- * - bulkUpload(): Import questions from a CSV (supports variable options, tags, marks)
- * - getAllQuestions(): List all questions with optional filters (e.g., subject, topic)
- *
- * Auto-creates hierarchy entities if they don't exist (case-insensitive matching).
- *
- * Works with:
- * - models/Question.js
- * - models/Branch.js, Subject.js, Topic.js, SubTopic.js
- */
+const mongoose  = require('mongoose');
+const Question  = require('../models/Question');
+const Branch    = require('../models/Branch');
+const Subject   = require('../models/Subject');
+const Topic     = require('../models/Topic');
+const SubTopic  = require('../models/SubTopic');
 
-const Question = require('../models/Question');
-const Branch = require('../models/Branch');
-const Subject = require('../models/Subject');
-const Topic = require('../models/Topic');
-const SubTopic = require('../models/SubTopic');
-const getExamTypeId = require('../utils/getExamTypeId');
-const mongoose = require('mongoose');
-const ExamType = require('../models/ExamType');
+/*──────────────── helper ────────────────*/
+const resolveId = async (Model, value) => {
+  if (!value) return null;
 
-// Create a question
-const createQuestion = async (req, res) => {
+  // 1️⃣ valid ObjectId → return if exists, else null
+  if (mongoose.Types.ObjectId.isValid(value)) {
+    const doc = await Model.findById(value).lean();
+    return doc ? doc._id : null;
+  }
+
+  // 2️⃣ treat as name (case-insensitive) → create if missing
+  let doc = await Model.findOne({ name: new RegExp(`^${value}$`, 'i') });
+  if (!doc) doc = await Model.create({ name: value });
+  return doc._id;
+};
+
+/*──────────────── addQuestion ────────────*/
+exports.addQuestion = async (req, res) => {
   try {
+    /* ---------- 1. pull & sanitise body ------------------------- */
     const {
-      questionText,
-      options,
-      correctOption,
-      branch,
-      subject,
-      topic,
-      subTopic,
+      translations           = {},          // { en:{…}, hi:{…} } or empty
+      difficulty             = 'Not-mentioned',
+      type:  qType           = 'single',    // single | multiple | integer | matrix
+      branchId, subjectId, topicId, subtopicId,
+      images                 = [],          // language-neutral images
+      options                = [],          // *deprecated* flat options
+      correctOptions         = [],          // *deprecated* flat answers
+      questionHistory        = []           // [{examName,year}, …]
     } = req.body;
 
-    const newQuestion = new Question({
-      questionText,
-      options,
-      correctOption,
-      branch,
-      subject,
-      topic,
-      subTopic,
-    });
+    /* ---------- 2. basic ENUM validations ----------------------- */
+    const allowedTypes       = ['single','multiple','integer','matrix'];
+    const allowedDifficulty  = ['Easy','Medium','Hard','Not-mentioned'];
 
-    await newQuestion.save();
-    res.status(201).json({ message: 'Question created successfully', question: newQuestion });
-  } catch (err) {
-    console.error('Error creating question:', err);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-};
+    if (!allowedTypes.includes(qType))
+      return res.status(400).json({ message:'Invalid type value' });
 
-// ✅ Add a new question
-const resolveEntityWithParent = async (Model, name, parentField, parentId) => {
-  if (!name || !parentId) return null;
+    const diff = allowedDifficulty.includes(difficulty)
+               ? difficulty
+               : 'Not-mentioned';
 
-  // If it's a valid ObjectId, try to find it by ID first
-  if (mongoose.Types.ObjectId.isValid(name)) {
-    try {
-      const docById = await Model.findById(name);
-      if (docById) return docById;
-      
-      // If not found by ID, don't create a new entity with ObjectId as name
-      console.log(`No ${Model.modelName} found with ID: ${name}`);
-      return null;
-    } catch (err) {
-      console.log(`Error finding ${Model.modelName} by ID:`, err);
-      return null;
-    }
-  }
+    /* ---------- 3. guarantee translations.en exists ------------- */
+    let finalTranslationsArr = [];          // ← will be an array in the end
 
-  // It's not an ObjectId, so proceed with name-based lookup
-  // Try finding it
-  let doc = await Model.findOne({
-    name: new RegExp(`^${name}$`, 'i'),
-    [parentField]: parentId,
-  });
-
-  // Create if not found
-  if (!doc) {
-    doc = new Model({
-      name,
-      [parentField]: parentId,
-    });
-    await doc.save();
-  }
-
-  return doc;
-};
-
-const addQuestion = async (req, res) => {
-  try {
-    const {
-      questionText,
-      options = [],
-      correctOptions,
-      branch,
-      subject,
-      topic,
-      subTopic, // Changed from subtopic to match the frontend's parameter name
-      examType,
-      difficulty,
-      explanation,
-      explanations = [],
-      marks = 1,
-      negativeMarks = 0,
-      images = [],
-      askedIn = [],
-      status = "active",
-      version = 1,
-      questionHistory = []
-    } = req.body;
-    
-    // Parse negativeMarks as float to prevent integer casting
-    const negativeMarksFloat = parseFloat(negativeMarks);
-
-    console.log("📥 Incoming Request Body:", req.body);
-
-    // Step 1: Resolve Entities (string or ObjectId)
-    const resolveEntity = async (Model, value, key = "name") => {
-      if (!value) return null;
-      
-      // If it's a valid ObjectId, find the document by ID
-      if (mongoose.Types.ObjectId.isValid(value)) {
-        try {
-          const doc = await Model.findById(value);
-          if (doc) return doc._id; // If found, return the ObjectId
-          
-          // If not found (deleted entity), return null instead of recreating
-          console.log(`No ${Model.modelName} found with ID: ${value}`);
-          return null;
-        } catch (err) {
-          console.log(`Error finding ${Model.modelName} by ID:`, err);
-          return null;
-        }
+    if (translations && translations.en) {
+      // convert the { en:{…}, hi:{…} } object → array
+      for (const [lang, pack] of Object.entries(translations)) {
+        finalTranslationsArr.push({ lang, ...pack });
       }
-
-      // Handle string values (create if not found)
-      let doc;
-      if (Model.modelName === 'ExamType') {
-        doc = new Model({ code: value, name: value });
-      } else {
-        doc = new Model({ [key]: value });
-      }
-      await doc.save();
-      return doc._id;
-    };
-
-    const branchDoc = await resolveEntity(Branch, branch);
-    const subjectDoc = await resolveEntity(Subject, subject, 'name', { branch: branchDoc?._id });
-    const topicDoc = await resolveEntityWithParent(Topic, topic, 'subject', subjectDoc?._id);
-    const subtopicDoc = await resolveEntityWithParent(SubTopic, subTopic, 'topic', topicDoc?._id);
-    // Ensure examType has a default value if not provided
-    const examTypeId = examType ? await resolveEntity(ExamType, examType, "code") : 'general';
-
-    // Step 2: Validate and format options
-    const formattedOptions = options.map((opt) => {
-      if (typeof opt === 'string') {
-        return { text: opt.trim(), isCorrect: false };
-      } else if (typeof opt === 'object' && opt.text) {
-        return { 
-          text: opt.text.trim(), 
-          img: opt.img || '',  // Preserve the img property
-          isCorrect: !!opt.isCorrect 
-        };
-      }
-      return null;
-    }).filter(o => o && o.text); // Remove invalid or empty options
-
-    if (formattedOptions.length < 2) {
-      return res.status(400).json({ message: "At least two options are required." });
+    } else {
+      // legacy flat payload → wrap as English
+      finalTranslationsArr = [{
+        lang: 'en',
+        questionText : req.body.questionText || '',
+        images       : images,
+        options      : options.map(o =>
+          typeof o === 'string'
+            ? { text:o, img:'', isCorrect:false }
+            : { text:o.text, img:o.img||'', isCorrect:!!o.isCorrect }
+        ),
+        explanations : req.body.explanations || []
+      }];
     }
 
-    // Step 3: Parse correctOptions if it's still string
-    let formattedCorrectOptions = correctOptions;
-    if (typeof correctOptions === 'string') {
-      try {
-        formattedCorrectOptions = JSON.parse(correctOptions);
-      } catch {
-        formattedCorrectOptions = correctOptions.split('|').map(s => s.trim());
-      }
-    }
+    // 1️⃣  clean up incoming array (or object -> array)
+    let packs = Array.isArray(req.body.translations)
+                ? req.body.translations
+                : Object.values(req.body.translations || {});
 
-    // Step 4: Parse askedIn
-    let askedInArray = Array.isArray(askedIn) ? askedIn : [];
-    if (typeof askedIn === 'string') {
-      try {
-        askedInArray = JSON.parse(askedIn);
-      } catch {
-        askedInArray = [];
-      }
-    }
-
-    // Step 5: Parse explanations
-    let explanationArray = Array.isArray(explanations) ? explanations : [];
-    if (typeof explanations === 'string') {
-      try {
-        explanationArray = JSON.parse(explanations);
-      } catch {
-        explanationArray = [];
-      }
-    }
-
-    // Step 6: Validate difficulty
-    const validDifficulties = ["Easy", "Medium", "Hard"];
-    const difficultyValue = validDifficulties.includes(difficulty) ? 
-                           difficulty : 
-                           'Not-mentioned'; // Default to "Not-mentioned" instead of null
-
-    const question = new Question({
-      questionText,
-      options: formattedOptions,
-      correctOptions: formattedCorrectOptions,
-      branch: branchDoc,
-      subject: subjectDoc,
-      topic: topicDoc,
-      subTopic: subtopicDoc,  // Changed from "subtopic" to "subTopic" to match the schema
-      examType: examTypeId,
-      difficulty: difficultyValue,
-      explanation,
-      explanations: explanationArray,
-      marks,
-      negativeMarks: negativeMarksFloat,
-      images,
-      questionHistory,
-      askedIn: askedInArray,
-      status,
-      version,
-      createdBy: req.user?.userId || req.user?.id || req.user?._id  // Check all possible user ID properties
-    });
-
-    await question.save();
-    res.status(201).json(question);
-
-  } catch (error) {
-    console.error("❌ Error adding question:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
-
-// ✅ This function gets all questions
-const getAllQuestions = async (req, res) => {
-  try {
-    const questions = await Question.find()
-      .populate('branch',   'name')
-      .populate('subject',  'name')
-      .populate('topic',    'name')
-      .populate('subtopic', 'name');
-    return res.json(questions);
-  } catch (err) {
-    return res.status(500).json({ message: 'Server error' });
-  }
-};
-
-// 🔍 Filter questions by hierarchy
-const filterQuestions = async (req, res) => {
-  try {
-    const { branch, subject, topic, subtopic, difficulty } = req.query;
-
-    if (!branch) {
-      return res.status(400).json({ message: 'Branch is required to filter questions' });
-    }
-
-    const filter = { branch };
-    if (subject) filter.subject = subject;
-    if (topic) filter.topic = topic;
-    if (subtopic) filter.subtopic = subtopic;
-    if (difficulty) filter.difficulty = difficulty;
-
-    const questions = await Question.find(filter)
-      .populate('branch', 'name')
-      .populate('subject', 'name')
-      .populate('topic', 'name')
-      .populate('subtopic', 'name');
-
-    res.status(200).json(questions);
-  } catch (error) {
-    console.error('Error filtering questions:', error);
-    res.status(500).json({ message: 'Server error while filtering questions' });
-  }
-};
-
-// ✅ Get a specific question by ID
-const getQuestionById = async (req, res) => {
-  try {
-    const question = await Question.findById(req.params.id);
-    if (!question) {
-      return res.status(404).json({ message: 'Question not found' });
-    }
-    res.status(200).json(question);
-  } catch (err) {
-    res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-// ✅ Update question
-const updateQuestion = async (req, res) => {
-  try {
-    const updatedQuestion = await Question.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
+    // throw away packs that are obviously blank
+    packs = packs.filter(p =>
+      p.questionText?.trim() &&
+      Array.isArray(p.options) &&
+      p.options.filter(o => o.text?.trim()).length >= 2
     );
 
-    if (!updatedQuestion) {
-      return res.status(404).json({ message: 'Question not found' });
-    }
+    /* packs currently looks like [{ questionText:'...', options:[…] }, …]   */
+    /* ensure every block carries an explicit lang tag                      */
+    const langFallbacks = ['en', 'hi', 'ta', 'bn'];           // any order you like
+    packs = packs.map((p, idx) => ({
+      lang : p.lang || langFallbacks[idx] || `lang${idx}`,    // <- add if missing
+      ...p
+    }));
 
-    res.status(200).json(updatedQuestion);
+    if (!packs.length)
+      return res.status(400).json({ message:'Need at least one filled language' });
+
+    // 2️⃣  choose the first pack as the “mirror” for quick queries  
+    const [primary] = packs;         // could be en or hi
+
+    /* ---------- 4. validate options ----------------------------- */
+    // `packs` is already an array that contains every non-empty language pack.
+    // The first element is English if it was present – otherwise the next
+    // available language (e.g. Hindi-only submissions).
+    const primaryLangPack = packs[0];
+
+    const baseOpts = primaryLangPack.options || [];
+
+    if (baseOpts.length < 2)
+      return res.status(400).json({ message:'At least two options are required.' });
+
+    const baseCorrect = baseOpts
+      .map((o,idx)=>o.isCorrect?idx:-1)
+      .filter(i=>i>=0);
+
+    if (qType==='single' && baseCorrect.length!==1)
+      return res.status(400).json({ message:'Single-correct must have exactly one correct option.' });
+
+    if ((qType==='multiple'||qType==='matrix') && baseCorrect.length<2)
+      return res.status(400).json({ message:'Multiple / matrix must have 2+ correct options.' });
+
+    /* ---------- 5. resolve hierarchy IDs ------------------------ */
+    const branch   = await resolveId(Branch  , branchId);
+    const subject  = await resolveId(Subject , subjectId);
+    const topic    = await resolveId(Topic   , topicId);
+    const subTopic = await resolveId(SubTopic, subtopicId);
+
+    /* ---------- 6. build & save document ------------------------ */
+
+    // packs has already been filtered to contain only
+    // language blocks that have questionText and ≥2 options.
+    const trArr = packs;                 // ← just reuse it
+
+    // quick-access mirrors come from the first pack (Hindi-only works too)
+    const question = await Question.create({
+      branch, subject, topic, subTopic,
+      type        : qType,
+      difficulty  : diff,
+      images,
+      translations: trArr,
+
+      questionText  : trArr[0].questionText,
+      options       : trArr[0].options,
+      correctOptions: baseCorrect,
+
+      questionHistory,
+      createdBy     : req.user?.userId || null
+    });
+
+    return res.status(201).json(question);
+
   } catch (err) {
-    res.status(500).json({ message: 'Internal server error' });
+    console.error('❌ addQuestion error:', err);
+    return res.status(500).json({ message:'Server error', error:err.message });
   }
 };
 
-// ✅ Delete question
-const deleteQuestion = async (req, res) => {
-  try {
-    const deleted = await Question.findByIdAndDelete(req.params.id);
-    if (!deleted) {
-      return res.status(404).json({ message: 'Question not found' });
-    }
-    res.status(200).json({ message: 'Question deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ message: 'Internal server error' });
-  }
+/*──────────── other CRUD (unchanged) ───────────*/
+exports.getAllQuestions = async (_req, res) => {
+  const list = await Question.find()
+    .populate('branch',  'name')
+    .populate('subject', 'name')
+    .populate('topic',   'name')
+    .populate('subTopic','name')
+    .lean();
+  res.json(list);
 };
 
-module.exports = {
-  addQuestion,
-  getAllQuestions,
-  getQuestionById,
-  updateQuestion,
-  deleteQuestion,
-  filterQuestions,
-  createQuestion,
+exports.getQuestionById = async (req, res) => {
+  const q = await Question.findById(req.params.id).lean();
+  if (!q) return res.status(404).json({ message: 'Not found' });
+
+  const askLang = req.query.lang ?? 'en';
+  const pack = q.translations.find(t => t.lang === askLang) ||
+               q.translations[0]; // fallback
+
+  res.json({ ...q, translation: pack });
+};
+
+exports.updateQuestion = async (req,res)=>{
+  const q = await Question.findByIdAndUpdate(req.params.id, req.body, {new:true});
+  if(!q) return res.status(404).json({message:'Not found'});
+  res.json(q);
+};
+
+exports.deleteQuestion = async (req,res)=>{
+  const ok = await Question.findByIdAndDelete(req.params.id);
+  if(!ok) return res.status(404).json({message:'Not found'});
+  res.json({message:'Deleted'});
 };

@@ -35,10 +35,34 @@ const options = {
             askedAt:  { type: 'string', format: 'date-time'}
           }
         },
+        Translation: {
+          type: 'object',
+          required: ['lang', 'questionText', 'options'],
+          properties: {
+            lang: { type: 'string', enum: ['en', 'hi'] },
+            questionText: { type: 'string' },
+            images: { type: 'array', items: { type: 'string', format: 'url' } },
+            options: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  text: { type: 'string' },
+                  img: { type: 'string', format: 'url' },
+                  isCorrect: { type: 'boolean' }
+                }
+              }
+            },
+            explanations: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/Explanation' }
+            }
+          }
+        },
         Question: {
           type: 'object',
           required: [
-            'branch','examType','questionText','options','correctOptions','marks','type'
+            'branch','translations','difficulty','type'
           ],
           properties: {
             _id:          { $ref: '#/components/schemas/ObjectId' },
@@ -46,30 +70,9 @@ const options = {
             subject:      { $ref: '#/components/schemas/ObjectId' },
             topic:        { $ref: '#/components/schemas/ObjectId' },
             subTopic:     { $ref: '#/components/schemas/ObjectId' },
-            examType:     { $ref: '#/components/schemas/ObjectId', description: 'ExamType _id' },
-            questionText: { type: 'string' },
-            images: {
+            translations: {
               type: 'array',
-              items: { type: 'string', description: 'Image URL' }
-            },
-            options: {
-              type: 'array',
-              description: 'Each option can include an optional image',
-              items: {
-                type: 'object',
-                required: ['text','isCorrect'],
-                properties: {
-                  text: { type: 'string' },
-                  img:  { type: 'string', description: 'optional image URL' },
-                  isCorrect: { type: 'boolean' }
-                }
-              },
-              minItems: 2
-            },
-            correctOptions: {
-              type: 'array',
-              items: { type: 'integer' },
-              minItems: 1
+              items: { $ref: '#/components/schemas/Translation' }
             },
             marks:         { type: 'number', minimum: 0 },
             negativeMarks: { type: 'number', minimum: 0 },

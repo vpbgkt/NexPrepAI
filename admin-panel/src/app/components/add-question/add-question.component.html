@@ -1,135 +1,214 @@
-<form #f="ngForm" (ngSubmit)="addQuestion(f)">
+<div class="lang-switch">
+  <button type="button"
+          (click)="switchLanguage('en')"
+          [class.active]="currentLang === 'en'">
+    English
+  </button>
+  <button type="button"
+          (click)="switchLanguage('hi')"
+          [class.active]="currentLang === 'hi'">
+    हिन्दी
+  </button>
+</div>
 
-  <!-- Question text -->
+<form #f="ngForm" (ngSubmit)="addQuestion(f)" novalidate>
+
+  <!-- QUESTION TEXT -->
   <div>
-    <label>Question:</label>
-    <input type="text" name="qText" [(ngModel)]="question.questionText" required #qT="ngModel"/>
-    <div *ngIf="qT.invalid && (qT.touched || f.submitted)" class="error">Question is required</div>
+    <label>Question</label>
+    <input
+      name="questionText_{{currentLang}}"
+      type="text"
+      required
+      [(ngModel)]="question.translations[currentLang].questionText"
+      #qt="ngModel"
+    />
+    <div *ngIf="qt.invalid && (qt.touched || f.submitted)" class="error">
+      Question is required.
+    </div>
   </div>
 
-  <!-- Question Image URLs -->
+  <!-- IMAGE URLs -->
   <div>
-    <label>Question Image URL(s):</label>
-    <textarea rows="2" [(ngModel)]="question.images[0]" name="qImg"></textarea>
-    <small>Pipe-separate multiple URLs (https://example.com/img1.jpg|https://example.com/img2.jpg)</small>
+    <label>Image URLs (pipe-separated)</label>
+    <input
+      name="images_{{currentLang}}"
+      type="text"
+      [(ngModel)]="question.images[0]"
+    />
+    <small>e.g. https://…jpg|https://…jpg</small>
   </div>
 
-  <!-- Options -->
-  <div *ngFor="let opt of question.options; let i = index">
-    <label>Option {{i+1}}:</label>
-    <input type="text" name="opt{{i}}" [(ngModel)]="opt.text" required #oCtrl="ngModel"/>
-    <input type="text" placeholder="img URL" [(ngModel)]="opt.img" name="img{{i}}"/>
-    <label><input type="checkbox" name="ok{{i}}" [(ngModel)]="opt.isCorrect"/> Correct</label>
-    <button type="button" (click)="removeOption(i)" [disabled]="question.options.length<=2">Remove</button>
-    <div *ngIf="oCtrl.invalid && (oCtrl.touched || f.submitted)" class="error">Option {{i+1}} required</div>
+  <!-- OPTIONS -->
+  <div *ngFor="let opt of question.translations[currentLang].options; let i = index">
+    <label>Option {{ i + 1 }}</label>
+    <input
+      name="optText_{{currentLang}}_{{i}}"
+      type="text"
+      required
+      [(ngModel)]="opt.text"
+    />
+    <input
+      name="optImg_{{currentLang}}_{{i}}"
+      type="text"
+      placeholder="Image URL (optional)"
+      [(ngModel)]="opt.img"
+    />
+    <label>
+      <input
+        name="optCorrect_{{currentLang}}_{{i}}"
+        type="checkbox"
+        [(ngModel)]="opt.isCorrect"
+      />
+      Correct
+    </label>
+    <button
+      type="button"
+      (click)="removeOption(i)"
+      [disabled]="question.translations[currentLang].options.length <= 2"
+    >
+      Remove
+    </button>
   </div>
   <button type="button" (click)="addOption()">+ Add Option</button>
 
-  <!-- Difficulty / type -->
+  <!-- EXPLANATIONS -->
+  <div *ngFor="let exp of question.translations[currentLang].explanations; let j = index">
+    <select
+      name="expType_{{currentLang}}_{{j}}"
+      required
+      [(ngModel)]="exp.type"
+    >
+      <option value="text">Text</option>
+      <option value="video">Video</option>
+      <option value="pdf">PDF</option>
+      <option value="image">Image</option>
+    </select>
+    <input
+      name="expLabel_{{currentLang}}_{{j}}"
+      type="text"
+      placeholder="Label (optional)"
+      [(ngModel)]="exp.label"
+    />
+    <input
+      name="expContent_{{currentLang}}_{{j}}"
+      type="text"
+      required
+      placeholder="Content URL/Text"
+      [(ngModel)]="exp.content"
+    />
+    <button type="button" (click)="removeExplanation(j)">Remove</button>
+  </div>
+  <button type="button" (click)="addExplanation()">+ Add Explanation</button>
+
+  <!-- DIFFICULTY -->
   <div>
-    <label>Difficulty:</label>
-    <select name="diff" [(ngModel)]="question.difficulty">
-      <option value="">Not-mentioned</option>
-      <option>Easy</option><option>Medium</option><option>Hard</option>
+    <label>Difficulty</label>
+    <select
+      name="difficulty"
+      [(ngModel)]="question.difficulty"
+      #diff="ngModel"
+    >
+      <option value="Not-mentioned">Not-mentioned</option>
+      <option value="Easy">Easy</option>
+      <option value="Medium">Medium</option>
+      <option value="Hard">Hard</option>
     </select>
   </div>
 
+  <!-- TYPE -->
   <div>
-    <label>Type:</label>
-    <select name="type" [(ngModel)]="question.type">
-      <option value="single">Single</option>
-      <option value="multiple">Multiple</option>
+    <label>Type</label>
+    <select
+      name="type"
+      required
+      [(ngModel)]="question.type"
+      #typ="ngModel"
+    >
+      <option value="">Select</option>
+      <option value="single">Single-correct</option>
+      <option value="multiple">Multiple-correct</option>
       <option value="integer">Integer</option>
       <option value="matrix">Matrix</option>
     </select>
+    <div *ngIf="typ.invalid && (typ.touched || f.submitted)" class="error">
+      Type is required.
+    </div>
   </div>
 
-  <!-- marks -->
+  <!-- BRANCH / SUBJECT / TOPIC / SUBTOPIC -->
   <div>
-    <label>Marks:</label>
-    <input type="number" min="0" name="marks" [(ngModel)]="question.marks" required/>
-  </div>
-  <div>
-    <label>Neg Marks:</label>
-    <input type="number" min="0" name="neg" [(ngModel)]="question.negativeMarks" required/>
-  </div>
-
-  <!-- Exam type -->
-  <div>
-    <label>Exam type:</label>
-    <select name="ex" [(ngModel)]="question.examTypeId">
-      <option value="">— select or none —</option> <!-- updated placeholder -->
-      <option *ngFor="let e of examTypes" [value]="e._id">{{e.name}}</option>
+    <label>Branch</label>
+    <select
+      name="branchId"
+      [(ngModel)]="question.branchId"
+      (change)="onBranchChange(question.branchId)"
+      #br="ngModel"
+    >
+      <option value="Not-mentioned">Not-mentioned</option>
+      <option *ngFor="let b of branches" [value]="b._id">{{ b.name }}</option>
     </select>
   </div>
 
-  <!-- Branch / Subject / Topic / Subtopic -->
   <div>
-    <label>Branch:</label>
-    <select name="br" [(ngModel)]="question.branchId" (change)="onBranchChange(question.branchId)">
-      <option value="">Not-mentioned</option>
-      <option *ngFor="let b of branches" [value]="b._id">{{b.name}}</option>
+    <label>Subject</label>
+    <select
+      name="subjectId"
+      [(ngModel)]="question.subjectId"
+      (change)="onSubjectChange(question.subjectId)"
+      #su="ngModel"
+    >
+      <option value="Not-mentioned">Not-mentioned</option>
+      <option *ngFor="let s of subjects" [value]="s._id">{{ s.name }}</option>
     </select>
-    <button type="button" (click)="goToAddBranch()">+Add</button>
   </div>
 
   <div>
-    <label>Subject:</label>
-    <select name="subj" [(ngModel)]="question.subjectId" (change)="onSubjectChange(question.subjectId)">
-      <option value="">Not-mentioned</option>
-      <option *ngFor="let s of subjects" [value]="s._id">{{s.name}}</option>
+    <label>Topic</label>
+    <select
+      name="topicId"
+      [(ngModel)]="question.topicId"
+      (change)="onTopicChange(question.topicId)"
+      #to="ngModel"
+    >
+      <option value="Not-mentioned">Not-mentioned</option>
+      <option *ngFor="let t of topics" [value]="t._id">{{ t.name }}</option>
     </select>
-    <button type="button" (click)="goToAddSubject()">+Add</button>
   </div>
 
   <div>
-    <label>Topic:</label>
-    <select name="top" [(ngModel)]="question.topicId" (change)="onTopicChange(question.topicId)">
-      <option value="">Not-mentioned</option>
-      <option *ngFor="let t of topics" [value]="t._id">{{t.name}}</option>
+    <label>Subtopic</label>
+    <select
+      name="subtopicId"
+      [(ngModel)]="question.subtopicId"
+      #st="ngModel"
+    >
+      <option value="Not-mentioned">Not-mentioned</option>
+      <option *ngFor="let st of subtopics" [value]="st._id">{{ st.name }}</option>
     </select>
-    <button type="button" (click)="goToAddTopic()">+Add</button>
   </div>
 
+  <!-- APPEARANCE HISTORY -->
   <div>
-    <label>Subtopic:</label>
-    <select name="subtop" [(ngModel)]="question.subtopicId">
-      <option value="">Not-mentioned</option>
-      <option *ngFor="let st of subtopics" [value]="st._id">{{st.name}}</option>
-    </select>
-    <button type="button" (click)="goToAddSubtopic()">+Add</button>
-  </div>
-
-  <!-- appearance -->
-  <div>
-    <label>Appearance:</label>
-    <input type="text" placeholder="Exam" [(ngModel)]="histEntry.examName" name="histExam"/>
-    <input type="number" min="1900" [max]="currentYear" [(ngModel)]="histEntry.year" name="histYr"/>
+    <label>Appearance</label>
+    <input
+      name="histExam"
+      type="text"
+      placeholder="Exam name"
+      [(ngModel)]="histEntry.examName"
+    />
+    <input
+      name="histYear"
+      type="number"
+      [min]="1900"
+      [max]="currentYear"
+      [(ngModel)]="histEntry.year"
+    />
     <button type="button" (click)="addHistory()">Add</button>
   </div>
   <ul *ngIf="histList.length">
-    <li *ngFor="let h of histList">{{h.examName}} – {{h.year}}</li>
+    <li *ngFor="let h of histList">{{ h.examName }} — {{ h.year }}</li>
   </ul>
-
-  <!-- explanations -->
-  <div>
-    <label>Explanations:</label>
-    <div *ngFor="let exp of explanations; let i=index">
-      <select [(ngModel)]="exp.type" name="t{{i}}">
-        <option *ngFor="let k of explanationTypes" [value]="k">{{k}}</option>
-      </select>
-      <input type="text" placeholder="Label" [(ngModel)]="exp.label" name="l{{i}}">
-      <input
-        type="text"
-        placeholder="Content URL / text"
-        required
-        [(ngModel)]="exp.content"
-        name="c{{i}}"
-      />
-      <button type="button" (click)="removeExplanation(i)">Remove</button>
-    </div>
-    <button type="button" (click)="addExplanation()">+ Add Explanation</button>
-  </div>
 
   <button type="submit">Submit</button>
 </form>

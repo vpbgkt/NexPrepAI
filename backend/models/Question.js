@@ -38,6 +38,24 @@ const statsSchema = new Schema(
   { _id: false }
 );
 
+// ---- New: per-language bundle -----------------------------------
+const optionSchema = new Schema({
+  text      : { type: String, required: true, trim: true },
+  img       : { type: String, default: '' },
+  isCorrect : { type: Boolean, default: false }
+});
+
+const translationSchema = new Schema({
+  lang          : { type: String, required: true, enum: ['en', 'hi'] },
+  questionText  : { type: String, required: true, trim: true },
+  images        : [String],
+  options       : {
+    type : [optionSchema],
+    validate : v => Array.isArray(v) && v.length >= 2
+  },
+  explanations  : { type: [explanationSchema], default: [] }
+});
+
 // ---- Question schema --------------------------------------------------
 const questionSchema = new Schema(
   {
@@ -47,36 +65,14 @@ const questionSchema = new Schema(
     topic:    { type: Schema.Types.ObjectId, ref: 'Topic'    },
     subTopic: { type: Schema.Types.ObjectId, ref: 'SubTopic' },
 
-    examType: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'ExamType',
-      required: true
-    },
-
     // Core content
-    questionText: { type: String, required: true },
-    images:       [{ type: String }],                                 // NEW – image URLs
-
-    options: {
-      type: [
-        {
-          text: { type: String, required: true },
-          img: { type: String, default: '' },
-          isCorrect: { type: Boolean, default: false }
-        }
-      ],
-      validate: v => Array.isArray(v) && v.length >= 2,
-      required: true
-    },
-    correctOptions: {
-      type:  [Number],
+    translations: {
+      type: [translationSchema],
       validate: v => Array.isArray(v) && v.length >= 1,
       required: true
     },
 
-    // Scoring & meta
-    marks:         { type: Number, default: 1 },
-    negativeMarks: { type: Number, default: 0 },                      // NEW
+    // Removed marks and negativeMarks fields
     difficulty: {
       type: String,
       enum: ['Easy', 'Medium', 'Hard', 'Not-mentioned'],
@@ -102,6 +98,14 @@ const questionSchema = new Schema(
   { timestamps: true }
 );
 
+/** 🆕  Array-level validator – at least ONE translation pack complete */
+questionSchema.path('translations').validate({
+  validator(arr) {
+    return arr.some(p => p.questionText && p.options?.length >= 2);
+  },
+  message: 'At least one translation must contain text and two options.'
+});
+
 // ----- Hooks -----------------------------------------------------------
 
 // Auto-increment version & set updatedBy on any findOneAndUpdate
@@ -109,6 +113,8 @@ questionSchema.pre('findOneAndUpdate', function (next) {             // NEW
   this.updateOne({}, { $inc: { version: 1 } });
   next();
 });
+
+// Removed any references to marks and negativeMarks
 
 // Export model
 module.exports = mongoose.model('Question', questionSchema);

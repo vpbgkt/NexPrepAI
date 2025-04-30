@@ -5,34 +5,50 @@
   <label>Title</label>
   <input formControlName="title" type="text" />
 
-  <!-- Exam Type -->
-  <label>Exam Type</label>
-  <select formControlName="examType">
-    <option *ngFor="let et of examTypes" [value]="et.code">{{ et.name }}</option>
-  </select>
-
   <!-- Duration & Marks -->
   <label>Duration (min)</label>
   <input formControlName="duration" type="number" />
-  <label>Total Marks</label>
-  <input formControlName="totalMarks" type="number" />
 
-  <!-- Negative Marking -->
-  <label>Negative Marking</label>
-  <input formControlName="negativeMarking" type="number" step="0.25" />
+  <!-- Added inputs for paper-level metadata -->
+  <label>Type</label>
+  <select formControlName="type">
+    <option value="official">Official</option>
+    <option value="practice">Practice</option>
+    <option value="live">Live</option>
+  </select>
 
-  <!-- Negative Marking Configuration -->
-  <label>
-    <input type="checkbox" formControlName="negativeMarkEnabled" />
-    Enable negative marking?
-  </label>
-  <input
-    type="number"
-    formControlName="negativeMarkValue"
-    [disabled]="!seriesForm.get('negativeMarkEnabled')?.value"
-    placeholder="Negative Mark Value"
-    step="0.25"
-  />
+  <label>Year</label>
+  <input formControlName="year" type="number" min="1900" max="{{ currentYear }}" />
+
+  <label>Start At</label>
+  <input formControlName="startAt" type="datetime-local" />
+
+  <label>End At</label>
+  <input formControlName="endAt" type="datetime-local" />
+
+  <!-- Family -->
+  <select #familySelect formControlName="family" (change)="onFamilyChange(familySelect.value)">
+    <option value="">Select Family</option>
+    <option *ngFor="let f of families" [value]="f._id">{{ f.name }}</option>
+  </select>
+
+  <!-- Stream -->
+  <select #streamSelect formControlName="stream" [disabled]="!streams.length" (change)="onStreamChange(streamSelect.value)">
+    <option value="">Select Stream</option>
+    <option *ngFor="let s of streams" [value]="s._id">{{ s.name }}</option>
+  </select>
+
+  <!-- Paper -->
+  <select #paperSelect formControlName="paper" [disabled]="!papers.length" (change)="onPaperChange(paperSelect.value)">
+    <option value="">Select Paper</option>
+    <option *ngFor="let p of papers" [value]="p._id">{{ p.name }} ({{ p.year }})</option>
+  </select>
+
+  <!-- Shift/Variant -->
+  <select #shiftSelect formControlName="shift" [disabled]="!shifts.length" (change)="onShiftChange(shiftSelect.value)">
+    <option value="">Select Shift</option>
+    <option *ngFor="let v of shifts" [value]="v._id">{{ v.name }}</option>
+  </select>
 
   <!-- Sections -->
   <div formArrayName="sections">
@@ -46,19 +62,43 @@
       <!-- Question selection -->
       <div formArrayName="questions">
         <div *ngFor="let qCtrl of getQuestions(i).controls; let j = index" [formGroupName]="j">
-          <select formControlName="question">
-            <option *ngFor="let q of questionsList" [value]="q._id">{{ q.questionText }}</option>
-          </select>
+          <label>Question {{ j+1 }} – ID</label>
+          <input
+            type="text"
+            formControlName="question"
+            placeholder="Paste question _id"
+          />
+          <button type="button" (click)="previewQuestion(i, j)">
+            🔍 Preview
+          </button>
+          <div *ngIf="previewedQuestions[i] && previewedQuestions[i][j]" class="preview">
+            {{ previewedQuestions[i][j].questionText }}
+          </div>
+
           <input formControlName="marks" type="number" min="1" required placeholder="Marks" />
+          <input
+            formControlName="negativeMarks"
+            type="number"
+            min="0"
+            step="0.25"
+            placeholder="Negative Marks"
+          />
           <button type="button" (click)="removeQuestion(i,j)">Remove Question</button>
         </div>
+        <input
+          type="file"
+          (change)="importCsv($event, i)"
+          accept=".csv"
+        />
         <button type="button" (click)="addQuestion(i)">+ Add Question</button>
       </div>
 
       <button type="button" (click)="removeSection(i)">Remove Section</button>
     </div>
-    <button type="button" (click)="addSection()">+ Add Section</button>
   </div>
+  <button type="button" (click)="addSection()">+ Add Section</button>
+
+  <p><strong>Total Marks:</strong> {{ computedTotal }}</p>
 
   <button type="submit" [disabled]="seriesForm.invalid">Create Test Series</button>
 </form>

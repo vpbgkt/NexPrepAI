@@ -11,7 +11,6 @@ require('./models/SubTopic');
 require('./models/Question');
 require('./models/TestSeries');   
 
-
 // Load environment variables
 dotenv.config();
 
@@ -48,6 +47,10 @@ app.use('/api/testSeries', require('./routes/testSeries'));
 app.use('/api/examTypes', require('./routes/examTypes'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/examFamilies', require('./routes/examFamilies'));
+app.use('/api/examStreams', require('./routes/examStreams'));
+app.use('/api/examPapers', require('./routes/examPapers'));
+app.use('/api/examShifts', require('./routes/examShifts'));
 
 // Swagger Docs
 const swaggerUi = require('swagger-ui-express');

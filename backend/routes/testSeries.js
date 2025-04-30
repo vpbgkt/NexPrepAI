@@ -28,7 +28,7 @@ router.post(
   '/create',
   verifyToken,
   requireRole('admin'),
-  auditFields, // NEW
+  auditFields,          // stamps req.body.createdBy = req.user._id
   createTestSeries
 );
 
@@ -88,7 +88,7 @@ console.log(
 router.put('/:id',
   verifyToken,
   requireRole('admin'),
-  auditFields, // NEW
+  auditFields, // Ensures updatedBy is stamped
   testSeriesController.updateTestSeries
 );
 
