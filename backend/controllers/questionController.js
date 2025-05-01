@@ -95,13 +95,15 @@ exports.addQuestion = async (req, res) => {
     const langFallbacks = ['en', 'hi', 'ta', 'bn'];           // any order you like
     packs = packs.map((p, idx) => ({
       lang : p.lang || langFallbacks[idx] || `lang${idx}`,    // <- add if missing
-      ...p
+      ...p,
+      // Make sure images are included in each translation
+      images: p.images || images || []
     }));
 
     if (!packs.length)
       return res.status(400).json({ message:'Need at least one filled language' });
 
-    // 2️⃣  choose the first pack as the “mirror” for quick queries  
+    // 2️⃣  choose the first pack as the "mirror" for quick queries  
     const [primary] = packs;         // could be en or hi
 
     /* ---------- 4. validate options ----------------------------- */
@@ -131,11 +133,24 @@ exports.addQuestion = async (req, res) => {
     const topic    = await resolveId(Topic   , topicId);
     const subTopic = await resolveId(SubTopic, subtopicId);
 
-    /* ---------- 6. build & save document ------------------------ */
+    /* ---------- 6. Format explanations and question history ------ */
+    // Extract explanations from primary language pack
+    const explanations = primaryLangPack.explanations || [];
+    
+    // Format question history properly
+    const formattedHistory = Array.isArray(questionHistory) ? 
+      questionHistory.map(entry => ({
+        title: entry.examName,
+        askedAt: entry.year ? new Date(entry.year, 0, 1) : new Date(),
+      })) : [];
 
+    /* ---------- 7. build & save document ------------------------ */
     // packs has already been filtered to contain only
     // language blocks that have questionText and ≥2 options.
     const trArr = packs;                 // ← just reuse it
+
+    // Get user ID exactly as it's set in verifyToken middleware
+    const userId = req.user?.userId;
 
     // quick-access mirrors come from the first pack (Hindi-only works too)
     const question = await Question.create({
@@ -149,8 +164,9 @@ exports.addQuestion = async (req, res) => {
       options       : trArr[0].options,
       correctOptions: baseCorrect,
 
-      questionHistory,
-      createdBy     : req.user?.userId || null
+      explanations  : explanations,
+      questionHistory: formattedHistory,
+      createdBy     : userId
     });
 
     return res.status(201).json(question);

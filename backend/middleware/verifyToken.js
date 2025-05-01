@@ -28,7 +28,7 @@ function verifyToken(req, res, next) {
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) return res.status(401).json({ message: 'Token invalid or expired' });
     req.user = {
-      userId: decoded.id, // Updated to match the property name in the token
+      userId: decoded.userId, // Changed from decoded.id to decoded.userId to match what's in the token
       role:   decoded.role
     };
     next();
