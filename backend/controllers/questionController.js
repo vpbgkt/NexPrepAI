@@ -29,6 +29,21 @@ const resolveId = async (Model, value) => {
   return doc._id;
 };
 
+/*──────────────── language detection helper ────────────────*/
+const detectLanguage = (text) => {
+  if (!text || typeof text !== 'string') return 'en';
+  
+  // Hindi Unicode range: 0900-097F
+  const hindiPattern = /[\u0900-\u097F]/;
+  
+  // Check if the text contains Hindi characters
+  if (hindiPattern.test(text)) {
+    return 'hi';
+  }
+  
+  return 'en'; // Default to English
+};
+
 /*──────────────── addQuestion ────────────*/
 exports.addQuestion = async (req, res) => {
   try {
@@ -93,12 +108,17 @@ exports.addQuestion = async (req, res) => {
     /* packs currently looks like [{ questionText:'...', options:[…] }, …]   */
     /* ensure every block carries an explicit lang tag                      */
     const langFallbacks = ['en', 'hi', 'ta', 'bn'];           // any order you like
-    packs = packs.map((p, idx) => ({
-      lang : p.lang || langFallbacks[idx] || `lang${idx}`,    // <- add if missing
-      ...p,
-      // Make sure images are included in each translation
-      images: p.images || images || []
-    }));
+    packs = packs.map((p, idx) => {
+      // If no language is explicitly specified, detect it from the question text
+      const detectedLang = p.lang || detectLanguage(p.questionText) || langFallbacks[idx] || `lang${idx}`;
+      
+      return {
+        lang: detectedLang,
+        ...p,
+        // Make sure images are included in each translation
+        images: p.images || images || []
+      };
+    });
 
     if (!packs.length)
       return res.status(400).json({ message:'Need at least one filled language' });
