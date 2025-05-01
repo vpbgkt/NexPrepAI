@@ -6,6 +6,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule }              from '@angular/common';
 import { FormsModule, NgForm }       from '@angular/forms';
+import { RouterModule }              from '@angular/router';
 
 import { BranchService }   from '../../services/branch.service';
 import { SubjectService }  from '../../services/subject.service';
@@ -23,7 +24,7 @@ interface LangPack { questionText: string; options: Option[]; explanations: Expl
 @Component({
   selector   : 'app-add-question',
   standalone : true,
-  imports    : [CommonModule, FormsModule],
+  imports    : [CommonModule, FormsModule, RouterModule],
   templateUrl: './add-question.component.html',
   styleUrls  : ['./add-question.component.scss']
 })

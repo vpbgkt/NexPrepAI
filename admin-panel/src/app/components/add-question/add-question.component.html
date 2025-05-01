@@ -148,6 +148,9 @@
       <option value="Not-mentioned">Not-mentioned</option>
       <option *ngFor="let b of branches" [value]="b._id">{{ b.name }}</option>
     </select>
+    <button type="button" class="btn-small" routerLink="/branches/new">
+      + Add Branch
+    </button>
   </div>
 
   <div>
@@ -161,6 +164,9 @@
       <option value="Not-mentioned">Not-mentioned</option>
       <option *ngFor="let s of subjects" [value]="s._id">{{ s.name }}</option>
     </select>
+    <button type="button" class="btn-small" routerLink="/subjects/new">
+      + Add Subject
+    </button>
   </div>
 
   <div>
@@ -174,6 +180,9 @@
       <option value="Not-mentioned">Not-mentioned</option>
       <option *ngFor="let t of topics" [value]="t._id">{{ t.name }}</option>
     </select>
+    <button type="button" class="btn-small" routerLink="/topics/new">
+      + Add Topic
+    </button>
   </div>
 
   <div>
@@ -186,6 +195,9 @@
       <option value="Not-mentioned">Not-mentioned</option>
       <option *ngFor="let st of subtopics" [value]="st._id">{{ st.name }}</option>
     </select>
+    <button type="button" class="btn-small" routerLink="/subtopics/new">
+      + Add Subtopic
+    </button>
   </div>
 
   <!-- APPEARANCE HISTORY -->

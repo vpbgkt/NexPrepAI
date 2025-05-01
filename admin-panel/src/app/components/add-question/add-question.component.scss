@@ -6,3 +6,18 @@ a {
   z-index: 10;   // Ensure it's clickable and above other elements
   position: relative;
 }
+
+.btn-small {
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #e0e0e0;
+  }
+}
