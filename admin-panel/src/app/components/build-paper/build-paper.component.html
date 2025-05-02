@@ -17,6 +17,14 @@
     <option value="live">Live</option>
   </select>
 
+  <label>Max Attempts</label>
+  <input
+    formControlName="maxAttempts"
+    type="number"
+    min="1"
+    placeholder="How many tries?"
+  />
+
   <label>Year</label>
   <input formControlName="year" type="number" min="1900" max="{{ currentYear }}" />
 

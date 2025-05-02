@@ -61,6 +61,7 @@ export class BuildPaperComponent implements OnInit {
       title:     ['', Validators.required],
       duration:  [60, Validators.required],
       type:      ['practice', Validators.required],
+      maxAttempts: [5, [Validators.required, Validators.min(1)]], // ★ ADD
       year:      [this.currentYear, Validators.required],
       startAt:   [null],
       endAt:     [null],
