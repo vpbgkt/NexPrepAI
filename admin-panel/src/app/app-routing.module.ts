@@ -7,7 +7,6 @@ import { LogoutComponent }       from './components/logout/logout.component';
 import { StudentDashboardComponent } from './components/student-dashboard/student-dashboard.component';
 
 import { TestSeriesListComponent }   from './components/test-series-list/test-series-list.component';
-import { CreateTestSeriesComponent } from './components/create-test-series/create-test-series.component';
 import { BuildPaperComponent }       from './components/build-paper/build-paper.component';
 import { SeriesAnalyticsComponent }  from './components/series-analytics/series-analytics.component';  // ← analytics
 
@@ -64,7 +63,7 @@ export const routes: Routes = [
     children: [
       // Test Series
       { path: 'test-series',          component: TestSeriesListComponent },
-      { path: 'test-series/create',   component: CreateTestSeriesComponent },
+      { path: 'test-series/create',   component: BuildPaperComponent },
       { path: 'build-paper',          component: BuildPaperComponent },
 
       // Question bank
