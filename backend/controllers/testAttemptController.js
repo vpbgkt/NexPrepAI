@@ -234,16 +234,19 @@ exports.saveProgress = async (req, res) => {
 exports.getMyTestAttempts = async (req, res) => {
   try {
     const attempts = await TestAttempt.find({ student: req.user.userId })
+      // only pull title & year—no nested populate on examType
       .populate({
         path: 'series',
-        select: 'title examType year',
-        populate: { path: 'examType', select: 'code name' }
+        select: 'title year'
       })
       .sort({ submittedAt: -1 });
+
     return res.json(attempts);
   } catch (err) {
     console.error('❌ getMyTestAttempts error:', err);
-    return res.status(500).json({ message: 'Failed to fetch attempts' });
+    return res
+      .status(500)
+      .json({ message: 'Failed to fetch attempts' });
   }
 };
 

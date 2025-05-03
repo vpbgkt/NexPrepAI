@@ -22,24 +22,29 @@ export class TestListComponent implements OnInit {
 
   // Navigate to the player
   startSeries(s: TestSeries) {
-    this.router.navigate(['/exam-player', s._id]);
+    this.router.navigate(['/exam', s._id]);
   }
 
-  // Disable logic: live-not-started OR already-ended
+  // Disable only for 'live' tests outside their window
   isDisabled(s: TestSeries): boolean {
+    if (s.mode !== 'live') {
+      // practice & official always enabled
+      return false;
+    }
     const start = new Date(s.startAt);
     const end   = new Date(s.endAt);
-    if (s.mode === 'live' && this.now < start) return true;
-    if (this.now > end) return true;
-    return false;
+    return this.now < start || this.now > end;
   }
 
-  // Tooltip explaining why it’s disabled
+  // Only 'live' tests have reasons to disable
   disabledReason(s: TestSeries): string {
+    if (s.mode !== 'live') {
+      return '';
+    }
     const start = new Date(s.startAt);
     const end   = new Date(s.endAt);
-    if (s.mode === 'live' && this.now < start) return 'Not started yet';
-    if (this.now > end) return 'Test has ended';
+    if (this.now < start) return 'Not started yet';
+    if (this.now > end)   return 'Test has ended';
     return '';
   }
 
