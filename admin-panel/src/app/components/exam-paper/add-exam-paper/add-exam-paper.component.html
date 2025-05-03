@@ -1,0 +1,36 @@
+<h2>Add Exam Paper</h2>
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+  <div class="form-row">
+    <label>Family</label>
+    <select formControlName="family">
+      <option value="" disabled>Select Family</option>
+      <option *ngFor="let f of families" [value]="f._id">{{ f.name }}</option>
+    </select>
+  </div>
+
+  <div class="form-row">
+    <label>Stream</label>
+    <select formControlName="stream" [disabled]="!streams.length">
+      <option value="" disabled>Select Stream</option>
+      <option *ngFor="let s of streams" [value]="s._id">{{ s.name }}</option>
+    </select>
+  </div>
+
+  <div class="form-row">
+    <label>Code</label>
+    <input formControlName="code" placeholder="e.g. neet-2025-paper1" />
+  </div>
+
+  <div class="form-row">
+    <label>Name</label>
+    <input formControlName="name" placeholder="Paper Name" />
+  </div>
+
+  <div class="form-row">
+    <label>Description</label>
+    <textarea formControlName="description" rows="2"></textarea>
+  </div>
+
+  <button type="submit" [disabled]="form.invalid">Save</button>
+</form>

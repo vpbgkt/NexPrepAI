@@ -24,6 +24,12 @@ import { CsvUploadComponent }     from './components/csv-upload/csv-upload.compo
 import { ExamFamilyListComponent }   from './components/exam-family/exam-family-list/exam-family-list.component';
 import { AddExamFamilyComponent }    from './components/exam-family/add-exam-family/add-exam-family.component';
 
+import { ExamStreamListComponent } from './components/exam-stream/exam-stream-list/exam-stream-list.component';
+import { AddExamStreamComponent }  from './components/exam-stream/add-exam-stream/add-exam-stream.component';
+
+import { ExamPaperListComponent } from './components/exam-paper/exam-paper-list/exam-paper-list.component';
+import { AddExamPaperComponent }  from './components/exam-paper/add-exam-paper/add-exam-paper.component';
+
 import { AdminGuard }   from './guards/admin.guard';
 import { StudentGuard } from './guards/student.guard';
 
@@ -73,6 +79,14 @@ export const routes: Routes = [
       // Exam Families
       { path: 'exam-families',      component: ExamFamilyListComponent },
       { path: 'exam-families/new',  component: AddExamFamilyComponent },
+
+      // Exam Streams
+      { path: 'exam-streams',     component: ExamStreamListComponent },
+      { path: 'exam-streams/new', component: AddExamStreamComponent },
+
+      // Exam Papers
+      { path: 'exam-papers',     component: ExamPaperListComponent },
+      { path: 'exam-papers/new', component: AddExamPaperComponent },
     ]
   },
 

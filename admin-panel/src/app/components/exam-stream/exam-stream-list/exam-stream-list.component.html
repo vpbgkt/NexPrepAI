@@ -1,0 +1,22 @@
+<h2>Exam Streams</h2>
+
+<button [routerLink]="['/exam-streams','new']" class="btn-small">
+  + Add Stream
+</button>
+
+<table>
+  <thead>
+    <tr>
+      <th>Family ID</th>
+      <th>Code</th>
+      <th>Name</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let s of streams">
+      <td>{{ s.family }}</td>
+      <td>{{ s.code }}</td>
+      <td>{{ s.name }}</td>
+    </tr>
+  </tbody>
+</table>

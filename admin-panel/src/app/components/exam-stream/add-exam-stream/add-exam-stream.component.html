@@ -1,0 +1,23 @@
+<h2>Add Exam Stream</h2>
+
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <div class="form-row">
+    <label for="family">Family</label>
+    <select id="family" formControlName="family">
+      <option value="" disabled>Select Family</option>
+      <option *ngFor="let f of families" [value]="f._id">{{ f.name }}</option>
+    </select>
+  </div>
+
+  <div class="form-row">
+    <label for="code">Code</label>
+    <input id="code" formControlName="code" placeholder="e.g. medical-stream" />
+  </div>
+
+  <div class="form-row">
+    <label for="name">Name</label>
+    <input id="name" formControlName="name" placeholder="Stream Name" />
+  </div>
+
+  <button type="submit" [disabled]="form.invalid">Save</button>
+</form>

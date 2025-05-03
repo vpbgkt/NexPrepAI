@@ -4,10 +4,11 @@ import { Observable } from 'rxjs';
 
 export interface ExamPaper {
   _id: string;
-  stream: string;
+  family: string;   // ExamFamily _id
+  stream: string;   // ExamStream _id
   code: string;
   name: string;
-  year?: number;
+  description?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -16,7 +17,20 @@ export class ExamPaperService {
 
   constructor(private http: HttpClient) {}
 
-  getByStream(streamId: string): Observable<any[]> {
-    return this.http.get<any[]>(this.base, { params: { stream: streamId } });
+  /** All papers */
+  getAll(): Observable<ExamPaper[]> {
+    return this.http.get<ExamPaper[]>(this.base);
+  }
+
+  /** Only papers for a given stream */
+  getByStream(streamId: string): Observable<ExamPaper[]> {
+    return this.http.get<ExamPaper[]>(this.base, {
+      params: { stream: streamId }
+    });
+  }
+
+  /** Create new paper */
+  create(paper: Partial<ExamPaper>): Observable<ExamPaper> {
+    return this.http.post<ExamPaper>(this.base, paper);
   }
 }

@@ -1,0 +1,24 @@
+<h2>Exam Papers</h2>
+
+<button [routerLink]="['/exam-papers','new']" class="btn-small">
+  + Add Paper
+</button>
+
+<table>
+  <thead>
+    <tr>
+      <th>Family</th>
+      <th>Stream</th>
+      <th>Code</th>
+      <th>Name</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let p of papers">
+      <td>{{ p.family }}</td>
+      <td>{{ p.stream }}</td>
+      <td>{{ p.code }}</td>
+      <td>{{ p.name }}</td>
+    </tr>
+  </tbody>
+</table>

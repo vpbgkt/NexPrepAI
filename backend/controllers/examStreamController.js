@@ -13,15 +13,27 @@ exports.getByFamily = async (req, res) => {
   }
 };
 
-// POST /api/examStreams  (admin only)
+// GET /api/examStreams
+exports.getStreams = async (req, res) => {
+  try {
+    const streams = await ExamStream.find();
+    res.json(streams);
+  } catch (err) {
+    console.error('Error fetching streams:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// POST /api/examStreams
 exports.createStream = async (req, res) => {
   try {
     const { family, code, name } = req.body;
-    const stream = new ExamStream({ family, code, name });
+    const createdBy = req.user.userId;
+    const stream = new ExamStream({ family, code, name, createdBy });
     await stream.save();
     res.status(201).json(stream);
   } catch (err) {
-    console.error('Error creating exam stream:', err);
+    console.error('Error creating stream:', err);
     res.status(400).json({ message: err.message });
   }
 };

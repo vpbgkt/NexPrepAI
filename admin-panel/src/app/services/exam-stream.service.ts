@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 export interface ExamStream {
   _id: string;
-  family: string;
+  family: string;  // ObjectId of the ExamFamily
   code: string;
   name: string;
 }
@@ -15,7 +15,18 @@ export class ExamStreamService {
 
   constructor(private http: HttpClient) {}
 
-  getByFamily(familyId: string): Observable<any[]> {
-    return this.http.get<any[]>(this.base, { params: { family: familyId } });
+  /** List all streams */
+  getAll(): Observable<ExamStream[]> {
+    return this.http.get<ExamStream[]>(this.base);
+  }
+
+  /** List streams filtered by family (optional) */
+  getByFamily(familyId: string): Observable<ExamStream[]> {
+    return this.http.get<ExamStream[]>(this.base, { params: { family: familyId } });
+  }
+
+  /** Create a new stream */
+  create(stream: Partial<ExamStream>): Observable<ExamStream> {
+    return this.http.post<ExamStream>(this.base, stream);
   }
 }

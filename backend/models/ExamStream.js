@@ -3,7 +3,7 @@ const { Schema } = mongoose;
 
 const examStreamSchema = new Schema({
   family:    { type: Schema.Types.ObjectId, ref: 'ExamFamily', required: true },
-  code:      { type: String, required: true },
+  code:      { type: String, required: true, trim: true },
   name:      { type: String, required: true },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
