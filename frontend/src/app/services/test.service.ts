@@ -5,6 +5,10 @@ import { Observable } from 'rxjs';
 export interface TestSeries {
   _id: string;
   title: string;
+  mode:       'official' | 'practice' | 'live';  // ★
+  maxAttempts: number;                           // ★
+  startAt:    string;                            // ISO date string
+  endAt:      string;                            // ISO date string
   year?: number;
   // any other fields you need
 }

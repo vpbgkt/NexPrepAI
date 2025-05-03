@@ -1,0 +1,20 @@
+.top-nav {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+  }
+  .top-nav a {
+    text-decoration: none;
+    font-weight: 500;
+    color: #333;
+  }
+  .top-nav a.active {
+    color: #007bff;
+  }
+  .top-nav a:last-child {
+    margin-left: auto;
+    cursor: pointer;
+  }
+  

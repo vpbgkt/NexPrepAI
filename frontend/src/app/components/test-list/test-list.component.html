@@ -1,9 +1,35 @@
-<h2>Available Tests</h2>
-<div *ngIf="loading">Loading tests…</div>
-<div *ngIf="error">{{ error }}</div>
-<ul *ngIf="!loading && !error">
-  <li *ngFor="let s of seriesList">
-    {{ s.title }} <span *ngIf="s.year">({{ s.year }})</span>
-    <button (click)="start(s._id)">Start Test</button>
-  </li>
-</ul>
+<h2>Your Tests</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Title</th>
+      <th>Mode</th>
+      <th>Max Attempts</th>
+      <th>Start Time</th>
+      <th>End Time</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let s of series">
+      <td>{{ s.title }}</td>
+      <td>
+        <span [class]="modeClass(s.mode)">{{ s.mode | titlecase }}</span>
+      </td>
+      <td>{{ s.maxAttempts }}</td>
+      <td>{{ s.startAt | date:'short' }}</td>
+      <td>{{ s.endAt   | date:'short' }}</td>
+      <td>
+        <button
+          (click)="startSeries(s)"
+          [disabled]="isDisabled(s)"
+          [title]="disabledReason(s)">
+          Start
+        </button>
+        <button [routerLink]="['/exam', s._id]">Start Test</button>
+
+      </td>
+    </tr>
+  </tbody>
+</table>
