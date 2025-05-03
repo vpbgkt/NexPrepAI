@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 export interface ExamShift {
   _id: string;
-  paper: string;
+  paper: string;    // ExamPaper _id
   code: string;
   name: string;
 }
@@ -15,7 +15,20 @@ export class ExamShiftService {
 
   constructor(private http: HttpClient) {}
 
-  getByPaper(paperId: string): Observable<any[]> {
-    return this.http.get<any[]>(this.base, { params: { paper: paperId } });
+  /** All shifts */
+  getAll(): Observable<ExamShift[]> {
+    return this.http.get<ExamShift[]>(this.base);
+  }
+
+  /** Shifts for one paper */
+  getByPaper(paperId: string): Observable<ExamShift[]> {
+    return this.http.get<ExamShift[]>(`${this.base}/by-paper`, {
+      params: { paper: paperId }
+    });
+  }
+
+  /** Create a shift */
+  create(shift: Partial<ExamShift>): Observable<ExamShift> {
+    return this.http.post<ExamShift>(this.base, shift);
   }
 }

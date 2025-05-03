@@ -1,0 +1,22 @@
+<h2>Exam Shifts</h2>
+
+<button [routerLink]="['/exam-shifts','new']" class="btn-small">
+  + Add Shift
+</button>
+
+<table>
+  <thead>
+    <tr>
+      <th>Paper ID</th>
+      <th>Code</th>
+      <th>Name</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let s of shifts">
+      <td>{{ s.paper }}</td>
+      <td>{{ s.code }}</td>
+      <td>{{ s.name }}</td>
+    </tr>
+  </tbody>
+</table>

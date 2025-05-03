@@ -30,6 +30,9 @@ import { AddExamStreamComponent }  from './components/exam-stream/add-exam-strea
 import { ExamPaperListComponent } from './components/exam-paper/exam-paper-list/exam-paper-list.component';
 import { AddExamPaperComponent }  from './components/exam-paper/add-exam-paper/add-exam-paper.component';
 
+import { ExamShiftListComponent } from './components/exam-shift/exam-shift-list/exam-shift-list.component';
+import { AddExamShiftComponent }  from './components/exam-shift/add-exam-shift/add-exam-shift.component';
+
 import { AdminGuard }   from './guards/admin.guard';
 import { StudentGuard } from './guards/student.guard';
 
@@ -87,6 +90,10 @@ export const routes: Routes = [
       // Exam Papers
       { path: 'exam-papers',     component: ExamPaperListComponent },
       { path: 'exam-papers/new', component: AddExamPaperComponent },
+
+      // Exam Shifts
+      { path: 'exam-shifts',     component: ExamShiftListComponent },
+      { path: 'exam-shifts/new', component: AddExamShiftComponent },
     ]
   },
 

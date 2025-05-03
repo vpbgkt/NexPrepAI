@@ -1,0 +1,23 @@
+<h2>Add Exam Shift</h2>
+
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <div class="form-row">
+    <label>Paper</label>
+    <select formControlName="paper">
+      <option value="" disabled>Select Paper</option>
+      <option *ngFor="let p of papers" [value]="p._id">{{ p.name }}</option>
+    </select>
+  </div>
+
+  <div class="form-row">
+    <label>Code</label>
+    <input formControlName="code" placeholder="e.g. shift-1" />
+  </div>
+
+  <div class="form-row">
+    <label>Name</label>
+    <input formControlName="name" placeholder="Shift Name" />
+  </div>
+
+  <button type="submit" [disabled]="form.invalid">Save</button>
+</form>

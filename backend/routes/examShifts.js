@@ -1,15 +1,19 @@
-const express = require('express');
-const router  = express.Router();
+const express           = require('express');
+const router            = express.Router();
 const { verifyToken, requireRole } = require('../middleware/verifyToken');
 const {
+  getShifts,
   getShiftsByPaper,
   createShift
 } = require('../controllers/examShiftController');
 
-// List shifts for a paper (any logged-in user)
-router.get('/', verifyToken, getShiftsByPaper);
+// List *all* shifts
+router.get('/', verifyToken, getShifts);
 
-// Create a new shift (admin only)
+// List shifts for a paper
+router.get('/by-paper', verifyToken, getShiftsByPaper);
+
+// Create (admin only)
 router.post('/', verifyToken, requireRole('admin'), createShift);
 
 module.exports = router;
