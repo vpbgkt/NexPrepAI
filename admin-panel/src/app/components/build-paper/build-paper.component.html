@@ -49,7 +49,9 @@
   <!-- Paper -->
   <select #paperSelect formControlName="paper" [disabled]="!papers.length" (change)="onPaperChange(paperSelect.value)">
     <option value="">Select Paper</option>
-    <option *ngFor="let p of papers" [value]="p._id">{{ p.name }} ({{ p.year }})</option>
+    <option *ngFor="let p of papers" [value]="p._id">
+      {{ p.name }}<ng-container *ngIf="p.code"> ({{ p.code }})</ng-container>
+    </option>
   </select>
 
   <!-- Shift/Variant -->
