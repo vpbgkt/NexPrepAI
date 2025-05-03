@@ -86,14 +86,25 @@ exports.startTest = async (req, res) => {
         order: sec.order,
         questions: await Promise.all(
           sec.questions.map(async q => {
+            // Load only the translations block
             const doc = await Question.findById(q.question)
-              .select('questionText options')
+              .select('translations')
               .lean();
+
+            // Pick the English bundle (or fallback to first)
+            let questionText = '';
+            let options = [];
+            if (Array.isArray(doc?.translations) && doc.translations.length) {
+              const enTrans = doc.translations.find(t => t.lang === 'en') || doc.translations[0];
+              questionText = enTrans.questionText;
+              options      = enTrans.options || [];
+            }
+
             return {
               question:     q.question.toString(),
               marks:        q.marks,
-              questionText: doc?.questionText || '',
-              options:      doc?.options      || []
+              questionText, 
+              options
             };
           })
         )
