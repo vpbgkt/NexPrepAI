@@ -1,0 +1,15 @@
+<h2>Exam Families</h2>
+<button [routerLink]="['/exam-families/new']">+ Add Family</button>
+
+<table>
+  <thead>
+    <tr><th>Name</th><th>Code</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let f of families">
+      <td>{{ f.name }}</td>
+      <td>{{ f.code }}</td>
+      <td>{{ f.description }}</td>
+    </tr>
+  </tbody>
+</table>

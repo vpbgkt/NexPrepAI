@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 export interface ExamFamily {
   _id: string;
-  code: string;
+  code?: string;
   name: string;
   description?: string;
 }
@@ -15,7 +15,13 @@ export class ExamFamilyService {
 
   constructor(private http: HttpClient) {}
 
-  getAll(): Observable<any[]> {
-    return this.http.get<any[]>(this.base);
+  /** Fetch all families */
+  getAll(): Observable<ExamFamily[]> {
+    return this.http.get<ExamFamily[]>(this.base);
+  }
+
+  /** Create a new family */
+  create(family: Partial<ExamFamily>): Observable<ExamFamily> {
+    return this.http.post<ExamFamily>(this.base, family);
   }
 }

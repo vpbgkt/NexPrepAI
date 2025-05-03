@@ -21,6 +21,9 @@ import { AddTopicComponent } from './components/add-topic.component';
 import { AddSubtopicComponent }   from './components/add-subtopic.component';
 import { CsvUploadComponent }     from './components/csv-upload/csv-upload.component';
 
+import { ExamFamilyListComponent }   from './components/exam-family/exam-family-list/exam-family-list.component';
+import { AddExamFamilyComponent }    from './components/exam-family/add-exam-family/add-exam-family.component';
+
 import { AdminGuard }   from './guards/admin.guard';
 import { StudentGuard } from './guards/student.guard';
 
@@ -66,6 +69,10 @@ export const routes: Routes = [
       { path: 'topics/new',     component: AddTopicComponent },
       { path: 'subtopics/new',  component: AddSubtopicComponent },
       { path: 'csv-import',     component: CsvUploadComponent },
+
+      // Exam Families
+      { path: 'exam-families',      component: ExamFamilyListComponent },
+      { path: 'exam-families/new',  component: AddExamFamilyComponent },
     ]
   },
 

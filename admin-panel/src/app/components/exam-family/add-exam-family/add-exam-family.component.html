@@ -1,0 +1,9 @@
+<h2>Add Exam Family</h2>
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <label>Name</label>
+  <input formControlName="name" placeholder="e.g. Medical Exams" />
+  <label>Code</label>
+  <input formControlName="code" placeholder="e.g. medical-exams" />
+  <button type="submit" [disabled]="form.invalid">Save</button>
+</form>
+<p>add-exam-family works!</p>
