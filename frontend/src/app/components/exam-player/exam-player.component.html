@@ -18,6 +18,11 @@
 
   <p>Time left: {{ formatTime(timeLeft) }}</p>
 
+  <!-- Manual save button -->
+  <button (click)="manualSave()" [disabled]="!attemptId">
+    Save Progress
+  </button>
+
   <form [formGroup]="form" (ngSubmit)="submit()">
     <div formArrayName="responses">
       <ng-container *ngFor="let ctrl of responses.controls; let i = index">

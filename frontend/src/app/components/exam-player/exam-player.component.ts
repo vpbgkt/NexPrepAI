@@ -1,5 +1,5 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule }      from '@angular/common';
+import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
   FormBuilder,
@@ -21,8 +21,9 @@ export class ExamPlayerComponent implements OnInit {
   seriesId!: string;
   attemptId!: string;
   duration!: number;
-  sections: any[] = [];
-  form!: FormGroup;
+  // Make sections explicitly an array of objects with a questions array
+  sections: { questions: { question: string }[] }[] = [];
+  form: FormGroup;
   timeLeft = 0;
   timerHandle!: any;
   currentQuestionIndex = 0;
@@ -32,9 +33,9 @@ export class ExamPlayerComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private testSvc: TestService,
-    private cd: ChangeDetectorRef    // ← inject this
+    private cd: ChangeDetectorRef
   ) {
-    // Initialize the form here
+    // Initialize with empty FormArray
     this.form = this.fb.group({
       responses: this.fb.array([])
     });
@@ -42,22 +43,40 @@ export class ExamPlayerComponent implements OnInit {
 
   ngOnInit() {
     this.seriesId = this.route.snapshot.paramMap.get('seriesId')!;
+
+    // 1️⃣ Try to resume an in-progress attempt
+    this.testSvc.getProgress(this.seriesId).subscribe({
+      next: progress => {
+        if (progress.attemptId) {
+          // Resume flow
+          this.attemptId = progress.attemptId;
+          this.duration  = progress.remainingTime ?? 0;
+          this.sections  = progress.sections       ?? [];
+          this.buildFormAndTimer();
+          this.attachAutoSave();
+        } else {
+          // No progress → start new
+          this.startNewTest();
+        }
+      },
+      error: () => this.startNewTest()
+    });
+  }
+
+  private startNewTest() {
     this.testSvc.startTest(this.seriesId).subscribe({
-      next: res => {
-        console.log('startTest response:', res);
-        console.log('Full sections payload:', JSON.stringify(res.sections, null, 2));
+      next: (res: StartTestResponse) => {
         this.attemptId = res.attemptId;
         this.duration  = res.duration;
-
-        // use the actual sections your server sent (each has a .questions array)
-        this.sections = res.sections ?? [];
-
-        // now build the form & start timer
+        this.sections  = res.sections     ?? [];
         this.buildFormAndTimer();
+        this.attachAutoSave();
       },
       error: err => alert(err.error?.message || 'Failed to start test')
     });
+  }
 
+  private attachAutoSave() {
     this.form.valueChanges
       .pipe(
         debounceTime(2000),
@@ -65,56 +84,15 @@ export class ExamPlayerComponent implements OnInit {
       )
       .subscribe(vals => {
         this.testSvc.saveProgress(this.attemptId, vals).subscribe({
-          next: () => console.log('Progress auto-saved'),
-          error: err => console.warn('Auto-save failed', err)
+          next: () => console.log('✔️ Auto-saved'),
+          error: e => console.warn('Auto-save failed', e)
         });
       });
   }
 
-  // Typed getter for the responses FormArray
+  // Convenient getter for FormArray
   get responses(): FormArray {
     return this.form.get('responses') as FormArray;
-  }
-
-  start() {
-    this.testSvc.startTest(this.seriesId)
-      .subscribe((res: StartTestResponse) => {
-        this.attemptId = res.attemptId;
-        this.duration  = res.duration;
-        this.timeLeft  = this.duration * 60;    // ← reset the timer
-        this.sections  = res.sections || [];
-
-        // Rebuild the form now that we have questions
-        this.form = this.fb.group({ responses: this.fb.array([]) });
-        this.sections.forEach((sec: any, sIdx: number) =>
-          sec.questions.forEach((q: any, qIdx: number) => {
-            this.responses.push(
-              this.fb.group({
-                question: [q.question],
-                selected: [''],          // single‐value selection
-                review:   [false],
-                sectionIndex: [sIdx],
-                questionIndex: [qIdx]
-              })
-            );
-          })
-        );
-
-        // Add a watcher to log changes to the form
-        this.responses.controls.forEach((ctrl, i) => {
-          ctrl.get('selected')!
-            .valueChanges
-            .subscribe(v => console.log(`Response[${i}].selected =`, v));
-        });
-
-        this.cd.detectChanges();       // ← force view refresh
-
-        // Start the timer
-        this.timerHandle = setInterval(() => {
-          if (this.timeLeft <= 0) this.submit();
-          this.timeLeft--;
-        }, 1000);
-      });
   }
 
   submit() {
@@ -126,23 +104,17 @@ export class ExamPlayerComponent implements OnInit {
       let selectedArr: number[];
 
       if (Array.isArray(raw)) {
-        // multi‐select checkbox scenario
         selectedArr = raw.map((v: string | number) => Number(v));
       } else if (typeof raw === 'string') {
-        // comma‐string scenario (if you ever use <select multiple> or such)
         selectedArr = raw
           .split(',')
           .filter(x => x !== '')
           .map(x => Number(x));
       } else {
-        // single radio selection (number)
         selectedArr = [Number(raw)];
       }
 
-      return {
-        question: qId,
-        selected: selectedArr
-      };
+      return { question: qId, selected: selectedArr };
     });
 
     this.testSvc.submitAttempt(this.attemptId, { responses: payload }).subscribe({
@@ -154,15 +126,16 @@ export class ExamPlayerComponent implements OnInit {
     });
   }
 
-  formatTime(sec: number) {
+  formatTime(sec: number): string {
     const m = Math.floor(sec / 60).toString().padStart(2, '0');
     const s = (sec % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   }
 
-  // jump to a specific question
   goToQuestion(i: number) {
-    this.currentQuestionIndex = i;
+    if (i >= 0 && i < this.responses.length) {
+      this.currentQuestionIndex = i;
+    }
   }
 
   next() {
@@ -177,34 +150,52 @@ export class ExamPlayerComponent implements OnInit {
     }
   }
 
-  private buildFormAndTimer() {
-    // —— build the FormArray here ——
+  private buildFormAndTimer(): void {
+    // Rebuild form with the sections/questions
     this.form = this.fb.group({ responses: this.fb.array([]) });
-    this.sections.forEach((sec: any, sIdx: number) =>
-      sec.questions.forEach((q: any, qIdx: number) => {
+
+    // Now sections is typed, and we annotate sec, sIdx, q, qIdx
+    this.sections.forEach((sec: { questions: { question: string }[] }, sIdx: number) => {
+      sec.questions.forEach((q: { question: string }, qIdx: number) => {
         this.responses.push(
           this.fb.group({
-            question:     [q.question],
-            selected:     [''],        // or [] if multi-select
-            review:       [false],
-            sectionIndex: [sIdx],
-            questionIndex:[qIdx]
+            question:      [q.question],
+            selected:      [''],
+            review:        [false],
+            sectionIndex:  [sIdx],
+            questionIndex: [qIdx]
           })
         );
-      })
-    );
+      });
+    });
 
-    // —— start the timer here ——
-    this.timeLeft   = this.duration * 60;
+    // Initialize timer
+    this.timeLeft = this.duration * 60;
     this.timerHandle = setInterval(() => {
       this.timeLeft--;
       this.cd.detectChanges();
       if (this.timeLeft <= 0) {
         clearInterval(this.timerHandle);
-        this.submit();  // or however you finalize
+        this.submit();
       }
     }, 1000);
 
     this.currentQuestionIndex = 0;
+  }
+
+  /**
+   * Manually save the current form state.
+   */
+  manualSave() {
+    if (!this.attemptId) return;
+    this.testSvc
+      .saveProgress(this.attemptId, this.form.value)
+      .subscribe({
+        next: () => alert('✔️ Progress saved'),
+        error: err => {
+          console.warn('Manual save failed', err);
+          alert('❌ Save failed');
+        }
+      });
   }
 }

@@ -47,6 +47,15 @@ export class TestService {
     );
   }
 
+  /** Fetch an in-progress attempt, if any */
+  getProgress(seriesId: string) {
+    return this.http.get<{
+      attemptId?: string;
+      remainingTime?: number;
+      sections?: any[];
+    }>(`${this.base}/tests/${seriesId}/progress`);
+  }
+
   // existing methods…
   reviewAttempt(attemptId: string): Observable<any> {
     return this.http.get<any>(`${this.base}/tests/${attemptId}/review`);

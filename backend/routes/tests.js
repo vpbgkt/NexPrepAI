@@ -36,7 +36,8 @@ const {
   getStudentStats,
   getLeaderboardForSeries,
   saveProgress,
-  generatePdf
+  generatePdf,
+  getProgress
 } = require('../controllers/testAttemptController');
 
 /**
@@ -73,5 +74,12 @@ router.get('/:attemptId/pdf',
            verifyToken,
            requireRole('student'),
            generatePdf);
+
+// GET /api/tests/:seriesId/progress
+router.get(
+  '/:seriesId/progress',
+  verifyToken,
+  getProgress
+);
 
 module.exports = router;

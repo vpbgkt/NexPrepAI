@@ -385,3 +385,40 @@ exports.generatePdf = async (req, res) => {
     res.status(500).json({ message: 'PDF generation failed', error: err.message });
   }
 };
+
+/**
+ * GET /api/tests/:seriesId/progress
+ * If there’s an in-progress attempt for this user+series, return its ID,
+ * remaining time, and saved sections/responses; otherwise return {}.
+ */
+exports.getProgress = async (req, res) => {
+  try {
+    const seriesId = req.params.seriesId;
+    const userId   = req.user.userId;
+
+    // Find an attempt that’s in progress (not submitted)
+    const attempt = await TestAttempt.findOne({
+      student: userId,
+      series:  seriesId,
+      status: 'in-progress'
+    }).lean();
+
+    if (!attempt) {
+      return res.json({}); // no progress
+    }
+
+    // Compute remaining time (milliseconds → seconds)
+    const now       = Date.now();
+    const expiresAt = new Date(attempt.expiresAt).getTime();
+    const remaining = Math.max(0, Math.ceil((expiresAt - now) / 1000));
+
+    return res.json({
+      attemptId:     attempt._id.toString(),
+      remainingTime: remaining,
+      sections:      attempt.sections  // includes your saved responses
+    });
+  } catch (err) {
+    console.error('Error fetching progress:', err);
+    res.status(500).json({ message: 'Server error fetching progress' });
+  }
+};
