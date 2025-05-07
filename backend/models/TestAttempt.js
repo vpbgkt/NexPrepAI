@@ -29,15 +29,23 @@ const responseSchema = new Schema({
   review:    { type: Boolean, default: false }
 });
 
-const questionWithMarksSchema = new Schema({
-  question: { type: Schema.Types.ObjectId, ref: 'Question' },
-  marks: { type: Number, default: 1 }
+// Updated to store detailed question information for resume functionality
+const detailedQuestionSchema = new Schema({
+  question:     { type: Schema.Types.ObjectId, ref: 'Question', required: true },
+  marks:        { type: Number, default: 1 },
+  questionText: { type: String, default: '' },
+  options:      [{ 
+    text: String, 
+    isCorrect: Boolean 
+  }],
+  type:         { type: String }, // e.g., 'MCQ', 'MSQ', 'NAT'
+  difficulty:   { type: String }  // e.g., 'Easy', 'Medium', 'Hard'
 });
 
 const sectionSchema = new Schema({
   title: { type: String, required: true },
   order: Number,
-  questions: [questionWithMarksSchema]
+  questions: [detailedQuestionSchema] // Use the new detailedQuestionSchema
 });
 
 const testAttemptSchema = new Schema({
@@ -51,7 +59,16 @@ const testAttemptSchema = new Schema({
   percentage:{ type: Number },
 
   startedAt: { type: Date, default: Date.now },
-  submittedAt: { type: Date }
+  submittedAt: { type: Date },
+  // Fields for resuming and tracking progress
+  status: { 
+    type: String, 
+    enum: ['in-progress', 'completed', 'aborted'], 
+    default: 'in-progress' 
+  },
+  expiresAt: { type: Date }, // Calculated once when test starts if there is a fixed duration
+  lastSavedAt: { type: Date },
+  remainingDurationSeconds: { type: Number } // Stores the countdown value from frontend
 });
 
 // Added attemptNo field to the schema

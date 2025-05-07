@@ -10,8 +10,26 @@ const moment = require('moment');
 exports.startTest = async (req, res) => {
   try {
     const { seriesId } = req.body;
+    const userId = req.user.userId;
     const series = await TestSeries.findById(seriesId);
     if (!series) return res.status(404).json({ message: 'Test not found' });
+
+    // Abort any previous in-progress attempts for this user and series
+    const existingInProgressAttempts = await TestAttempt.find({
+      student: userId,
+      series: seriesId,
+      status: 'in-progress'
+    });
+
+    if (existingInProgressAttempts.length > 0) {
+      console.log(`Found ${existingInProgressAttempts.length} existing in-progress attempts. Marking as aborted.`);
+      for (const oldAttempt of existingInProgressAttempts) {
+        oldAttempt.status = 'aborted';
+        oldAttempt.remainingDurationSeconds = 0; // Or whatever is appropriate for aborted
+        await oldAttempt.save();
+        console.log(`Marked attempt ${oldAttempt._id} as aborted.`);
+      }
+    }
 
     console.log('🕒 Checking mode:', series.mode);
     console.log('🕒 startAt:', series.startAt);
@@ -66,7 +84,48 @@ exports.startTest = async (req, res) => {
       }];
     }
 
-    const layout = rawLayout;
+    // now build detailed sections for the frontend and for storing in TestAttempt
+    const detailedSectionsForAttempt = await Promise.all(
+      rawLayout.map(async sec => ({
+        title: sec.title,
+        order: sec.order,
+        questions: await Promise.all(
+          sec.questions.map(async q => {
+            const doc = await Question.findById(q.question)
+              .select('translations type difficulty') // Added type and difficulty
+              .lean();
+
+            let questionText = '';
+            let options = [];
+            if (Array.isArray(doc?.translations) && doc.translations.length) {
+              const enTrans = doc.translations.find(t => t.lang === 'en') || doc.translations[0];
+              questionText = enTrans.questionText;
+              options      = enTrans.options || []; // Ensure options are an array
+            }
+
+            return {
+              question:     q.question.toString(),
+              marks:        q.marks || 1, // Ensure marks are present
+              questionText, 
+              options: options.map(opt => ({ text: opt.text, isCorrect: opt.isCorrect })), // Include isCorrect for evaluation if needed later
+              type: doc?.type, // Add question type
+              difficulty: doc?.difficulty // Add question difficulty
+            };
+          })
+        )
+      }))
+    );
+    
+    console.log('Backend startTest: detailedSectionsForAttempt before save:', JSON.stringify(detailedSectionsForAttempt, null, 2)); // <--- ADD THIS LOG
+
+    const startedAt = new Date();
+    let expiresAt = null;
+    let remainingDurationSeconds = null;
+
+    if (series.duration && series.duration > 0) {
+      expiresAt = new Date(startedAt.getTime() + series.duration * 60 * 1000);
+      remainingDurationSeconds = series.duration * 60;
+    }
 
     // create the attempt
     const attempt = new TestAttempt({
@@ -74,47 +133,21 @@ exports.startTest = async (req, res) => {
       student:     req.user.userId,
       attemptNo:   existingCount + 1,
       variantCode: selectedVariant?.code,
-      sections:    selectedVariant?.sections || series.sections,
-      responses:   []
+      sections:    detailedSectionsForAttempt, // Store the detailed structure
+      responses:   [],
+      status:      'in-progress',
+      startedAt,
+      expiresAt,
+      remainingDurationSeconds
     });
     await attempt.save();
 
-    // now build detailed sections for the frontend
-    const detailedSections = await Promise.all(
-      layout.map(async sec => ({
-        title: sec.title,
-        order: sec.order,
-        questions: await Promise.all(
-          sec.questions.map(async q => {
-            // Load only the translations block
-            const doc = await Question.findById(q.question)
-              .select('translations')
-              .lean();
-
-            // Pick the English bundle (or fallback to first)
-            let questionText = '';
-            let options = [];
-            if (Array.isArray(doc?.translations) && doc.translations.length) {
-              const enTrans = doc.translations.find(t => t.lang === 'en') || doc.translations[0];
-              questionText = enTrans.questionText;
-              options      = enTrans.options || [];
-            }
-
-            return {
-              question:     q.question.toString(),
-              marks:        q.marks,
-              questionText, 
-              options
-            };
-          })
-        )
-      }))
-    );
+    console.log('🚀 Test started, attempt created:', attempt._id);
 
     return res.status(201).json({
       attemptId: attempt._id.toString(),
-      duration:  series.duration,
-      sections:  detailedSections
+      duration:  series.duration, // Send original duration in minutes
+      sections:  detailedSectionsForAttempt // Send detailed sections to frontend
     });
   } catch (err) {
     console.error('❌ Error in startTest:', err);
@@ -128,7 +161,7 @@ exports.startTest = async (req, res) => {
 exports.submitAttempt = async (req, res) => {
   try {
     const attemptId = req.params.attemptId;
-    const { responses } = req.body;
+    const { responses } = req.body; // responses from frontend
 
     if (req.user.role !== 'student') {
       return res.status(403).json({ message: 'Only students can submit tests.' });
@@ -136,58 +169,76 @@ exports.submitAttempt = async (req, res) => {
 
     const attempt = await TestAttempt.findById(attemptId);
     if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
+    if (attempt.status === 'completed') {
+      return res.status(400).json({ message: 'This test has already been submitted.' });
+    }
 
     const series = await TestSeries.findById(attempt.series);
 
     let total = 0, max = 0;
-    const checked = [];
+    const checkedResponses = [];
 
-    for (const { question, selected } of responses) {
-      const qEntry = attempt.sections
-        .flatMap(sec => sec.questions)
-        .find(q => q.question.toString() === question.toString());
+    // Iterate over the questions in the attempt's sections to ensure correct marks and structure
+    for (const section of attempt.sections) {
+      for (const qDetail of section.questions) {
+        const questionIdStr = qDetail.question.toString();
+        max += qDetail.marks || 0;
 
-      if (!qEntry) continue;
+        const userResponse = responses.find(r => r.question.toString() === questionIdStr);
+        let earned = 0;
+        let selectedOptions = [];
 
-      const marks = qEntry.marks || 0;
-      max += marks;
+        if (userResponse) {
+          selectedOptions = Array.isArray(userResponse.selected) ? userResponse.selected : (userResponse.selected ? [userResponse.selected.toString()] : []);
+          
+          // Fetch full question for correct options if not already in qDetail (best to have it in qDetail from startTest)
+          // For now, assuming qDetail.options has isCorrect field
+          const correctOptTexts = qDetail.options.filter(opt => opt.isCorrect).map(opt => opt.text);
+          
+          // Convert selected indices to option texts if necessary, or ensure comparison logic is robust
+          // This part needs careful alignment with how frontend sends `selected` (indices or values)
+          // Assuming frontend sends option *values* (text) or *indices* that map to qDetail.options
+          // For simplicity, let's assume frontend sends selected option *indices* as strings.
+          
+          const selectedCorrectly = selectedOptions.length === correctOptTexts.length &&
+                                   selectedOptions.every(selectedIndex => {
+                                       const optionIndex = parseInt(selectedIndex, 10);
+                                       return qDetail.options[optionIndex] && qDetail.options[optionIndex].isCorrect;
+                                   });
 
-      const qDoc = await Question.findById(question);
-      const correctArr = Array.isArray(qDoc.correctOptions) ? qDoc.correctOptions : [];
-      const selArr = Array.isArray(selected) ? selected : [];
+          const nm = qDetail.negativeMarks != null // Assuming negativeMarks might be per question
+            ? qDetail.negativeMarks
+            : (series.negativeMarkEnabled ? series.negativeMarkValue : 0);
 
-      const isCorrect =
-        correctArr.length > 0 &&
-        correctArr.length === selArr.length &&
-        correctArr.sort().join(',') === selArr.sort().join(',');
-
-      const nm = qEntry.negativeMarks != null
-        ? qEntry.negativeMarks
-        : (series.negativeMarkEnabled ? series.negativeMarkValue : 0);
-
-      const earned = isCorrect ? marks : -nm;
-      total += earned;
-
-      checked.push({
-        question,
-        selected,
-        correctOptions: correctArr,
-        earned
-      });
+          earned = selectedCorrectly ? (qDetail.marks || 0) : -nm;
+        }
+        total += earned;
+        checkedResponses.push({
+          question: qDetail.question,
+          selected: selectedOptions, // Store what the user selected
+          // correctOptions: correctOptTexts, // Storing correct options for review
+          earned,
+          review: userResponse ? userResponse.review || false : false
+        });
+      }
     }
 
-    attempt.responses = checked;
+    attempt.responses = checkedResponses;
     attempt.score = total;
     attempt.maxScore = max;
     attempt.percentage = max > 0 ? Math.round((total / max) * 100) : 0;
     attempt.submittedAt = new Date();
+    attempt.status = 'completed';
+    attempt.remainingDurationSeconds = 0; // Test completed
     await attempt.save();
+
+    console.log('✅ Test submitted and graded for attemptId:', attemptId);
 
     return res.status(200).json({
       score: total,
       maxScore: max,
       percentage: attempt.percentage,
-      breakdown: checked
+      breakdown: checkedResponses
     });
   } catch (err) {
     console.error('🔥 submitAttempt failed:', err);
@@ -225,16 +276,36 @@ exports.submitTest = async (req, res) => {
 exports.saveProgress = async (req, res) => {
   try {
     const { attemptId } = req.params;
-    const { responses } = req.body;  // array with question, selected, review
+    // Frontend should send: { responses: [...], timeLeft: ... }
+    const { responses, timeLeft } = req.body; 
+
+    console.log(`Backend saveProgress: Received for attemptId: ${attemptId}`); // <--- ADD THIS LOG
+    console.log('Backend saveProgress: Received responses payload:', JSON.stringify(responses, null, 2)); // <--- ADD THIS LOG
+    console.log(`Backend saveProgress: Received timeLeft: ${timeLeft}`); // <--- ADD THIS LOG
 
     const attempt = await TestAttempt.findById(attemptId);
-    if (!attempt) return res.status(404).json({ message: 'Not found' });
+    if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
 
-    attempt.responses = responses;
+    if (attempt.status !== 'in-progress') {
+      return res.status(400).json({ message: 'Test is not in-progress. Cannot save.' });
+    }
+
+    attempt.responses = responses; // Assuming `responses` from frontend matches `responseSchema` structure
+    attempt.lastSavedAt = new Date();
+    if (timeLeft !== undefined) {
+      attempt.remainingDurationSeconds = timeLeft;
+    }
+    
     await attempt.save();
-    res.json({ message: 'Progress saved' });
+    console.log('💾 Progress saved for attemptId:', attemptId, 'TimeLeft:', timeLeft, 'Responses Count:', responses.length);
+    // Log what was actually saved to DB for responses
+    const savedAttempt = await TestAttempt.findById(attemptId).lean(); // Fetch again to see saved data
+    console.log('Backend saveProgress: attempt.responses after save in DB:', JSON.stringify(savedAttempt.responses, null, 2)); // <--- ADD THIS LOG
+
+    res.json({ message: 'Progress saved successfully' });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('❌ Error saving progress for attemptId:', req.params.attemptId, err);
+    res.status(500).json({ message: 'Failed to save progress', error: err.message });
   }
 };
 
@@ -396,26 +467,46 @@ exports.getProgress = async (req, res) => {
     const seriesId = req.params.seriesId;
     const userId   = req.user.userId;
 
-    // Find an attempt that’s in progress (not submitted)
+    console.log(`🔍 Getting progress for seriesId: ${seriesId}, userId: ${userId}`);
+
+    // Find the most recent attempt that’s in progress (not submitted)
     const attempt = await TestAttempt.findOne({
       student: userId,
       series:  seriesId,
       status: 'in-progress'
-    }).lean();
+    })
+    .sort({ startedAt: -1 }) // Sort by startedAt descending to get the latest
+    // .populate('sections.questions.question') // Optionally populate if sections don't store full q data
+    .lean();
 
     if (!attempt) {
+      console.log('🤔 No in-progress attempt found.');
       return res.json({}); // no progress
     }
 
-    // Compute remaining time (milliseconds → seconds)
-    const now       = Date.now();
-    const expiresAt = new Date(attempt.expiresAt).getTime();
-    const remaining = Math.max(0, Math.ceil((expiresAt - now) / 1000));
+    console.log('Backend getProgress: attempt.sections from DB:', JSON.stringify(attempt.sections, null, 2)); // <--- ADD THIS LOG
+    console.log('Backend getProgress: attempt.responses from DB:', JSON.stringify(attempt.responses, null, 2)); // <--- ADD THIS LOG
+
+    // Frontend expects remainingTime in seconds for the timer.
+    // The `remainingDurationSeconds` field should be the authoritative source.
+    const remainingTime = attempt.remainingDurationSeconds;
+
+    // If remainingDurationSeconds is 0 or less, and there's an expiresAt, check server-side expiry
+    if (remainingTime <= 0 && attempt.expiresAt && new Date(attempt.expiresAt) < new Date()) {
+        console.log('⏰ Attempt expired server-side. Marking as aborted/completed.');
+        // Optionally, update status to 'aborted' or 'completed' here if it makes sense for your logic
+        // For now, just return no progress or an expired status
+        // await TestAttempt.findByIdAndUpdate(attempt._id, { status: 'aborted', remainingDurationSeconds: 0 });
+        return res.json({ attemptId: attempt._id.toString(), remainingTime: 0, sections: attempt.sections, expired: true });
+    }
+    
+    console.log('✅ In-progress attempt found:', attempt._id, 'Remaining Duration:', remainingTime);
 
     return res.json({
       attemptId:     attempt._id.toString(),
-      remainingTime: remaining,
-      sections:      attempt.sections  // includes your saved responses
+      remainingTime: remainingTime, // This is in seconds
+      sections:      attempt.sections,  // These sections should include question details and saved responses
+      responses:     attempt.responses // Send the saved responses
     });
   } catch (err) {
     console.error('Error fetching progress:', err);

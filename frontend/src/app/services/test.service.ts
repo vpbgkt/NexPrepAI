@@ -53,6 +53,8 @@ export class TestService {
       attemptId?: string;
       remainingTime?: number;
       sections?: any[];
+      responses?: any[]; // Added responses to the interface
+      expired?: boolean; // Added from backend getProgress logic
     }>(`${this.base}/tests/${seriesId}/progress`);
   }
 

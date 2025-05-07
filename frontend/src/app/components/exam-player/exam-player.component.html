@@ -1,5 +1,11 @@
-<div *ngIf="!attemptId">
+<div *ngIf="!attemptId && !hasSavedProgress">
   <button (click)="start()">Start Exam</button>
+</div>
+
+<div *ngIf="!attemptId && hasSavedProgress">
+  <p>You have saved progress for this exam.</p>
+  <button (click)="resumeTest()">Resume Exam</button>
+  <button (click)="start()">Start New Exam</button>
 </div>
 
 <div *ngIf="attemptId">
@@ -45,7 +51,7 @@
               <input
                 type="radio"
                 formControlName="selected"
-                [value]="oi"
+                [value]="oi.toString()"
               />
               {{ opt.text }}
             </label>
