@@ -21,8 +21,8 @@ export class ExamPlayerComponent implements OnInit {
   seriesId!: string;
   attemptId!: string;
   duration!: number;
-  // Make sections explicitly an array of objects with a questions array
-  sections: { questions: { question: string }[] }[] = [];
+  // Updated sections type definition
+  sections: { questions: { question: string; questionText: string; options: { text: string }[] }[] }[] = [];
   form: FormGroup;
   timeLeft = 0;
   timerHandle!: any;
@@ -44,23 +44,30 @@ export class ExamPlayerComponent implements OnInit {
   ngOnInit() {
     this.seriesId = this.route.snapshot.paramMap.get('seriesId')!;
 
-    // 1️⃣ Try to resume an in-progress attempt
     this.testSvc.getProgress(this.seriesId).subscribe({
       next: progress => {
         if (progress.attemptId) {
-          // Resume flow
           this.attemptId = progress.attemptId;
           this.duration  = progress.remainingTime ?? 0;
-          this.sections  = progress.sections       ?? [];
+          this.sections  = this.processSections(progress.sections); // Use processSections
           this.buildFormAndTimer();
           this.attachAutoSave();
         } else {
-          // No progress → start new
-          this.startNewTest();
+          // Don't automatically start new test; wait for user to click "Start Exam"
+          // this.startNewTest(); // Removed this line
         }
       },
-      error: () => this.startNewTest()
+      error: () => {
+        // Don't automatically start new test on error either
+        // this.startNewTest(); // Removed this line
+        console.error('Error fetching progress. User may need to manually start the test.');
+      }
     });
+  }
+
+  // Public start method for the template
+  start(): void {
+    this.startNewTest();
   }
 
   private startNewTest() {
@@ -68,7 +75,7 @@ export class ExamPlayerComponent implements OnInit {
       next: (res: StartTestResponse) => {
         this.attemptId = res.attemptId;
         this.duration  = res.duration;
-        this.sections  = res.sections     ?? [];
+        this.sections  = this.processSections(res.sections); // Use processSections
         this.buildFormAndTimer();
         this.attachAutoSave();
       },
@@ -150,16 +157,55 @@ export class ExamPlayerComponent implements OnInit {
     }
   }
 
+  // Method to process sections and questions from the server
+  private processSections(sectionsFromServer: any[] | undefined): { questions: { question: string; questionText: string; options: { text: string }[] }[] }[] {
+    if (!sectionsFromServer) {
+      return [];
+    }
+    return sectionsFromServer.map(section => {
+      return {
+        ...section, // Preserves other section properties
+        questions: section.questions.map((originalQuestion: any) => {
+          const questionId = originalQuestion.question || originalQuestion._id;
+          let displayText = `Question text for ${questionId} not found`;
+          let displayOptions: { text: string }[] = [];
+
+          if (originalQuestion.translations && originalQuestion.translations.length > 0) {
+            const firstTranslation = originalQuestion.translations[0];
+            if (firstTranslation.questionText) {
+              displayText = firstTranslation.questionText;
+            }
+            if (firstTranslation.options) {
+              displayOptions = firstTranslation.options.map((opt: any) => ({ text: opt.text })).filter((opt: any) => opt.text);
+            }
+          } else if (originalQuestion.questionText && originalQuestion.questionText !== questionId) {
+            // Fallback if translations are missing but originalQuestion.questionText seems valid
+            displayText = originalQuestion.questionText;
+            if (originalQuestion.options) {
+              displayOptions = originalQuestion.options.map((opt: any) => ({ text: opt.text })).filter((opt: any) => opt.text);
+            }
+          }
+
+          return {
+            question: questionId,       // This is the ID
+            questionText: displayText,  // This is the text to display
+            options: displayOptions     // These are the options to display
+          };
+        })
+      };
+    });
+  }
+
   private buildFormAndTimer(): void {
     // Rebuild form with the sections/questions
     this.form = this.fb.group({ responses: this.fb.array([]) });
 
     // Now sections is typed, and we annotate sec, sIdx, q, qIdx
-    this.sections.forEach((sec: { questions: { question: string }[] }, sIdx: number) => {
-      sec.questions.forEach((q: { question: string }, qIdx: number) => {
+    this.sections.forEach((sec, sIdx) => {
+      sec.questions.forEach((q, qIdx) => {
         this.responses.push(
           this.fb.group({
-            question:      [q.question],
+            question:      [q.question], // Store the question ID
             selected:      [''],
             review:        [false],
             sectionIndex:  [sIdx],
