@@ -10,6 +10,42 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { TestService, StartTestResponse } from '../../services/test.service';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
+// --- Enhanced Interfaces for Translations ---
+interface QuestionOption {
+  text: string;
+  img?: string;
+  isCorrect?: boolean; // Kept from original, backend might send it
+  _id?: string;
+}
+
+interface QuestionTranslation {
+  lang: 'en' | 'hi';
+  questionText: string;
+  images?: string[];
+  options: QuestionOption[];
+  // explanations?: any[]; // Add if needed later
+}
+
+interface PlayerQuestion {
+  question: string; // ID
+  translations: QuestionTranslation[];
+  marks?: number;
+  type?: string;
+  difficulty?: string;
+  // Properties to hold the currently displayed content based on language
+  displayQuestionText: string;
+  displayOptions: QuestionOption[];
+  availableLanguages: string[];
+  originalLanguageForDisplay: string; // Tracks if fallback occurred
+}
+
+interface PlayerSection {
+  title: string;
+  order: number;
+  questions: PlayerQuestion[];
+}
+// --- End Interfaces ---
+
 @Component({
   selector: 'app-exam-player',
   standalone: true,
@@ -20,18 +56,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 export class ExamPlayerComponent implements OnInit {
   seriesId!: string;
   attemptId: string | undefined; // Ensure it can be undefined initially
-  sections: { 
-    title: string, // Added title from backend
-    order: number, // Added order from backend
-    questions: { 
-      question: string; // ID
-      questionText: string; 
-      options: { text: string; isCorrect?: boolean }[]; // isCorrect is optional, mostly for backend
-      marks?: number; // Added from backend
-      type?: string; // Added from backend
-      difficulty?: string; // Added from backend
-    }[] 
-  }[] = [];
+  sections: PlayerSection[] = []; // Use new PlayerSection interface
   form: FormGroup;
   timeLeft = 0; // This will store remaining duration in seconds
   timerHandle!: any;
@@ -44,6 +69,11 @@ export class ExamPlayerComponent implements OnInit {
   private pendingTimeLeft: number = 0;
   private pendingSections: any[] = [];
   private pendingSavedResponses: any[] = [];
+
+  // --- Language Properties ---
+  currentLanguage: 'en' | 'hi' = 'en'; // Default to English
+  readonly defaultLanguage: 'en' | 'hi' = 'en';
+  // --- End Language Properties ---
 
   constructor(
     private fb: FormBuilder,
@@ -243,30 +273,101 @@ export class ExamPlayerComponent implements OnInit {
 
   // Method to process sections and questions from the server
   // Backend now sends more detailed section info, so this might be simpler
-  private processSections(sectionsFromServer: any[] | undefined): { title: string, order: number, questions: { question: string; questionText: string; options: { text: string; isCorrect?: boolean }[], marks?:number, type?:string, difficulty?:string }[] }[] {
+  private processSections(sectionsFromServer: any[] | undefined): PlayerSection[] {
     if (!sectionsFromServer) {
       console.warn('processSections: sectionsFromServer is undefined or null');
       return [];
     }
-    console.log('processSections input:', sectionsFromServer);
+    console.log('processSections input (raw from server):', JSON.stringify(sectionsFromServer, null, 2));
+
     return sectionsFromServer.map(section => {
       return {
-        title: section.title, // Expect title from backend
-        order: section.order, // Expect order from backend
-        questions: (section.questions || []).map((originalQuestion: any) => {
-          // The backend's `detailedSectionsForAttempt` should already have questionText and options
+        title: section.title,
+        order: section.order,
+        questions: (section.questions || []).map((originalQuestion: any): PlayerQuestion => {
+          // originalQuestion.translations should be an array like [{lang: 'en', questionText: '...', options: [...]}, {lang: 'hi', ...}]
+          const translations = (originalQuestion.translations || []) as QuestionTranslation[];
+          if (translations.length === 0) {
+            // Fallback if translations array is missing or empty (should ideally not happen with new model)
+            translations.push({
+              lang: this.defaultLanguage,
+              questionText: originalQuestion.questionText || `Text for ${originalQuestion.question || originalQuestion._id} missing`,
+              options: (originalQuestion.options || []).map((opt: any) => ({ text: opt.text, isCorrect: opt.isCorrect }))
+            });
+          }
+          
+          const initialDisplay = this.getTranslatedContentForQuestion(translations, this.currentLanguage);
+
           return {
             question: originalQuestion.question || originalQuestion._id, // ID
-            questionText: originalQuestion.questionText || `Text for ${originalQuestion.question || originalQuestion._id} missing`,
-            options: (originalQuestion.options || []).map((opt: any) => ({ text: opt.text, isCorrect: opt.isCorrect })), // Expect options with text and isCorrect
+            translations: translations,
             marks: originalQuestion.marks,
             type: originalQuestion.type,
-            difficulty: originalQuestion.difficulty
+            difficulty: originalQuestion.difficulty,
+            // Populate display properties
+            displayQuestionText: initialDisplay.questionText,
+            displayOptions: initialDisplay.options,
+            availableLanguages: translations.map(t => t.lang),
+            originalLanguageForDisplay: initialDisplay.langUsed
           };
         })
       };
     });
   }
+
+  // --- Language Helper Methods ---
+  private getTranslatedContentForQuestion(
+    translations: QuestionTranslation[],
+    targetLang: 'en' | 'hi'
+  ): { questionText: string; options: QuestionOption[]; langUsed: 'en' | 'hi' } {
+    let selectedTranslation = translations.find(t => t.lang === targetLang);
+    let langUsed = targetLang;
+
+    if (!selectedTranslation) {
+      selectedTranslation = translations.find(t => t.lang === this.defaultLanguage) || translations[0];
+      langUsed = selectedTranslation.lang; // Actual language being used
+    }
+    
+    return {
+      questionText: selectedTranslation.questionText,
+      options: selectedTranslation.options,
+      langUsed: langUsed
+    };
+  }
+
+  changeLanguage(lang: 'en' | 'hi'): void {
+    if (this.currentLanguage === lang) return;
+    this.currentLanguage = lang;
+    // localStorage.setItem('preferredLang', lang); // Optional: persist preference
+
+    // Update display properties for all questions in the current sections data
+    // This is important if questions are not re-processed on language change
+    this.sections.forEach(section => {
+      section.questions.forEach(question => {
+        const newDisplayContent = this.getTranslatedContentForQuestion(question.translations, this.currentLanguage);
+        question.displayQuestionText = newDisplayContent.questionText;
+        question.displayOptions = newDisplayContent.options;
+        question.originalLanguageForDisplay = newDisplayContent.langUsed;
+      });
+    });
+    this.cd.detectChanges(); // Trigger change detection
+  }
+
+  // Getter for the currently displayed question's content (based on currentQuestionIndex and currentLanguage)
+  get currentQuestionDisplayData(): PlayerQuestion | undefined {
+    const formCtrl = this.responses.at(this.currentQuestionIndex);
+    if (formCtrl) {
+      const sectionIndex = formCtrl.value.sectionIndex;
+      const questionIndexInSection = formCtrl.value.questionIndex;
+      if (this.sections[sectionIndex]?.questions[questionIndexInSection]) {
+        // The question object itself now holds the displayable text/options
+        // which are updated by changeLanguage()
+        return this.sections[sectionIndex].questions[questionIndexInSection];
+      }
+    }
+    return undefined;
+  }
+  // --- End Language Helper Methods ---
 
   private buildFormAndTimer(): void {
     console.log('FE: buildFormAndTimer - Building form. TimeLeft:', this.timeLeft, 'Sections:', this.sections.length);

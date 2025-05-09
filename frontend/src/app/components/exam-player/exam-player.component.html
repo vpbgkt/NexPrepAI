@@ -9,6 +9,24 @@
 </div>
 
 <div *ngIf="attemptId">
+  <!-- Language Switcher -->
+  <div class="language-switcher" style="margin-bottom: 15px; padding: 10px; border-bottom: 1px solid #eee;">
+    <span>View Question In: </span>
+    <button (click)="changeLanguage('en')" [class.active-lang]="currentLanguage === 'en'" [disabled]="currentLanguage === 'en'">
+      English
+    </button>
+    <button (click)="changeLanguage('hi')" [class.active-lang]="currentLanguage === 'hi'" [disabled]="currentLanguage === 'hi'">
+      हिंदी (Hindi)
+    </button>
+    <span *ngIf="currentQuestionDisplayData && currentQuestionDisplayData.originalLanguageForDisplay !== currentLanguage && currentQuestionDisplayData.availableLanguages.includes(currentLanguage)" style="margin-left: 10px; font-style: italic; color: #777;">
+      (Showing in {{ currentQuestionDisplayData.originalLanguageForDisplay === 'en' ? 'English' : 'Hindi' }} as {{ currentLanguage === 'en' ? 'English' : 'Hindi' }} is not available for this question)
+    </span>
+     <span *ngIf="currentQuestionDisplayData && !currentQuestionDisplayData.availableLanguages.includes(currentLanguage)" style="margin-left: 10px; font-style: italic; color: #cc0000;">
+      Selected language ({{ currentLanguage === 'en' ? 'English' : 'Hindi' }}) is not available. Showing in {{ currentQuestionDisplayData.originalLanguageForDisplay === 'en' ? 'English' : 'Hindi' }}.
+    </span>
+  </div>
+  <!-- End Language Switcher -->
+
   <aside class="sidebar">
     <ul>
       <li
@@ -32,28 +50,37 @@
   <form [formGroup]="form" (ngSubmit)="submit()">
     <div formArrayName="responses">
       <ng-container *ngFor="let ctrl of responses.controls; let i = index">
-        <div *ngIf="i === currentQuestionIndex" [formGroupName]="i">
+        <div *ngIf="i === currentQuestionIndex && currentQuestionDisplayData" [formGroupName]="i">
           <!-- question markup -->
           <p>
             Q{{ i + 1 }}:
-            {{
-              sections[ctrl.value.sectionIndex]
-                .questions[ctrl.value.questionIndex]
-                .questionText
-            }}
+            {{ currentQuestionDisplayData.displayQuestionText }}
           </p>
+          
+          <!-- Display images if any for the current translation -->
+          <div *ngIf="currentQuestionDisplayData.displayOptions && currentQuestionDisplayData.translations">
+            <ng-container *ngFor="let translation of currentQuestionDisplayData.translations">
+              <div *ngIf="translation.lang === currentLanguage">
+                <div *ngFor="let imageUrl of translation.images">
+                  <img [src]="imageUrl" alt="Question Image" style="max-width: 100%; height: auto; margin-bottom: 10px;">
+                </div>
+              </div>
+            </ng-container>
+          </div>
 
           <!-- Options -->
           <div
-            *ngFor="let opt of sections[ctrl.value.sectionIndex].questions[ctrl.value.questionIndex].options; let oi = index"
+            *ngFor="let opt of currentQuestionDisplayData.displayOptions; let oi = index"
           >
             <label>
               <input
-                type="radio"
-                formControlName="selected"
-                [value]="oi.toString()"
+                type="radio" 
+                formControlName="selected" 
+                [value]="oi.toString()" 
               />
               {{ opt.text }}
+              <!-- Display option image if any -->
+              <img *ngIf="opt.img" [src]="opt.img" alt="Option Image" style="max-width: 200px; height: auto; margin-left: 10px;">
             </label>
           </div>
 

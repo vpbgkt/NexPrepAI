@@ -92,24 +92,40 @@ exports.startTest = async (req, res) => {
         questions: await Promise.all(
           sec.questions.map(async q => {
             const doc = await Question.findById(q.question)
-              .select('translations type difficulty') // Added type and difficulty
+              .select('translations type difficulty') // Keep this selection
               .lean();
 
-            let questionText = '';
-            let options = [];
+            // We will now pass the full translations array if it exists
+            // and retain the existing fallback for questionText and options
+            // if translations are not present (though the goal is for translations to always be present)
+
+            let questionText = ''; // Fallback
+            let options = [];      // Fallback
+            let translations = []; // Default to empty array
+
             if (Array.isArray(doc?.translations) && doc.translations.length) {
-              const enTrans = doc.translations.find(t => t.lang === 'en') || doc.translations[0];
-              questionText = enTrans.questionText;
-              options      = enTrans.options || []; // Ensure options are an array
+              translations = doc.translations; // Send all translations
+              // Still provide a default top-level questionText and options,
+              // preferably from English or the first available translation.
+              const defaultTranslation = doc.translations.find(t => t.lang === 'en') || doc.translations[0];
+              if (defaultTranslation) {
+                questionText = defaultTranslation.questionText;
+                options = defaultTranslation.options || [];
+              }
+            } else if (doc) {
+              // Fallback if translations array is missing but doc exists (legacy data perhaps)
+              questionText = doc.questionText || ''; // Assuming direct fields if no translations
+              options = doc.options || [];
             }
 
             return {
               question:     q.question.toString(),
-              marks:        q.marks || 1, // Ensure marks are present
-              questionText, 
-              options: options.map(opt => ({ text: opt.text, isCorrect: opt.isCorrect })), // Include isCorrect for evaluation if needed later
-              type: doc?.type, // Add question type
-              difficulty: doc?.difficulty // Add question difficulty
+              marks:        q.marks || 1,
+              translations: translations, // Send the full translations array
+              questionText: questionText, // Keep a fallback/default
+              options:      options.map(opt => ({ text: opt.text, isCorrect: opt.isCorrect })), // Keep a fallback/default
+              type:         doc?.type,
+              difficulty:   doc?.difficulty
             };
           })
         )
