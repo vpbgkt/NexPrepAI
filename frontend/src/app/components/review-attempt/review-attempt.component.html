@@ -2,12 +2,19 @@
   Download PDF scorecard
 </button>
 
-<div *ngIf="attempt">
-  <h2>Review: {{ attempt.series.title }}</h2>
+<div *ngIf="loading">Loading review data...</div>
+<div *ngIf="error">{{ error }}</div>
+
+<div *ngIf="!loading && !error && attempt">
+  <h2>Review: {{ attempt.series?.title || 'Test Series' }}</h2>
   <div *ngFor="let r of attempt.responses; let idx = index">
-    <h3>Q{{ idx + 1 }}: {{ r.question.questionText }}</h3>
+    <h3>Q{{ idx + 1 }}: {{ r.questionData?.questionText || 'Question text not available' }}</h3>
     <p>Your answer:   {{ getAnswerText(r) }}</p>
     <p>Correct answer: {{ getCorrectText(r) }}</p>
     <hr />
   </div>
+</div>
+
+<div *ngIf="!loading && !error && !attempt">
+  No attempt data found.
 </div>

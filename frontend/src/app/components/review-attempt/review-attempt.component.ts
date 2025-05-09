@@ -5,6 +5,53 @@ import { TestService } from '../../services/test.service';
 import { saveAs } from 'file-saver';
 import { HttpClient } from '@angular/common/http';
 
+// Define interfaces based on the expected structure of 'data'
+interface Option {
+  text: string;
+  isCorrect: boolean;
+  _id: string;
+}
+
+interface FullQuestion {
+  question: string; // This is the ID
+  marks: number;
+  questionText: string;
+  options: Option[];
+  type: string;
+  difficulty: string;
+  _id: string; // Internal ID for this question instance in sections
+}
+
+interface Section {
+  title: string;
+  order: number;
+  questions: FullQuestion[];
+}
+
+interface ResponseItem { // Renamed from Response to avoid conflict if Response is a global type
+  question: { _id: string };
+  selected: string[];
+  correctOptions: any[]; // Kept as any[] as it was empty in JSON
+  earned: number;
+  review: boolean;
+  _id: string;
+  questionData?: FullQuestion; // Added property
+  populatedCorrectOptions?: string[]; // Added property
+}
+
+interface Attempt {
+  _id: string;
+  series: any; // or string if not populated
+  student: any; // or string if not populated
+  responses: ResponseItem[];
+  startedAt: string;
+  status: string;
+  expiresAt: string;
+  remainingDurationSeconds: number;
+  attemptNo: number;
+  sections: Section[];
+}
+
 @Component({
   selector: 'app-review-attempt',
   standalone: true,
@@ -14,10 +61,9 @@ import { HttpClient } from '@angular/common/http';
 })
 export class ReviewAttemptComponent implements OnInit {
   attemptId!: string;
-  reviewData: any;
   loading = true;
   error = '';
-  attempt: any;
+  attempt: Attempt | undefined; // Use the Attempt interface
 
   constructor(
     private route: ActivatedRoute,
@@ -27,28 +73,85 @@ export class ReviewAttemptComponent implements OnInit {
 
   ngOnInit() {
     this.attemptId = this.route.snapshot.paramMap.get('attemptId')!;
+    this.loading = true; // Set loading to true before the call
     this.testSvc.reviewAttempt(this.attemptId).subscribe({
-      next: data => this.attempt = data,
-      error: err => alert(err.error?.message || 'Failed to load review')
+      next: (data: any) => { // Explicitly type data as any for now, or create a more specific DTO if backend structure is stable
+        console.log('FE: ReviewAttemptComponent - Data received:', JSON.stringify(data, null, 2));
+        this.attempt = data as Attempt; // Cast to our defined Attempt interface
+
+        if (this.attempt && this.attempt.responses && this.attempt.sections) {
+          const questionDetailsMap = new Map<string, FullQuestion>();
+          this.attempt.sections.forEach((section: Section) => {
+            if (section.questions && Array.isArray(section.questions)) {
+              section.questions.forEach((fq: FullQuestion) => {
+                questionDetailsMap.set(fq.question, fq); // fq.question is the ID
+              });
+            }
+          });
+
+          this.attempt.responses.forEach((response: ResponseItem) => {
+            const fullQuestion = questionDetailsMap.get(response.question._id);
+            if (fullQuestion) {
+              response.questionData = fullQuestion;
+
+              if (fullQuestion.options && Array.isArray(fullQuestion.options)) {
+                response.populatedCorrectOptions = fullQuestion.options
+                                                    .filter((opt: Option) => opt.isCorrect)
+                                                    .map((opt: Option) => opt.text);
+              } else {
+                response.populatedCorrectOptions = [];
+              }
+            }
+          });
+        }
+        this.loading = false;
+      },
+      error: (err: any) => {
+        console.error('FE: ReviewAttemptComponent - Error loading review:', err);
+        this.error = err.error?.message || 'Failed to load review data';
+        this.loading = false;
+      }
     });
   }
 
   // Helper to render the student’s answer text
-  getAnswerText(r: any): string {
-    if (!r.selected?.length) return 'No answer';
+  getAnswerText(r: ResponseItem): string {
+    if (!r) return 'Response data missing';
+
+    // Handle unanswered questions (selected array might be empty or contain an empty string)
+    if (!r.selected?.length || r.selected[0] === "") {
+      return (r.questionData && r.questionData.options) ? 'No answer' : 'Question data or options not available for unanswered';
+    }
+
+    if (!r.questionData || !r.questionData.options || !Array.isArray(r.questionData.options)) {
+      return 'Options data not available for this question';
+    }
+
     return r.selected
-      .map((i: number) => r.question.options[i].text)
+      .map((selectedIndex: string | number) => {
+        const idx = Number(selectedIndex);
+        if (idx >= 0 && idx < r.questionData!.options.length && r.questionData!.options[idx]) {
+          return r.questionData!.options[idx].text || `Option ${idx + 1} text missing`;
+        }
+        return `Invalid option index: ${selectedIndex}`;
+      })
       .join(', ');
   }
 
   // Helper to render the correct answer texts
-  getCorrectText(r: any): string {
-    // r.question.correctOptions is an array of strings
-    if (!r.question.correctOptions?.length) {
-      return 'N/A';
+  getCorrectText(r: ResponseItem): string {
+    if (!r) return 'Response data missing';
+
+    if (!r.populatedCorrectOptions || !Array.isArray(r.populatedCorrectOptions) || r.populatedCorrectOptions.length === 0) {
+      // Check if it was a valid question where correct options might not have been processed or specified
+      if (r.questionData && r.questionData.options) {
+         // Check if any option was marked as correct in the source
+         const hasAnyCorrectOption = r.questionData.options.some((opt: Option) => opt.isCorrect);
+         return hasAnyCorrectOption ? 'Correct answer text not processed' : 'Correct answer not specified in question data';
+      }
+      return 'Correct answer N/A';
     }
-    // Join the stored correct-texts
-    return r.question.correctOptions.join(', ');
+    return r.populatedCorrectOptions.join(', ');
   }
 
   downloadPdf(): void {
