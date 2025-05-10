@@ -75,10 +75,10 @@
         </ul>
       </td>
       <td>{{ q.difficulty }}</td>
-      <td>{{ q.branch?.name || q.branch }}</td>
-      <td>{{ q.subject?.name || q.subject }}</td>
-      <td>{{ q.topic?.name || q.topic }}</td>
-      <td>{{ q.subtopic?.name || q.subtopic }}</td>
+      <td>{{ getPopulatedFieldName(q.branch) || getIdString(q.branch) }}</td>
+      <td>{{ getPopulatedFieldName(q.subject) || getIdString(q.subject) }}</td>
+      <td>{{ getPopulatedFieldName(q.topic) || getIdString(q.topic) }}</td>
+      <td>{{ getPopulatedFieldName(q.subTopic) || getIdString(q.subTopic) }}</td>
       <td>
         <button (click)="onEdit(q._id!)">Edit</button>
         <button (click)="onDelete(q._id!)">Delete</button>

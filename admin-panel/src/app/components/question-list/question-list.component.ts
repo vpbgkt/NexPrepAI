@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { QuestionService } from '../../services/question.service';
-import { Question } from '../../models/question.model';
+import { Question, PopulatedHierarchyField, Translation, Option } from '../../models/question.model'; // MODIFIED: Ensure all necessary types are imported
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -131,13 +131,57 @@ export class QuestionListComponent implements OnInit {
     });
   }
 
-  onEdit(id: string): void {
-    this.router.navigate(['/questions', id, 'edit']);
+  // ADDED: Helper to get string ID
+  getIdString(idValue: string | { $oid: string } | PopulatedHierarchyField | undefined): string {
+    if (idValue === undefined || idValue === null) {
+      return '';
+    }
+
+    if (typeof idValue === 'string') {
+      return idValue;
+    }
+
+    // Check if idValue is an object (could be { $oid: string } or PopulatedHierarchyField)
+    if (typeof idValue === 'object') {
+      // Case 1: Direct $oid object (e.g., { $oid: "someId" })
+      if ('$oid' in idValue && typeof (idValue as { $oid: string }).$oid === 'string') {
+        return (idValue as { $oid: string }).$oid;
+      }
+
+      // Case 2: PopulatedHierarchyField (e.g., { _id: "someId" | { $oid: "someId" }, name: "Some Name" })
+      // We need to extract the actual ID from its _id property.
+      if ('_id' in idValue && idValue._id && 'name' in idValue) { // Characteristic properties of PopulatedHierarchyField
+        const nestedId = (idValue as PopulatedHierarchyField)._id;
+        if (typeof nestedId === 'string') {
+          return nestedId;
+        }
+        if (nestedId && typeof nestedId === 'object' && '$oid' in nestedId && typeof (nestedId as { $oid: string }).$oid === 'string') {
+          return (nestedId as { $oid: string }).$oid;
+        }
+      }
+    }
+
+    // Fallback for unhandled cases or if it's not a recognized ID format.
+    // console.warn('[QuestionListComponent] getIdString: Unhandled ID format for value:', idValue);
+    return ''; // Return empty string to avoid display issues like [object Object]
   }
 
-  onDelete(id: string): void {
+  // ADDED: Helper to get name from populated field
+  getPopulatedFieldName(field: string | { $oid: string } | PopulatedHierarchyField | undefined): string | null {
+    // Check if it's a PopulatedHierarchyField and has a name
+    if (field && typeof field === 'object' && '_id' in field && 'name' in field && typeof (field as PopulatedHierarchyField).name === 'string') {
+      return (field as PopulatedHierarchyField).name;
+    }
+    return null;
+  }
+
+  onEdit(id: string | { $oid: string }): void {
+    this.router.navigate(['/questions', this.getIdString(id), 'edit']);
+  }
+
+  onDelete(id: string | { $oid: string }): void {
     if (confirm('Are you sure you want to delete this question?')) {
-      this.questionService.deleteQuestion(id).subscribe(() => {
+      this.questionService.deleteQuestion(this.getIdString(id)).subscribe(() => {
         this.loadQuestions(); // refresh list after deletion
       });
     }
