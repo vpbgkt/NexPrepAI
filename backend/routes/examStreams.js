@@ -9,13 +9,16 @@ const {
   createStream
 } = require('../controllers/examStreamController');
 
-// GET all streams
-// e.g. GET /api/examStreams
-router.get('/', verifyToken, getStreams);
-
-// GET by family
-// e.g. GET /api/examStreams?family=1234abcd
-router.get('/', verifyToken, getByFamily);
+// Modified GET route to handle both all streams and streams filtered by family
+router.get('/', verifyToken, (req, res, next) => {
+  if (req.query.family) {
+    // If 'family' query parameter exists, delegate to getByFamily controller
+    getByFamily(req, res, next);
+  } else {
+    // Otherwise, delegate to getStreams controller
+    getStreams(req, res, next);
+  }
+});
 
 // POST new stream
 // e.g. POST /api/examStreams

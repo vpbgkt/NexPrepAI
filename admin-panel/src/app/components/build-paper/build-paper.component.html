@@ -39,12 +39,16 @@
     <option value="">Select Family</option>
     <option *ngFor="let f of families" [value]="f._id">{{ f.name }}</option>
   </select>
+  <p *ngIf="!families.length" class="empty-list-message">Families not available or list is empty.</p>
 
   <!-- Stream -->
   <select #streamSelect formControlName="stream" [disabled]="!streams.length" (change)="onStreamChange(streamSelect.value)">
     <option value="">Select Stream</option>
     <option *ngFor="let s of streams" [value]="s._id">{{ s.name }}</option>
   </select>
+  <p *ngIf="seriesForm.get('family')?.value && !streams.length" class="empty-list-message">
+    Streams not available for the selected family or list is empty.
+  </p>
 
   <!-- Paper -->
   <select #paperSelect formControlName="paper" [disabled]="!papers.length" (change)="onPaperChange(paperSelect.value)">
@@ -53,12 +57,18 @@
       {{ p.name }}<ng-container *ngIf="p.code"> ({{ p.code }})</ng-container>
     </option>
   </select>
+  <p *ngIf="seriesForm.get('stream')?.value && !papers.length" class="empty-list-message">
+    Papers not available for the selected stream or list is empty.
+  </p>
 
   <!-- Shift/Variant -->
   <select #shiftSelect formControlName="shift" [disabled]="!shifts.length" (change)="onShiftChange(shiftSelect.value)">
     <option value="">Select Shift</option>
     <option *ngFor="let v of shifts" [value]="v._id">{{ v.name }}</option>
   </select>
+  <p *ngIf="seriesForm.get('paper')?.value && !shifts.length" class="empty-list-message">
+    Shifts not available for the selected paper or list is empty.
+  </p>
 
   <!-- Sections -->
   <div formArrayName="sections">

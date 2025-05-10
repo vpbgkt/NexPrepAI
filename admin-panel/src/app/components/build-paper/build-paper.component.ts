@@ -78,14 +78,42 @@ export class BuildPaperComponent implements OnInit {
       this.families = f;
     });
 
-    // When family changes, load streams
-    this.seriesForm.get('family')!.valueChanges.subscribe(fid => {
+    // When family changes, load streams and reset dependent fields
+    this.seriesForm.get('family')!.valueChanges.subscribe(familyId => {
+      console.log('[BuildPaperComponent] Family selected. ID:', familyId);
+
+      // Reset dependent form controls first
+      this.seriesForm.get('stream')!.setValue(null, { emitEvent: false });
+      this.seriesForm.get('paper')!.setValue(null, { emitEvent: false });
+      this.seriesForm.get('shift')!.setValue(null, { emitEvent: false });
+      console.log('[BuildPaperComponent] Dependent form controls (stream, paper, shift) reset.');
+
+      // Clear data arrays for dropdown options
       this.streams = [];
-      this.papers  = [];
-      this.shifts  = [];
-      if (fid) {
-        this.streamService.getByFamily(fid)
-          .subscribe(s => this.streams = s);
+      this.papers = [];
+      this.shifts = [];
+      console.log('[BuildPaperComponent] Dependent data arrays (streams, papers, shifts) cleared.');
+
+      if (familyId && String(familyId).trim() !== '') { // Ensure familyId is not null, undefined, or empty string
+        console.log(`[BuildPaperComponent] Fetching streams for familyId: "${familyId}"`);
+        this.streamService.getByFamily(familyId).subscribe({
+          next: streamsData => {
+            console.log('[BuildPaperComponent] Raw streams data received from service:', JSON.stringify(streamsData, null, 2));
+            if (Array.isArray(streamsData)) {
+              this.streams = streamsData;
+              console.log(`[BuildPaperComponent] this.streams populated. Count: ${this.streams.length}. First item (if any):`, this.streams.length > 0 ? this.streams[0] : 'empty');
+            } else {
+              console.error('[BuildPaperComponent] streamsData is not an array:', streamsData);
+              this.streams = []; // Ensure streams is an array
+            }
+          },
+          error: err => {
+            console.error('[BuildPaperComponent] Error fetching streams:', err);
+            this.streams = []; // Clear streams on error
+          }
+        });
+      } else {
+        console.log('[BuildPaperComponent] familyId is null or empty. Not fetching streams. Dependent dropdowns will be empty.');
       }
     });
 
