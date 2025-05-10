@@ -92,7 +92,7 @@ exports.startTest = async (req, res) => {
         questions: await Promise.all(
           sec.questions.map(async q => {
             const doc = await Question.findById(q.question)
-              .select('translations type difficulty') // Keep this selection
+              .select('translations type difficulty questionHistory') // MODIFIED: Added questionHistory
               .lean();
 
             // We will now pass the full translations array if it exists
@@ -125,7 +125,8 @@ exports.startTest = async (req, res) => {
               questionText: questionText, // Keep a fallback/default
               options:      options.map(opt => ({ text: opt.text, isCorrect: opt.isCorrect })), // Keep a fallback/default
               type:         doc?.type,
-              difficulty:   doc?.difficulty
+              difficulty:   doc?.difficulty,
+              questionHistory: doc?.questionHistory || [] // ADDED: Include questionHistory
             };
           })
         )

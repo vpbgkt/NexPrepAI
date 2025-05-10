@@ -95,7 +95,7 @@
             <h6>Search Results:</h6>
             <ul class="list-group search-results-list">
               <li *ngFor="let q of sectionSearchResults[i]" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                <span [innerHTML]="(q.translations[0]?.questionText || q.questionText || 'Test Question Text Missing') | highlight:sectionSearchTerms[i]"></span>
+                <span [innerHTML]="(q.translations[0].questionText || q.questionText || 'Test Question Text Missing') | highlight:sectionSearchTerms[i]"></span>
                 <button type="button" class="btn btn-sm btn-outline-success" (click)="addQuestionFromSearchResults(i, q)">Add</button>
               </li>
             </ul>

@@ -26,12 +26,19 @@ interface QuestionTranslation {
   // explanations?: any[]; // Add if needed later
 }
 
+interface QuestionHistoryItem {
+  title: string;
+  askedAt: string | Date; // Date pipe will handle string or Date
+  _id?: string;
+}
+
 interface PlayerQuestion {
   question: string; // ID
   translations: QuestionTranslation[];
   marks?: number;
   type?: string;
   difficulty?: string;
+  questionHistory?: QuestionHistoryItem[]; // ADDED: questionHistory
   // Properties to hold the currently displayed content based on language
   displayQuestionText: string;
   displayOptions: QuestionOption[];
@@ -304,6 +311,7 @@ export class ExamPlayerComponent implements OnInit {
             marks: originalQuestion.marks,
             type: originalQuestion.type,
             difficulty: originalQuestion.difficulty,
+            questionHistory: originalQuestion.questionHistory, // ADDED mapping for question history
             // Populate display properties
             displayQuestionText: initialDisplay.questionText,
             displayOptions: initialDisplay.options,

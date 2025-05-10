@@ -56,6 +56,14 @@
             Q{{ i + 1 }}:
             {{ currentQuestionDisplayData.displayQuestionText }}
           </p>
+
+          <!-- UPDATED: Display Question History -->
+          <div *ngIf="currentQuestionDisplayData.questionHistory && currentQuestionDisplayData.questionHistory.length > 0" class="question-history-display" style="font-size: 0.9em; color: #555; margin-bottom: 10px;">
+            <span *ngFor="let historyItem of currentQuestionDisplayData.questionHistory; let isLast = last">
+              [{{ historyItem.title }} ({{ historyItem.askedAt | date:'yyyy' }})]<span *ngIf="!isLast">, </span>
+            </span>
+          </div>
+          <!-- End Question History -->
           
           <!-- Display images if any for the current translation -->
           <div *ngIf="currentQuestionDisplayData.displayOptions && currentQuestionDisplayData.translations">

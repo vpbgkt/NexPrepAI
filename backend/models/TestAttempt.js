@@ -21,22 +21,51 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
+// Define a schema for options within a translation, consistent with Question model
+const attemptOptionSchema = new Schema({
+  text: { type: String, required: true },
+  img: { type: String }, // Optional image URL for an option. Using 'img' from stashed changes.
+  // isCorrect field is generally part of the master Question data, not repeated in attempt options.
+  _id: false
+});
+
 const responseSchema = new Schema({
   question:  { type: Schema.Types.ObjectId, ref: 'Question', required: true },
-  selected:  [{ type: String }],            // ← an array of strings
-  correctOptions: [{ type: String }],       // optional, if you store it
+  selected:  [{ type: String }],            // Array of selected option identifiers
+  correctOptions: [{ type: String }],       // Optional: if you store the correct option identifiers at the time of attempt
   earned:    Number,
   review:    { type: Boolean, default: false }
 });
 
-// Updated to store detailed question information for resume functionality
+// Define a schema for individual translations, consistent with Question model
+const attemptTranslationSchema = new Schema({
+  lang: { type: String, enum: ['en', 'hi'], required: true },
+  questionText: { type: String, required: true },
+  images: [String], // Array of image URLs for the question translation
+  options: [attemptOptionSchema], // Array of options for this translation, using the schema defined above
+  // explanations: [anySchemaOrType], // Placeholder if explanations are needed later
+  _id: false
+});
+
+// Schema for questionHistory items
+const questionHistoryItemSchema = new Schema({
+  title: { type: String, required: true },
+  askedAt: { type: Date, required: true }, // Stores when the question was previously asked
+  _id: false
+});
+
+// Updated to store detailed question information for resume functionality and review
 const detailedQuestionSchema = new Schema({
   question:     { type: Schema.Types.ObjectId, ref: 'Question', required: true },
   marks:        { type: Number, default: 1 },
-  questionText: { type: String, default: '' },
-  options:      [{ 
-    text: String, 
-    isCorrect: Boolean 
+  translations: [attemptTranslationSchema], // Stores the translated content of the question
+  questionHistory: [questionHistoryItemSchema], // Stores the history of when the question was asked
+  // Fallback fields (intended for scenarios where full translation data might be missing, though ideally translations are comprehensive)
+  questionText: { type: String, default: '' }, // Fallback question text if not available in translations for some reason
+  options:      [{ // Fallback options structure if not available in translations
+    text: String,
+    // isCorrect: Boolean, // Correctness is part of the source Question model.
+    _id: false
   }],
   type:         { type: String }, // e.g., 'MCQ', 'MSQ', 'NAT'
   difficulty:   { type: String }  // e.g., 'Easy', 'Medium', 'Hard'
