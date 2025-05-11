@@ -389,7 +389,7 @@ export class QuestionListComponent implements OnInit {
                : 'No options';
       case 'explanations':
         return primaryTranslation.explanations && primaryTranslation.explanations.length > 0 
-               ? primaryTranslation.explanations.map(e => e.content || 'N/A').join('; ') // Use e.content
+               ? primaryTranslation.explanations.map(e => (e.label ? `${e.label}: ` : '') + (e.content || 'N/A')).join('; ') 
                : 'No explanations';
       default:
         return 'Invalid field';

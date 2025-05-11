@@ -237,7 +237,7 @@
                 name="expContent_{{currentLang}}_{{exIndex}}" 
                 [(ngModel)]="expl.content" 
                 placeholder="Explanation Text"
-                required
+                
                 rows="3"
                 style="width: 100%;"></textarea>
       <input *ngIf="expl.type !== 'text'" 
@@ -246,7 +246,7 @@
              name="expContent_{{currentLang}}_{{exIndex}}" 
              [(ngModel)]="expl.content" 
              [placeholder]="expl.type === 'video' ? 'Video URL' : expl.type === 'pdf' ? 'PDF URL' : 'Image URL'" 
-             required
+             
              style="width: 100%;">
       <!-- Basic validation for content based on type -->
       <div *ngIf="form.controls['expContent_'+currentLang+'_'+exIndex]?.invalid && (form.controls['expContent_'+currentLang+'_'+exIndex]?.touched || form.submitted)" class="error">

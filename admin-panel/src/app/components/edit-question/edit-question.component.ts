@@ -405,7 +405,7 @@ export class EditQuestionComponent implements OnInit {
       subTopic: this.question.subTopicId, // CORRECTED: subTopic
       type: this.question.type, // Ensure type and status are part of the form and this.question
       status: this.question.status,
-      version: this.question.version, // Include version if it's managed
+      // REMOVED: version: this.question.version, // Let backend handle version increment
     };
     
     if (this.id) { // If updating, include _id in payload if backend expects it, otherwise service handles it via URL
