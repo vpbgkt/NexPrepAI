@@ -5,6 +5,7 @@ import { LoginComponent }        from './components/login/login.component';
 import { RegisterComponent }     from './components/register/register.component';
 import { LogoutComponent }       from './components/logout/logout.component';
 import { StudentDashboardComponent } from './components/student-dashboard/student-dashboard.component';
+import { HomeComponent } from './components/home/home.component'; // Import HomeComponent
 
 import { TestSeriesListComponent }   from './components/test-series-list/test-series-list.component';
 import { BuildPaperComponent }       from './components/build-paper/build-paper.component';
@@ -37,10 +38,11 @@ import { StudentGuard } from './guards/student.guard';
 
 export const routes: Routes = [
   // Public
-  { path: '',            redirectTo: 'login', pathMatch: 'full' },
+  { path: '',            redirectTo: 'login', pathMatch: 'full' }, // Default route redirects to login
   { path: 'login',       component: LoginComponent },
   { path: 'register',    component: RegisterComponent },
   { path: 'logout',      component: LogoutComponent },
+  { path: 'home',        component: HomeComponent, canActivate: [AdminGuard] }, // Add route for HomeComponent
 
   // Analytics (per-series) at top level
   {

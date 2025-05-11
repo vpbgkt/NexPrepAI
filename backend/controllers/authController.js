@@ -19,7 +19,11 @@ const jwt = require('jsonwebtoken');
 
 const registerUser = async (req, res) => {
   try {
-    const { username, email, password, role } = req.body;
+    const { username, name, email, password, role } = req.body; // Added 'name'
+
+    if (!name) { // Add validation for name
+      return res.status(400).json({ message: "Name is required" });
+    }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) 
@@ -28,6 +32,7 @@ const registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({
       username,
+      name, // Added 'name'
       email,
       password: hashedPassword,
       role:    role || 'student',
@@ -54,12 +59,13 @@ exports.login = async (req, res) => {
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
     const token = jwt.sign(
-      { userId: user._id, role: user.role },
+      { userId: user._id, role: user.role, name: user.name }, // Added name to token payload
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
 
-    res.json({ token, role: user.role });
+    // Include name and userId in the response
+    res.json({ token, role: user.role, name: user.name, userId: user._id });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
   }

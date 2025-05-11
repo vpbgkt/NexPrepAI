@@ -1,0 +1,9 @@
+<div *ngIf="userName; else genericWelcome">
+  <h2>Welcome, {{ userName }}!</h2>
+</div>
+<ng-template #genericWelcome>
+  <h2>Welcome to the Admin Panel!</h2>
+</ng-template>
+<p>This is your new home page.</p>
+
+<button (click)="logout()">Logout</button>

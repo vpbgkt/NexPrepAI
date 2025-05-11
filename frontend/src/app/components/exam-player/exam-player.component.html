@@ -69,9 +69,13 @@
           <div *ngIf="currentQuestionDisplayData.displayOptions && currentQuestionDisplayData.translations">
             <ng-container *ngFor="let translation of currentQuestionDisplayData.translations">
               <div *ngIf="translation.lang === currentLanguage">
-                <div *ngFor="let imageUrl of translation.images">
-                  <img [src]="imageUrl" alt="Question Image" style="max-width: 100%; height: auto; margin-bottom: 10px;">
-                </div>
+                <!-- Check if images array exists and has content -->
+                <ng-container *ngIf="translation.images && translation.images.length > 0">
+                  <div *ngFor="let imageUrl of translation.images">
+                    <!-- Check if imageUrl itself is a non-empty string before rendering the img tag -->
+                    <img *ngIf="imageUrl" [src]="imageUrl" alt="Question Image" style="max-width: 100%; height: auto; margin-bottom: 10px;">
+                  </div>
+                </ng-container>
               </div>
             </ng-container>
           </div>

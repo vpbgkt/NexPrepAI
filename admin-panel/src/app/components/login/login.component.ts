@@ -21,11 +21,20 @@ export class LoginComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    // Initialize the form after injection
+    // Initialize the form FIRST
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required]
     });
+
+    // THEN check if logged in and redirect if necessary
+    if (this.auth.isLoggedIn()) {
+      this.router.navigate(['/home']);
+      // No return needed here, or if used, ensure it doesn't skip critical initializations 
+      // that the template might depend on before the component is destroyed.
+      // For this specific case, allowing the form to be initialized is harmless 
+      // as the component will be navigated away from shortly.
+    }
   }
 
   onSubmit() {
@@ -33,16 +42,14 @@ export class LoginComponent implements OnInit {
     const { email, password } = this.form.value as { email: string; password: string };
 
     this.auth.login(email, password).subscribe({
-      next: res => {
+      next: (res: any) => { // Assuming res might contain user info
         alert('Login successful!');
-        // store token/role is already handled in AuthService
-        // now redirect
-        const role = localStorage.getItem('role');
-        if (role === 'admin' || role === 'superadmin') {
-          this.router.navigate(['/test-series-list']);
-        } else {
-          this.router.navigate(['/login']);
-        }
+        // AuthService should handle storing token and user info (like name)
+        // For example, if res.user.name contains the user's name:
+        // if (res.user && res.user.name) {
+        //   localStorage.setItem('userName', res.user.name); 
+        // }
+        this.router.navigate(['/home']); // Redirect to home page
       },
       error: err => {
         // err.error.message comes from your backend
