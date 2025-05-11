@@ -14,6 +14,7 @@ import { SeriesAnalyticsComponent }  from './components/series-analytics/series-
 import { QuestionListComponent }      from './components/question-list/question-list.component';
 import { AddQuestionComponent }       from './components/add-question/add-question.component';
 import { EditQuestionComponent }      from './components/edit-question/edit-question.component';
+import { QuestionDetailComponent }    from './components/question-detail/question-detail.component'; // ADDED
 
 import { AddBranchComponent }     from './components/add-branch/add-branch.component';
 import { AddSubjectComponent }    from './components/add-subject.component';
@@ -72,6 +73,7 @@ export const routes: Routes = [
       { path: 'questions',            component: QuestionListComponent },
       { path: 'add-question',         component: AddQuestionComponent },
       { path: 'questions/edit/:id',   component: EditQuestionComponent },
+      { path: 'questions/:id/view',   component: QuestionDetailComponent, canActivate: [AdminGuard] }, // ADDED
 
       // Hierarchy CRUD
       { path: 'branches/new',   component: AddBranchComponent },

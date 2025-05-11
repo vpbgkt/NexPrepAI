@@ -1,0 +1,68 @@
+<div *ngIf="isLoading" class="loading-indicator">
+  <p>Loading question details...</p>
+</div>
+
+<div *ngIf="errorMessage" class="error-message">
+  <p>{{ errorMessage }}</p>
+  <button routerLink="/questions">Back to Question List</button>
+</div>
+
+<div *ngIf="!isLoading && !errorMessage && question" class="question-detail-container">
+  <h2>Question Details: {{ getIdString(question._id) | slice:0:8 }}...</h2>
+  <button routerLink="/questions" class="back-button">Back to List</button>
+  <button [routerLink]="['/questions', getIdString(question._id), 'edit']" class="edit-button">Edit Question</button>
+
+  <div class="detail-section">
+    <h3>Basic Information</h3>
+    <p><strong>ID:</strong> {{ getIdString(question._id) }}</p>
+    <p><strong>Type:</strong> {{ question.type }}</p>
+    <p><strong>Status:</strong> {{ question.status }}</p>
+    <p><strong>Difficulty:</strong> {{ question.difficulty }}</p>
+    <p><strong>Version:</strong> {{ question.version }}</p>
+    <p><strong>Created At:</strong> {{ formatDate(question.createdAt) | date:'medium' }}</p>
+    <p><strong>Updated At:</strong> {{ formatDate(question.updatedAt) | date:'medium' }}</p>
+  </div>
+
+  <div class="detail-section">
+    <h3>Hierarchy</h3>
+    <p><strong>Branch:</strong> {{ getHierarchyName(question.branch) }}</p>
+    <p><strong>Subject:</strong> {{ getHierarchyName(question.subject) }}</p>
+    <p><strong>Topic:</strong> {{ getHierarchyName(question.topic) }}</p>
+    <p><strong>Subtopic:</strong> {{ getHierarchyName(question.subTopic) }}</p>
+  </div>
+
+  <div class="detail-section" *ngIf="question.translations && question.translations.length > 0">
+    <h3>Translations</h3>
+    <div *ngFor="let trans of question.translations" class="translation-block">
+      <h4>Language: {{ trans.lang.toUpperCase() }}</h4>
+      <p><strong>Question Text:</strong></p>
+      <div [innerHTML]="trans.questionText"></div>
+      
+      <div *ngIf="trans.options && trans.options.length > 0">
+        <p><strong>Options:</strong></p>
+        <ul>
+          <li *ngFor="let opt of trans.options; let i = index">
+            {{ i + 1 }}. <span [innerHTML]="opt.text"></span> ({{ opt.isCorrect ? 'Correct' : 'Incorrect' }})
+          </li>
+        </ul>
+      </div>
+
+      <div *ngIf="trans.explanations && trans.explanations.length > 0">
+        <p><strong>Explanations:</strong></p>
+        <ul *ngFor="let exp of trans.explanations">
+          <li><div [innerHTML]="exp.text"></div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-section" *ngIf="question.questionHistory && question.questionHistory.length > 0">
+    <h3>Question History</h3>
+    <ul>
+      <li *ngFor="let history of question.questionHistory">
+        {{ history.examName }} ({{ formatDate(history.dateAppeared) | date:'shortDate' }}) - {{ history.title }}
+      </li>
+    </ul>
+  </div>
+
+</div>

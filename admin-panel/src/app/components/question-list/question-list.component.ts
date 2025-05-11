@@ -263,6 +263,14 @@ export class QuestionListComponent implements OnInit {
     }
   }
 
+  // ADDED: Method to handle page click from template, ensuring type safety
+  handlePageClick(pageNum: string | number): void {
+    if (typeof pageNum === 'number') {
+      this.goToPage(pageNum);
+    }
+    // If it's '...', do nothing, as the button should be disabled anyway.
+  }
+
   nextPage(): void {
     if (this.currentPage < this.totalPages) {
       this.currentPage++;

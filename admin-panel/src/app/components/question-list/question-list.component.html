@@ -113,7 +113,7 @@
   
   <ng-container *ngFor="let pageNum of getPageNumbers()">
     <button 
-      (click)="goToPage(pageNum)" 
+      (click)="handlePageClick(pageNum)" 
       [class.current-page]="pageNum === currentPage"
       [disabled]="pageNum === '...'">
       {{ pageNum }}

@@ -1,0 +1,96 @@
+/* filepath: c:\Users\vpbgk\OneDrive\Desktop\project\NexPrep\admin-panel\src\app\components\question-detail\question-detail.component.scss */
+.question-detail-container {
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.loading-indicator,
+.error-message {
+  text-align: center;
+  padding: 20px;
+  font-size: 1.2em;
+}
+
+.error-message button,
+.back-button,
+.edit-button {
+  padding: 8px 15px;
+  margin-top: 10px;
+  margin-right: 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.back-button {
+  background-color: #6c757d;
+  color: white;
+}
+
+.edit-button {
+  background-color: #007bff;
+  color: white;
+}
+
+.error-message button {
+  background-color: #007bff;
+  color: white;
+}
+
+.detail-section {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+}
+
+.detail-section h3 {
+  margin-top: 0;
+  color: #333;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.detail-section p,
+.detail-section li {
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.detail-section strong {
+  color: #555;
+}
+
+.translation-block {
+  border: 1px dashed #ccc;
+  padding: 15px;
+  margin-top: 15px;
+  background-color: #fff;
+}
+
+.translation-block h4 {
+  margin-top: 0;
+  color: #0056b3;
+}
+
+.translation-block ul {
+  padding-left: 20px;
+}
+
+/* Styles for content displayed with [innerHTML] */
+.translation-block div[innerHTML] p,
+.translation-block span[innerHTML] p {
+  margin: 0 0 5px 0; /* Adjust paragraph spacing within innerHTML */
+}
+
+.translation-block div[innerHTML] ol,
+.translation-block div[innerHTML] ul,
+.translation-block span[innerHTML] ol,
+.translation-block span[innerHTML] ul {
+  margin-top: 5px;
+  margin-bottom: 5px;
+  padding-left: 25px; /* Indent lists within innerHTML */
+}
