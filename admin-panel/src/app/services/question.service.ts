@@ -1,8 +1,16 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Question } from '../models/question.model';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+
+// ADDED: Interface for the paginated response
+export interface PaginatedQuestionsResponse {
+  questions: Question[];
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -44,11 +52,11 @@ export class QuestionService {
   }
 
   // New method to fetch all questions
-  getQuestions(): Observable<any> {
+  getQuestions(): Observable<Question[]> { // MODIFIED: Return type to Observable<Question[]>
     const token = localStorage.getItem('token')!;
     const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
     // Call the correct endpoint:
-    return this.http.get(`${this.apiUrl}/questions/all`, { headers });
+    return this.http.get<Question[]>(`${this.apiUrl}/questions/all`, { headers }); // MODIFIED: Specify type for http.get
   }
   
   /** Delete a question by its ID */
@@ -66,10 +74,10 @@ export class QuestionService {
   }
 
   /** Fetch one question by ID */
-  getQuestionById(id: string): Observable<any> {
+  getQuestionById(id: string): Observable<Question> { // MODIFIED: Return type to Observable<Question>
     const token = localStorage.getItem('token')!;
     const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
-    return this.http.get(`${this.apiUrl}/questions/${id}`, { headers });
+    return this.http.get<Question>(`${this.apiUrl}/questions/${id}`, { headers }); // MODIFIED: Specify type for http.get
   }
 
   createSubject(data: { name: string; branchId: string | null }) {
@@ -93,25 +101,36 @@ export class QuestionService {
     return this.http.post(`${this.apiUrl}/hierarchy/subtopic`, data, { headers });
   }
 
+  // MODIFIED: Updated to handle pagination parameters and new response structure
   filterQuestions(filters: {
-    branch: string;
+    branch?: string; // Made branch optional as it might not always be selected initially
     subject?: string;
     topic?: string;
     subtopic?: string;
     difficulty?: string;
-  }) {
+    type?: string;
+    status?: string;
+    searchTerm?: string;
+    page?: number; // ADDED page
+    limit?: number; // ADDED limit
+  }): Observable<PaginatedQuestionsResponse> { // MODIFIED return type
     const token = localStorage.getItem('token')!;
     const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
 
-    const params = new URLSearchParams();
+    let params = new HttpParams();
 
-    params.append('branch', filters.branch);
-    if (filters.subject) params.append('subject', filters.subject);
-    if (filters.topic) params.append('topic', filters.topic);
-    if (filters.subtopic) params.append('subtopic', filters.subtopic);
-    if (filters.difficulty) params.append('difficulty', filters.difficulty);
+    if (filters.branch) params = params.append('branch', filters.branch);
+    if (filters.subject) params = params.append('subject', filters.subject);
+    if (filters.topic) params = params.append('topic', filters.topic);
+    if (filters.subtopic) params = params.append('subtopic', filters.subtopic);
+    if (filters.difficulty) params = params.append('difficulty', filters.difficulty);
+    if (filters.type) params = params.append('type', filters.type);
+    if (filters.status) params = params.append('status', filters.status);
+    if (filters.searchTerm) params = params.append('searchTerm', filters.searchTerm);
+    if (filters.page) params = params.append('page', filters.page.toString());
+    if (filters.limit) params = params.append('limit', filters.limit.toString());
 
-    return this.http.get(`${this.apiUrl}/questions/filter?${params.toString()}`, { headers });
+    return this.http.get<PaginatedQuestionsResponse>(`${this.apiUrl}/questions/filter`, { headers, params });
   }
 
   importQuestions(qs: any[]): Observable<any> {

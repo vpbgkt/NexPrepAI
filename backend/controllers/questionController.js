@@ -230,3 +230,66 @@ exports.deleteQuestion = async (req,res)=>{
   if(!ok) return res.status(404).json({message:'Not found'});
   res.json({message:'Deleted'});
 };
+
+/*──────────────── filterQuestions ────────────────*/
+exports.filterQuestions = async (req, res) => {
+  try {
+    const {
+      branch,
+      subject,
+      topic,
+      subtopic, // Matches frontend filter key
+      difficulty,
+      type,
+      status,
+      searchTerm,
+      page = 1, // Default to page 1
+      limit = 10 // Default to 10 items per page
+    } = req.query; // Filters will come from query parameters
+
+    const query = {};
+
+    if (branch && mongoose.Types.ObjectId.isValid(branch)) query.branch = branch;
+    if (subject && mongoose.Types.ObjectId.isValid(subject)) query.subject = subject;
+    if (topic && mongoose.Types.ObjectId.isValid(topic)) query.topic = topic;
+    // Frontend sends 'subtopic', backend model uses 'subTopic'
+    if (subtopic && mongoose.Types.ObjectId.isValid(subtopic)) query.subTopic = subtopic;
+    if (difficulty) query.difficulty = difficulty;
+    if (type) query.type = type;
+    if (status) query.status = status;
+
+    if (searchTerm) {
+      query.$or = [
+        { questionText: { $regex: searchTerm, $options: 'i' } },
+        { 'translations.questionText': { $regex: searchTerm, $options: 'i' } }
+      ];
+    }
+
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+    const skip = (pageNumber - 1) * limitNumber;
+
+    // Get total count of documents matching the query (without pagination)
+    const totalCount = await Question.countDocuments(query);
+
+    const questions = await Question.find(query)
+      .populate('branch', 'name')
+      .populate('subject', 'name')
+      .populate('topic', 'name')
+      .populate('subTopic', 'name')
+      .skip(skip)
+      .limit(limitNumber)
+      .lean();
+
+    res.json({
+      questions,
+      totalCount,
+      currentPage: pageNumber,
+      totalPages: Math.ceil(totalCount / limitNumber)
+    });
+
+  } catch (err) {
+    console.error('❌ filterQuestions error:', err);
+    res.status(500).json({ message: 'Server error while filtering questions', error: err.message });
+  }
+};

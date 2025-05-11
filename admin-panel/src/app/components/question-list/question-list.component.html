@@ -1,11 +1,17 @@
 <h2>Filter Questions</h2>
 
 <form (ngSubmit)="applyFilters()" #filterForm="ngForm" style="margin-bottom: 20px;">
+  <!-- ADDED: Search Term Input -->
+  <label>
+    Search:
+    <input type="text" [(ngModel)]="filters.searchTerm" name="searchTerm" placeholder="Enter search term...">
+  </label>
+
   <label>
     Branch:
     <select [(ngModel)]="filters.branch" name="branch" (change)="onBranchChange()">
       <option value="">-- Select Branch --</option>
-      <option *ngFor="let branch of branches" [value]="branch._id">{{ branch.name }}</option>
+      <option *ngFor="let branch of branches" [value]="getIdValue(branch._id)">{{ branch.name }}</option>
     </select>
   </label>
 
@@ -13,7 +19,7 @@
     Subject:
     <select [(ngModel)]="filters.subject" name="subject" (change)="onSubjectChange()" [disabled]="!filters.branch">
       <option value="">-- Select Subject --</option>
-      <option *ngFor="let subject of subjects" [value]="subject._id">{{ subject.name }}</option>
+      <option *ngFor="let subject of subjects" [value]="getIdValue(subject._id)">{{ subject.name }}</option>
     </select>
   </label>
 
@@ -21,30 +27,44 @@
     Topic:
     <select [(ngModel)]="filters.topic" name="topic" (change)="onTopicChange()" [disabled]="!filters.subject">
       <option value="">-- Select Topic --</option>
-      <option *ngFor="let topic of topics" [value]="topic._id">{{ topic.name }}</option>
+      <option *ngFor="let topic of topics" [value]="getIdValue(topic._id)">{{ topic.name }}</option>
     </select>
   </label>
 
   <label>
     Subtopic:
-    <select [(ngModel)]="filters.subtopic" name="subtopic" [disabled]="!filters.topic">
+    <select [(ngModel)]="filters.subtopic" name="subtopic" (change)="onFilterChange()" [disabled]="!filters.topic">
       <option value="">-- Select Subtopic --</option>
-      <option *ngFor="let subtopic of subtopics" [value]="subtopic._id">{{ subtopic.name }}</option>
+      <option *ngFor="let subtopic of subtopics" [value]="getIdValue(subtopic._id)">{{ subtopic.name }}</option>
     </select>
   </label>
 
   <label>
     Difficulty:
-    <select [(ngModel)]="filters.difficulty" name="difficulty">
+    <select [(ngModel)]="filters.difficulty" name="difficulty" (change)="onFilterChange()">
       <option value="">-- All --</option>
-      <option value="Easy">Easy</option>
-      <option value="Medium">Medium</option>
-      <option value="Hard">Hard</option>
+      <option *ngFor="let level of difficultyLevels" [value]="level">{{ level }}</option>
+    </select>
+  </label>
+
+  <label>
+    Type:
+    <select [(ngModel)]="filters.type" name="type" (change)="onFilterChange()">
+      <option value="">-- All --</option>
+      <option *ngFor="let type of questionTypes" [value]="type">{{ type }}</option>
+    </select>
+  </label>
+
+  <label>
+    Status:
+    <select [(ngModel)]="filters.status" name="status" (change)="onFilterChange()">
+      <option value="">-- All --</option>
+      <option *ngFor="let status of questionStatuses" [value]="status">{{ status }}</option>
     </select>
   </label>
 
   <button type="submit">Apply Filters</button>
-  <button (click)="resetFilters()">Reset Filters</button>
+  <button type="button" (click)="resetFilters()">Reset Filters</button> <!-- MODIFIED: type="button" for reset -->
 </form>
 
 <h2>Question List</h2>
@@ -52,42 +72,73 @@
 <table border="1" cellpadding="8" cellspacing="0">
   <thead>
     <tr>
-      <th>Question</th>
-      <th>Options</th>
+      <th>Question Text (Primary)</th>
+      <th>Languages</th>
+      <th>Options (Summary)</th>
+      <th>Type</th>
+      <th>Status</th>
       <th>Difficulty</th>
-      <th>Branch</th>
       <th>Subject</th>
       <th>Topic</th>
-      <th>Subtopic</th>
+      <th>Past History (Summary)</th>
       <th>Actions</th>
     </tr>
   </thead>
   <tbody>
-    <!-- Loop through questions -->
     <tr *ngFor="let q of questions">
-      <td>{{ q.questionText }}</td>
-      <td>
-        <ul style="list-style: none; padding: 0; margin: 0;">
-          <li *ngFor="let o of q.options">
-            {{ o.text }}
-            <strong *ngIf="o.isCorrect" style="color: green;">(✓)</strong>
-          </li>
-        </ul>
-      </td>
+      <td>{{ q.displayQuestionText }}</td>
+      <td>{{ getLanguageIndicator(q) }}</td>
+      <td>{{ getOptionsSummary(q) }}</td>
+      <td>{{ q.type }}</td>
+      <td>{{ q.status }}</td>
       <td>{{ q.difficulty }}</td>
-      <td>{{ getPopulatedFieldName(q.branch) || getIdString(q.branch) }}</td>
-      <td>{{ getPopulatedFieldName(q.subject) || getIdString(q.subject) }}</td>
-      <td>{{ getPopulatedFieldName(q.topic) || getIdString(q.topic) }}</td>
-      <td>{{ getPopulatedFieldName(q.subTopic) || getIdString(q.subTopic) }}</td>
+      <td>{{ getPopulatedFieldName(q.subject) || getIdValue(q.subject) }}</td>
+      <td>{{ getPopulatedFieldName(q.topic) || getIdValue(q.topic) }}</td>
+      <td>{{ getPastHistorySummary(q) }}</td>
       <td>
-        <button (click)="onEdit(q._id!)">Edit</button>
-        <button (click)="onDelete(q._id!)">Delete</button>
+        <button (click)="editQuestion(getIdValue(q._id))">Edit</button>
+        <button (click)="deleteQuestion(getIdValue(q._id))">Delete</button>
+        <button (click)="viewQuestionDetails(getIdValue(q._id))">Full View</button> <!-- ADDED: Full View Button -->
       </td>
     </tr>
-
-    <!-- Show a message if there are no questions -->
     <tr *ngIf="questions.length === 0">
-      <td colspan="8">No questions found.</td>
+      <td colspan="10">No questions found.</td> <!-- MODIFIED: colspan to match new column count -->
     </tr>
   </tbody>
 </table>
+
+<!-- Pagination Controls -->
+<div *ngIf="totalPages > 0" class="pagination-controls">
+  <button (click)="previousPage()" [disabled]="currentPage === 1">Previous</button>
+  
+  <ng-container *ngFor="let pageNum of getPageNumbers()">
+    <button 
+      (click)="goToPage(pageNum)" 
+      [class.current-page]="pageNum === currentPage"
+      [disabled]="pageNum === '...'">
+      {{ pageNum }}
+    </button>
+  </ng-container>
+  
+  <button (click)="nextPage()" [disabled]="currentPage === totalPages">Next</button>
+  
+  <span class="page-info">Page {{ currentPage }} of {{ totalPages }} ({{ totalQuestions }} items)</span>
+</div>
+
+<style>
+  .pagination-controls {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .pagination-controls button.current-page {
+    font-weight: bold;
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+  }
+  .page-info {
+    margin-left: 15px;
+  }
+</style>

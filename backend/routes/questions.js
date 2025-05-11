@@ -13,7 +13,7 @@ const auditFields     = require('../middleware/auditFields');
 const questionCtrl = require('../controllers/questionController');
 
 /* ──────────────── READ / FILTER ───────────────── */
-// router.get('/filter', verifyToken, questionCtrl.filterQuestions);
+router.get('/filter', verifyToken, questionCtrl.filterQuestions);
 router.get('/all',    verifyToken, questionCtrl.getAllQuestions);
 router.get('/:id',    verifyToken, questionCtrl.getQuestionById);
 

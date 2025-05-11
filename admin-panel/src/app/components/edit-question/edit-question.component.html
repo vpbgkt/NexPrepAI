@@ -72,9 +72,9 @@
     <label for="branch">Branch:</label>
     <select
       id="branch"
-      name="branchId"
-      [(ngModel)]="question.branchId"
-      (change)="onBranchChange(question.branchId)"
+      name="branch"
+      [(ngModel)]="question.branch" 
+      (change)="onBranchChange($any($event.target).value)" 
       required
       #branchCtrl="ngModel"
     >
@@ -84,7 +84,6 @@
     <div *ngIf="branchCtrl.invalid && (branchCtrl.touched || form.submitted)" class="error">
       Branch is required.
     </div>
-    <!-- New Link to Add Branch -->
     <a routerLink="/branches/new">+ Add Branch</a>
   </div>
 
@@ -93,18 +92,16 @@
     <label for="subject">Subject:</label>
     <select
       id="subject"
-      name="subjectId"
-      [(ngModel)]="question.subjectId"
-      (change)="onSubjectChange(question.subjectId)"
-      required
+      name="subject"
+      [(ngModel)]="question.subject"
+      (change)="onSubjectChange($any($event.target).value)"
+      [disabled]="!question.branch || subjects.length === 0"
       #subjectCtrl="ngModel"
     >
       <option value="">Select Subject</option>
       <option *ngFor="let s of subjects" [value]="s._id">{{ s.name }}</option>
     </select>
-    <div *ngIf="subjectCtrl.invalid && (subjectCtrl.touched || form.submitted)" class="error">
-      Subject is required.
-    </div>
+    <!-- Subject is not always required, so no error message for missing subject unless specified -->
   </div>
 
   <!-- Topic Dropdown -->
@@ -112,37 +109,31 @@
     <label for="topic">Topic:</label>
     <select
       id="topic"
-      name="topicId"
-      [(ngModel)]="question.topicId"
-      (change)="onTopicChange(question.topicId)"
-      required
+      name="topic"
+      [(ngModel)]="question.topic"
+      (change)="onTopicChange($any($event.target).value)"
+      [disabled]="!question.subject || topics.length === 0"
       #topicCtrl="ngModel"
     >
       <option value="">Select Topic</option>
       <option *ngFor="let t of topics" [value]="t._id">{{ t.name }}</option>
     </select>
-    <div *ngIf="topicCtrl.invalid && (topicCtrl.touched || form.submitted)" class="error">
-      Topic is required.
-    </div>
   </div>
 
   <!-- Subtopic Dropdown -->
   <div>
-    <label for="subtopic">Subtopic:</label>
+    <label for="subTopic">Subtopic:</label>
     <select
-      id="subtopic"
-      name="subtopicId"
-      [(ngModel)]="question.subtopicId"
-      (change)="onSubtopicChange(question.subtopicId)"
-      required
+      id="subTopic" 
+      name="subTopic"
+      [(ngModel)]="question.subTopic"
+      (change)="onSubtopicChange($any($event.target).value)" 
+      [disabled]="!question.topic || subtopics.length === 0"
       #subtopicCtrl="ngModel"
     >
       <option value="">Select Subtopic</option>
       <option *ngFor="let st of subtopics" [value]="st._id">{{ st.name }}</option>
     </select>
-    <div *ngIf="subtopicCtrl.invalid && (subtopicCtrl.touched || form.submitted)" class="error">
-      Subtopic is required.
-    </div>
   </div>
 
   <!-- Explanation (optional) -->
