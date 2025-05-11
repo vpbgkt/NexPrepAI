@@ -10,7 +10,7 @@
 <div *ngIf="!isLoading && !errorMessage && question" class="question-detail-container">
   <h2>Question Details: {{ getIdString(question._id) | slice:0:8 }}...</h2>
   <button routerLink="/questions" class="back-button">Back to List</button>
-  <button [routerLink]="['/questions', getIdString(question._id), 'edit']" class="edit-button">Edit Question</button>
+  <button [routerLink]="['/questions', 'edit', getIdString(question._id)]" class="edit-button">Edit Question</button>
 
   <div class="detail-section">
     <h3>Basic Information</h3>
@@ -18,7 +18,7 @@
     <p><strong>Type:</strong> {{ question.type }}</p>
     <p><strong>Status:</strong> {{ question.status }}</p>
     <p><strong>Difficulty:</strong> {{ question.difficulty }}</p>
-    <p><strong>Version:</strong> {{ question.version }}</p>
+    <p><strong>Version:</strong> {{ getDisplayVersion(question.version) }}</p>
     <p><strong>Created At:</strong> {{ formatDate(question.createdAt) | date:'medium' }}</p>
     <p><strong>Updated At:</strong> {{ formatDate(question.updatedAt) | date:'medium' }}</p>
   </div>
@@ -50,7 +50,15 @@
       <div *ngIf="trans.explanations && trans.explanations.length > 0">
         <p><strong>Explanations:</strong></p>
         <ul *ngFor="let exp of trans.explanations">
-          <li><div [innerHTML]="exp.text"></div></li>
+          <li>
+            <strong>Type:</strong> {{ exp.type }}
+            <span *ngIf="exp.label"><strong>Label:</strong> {{ exp.label }}</span>
+            <div>
+              <strong>Content:</strong> 
+              <span *ngIf="exp.type === 'text'" [innerHTML]="exp.content"></span>
+              <a *ngIf="exp.type === 'video' || exp.type === 'pdf' || exp.type === 'image'" [href]="exp.content" target="_blank">{{ exp.content }}</a>
+            </div>
+          </li>
         </ul>
       </div>
     </div>

@@ -4,7 +4,7 @@ import { FormsModule, NgForm } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { QuestionService } from '../../services/question.service';
-import { Question, PopulatedHierarchyField, Translation, Option as QuestionOption } from '../../models/question.model'; // IMPORT Question model
+import { Question, PopulatedHierarchyField, Translation, Option as QuestionOption, Explanation } from '../../models/question.model'; // IMPORT Question model AND Explanation model
 
 @Component({
   selector: 'app-edit-question',
@@ -19,20 +19,18 @@ export class EditQuestionComponent implements OnInit {
   private router = inject(Router);
 
   id!: string;
-  // MODIFIED: Ensure options is non-optional in the binding part of the type and initialized
   question: Partial<Question> & {
     branchId?: string;
     subjectId?: string;
     topicId?: string;
     subTopicId?: string;
     questionText?: string;
-    options: QuestionOption[]; // Made non-optional for form binding
-    explanation?: string;
+    options: QuestionOption[];
+    // type and status are already part of Question model
   } = {
-    translations: [], 
+    translations: [],
     difficulty: '',
-    options: [{ text: '', isCorrect: false }, { text: '', isCorrect: false }], // Initialize options
-    // Initialize other Question fields as needed, ensure type and status are handled
+    options: [{ text: '', isCorrect: false }, { text: '', isCorrect: false }],
     type: 'MCQ', // Default type
     status: 'Draft' // Default status
   };
@@ -44,10 +42,26 @@ export class EditQuestionComponent implements OnInit {
 
   isLoading = false;
 
-  // ADDED: Basic language handling (to be expanded)
   currentLang: string = 'en';
   currentTranslationIndex: number = 0;
-  availableLangs: string[] = ['en', 'hi']; // Example, can be dynamic
+  availableLangs: string[] = ['en', 'hi'];
+  currentTranslationExplanations: Explanation[] = []; // UPDATED type
+
+  // ADDED: Ensure question.translations[currentTranslationIndex] is defined before accessing images
+  get currentQuestionImages(): string[] {
+    if (this.question && this.question.translations && this.question.translations[this.currentTranslationIndex]) {
+      if (!this.question.translations[this.currentTranslationIndex].images) {
+        this.question.translations[this.currentTranslationIndex].images = []; // Initialize if undefined
+      }
+      return this.question.translations[this.currentTranslationIndex].images!;
+    }
+    return [];
+  }
+
+  // ADDED: questionTypes and questionStatuses (extended with values from sample data)
+  questionTypes: string[] = ['MCQ', 'SA', 'LA', 'FITB', 'Matrix', 'single', 'multiple']; // Added 'single', 'multiple'
+  questionStatuses: string[] = ['Draft', 'Published', 'Archived', 'Pending Review', 'active', 'inactive']; // Added 'active', 'inactive'
+
 
   // ADDED: Helper to get ID from hierarchical fields
   private getHierarchicalId(field: string | { $oid: string } | PopulatedHierarchyField | undefined): string | undefined {
@@ -62,56 +76,105 @@ export class EditQuestionComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.fetchBranches();
+    console.log('[EditQuestionComponent] ngOnInit: Component initializing.');
+    console.log('[EditQuestionComponent] ngOnInit: Route snapshot:', this.route.snapshot);
     this.id = this.route.snapshot.paramMap.get('id')!;
+    console.log('[EditQuestionComponent] ngOnInit: Extracted question ID:', this.id);
+
+    this.fetchBranches();
     if (this.id) { // Editing an existing question
+      console.log('[EditQuestionComponent] ngOnInit: Attempting to load question with ID:', this.id);
       this.questionService.getQuestionById(this.id).subscribe({
         next: (data: Question) => {
+          console.log('[EditQuestionComponent] ngOnInit: Successfully loaded question data:', data);
+
+          // Ensure all translations in data have an initialized images array.
+          // This modifies 'data' in place before spreading.
+          if (data.translations) {
+            data.translations.forEach(t => {
+              if (t.images === undefined) {
+                t.images = [];
+              }
+            });
+          } else {
+            // If data.translations is null or undefined, make it an empty array before spreading.
+            data.translations = [];
+          }
+
           this.question = {
             ...data, 
             branchId: this.getHierarchicalId(data.branch),
             subjectId: this.getHierarchicalId(data.subject),
             topicId: this.getHierarchicalId(data.topic),
             subTopicId: this.getHierarchicalId(data.subTopic),
-            // Ensure options is initialized even if data.translations is empty or first translation has no options
-            options: [], // Will be populated below
-            questionText: '', // Will be populated below
-            explanation: '' // Will be populated below
+            options: [], 
+            questionText: '',
           };
 
-          if (!this.question.translations || this.question.translations.length === 0) {
-            this.question.translations = [{ lang: 'en', questionText: '', options: [{ text: '', isCorrect: false }, { text: '', isCorrect: false }], explanations: [] }];
+          if (data.type) this.question.type = data.type;
+          if (data.status) this.question.status = data.status;
+
+          if (this.question.translations!.length === 0) { 
+            this.question.translations = [{
+              lang: 'en', 
+              questionText: '', 
+              options: [{ text: '', isCorrect: false }, { text: '', isCorrect: false }], 
+              explanations: [{ type: 'text', content: '' }], // Initialize with default explanation structure
+              images: [] 
+            }];
           }
-          this.currentLang = this.question.translations[0]?.lang || 'en';
-          this.currentTranslationIndex = this.question.translations.findIndex(t => t.lang === this.currentLang);
+          // Ensure all translations have explanations initialized if they are undefined
+          this.question.translations?.forEach(t => {
+            if (t.explanations === undefined) {
+              t.explanations = [{ type: 'text', content: '' }];
+            } else if (t.explanations.length === 0) {
+              t.explanations.push({ type: 'text', content: '' });
+            }
+            // Ensure each explanation has all required fields
+            t.explanations.forEach(ex => {
+              if (!ex.type) ex.type = 'text';
+              if (ex.content === undefined) ex.content = '';
+            });
+          });
+
+          this.currentLang = this.question.translations![0]!.lang || 'en';
+          this.currentTranslationIndex = this.question.translations!.findIndex(t => t.lang === this.currentLang);
+          
           if (this.currentTranslationIndex === -1) {
             this.currentTranslationIndex = 0;
-             // Ensure a default translation exists if findIndex fails (e.g. currentLang not in translations)
-            if (!this.question.translations[this.currentTranslationIndex]) {
-                 this.question.translations.push({ lang: this.currentLang, questionText: '', options: [{ text: '', isCorrect: false }, { text: '', isCorrect: false }], explanations: [] });
-            }
+            // Default to index 0; translation at this index is guaranteed to exist 
+            // and have .images initialized from the logic above.
           }
+          // No need to re-initialize images for translations[currentTranslationIndex] here.
 
-          const currentTranslationData = this.question.translations[this.currentTranslationIndex];
-          this.question.questionText = currentTranslationData?.questionText || '';
+          const currentTranslationData = this.question.translations![this.currentTranslationIndex]!;
+          this.question.questionText = currentTranslationData.questionText || '';
           this.question.options = currentTranslationData?.options && currentTranslationData.options.length > 0 ? currentTranslationData.options : [{ text: '', isCorrect: false }, { text: '', isCorrect: false }];
           
-          const currentExplanations = currentTranslationData?.explanations;
-          this.question.explanation = (currentExplanations && currentExplanations.length > 0 && currentExplanations[0].text) ? currentExplanations[0].text : '';
+          // UPDATED: Initialize currentTranslationExplanations with full structure
+          this.currentTranslationExplanations = currentTranslationData?.explanations?.map(ex => ({
+            type: ex.type || 'text',
+            label: ex.label || '',
+            content: ex.content || ''
+          })) || [{ type: 'text', content: '' }];
 
           if (this.question.branchId) this.fetchSubjects(this.question.branchId);
           if (this.question.subjectId) this.fetchTopics(this.question.subjectId);
           if (this.question.topicId) this.fetchSubtopics(this.question.topicId);
         },
-        error: err => console.error('Error loading question:', err)
+        error: err => {
+          console.error('[EditQuestionComponent] ngOnInit: Error loading question:', err);
+          // Potentially redirect or show error message if question load fails
+          // For now, just logging. If this error occurs, it might be related to the redirect.
+        }
       });
     } else { // Creating a new question
+      console.log('[EditQuestionComponent] ngOnInit: No ID found, initializing for new question.');
       this.question = {
-        translations: [{ lang: 'en', questionText: '', options: [{text:'', isCorrect:false},{text:'', isCorrect:false}], explanations: [] }],
+        translations: [{ lang: 'en', questionText: '', options: [{text:'', isCorrect:false},{text:'', isCorrect:false}], explanations: [{ type: 'text', content: '' }], images: [] /* images initialized */ }],
         difficulty: '',
         questionText: '', 
         options: [{text:'', isCorrect:false},{text:'', isCorrect:false}], 
-        explanation: '', 
         type: 'MCQ', 
         status: 'Draft',
         // Initialize other necessary fields from Question model if not covered by Partial<Question>
@@ -206,20 +269,38 @@ export class EditQuestionComponent implements OnInit {
       const oldTranslation = this.question.translations![this.currentTranslationIndex];
       oldTranslation.questionText = this.question.questionText || '';
       oldTranslation.options = this.question.options || [];
-      if (this.question.explanation) {
-        oldTranslation.explanations = [{ text: this.question.explanation }]; // Basic handling
-      } else {
-        oldTranslation.explanations = [];
-      }
+      oldTranslation.explanations = this.currentTranslationExplanations.map(ex => ({ // Map to full Explanation structure
+        type: ex.type || 'text',
+        label: ex.label,
+        content: ex.content
+      }));
+      // oldTranslation.images is already managed as part of this.question.translations
 
       this.currentLang = lang;
       this.currentTranslationIndex = newIndex;
       
-      // Load flat data from the new language's translation object
       const newTranslation = this.question.translations![this.currentTranslationIndex];
+      // Ensure .images is an array for the new translation (should be by now if loaded/added correctly)
+      if (newTranslation.images === undefined) { 
+        newTranslation.images = [];
+      }
+      // Ensure .explanations is an array and items have correct structure
+      if (newTranslation.explanations === undefined || newTranslation.explanations.length === 0) { 
+        newTranslation.explanations = [{ type: 'text', content: '' }];
+      }
+      newTranslation.explanations.forEach(ex => {
+        if(!ex.type) ex.type = 'text';
+        if(ex.content === undefined) ex.content = '';
+      });
+
       this.question.questionText = newTranslation.questionText;
       this.question.options = newTranslation.options;
-      this.question.explanation = (newTranslation.explanations && newTranslation.explanations.length > 0 && newTranslation.explanations[0].text) ? newTranslation.explanations[0].text : '';
+      // UPDATED: Load full explanation structure
+      this.currentTranslationExplanations = newTranslation.explanations.map(ex => ({
+        type: ex.type || 'text',
+        label: ex.label || '',
+        content: ex.content || ''
+      }));
 
     } else {
       // If language doesn't exist, add it
@@ -235,28 +316,63 @@ export class EditQuestionComponent implements OnInit {
         const oldTranslation = this.question.translations[this.currentTranslationIndex];
         oldTranslation.questionText = this.question.questionText || '';
         oldTranslation.options = this.question.options || [];
-        if (this.question.explanation) {
-            oldTranslation.explanations = [{ text: this.question.explanation }];
-        } else {
-            oldTranslation.explanations = [];
-        }
+        oldTranslation.explanations = this.currentTranslationExplanations.map(ex => ({ // Map to full Explanation structure
+          type: ex.type || 'text',
+          label: ex.label,
+          content: ex.content
+        }));
+        // oldTranslation.images are part of the translation object itself
       }
       
       this.question.translations.push({
         lang: lang,
-        questionText: '', // New translation starts blank
+        questionText: '', 
         options: [{ text: '', isCorrect: false }, { text: '', isCorrect: false }],
-        explanations: []
+        explanations: [{ type: 'text', content: '' }], // Initialize with default explanation structure
+        images: [] 
       });
       this.currentLang = lang;
       this.currentTranslationIndex = this.question.translations.length - 1;
       // Clear flat fields for the new language
       this.question.questionText = '';
       this.question.options = [{ text: '', isCorrect: false }, { text: '', isCorrect: false }];
-      this.question.explanation = '';
+      this.currentTranslationExplanations = [{ type: 'text', content: '' }]; // Initialize with default explanation structure
     }
   }
 
+  // UPDATED: Methods to manage explanations for the current translation
+  addExplanation(): void {
+    this.currentTranslationExplanations.push({ type: 'text', content: '' }); // Add new Explanation object
+  }
+
+  removeExplanation(index: number): void {
+    if (this.currentTranslationExplanations.length > 0) {
+      this.currentTranslationExplanations.splice(index, 1);
+    }
+  }
+
+  // ADDED: Methods to manage question images for the current translation
+  addQuestionImage(): void {
+    if (this.question && this.question.translations && this.question.translations[this.currentTranslationIndex]) {
+      if (!this.question.translations[this.currentTranslationIndex].images) {
+        this.question.translations[this.currentTranslationIndex].images = [];
+      }
+      this.question.translations[this.currentTranslationIndex].images!.push('');
+    }
+  }
+
+  removeQuestionImage(imgIndex: number): void {
+    if (this.question && this.question.translations && this.question.translations[this.currentTranslationIndex] && this.question.translations[this.currentTranslationIndex].images) {
+      this.question.translations[this.currentTranslationIndex].images!.splice(imgIndex, 1);
+    }
+  }
+
+  // ADDED: Method to manage option image (sets to empty string for now)
+  removeOptionImage(optionIndex: number): void {
+    if (this.question && this.question.options && this.question.options[optionIndex]) {
+      this.question.options[optionIndex].img = '';
+    }
+  }
 
   save(form: NgForm) {
     if (form.invalid) {
@@ -270,17 +386,12 @@ export class EditQuestionComponent implements OnInit {
       const translationToUpdate = this.question.translations[this.currentTranslationIndex];
       translationToUpdate.questionText = this.question.questionText || '';
       translationToUpdate.options = this.question.options || [];
-      // CORRECTED: Handle explanations array
-      if (this.question.explanation) {
-        // Assuming explanation is a single text, store it in the first explanation object
-        if (!translationToUpdate.explanations || translationToUpdate.explanations.length === 0) {
-            translationToUpdate.explanations = [{ text: this.question.explanation }]; // Create new if none
-        } else {
-            translationToUpdate.explanations[0].text = this.question.explanation; // Update existing
-        }
-      } else {
-        translationToUpdate.explanations = []; // Clear if form explanation is empty
-      }
+      // UPDATED: Handle explanations array with full structure
+      translationToUpdate.explanations = this.currentTranslationExplanations.map(ex => ({
+        type: ex.type || 'text',
+        label: ex.label,
+        content: ex.content
+      }));
     }
 
     const payload: Partial<Question> = {
@@ -295,8 +406,6 @@ export class EditQuestionComponent implements OnInit {
       type: this.question.type, // Ensure type and status are part of the form and this.question
       status: this.question.status,
       version: this.question.version, // Include version if it's managed
-      // Top-level explanations if your backend also uses them separately from translations
-      // explanations: this.question.explanation ? [{ text: this.question.explanation }] : [], 
     };
     
     if (this.id) { // If updating, include _id in payload if backend expects it, otherwise service handles it via URL

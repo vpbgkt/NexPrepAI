@@ -5,13 +5,21 @@ export interface Option {
   isCorrect: boolean;
 }
 
+// ADDED: Interface for structured explanations
+export interface Explanation {
+  _id?: { $oid: string } | string;
+  type: 'text' | 'video' | 'pdf' | 'image';
+  label?: string;
+  content: string; // URL for video/pdf/image, text for text
+}
+
 export interface Translation {
   _id?: { $oid: string } | string;
   lang: string;
   questionText: string;
   images?: string[];
   options: Option[];
-  explanations?: any[]; // Define more strictly if needed
+  explanations?: Explanation[]; // UPDATED to use Explanation interface
 }
 
 // ADDED: Interface for populated hierarchical fields

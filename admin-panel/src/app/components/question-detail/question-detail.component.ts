@@ -85,4 +85,15 @@ export class QuestionDetailComponent implements OnInit {
     if ((field as PopulatedHierarchyField).name) return (field as PopulatedHierarchyField).name; // It's populated
     return 'Invalid Data';
   }
+
+  // ADDED: Helper method to get display version
+  getDisplayVersion(version: any): string {
+    if (typeof version === 'object' && version !== null && version.hasOwnProperty('$numberInt')) {
+      return version.$numberInt;
+    }
+    if (version === undefined || version === null) {
+      return 'N/A';
+    }
+    return String(version);
+  }
 }

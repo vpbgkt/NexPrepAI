@@ -1,5 +1,19 @@
 <h2>Edit Question</h2>
 <form #form="ngForm" (ngSubmit)="save(form)">
+  <!-- Language Management -->
+  <div class="language-switcher">
+    <label>Language:</label>
+    <button *ngFor="let lang of availableLangs"
+            type="button"
+            (click)="switchLanguage(lang)"
+            [class.active]="lang === currentLang">
+      {{ lang.toUpperCase() }}
+    </button>
+    <!-- Basic way to add a new language if not in availableLangs, can be improved with a dropdown/input -->
+    <button type="button" (click)="switchLanguage('new_lang_code_here')" title="Add a new language (replace code)">Add Other Lang</button>
+  </div>
+  <hr>
+
   <!-- Question Text with validation -->
   <div>
     <label>Question:</label>
@@ -15,29 +29,50 @@
     </div>
   </div>
 
+  <!-- Question Images (for current language) -->
+  <div class="form-section">
+    <h4>Question Images (for {{ currentLang.toUpperCase() }})</h4>
+    <div *ngFor="let imgUrl of currentQuestionImages; let imgIndex = index" class="image-item">
+      <img [src]="imgUrl" alt="Question Image {{imgIndex + 1}}" *ngIf="imgUrl" style="max-width: 100px; max-height: 100px; margin-right: 10px;">
+      <input type="text" [(ngModel)]="currentQuestionImages[imgIndex]" name="questionImage{{currentTranslationIndex}}_{{imgIndex}}" placeholder="Image URL {{imgIndex + 1}}" style="flex-grow: 1; margin-right: 10px;">
+      <button type="button" (click)="removeQuestionImage(imgIndex)">Remove</button>
+    </div>
+    <button type="button" (click)="addQuestionImage()">+ Add Question Image URL</button>
+  </div>
+
   <!-- Options -->
-  <div *ngFor="let opt of question.options; let i = index">
+  <div *ngFor="let opt of question.options; let i = index" class="form-section option-item">
     <label>Option {{ i + 1 }}:</label>
-    <input
-      type="text"
-      [(ngModel)]="question.options[i].text"
-      name="option{{i}}"
-      required
-    />
-    <label>
+    <div class="option-content">
       <input
-        type="checkbox"
-        [(ngModel)]="question.options[i].isCorrect"
-        name="correct{{i}}"
+        type="text"
+        [(ngModel)]="question.options[i].text"
+        name="option{{i}}"
+        required
+        placeholder="Option text"
+        style="flex-grow: 1; margin-right: 10px;"
       />
-      Correct
-    </label>
-    <!-- Remove button -->
-    <button type="button"
-            (click)="removeOption(i)"
-            [disabled]="question.options.length <= 2">
-      Remove
-    </button>
+      <label class="checkbox-label">
+        <input
+          type="checkbox"
+          [(ngModel)]="question.options[i].isCorrect"
+          name="correct{{i}}"
+        />
+        Correct
+      </label>
+      <!-- Option Image -->
+      <div class="option-image-section" style="margin-left: 20px;">
+        <img [src]="opt.img" alt="Option {{i+1}} Image" *ngIf="opt.img" style="max-width: 70px; max-height: 70px; margin-right: 5px;">
+        <input type="text" [(ngModel)]="question.options[i].img" name="optionImage{{i}}" placeholder="Option Image URL" style="margin-right: 5px;">
+        <button type="button" (click)="removeOptionImage(i)" *ngIf="opt.img">Clear Img</button>
+      </div>
+      <button type="button"
+              (click)="removeOption(i)"
+              [disabled]="question.options.length <= 2"
+              class="remove-option-btn">
+        Remove Option
+      </button>
+    </div>
   </div>
 
   <!-- Add new option button -->
@@ -67,13 +102,49 @@
     </div>
   </div>
 
+  <!-- Type Dropdown -->
+  <div>
+    <label for="type">Type:</label>
+    <select
+      id="type"
+      name="type"
+      [(ngModel)]="question.type"
+      required
+      #typeCtrl="ngModel"
+    >
+      <option value="">Select Type</option>
+      <option *ngFor="let qt of questionTypes" [value]="qt">{{ qt }}</option>
+    </select>
+    <div *ngIf="typeCtrl.invalid && (typeCtrl.touched || form.submitted)" class="error">
+      Type is required.
+    </div>
+  </div>
+
+  <!-- Status Dropdown -->
+  <div>
+    <label for="status">Status:</label>
+    <select
+      id="status"
+      name="status"
+      [(ngModel)]="question.status"
+      required
+      #statusCtrl="ngModel"
+    >
+      <option value="">Select Status</option>
+      <option *ngFor="let qs of questionStatuses" [value]="qs">{{ qs }}</option>
+    </select>
+    <div *ngIf="statusCtrl.invalid && (statusCtrl.touched || form.submitted)" class="error">
+      Status is required.
+    </div>
+  </div>
+
   <!-- Branch Dropdown -->
   <div>
     <label for="branch">Branch:</label>
     <select
       id="branch"
       name="branch"
-      [(ngModel)]="question.branch" 
+      [(ngModel)]="question.branchId" 
       (change)="onBranchChange($any($event.target).value)" 
       required
       #branchCtrl="ngModel"
@@ -84,7 +155,6 @@
     <div *ngIf="branchCtrl.invalid && (branchCtrl.touched || form.submitted)" class="error">
       Branch is required.
     </div>
-    <a routerLink="/branches/new">+ Add Branch</a>
   </div>
 
   <!-- Subject Dropdown -->
@@ -93,9 +163,9 @@
     <select
       id="subject"
       name="subject"
-      [(ngModel)]="question.subject"
+      [(ngModel)]="question.subjectId"
       (change)="onSubjectChange($any($event.target).value)"
-      [disabled]="!question.branch || subjects.length === 0"
+      [disabled]="!question.branchId || subjects.length === 0"
       #subjectCtrl="ngModel"
     >
       <option value="">Select Subject</option>
@@ -110,9 +180,9 @@
     <select
       id="topic"
       name="topic"
-      [(ngModel)]="question.topic"
+      [(ngModel)]="question.topicId"
       (change)="onTopicChange($any($event.target).value)"
-      [disabled]="!question.subject || topics.length === 0"
+      [disabled]="!question.subjectId || topics.length === 0"
       #topicCtrl="ngModel"
     >
       <option value="">Select Topic</option>
@@ -126,9 +196,9 @@
     <select
       id="subTopic" 
       name="subTopic"
-      [(ngModel)]="question.subTopic"
+      [(ngModel)]="question.subTopicId"
       (change)="onSubtopicChange($any($event.target).value)" 
-      [disabled]="!question.topic || subtopics.length === 0"
+      [disabled]="!question.topicId || subtopics.length === 0"
       #subtopicCtrl="ngModel"
     >
       <option value="">Select Subtopic</option>
@@ -138,13 +208,54 @@
 
   <!-- Explanation (optional) -->
   <div>
-    <label for="explanation">Explanation:</label>
-    <textarea
-      id="explanation"
-      name="explanation"
-      [(ngModel)]="question.explanation"
-    ></textarea>
+    <label for="explanation">Explanations (for {{ currentLang.toUpperCase() }}):</label>
+    <div *ngFor="let expl of currentTranslationExplanations; let exIndex = index" class="explanation-item form-section">
+      <div class="explanation-controls">
+        <label for="expType_{{currentLang}}_{{exIndex}}">Type:</label>
+        <select id="expType_{{currentLang}}_{{exIndex}}" 
+                name="expType_{{currentLang}}_{{exIndex}}" 
+                [(ngModel)]="expl.type">
+          <option value="text">Text</option>
+          <option value="video">Video</option>
+          <option value="pdf">PDF</option>
+          <option value="image">Image</option>
+        </select>
+
+        <label for="expLabel_{{currentLang}}_{{exIndex}}" style="margin-left: 10px;">Label (optional):</label>
+        <input type="text" 
+               id="expLabel_{{currentLang}}_{{exIndex}}" 
+               name="expLabel_{{currentLang}}_{{exIndex}}" 
+               [(ngModel)]="expl.label" 
+               placeholder="Label">
+
+        <button type="button" (click)="removeExplanation(exIndex)" class="remove-explanation-btn" style="margin-left: 10px;">Remove</button>
+      </div>
+      
+      <label for="expContent_{{currentLang}}_{{exIndex}}" style="display: block; margin-top: 5px;">Content:</label>
+      <textarea *ngIf="expl.type === 'text'" 
+                id="expContent_{{currentLang}}_{{exIndex}}" 
+                name="expContent_{{currentLang}}_{{exIndex}}" 
+                [(ngModel)]="expl.content" 
+                placeholder="Explanation Text"
+                required
+                rows="3"
+                style="width: 100%;"></textarea>
+      <input *ngIf="expl.type !== 'text'" 
+             type="text" 
+             id="expContent_{{currentLang}}_{{exIndex}}" 
+             name="expContent_{{currentLang}}_{{exIndex}}" 
+             [(ngModel)]="expl.content" 
+             [placeholder]="expl.type === 'video' ? 'Video URL' : expl.type === 'pdf' ? 'PDF URL' : 'Image URL'" 
+             required
+             style="width: 100%;">
+      <!-- Basic validation for content based on type -->
+      <div *ngIf="form.controls['expContent_'+currentLang+'_'+exIndex]?.invalid && (form.controls['expContent_'+currentLang+'_'+exIndex]?.touched || form.submitted)" class="error">
+        Content is required for the explanation.
+      </div>
+    </div>
+    <button type="button" (click)="addExplanation()">+ Add Explanation</button>
   </div>
+  <hr>
 
   <!-- Save Button -->
   <div>

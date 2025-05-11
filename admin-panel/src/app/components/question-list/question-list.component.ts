@@ -238,7 +238,7 @@ export class QuestionListComponent implements OnInit {
 
   // Renamed from onEdit to editQuestion to match HTML template call
   editQuestion(id: string | { $oid: string }): void {
-    this.router.navigate(['/questions', this.getIdString(id), 'edit']);
+    this.router.navigate(['/questions', 'edit', this.getIdString(id)]);
   }
 
   // Renamed from onDelete to deleteQuestion to match HTML template call
@@ -389,7 +389,7 @@ export class QuestionListComponent implements OnInit {
                : 'No options';
       case 'explanations':
         return primaryTranslation.explanations && primaryTranslation.explanations.length > 0 
-               ? primaryTranslation.explanations.map(e => e.text || 'N/A').join('; ') 
+               ? primaryTranslation.explanations.map(e => e.content || 'N/A').join('; ') // Use e.content
                : 'No explanations';
       default:
         return 'Invalid field';
