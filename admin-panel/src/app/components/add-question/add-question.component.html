@@ -29,18 +29,31 @@
   </div>
 
   <!-- IMAGE URLs -->
+  <!--
   <div>
     <label>Image URLs (pipe-separated)</label>
     <input
-      name="images_{{currentLang}}"
+      name="images_{{currentLang}}" // This was likely a typo and should have been question.images not question.images_{{currentLang}}
       type="text"
-      [(ngModel)]="question.images[0]"
+      [(ngModel)]="question.images[0]" // This is the problematic line
     />
     <small>e.g. https://…jpg|https://…jpg</small>
   </div>
+  -->
+
+  <!-- IMAGE URLs for current language -->
+  <div class="form-section">
+    <h4>Question Images (for {{ currentLang.toUpperCase() }})</h4>
+    <div *ngFor="let imgUrl of langPack.images; let imgIndex = index" class="image-item">
+      <img [src]="imgUrl" alt="Question Image {{imgIndex + 1}}" *ngIf="imgUrl" style="max-width: 100px; max-height: 100px; margin-right: 10px;">
+      <input type="text" [(ngModel)]="langPack.images![imgIndex]" name="questionImage{{currentLang}}_{{imgIndex}}" placeholder="Image URL {{imgIndex + 1}}" style="flex-grow: 1; margin-right: 10px;">
+      <button type="button" (click)="removeQuestionImage(imgIndex)">Remove</button>
+    </div>
+    <button type="button" (click)="addQuestionImage()">+ Add Question Image URL</button>
+  </div>
 
   <!-- OPTIONS -->
-  <div *ngFor="let opt of question.translations[currentLang].options; let i = index">
+  <div *ngFor="let opt of langPack.options; let i = index">  <!-- UPDATED to use langPack -->
     <label>Option {{ i + 1 }}</label>
     <input
       name="optText_{{currentLang}}_{{i}}"
@@ -62,10 +75,11 @@
       />
       Correct
     </label>
+    <!-- UPDATED to use langPack -->
     <button
       type="button"
       (click)="removeOption(i)"
-      [disabled]="question.translations[currentLang].options.length <= 2"
+      [disabled]="langPack.options.length <= 2"
     >
       Remove
     </button>
@@ -73,7 +87,7 @@
   <button type="button" (click)="addOption()">+ Add Option</button>
 
   <!-- EXPLANATIONS -->
-  <div *ngFor="let exp of question.translations[currentLang].explanations; let j = index">
+  <div *ngFor="let exp of langPack.explanations; let j = index"> <!-- UPDATED to use langPack -->
     <select
       name="expType_{{currentLang}}_{{j}}"
       required
@@ -100,6 +114,27 @@
     <button type="button" (click)="removeExplanation(j)">Remove</button>
   </div>
   <button type="button" (click)="addExplanation()">+ Add Explanation</button>
+
+  <!-- STATUS -->
+  <div>
+    <label for="status">Status:</label>
+    <select
+      id="status"
+      name="status"
+      [(ngModel)]="question.status"
+      required
+      #statusCtrl="ngModel"
+    >
+      <option value="Draft">Draft</option>
+      <option value="Published">Published</option>
+      <option value="Archived">Archived</option>
+      <option value="Pending Review">Pending Review</option>
+      <!-- Add other statuses as needed -->
+    </select>
+    <div *ngIf="statusCtrl.invalid && (statusCtrl.touched || f.submitted)" class="error">
+      Status is required.
+    </div>
+  </div>
 
   <!-- DIFFICULTY -->
   <div>
@@ -148,7 +183,7 @@
       <option value="Not-mentioned">Not-mentioned</option>
       <option *ngFor="let b of branches" [value]="b._id">{{ b.name }}</option>
     </select>
-    <button type="button" class="btn-small" routerLink="/branches/new">
+    <button type="button" class="btn-small" (click)="goToAddBranch()">
       + Add Branch
     </button>
   </div>
@@ -164,7 +199,7 @@
       <option value="Not-mentioned">Not-mentioned</option>
       <option *ngFor="let s of subjects" [value]="s._id">{{ s.name }}</option>
     </select>
-    <button type="button" class="btn-small" routerLink="/subjects/new">
+    <button type="button" class="btn-small" (click)="goToAddSubject()">
       + Add Subject
     </button>
   </div>
@@ -180,7 +215,7 @@
       <option value="Not-mentioned">Not-mentioned</option>
       <option *ngFor="let t of topics" [value]="t._id">{{ t.name }}</option>
     </select>
-    <button type="button" class="btn-small" routerLink="/topics/new">
+    <button type="button" class="btn-small" (click)="goToAddTopic()">
       + Add Topic
     </button>
   </div>
@@ -195,9 +230,46 @@
       <option value="Not-mentioned">Not-mentioned</option>
       <option *ngFor="let st of subtopics" [value]="st._id">{{ st.name }}</option>
     </select>
-    <button type="button" class="btn-small" routerLink="/subtopics/new">
+    <button type="button" class="btn-small" (click)="goToAddSubtopic()">
       + Add Subtopic
     </button>
+  </div>
+
+  <!-- TAGS (Keywords) -->
+  <div>
+    <label for="tags">Tags (comma-separated):</label>
+    <input
+      type="text"
+      id="tags"
+      name="tags"
+      [(ngModel)]="tagsInputString"
+      (ngModelChange)="onTagsInputChange($event)"
+      placeholder="e.g., algebra, geometry, important"
+    />
+  </div>
+
+  <!-- RECOMMENDED TIME ALLOTMENT -->
+  <div>
+    <label for="recommendedTime">Recommended Time (seconds):</label>
+    <input
+      type="number"
+      id="recommendedTime"
+      name="recommendedTime"
+      [(ngModel)]="question.recommendedTimeAllotment"
+      placeholder="e.g., 300"
+    />
+  </div>
+
+  <!-- INTERNAL NOTES -->
+  <div>
+    <label for="internalNotes">Internal Notes/Author Comments:</label>
+    <textarea
+      id="internalNotes"
+      name="internalNotes"
+      [(ngModel)]="question.internalNotes"
+      rows="3"
+      placeholder="Internal notes or comments for this question..."
+    ></textarea>
   </div>
 
   <!-- APPEARANCE HISTORY -->

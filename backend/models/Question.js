@@ -89,6 +89,11 @@ const questionSchema = new Schema(
     // Runtime stats
     stats: statsSchema,                                               // NEW
 
+    // NEW: Additional optional fields
+    tags: { type: [String], default: [] },                            // NEW
+    recommendedTimeAllotment: { type: Number },                       // NEW (in seconds or minutes, define unit in usage)
+    internalNotes: { type: String, trim: true },                      // NEW
+
     // Lifecycle & audit
     status:   { type: String, enum: ['active', 'inactive', 'draft'], default: 'active' },
     version:  { type: Number, default: 1 },                           // NEW

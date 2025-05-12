@@ -32,8 +32,13 @@ export class EditQuestionComponent implements OnInit {
     difficulty: '',
     options: [{ text: '', isCorrect: false }, { text: '', isCorrect: false }],
     type: 'MCQ', // Default type
-    status: 'Draft' // Default status
+    status: 'Draft', // Default status
+    tags: [], // Initialize new field
+    recommendedTimeAllotment: undefined, // Initialize new field
+    internalNotes: '' // Initialize new field
   };
+
+  tagsInputString: string = ''; // ADDED for ngModel binding
 
   branches: any[] = [];
   subjects: any[] = [];
@@ -102,17 +107,23 @@ export class EditQuestionComponent implements OnInit {
           }
 
           this.question = {
-            ...data, 
+            ...data,
             branchId: this.getHierarchicalId(data.branch),
             subjectId: this.getHierarchicalId(data.subject),
             topicId: this.getHierarchicalId(data.topic),
             subTopicId: this.getHierarchicalId(data.subTopic),
-            options: [], 
+            options: [],
             questionText: '',
+            tags: data.tags || [], // Load tags
+            recommendedTimeAllotment: data.recommendedTimeAllotment, // Load time
+            internalNotes: data.internalNotes || '' // Load notes
           };
 
           if (data.type) this.question.type = data.type;
           if (data.status) this.question.status = data.status;
+
+          // Initialize tagsInputString
+          this.tagsInputString = this.question.tags ? this.question.tags.join(', ') : '';
 
           if (this.question.translations!.length === 0) { 
             this.question.translations = [{
@@ -173,10 +184,13 @@ export class EditQuestionComponent implements OnInit {
       this.question = {
         translations: [{ lang: 'en', questionText: '', options: [{text:'', isCorrect:false},{text:'', isCorrect:false}], explanations: [{ type: 'text', content: '' }], images: [] /* images initialized */ }],
         difficulty: '',
-        questionText: '', 
-        options: [{text:'', isCorrect:false},{text:'', isCorrect:false}], 
-        type: 'MCQ', 
+        questionText: '',
+        options: [{text:'', isCorrect:false},{text:'', isCorrect:false}],
+        type: 'MCQ',
         status: 'Draft',
+        tags: [], // Initialize for new question
+        recommendedTimeAllotment: undefined, // Initialize for new question
+        internalNotes: '', // Initialize for new question
         // Initialize other necessary fields from Question model if not covered by Partial<Question>
         branch: undefined, // Or appropriate default
         subject: undefined,
@@ -184,6 +198,7 @@ export class EditQuestionComponent implements OnInit {
         subTopic: undefined,
         // etc.
       };
+      this.tagsInputString = ''; // Initialize for new question
       this.currentLang = 'en';
       this.currentTranslationIndex = 0;
     }
@@ -259,6 +274,16 @@ export class EditQuestionComponent implements OnInit {
 
   onSubtopicChange(subtopicIdValue: string) { // Name from original file was onSubtopicChange
     this.question.subTopicId = subtopicIdValue;
+  }
+
+  // ADDED: Method to handle changes to the tags input string
+  onTagsInputChange(value: string): void {
+    this.tagsInputString = value; // Keep the input field's value as is
+    if (value && value.trim() !== '') {
+      this.question.tags = value.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
+    } else {
+      this.question.tags = [];
+    }
   }
 
   // ADDED: Basic language switching logic
@@ -406,6 +431,10 @@ export class EditQuestionComponent implements OnInit {
       type: this.question.type, // Ensure type and status are part of the form and this.question
       status: this.question.status,
       // REMOVED: version: this.question.version, // Let backend handle version increment
+      // ADDED: New fields to payload
+      tags: this.question.tags,
+      recommendedTimeAllotment: this.question.recommendedTimeAllotment,
+      internalNotes: this.question.internalNotes
     };
     
     if (this.id) { // If updating, include _id in payload if backend expects it, otherwise service handles it via URL

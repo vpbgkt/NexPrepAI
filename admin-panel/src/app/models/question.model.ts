@@ -50,6 +50,11 @@ export interface Question {
   updatedAt?: { $date: { $numberLong: string } } | Date | string;
   __v?: { $numberInt: string } | number;
 
+  // NEWLY ADDED FIELDS
+  tags?: string[];
+  recommendedTimeAllotment?: number; // Assuming in minutes or a consistent unit
+  internalNotes?: string;
+
   // ADDED: Top-level fields for simpler display in lists (e.g., QuestionListComponent)
   // These would typically be populated from the primary translation by the service/backend for list views.
   questionText?: string;

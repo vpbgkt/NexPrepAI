@@ -206,6 +206,43 @@
     </select>
   </div>
 
+  <!-- Tags (Keywords) -->
+  <div>
+    <label for="tags">Tags (comma-separated):</label>
+    <input
+      type="text"
+      id="tags"
+      name="tags"
+      [(ngModel)]="tagsInputString"
+      (ngModelChange)="onTagsInputChange($event)"
+      placeholder="e.g., algebra, geometry, important"
+    />
+  </div>
+
+  <!-- Recommended Time Allotment -->
+  <div>
+    <label for="recommendedTime">Recommended Time (seconds):</label>
+    <input
+      type="number"
+      id="recommendedTime"
+      name="recommendedTime"
+      [(ngModel)]="question.recommendedTimeAllotment"
+      placeholder="e.g., 300"
+    />
+  </div>
+
+  <!-- Internal Notes -->
+  <div>
+    <label for="internalNotes">Internal Notes/Author Comments:</label>
+    <textarea
+      id="internalNotes"
+      name="internalNotes"
+      [(ngModel)]="question.internalNotes"
+      rows="3"
+      placeholder="Internal notes or comments for this question..."
+    ></textarea>
+  </div>
+
   <!-- Explanation (optional) -->
   <div>
     <label for="explanation">Explanations (for {{ currentLang.toUpperCase() }}):</label>

@@ -18,6 +18,9 @@
     <p><strong>Type:</strong> {{ question.type }}</p>
     <p><strong>Status:</strong> {{ question.status }}</p>
     <p><strong>Difficulty:</strong> {{ question.difficulty }}</p>
+    <p *ngIf="question.tags && question.tags.length > 0"><strong>Tags:</strong> {{ question.tags.join(', ') }}</p>
+    <p *ngIf="question.recommendedTimeAllotment !== undefined"><strong>Recommended Time (seconds):</strong> {{ question.recommendedTimeAllotment }}</p>
+    <p *ngIf="question.internalNotes"><strong>Internal Notes:</strong> {{ question.internalNotes }}</p>
     <p><strong>Version:</strong> {{ getDisplayVersion(question.version) }}</p>
     <p><strong>Created At:</strong> {{ formatDate(question.createdAt) | date:'medium' }}</p>
     <p><strong>Updated At:</strong> {{ formatDate(question.updatedAt) | date:'medium' }}</p>

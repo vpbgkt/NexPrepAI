@@ -1,3 +1,4 @@
+import '@angular/compiler'; // ADD THIS LINE
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { HTTP_INTERCEPTORS } from '@angular/common/http';
