@@ -51,10 +51,15 @@ export class TestService {
   getProgress(seriesId: string) {
     return this.http.get<{
       attemptId?: string;
-      remainingTime?: number;
+      remainingDurationSeconds?: number; // Renamed from remainingTime and made optional
       sections?: any[];
-      responses?: any[]; // Added responses to the interface
-      expired?: boolean; // Added from backend getProgress logic
+      responses?: any[];
+      status?: 'in-progress' | 'expired' | 'completed'; // Added status
+      duration?: number; // Added duration (total test duration in minutes)
+      expired?: boolean; // Kept for backward compatibility if still used, but prefer status
+      startedAt?: string; // Added from backend response
+      expiresAt?: string; // Added from backend response
+      lastSavedAt?: string; // Added from backend response
     }>(`${this.base}/tests/${seriesId}/progress`);
   }
 

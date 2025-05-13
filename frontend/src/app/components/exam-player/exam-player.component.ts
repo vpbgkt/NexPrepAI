@@ -116,30 +116,43 @@ export class ExamPlayerComponent implements OnInit {
 
     this.testSvc.getProgress(this.seriesId).subscribe({
       next: progress => {
-        console.log('FE: ngOnInit - getProgress response:', progress); // <--- ADD THIS LOG
-        if (progress.attemptId && progress.sections && progress.sections.length > 0 && !progress.expired) { 
-          // Store pending data but DON'T set this.attemptId yet
+        console.log('FE: ngOnInit - getProgress response:', progress); // Existing log
+
+        if (progress && progress.attemptId && progress.status === 'in-progress' && typeof progress.remainingDurationSeconds === 'number' && progress.remainingDurationSeconds > 0) {
+          console.log('FE: ngOnInit - In-progress attempt found. Storing for potential resume.');
+          this.hasSavedProgress = true;
           this.pendingAttemptId = progress.attemptId;
-          this.pendingTimeLeft = progress.remainingTime ?? 0;
-          this.pendingSections = progress.sections; // Store raw sections
+          this.pendingTimeLeft = progress.remainingDurationSeconds;
+          this.pendingSections = progress.sections || [];
           this.pendingSavedResponses = progress.responses || [];
-          console.log('FE: ngOnInit - PendingSavedResponses:', JSON.stringify(this.pendingSavedResponses, null, 2)); // <--- ADD THIS LOG
-          this.hasSavedProgress = true; // This will show "Resume" / "Start New" buttons
-          console.log('Progress found and stored pending. PendingAttemptId:', this.pendingAttemptId, 'PendingTimeLeft (s):', this.pendingTimeLeft);
+          console.log(`FE: ngOnInit - Pending data set: attemptId=${this.pendingAttemptId}, timeLeft=${this.pendingTimeLeft}, sections=${this.pendingSections.length}`);
         } else {
-          this.hasSavedProgress = false; // No active, non-expired progress
-          this.pendingAttemptId = undefined; // Clear any pending data
-          if(progress.expired) {
-            console.log('Progress found but it is expired.');
+          if (progress && progress.attemptId && progress.status === 'expired') {
+            console.log('FE: ngOnInit - Attempt is expired. Cannot resume.');
+          } else if (progress && progress.attemptId && (typeof progress.remainingDurationSeconds !== 'number' || progress.remainingDurationSeconds <= 0)) {
+            console.log('FE: ngOnInit - Attempt has no time remaining or invalid remaining time. Cannot resume.');
+          } else if (!progress || !progress.attemptId) {
+            console.log('FE: ngOnInit - No in-progress attempt found (no attemptId in response).');
           } else {
-            console.log('No active/valid progress found for this series.');
+            // Catch-all for other scenarios where resume isn't appropriate
+            console.log('FE: ngOnInit - Conditions for resume not fully met. Progress details:', progress);
           }
+          this.hasSavedProgress = false;
+          // Ensure pending data is cleared if not resuming
+          this.pendingAttemptId = undefined;
+          this.pendingTimeLeft = 0;
+          this.pendingSections = [];
+          this.pendingSavedResponses = [];
         }
       },
       error: (err) => {
         this.hasSavedProgress = false;
         this.pendingAttemptId = undefined;
         console.error('Error fetching progress:', err);
+        // Clear all pending data on error
+        this.pendingTimeLeft = 0;
+        this.pendingSections = [];
+        this.pendingSavedResponses = [];
       }
     });
   }

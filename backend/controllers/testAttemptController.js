@@ -372,12 +372,11 @@ exports.submitTest = async (req, res) => {
 exports.saveProgress = async (req, res) => {
   try {
     const { attemptId } = req.params;
-    // Frontend should send: { responses: [...], timeLeft: ... }
     const { responses, timeLeft } = req.body; 
 
-    console.log(`Backend saveProgress: Received for attemptId: ${attemptId}`); // <--- ADD THIS LOG
-    console.log('Backend saveProgress: Received responses payload:', JSON.stringify(responses, null, 2)); // <--- ADD THIS LOG
-    console.log(`Backend saveProgress: Received timeLeft: ${timeLeft}`); // <--- ADD THIS LOG
+    console.log(`Backend saveProgress: Received for attemptId: ${attemptId}`);
+    console.log('Backend saveProgress: Received responses payload:', responses ? responses.length : 'No responses'); // Log count or indicate if null/undefined
+    console.log(`Backend saveProgress: Received timeLeft from frontend: ${timeLeft}`);
 
     const attempt = await TestAttempt.findById(attemptId);
     if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
@@ -386,17 +385,21 @@ exports.saveProgress = async (req, res) => {
       return res.status(400).json({ message: 'Test is not in-progress. Cannot save.' });
     }
 
-    attempt.responses = responses; // Assuming `responses` from frontend matches `responseSchema` structure
+    attempt.responses = responses; 
     attempt.lastSavedAt = new Date();
     if (timeLeft !== undefined) {
       attempt.remainingDurationSeconds = timeLeft;
+      console.log(`Backend saveProgress: Updated attempt.remainingDurationSeconds to: ${timeLeft}`);
+    } else {
+      console.log('Backend saveProgress: timeLeft was undefined, remainingDurationSeconds not updated.');
     }
     
     await attempt.save();
-    console.log('💾 Progress saved for attemptId:', attemptId, 'TimeLeft:', timeLeft, 'Responses Count:', responses.length);
-    // Log what was actually saved to DB for responses
+    
     const savedAttempt = await TestAttempt.findById(attemptId).lean(); // Fetch again to see saved data
-    console.log('Backend saveProgress: attempt.responses after save in DB:', JSON.stringify(savedAttempt.responses, null, 2)); // <--- ADD THIS LOG
+    console.log('💾 Progress saved for attemptId:', attemptId);
+    console.log('Backend saveProgress: attempt.responses count after save in DB:', savedAttempt.responses ? savedAttempt.responses.length : 'No responses');
+    console.log('Backend saveProgress: attempt.remainingDurationSeconds after save in DB:', savedAttempt.remainingDurationSeconds); // Crucial log
 
     res.json({ message: 'Progress saved successfully' });
   } catch (err) {
@@ -623,37 +626,65 @@ exports.getProgress = async (req, res) => {
       series:  seriesId,
       status: 'in-progress'
     })
+    .populate('series', 'duration') // Populate only the duration field from TestSeries
     .sort({ startedAt: -1 })
     .lean();
 
     if (!progressAttempt) {
-      console.log('No in-progress attempt found.');
+      console.log('Backend getProgress: No in-progress attempt found.');
       return res.json({}); // Return empty object if no progress attempt
     }
 
-    console.log('Backend getProgress: attempt.sections from DB:', JSON.stringify(progressAttempt.sections, null, 2));
-    console.log('Backend getProgress: attempt.responses from DB:', JSON.stringify(progressAttempt.responses, null, 2));
-
     const remainingTime = progressAttempt.remainingDurationSeconds;
+    const seriesDuration = progressAttempt.series?.duration; // in minutes
+    const attemptExpiresAt = progressAttempt.expiresAt;
+    const currentTime = new Date();
 
-    if (remainingTime <= 0 && progressAttempt.expiresAt && new Date(progressAttempt.expiresAt) < new Date()) {
-      console.log('⏰ Attempt expired server-side.');
-      // Optionally, could trigger a submission or mark as aborted here if TestAttempt wasn't .lean()
-      // For a lean object, we just report its state.
-      return res.json({ ...progressAttempt, status: 'expired', remainingDurationSeconds: 0 }); // Indicate expired
+    console.log(`Backend getProgress: Data for attemptId ${progressAttempt._id}:`);
+    console.log(`  - remainingDurationSeconds from DB: ${remainingTime}`);
+    console.log(`  - series.duration (total, minutes): ${seriesDuration}`);
+    console.log(`  - attempt.startedAt from DB: ${progressAttempt.startedAt}`);
+    console.log(`  - attempt.expiresAt from DB: ${attemptExpiresAt}`);
+    console.log(`  - Current server time: ${currentTime}`);
+    if (attemptExpiresAt) {
+      console.log(`  - Is current time > expiresAt? : ${currentTime > new Date(attemptExpiresAt)}`);
+    }
+
+
+    // Check for expiration
+    if (remainingTime <= 0 || (attemptExpiresAt && currentTime > new Date(attemptExpiresAt))) {
+      console.log('⏰ Backend getProgress: Attempt determined to be expired.');
+      console.log(`   - Condition check: remainingTime (${remainingTime}) <= 0 OR (expiresAt (${attemptExpiresAt}) valid AND currentTime (${currentTime}) > expiresAt)`);
+      
+      const expiredResponse = {
+        attemptId: progressAttempt._id.toString(),
+        sections: progressAttempt.sections, 
+        responses: progressAttempt.responses,
+        status: 'expired', // Explicitly set status
+        remainingDurationSeconds: 0, // Ensure 0 for expired
+        duration: seriesDuration,
+        startedAt: progressAttempt.startedAt,
+        expiresAt: attemptExpiresAt,
+        lastSavedAt: progressAttempt.lastSavedAt
+      };
+      console.log('Backend getProgress: Returning expired response:', JSON.stringify(expiredResponse, null, 2));
+      return res.json(expiredResponse);
     }
 
     // If not expired, return the progress
-    return res.json({
+    const successResponse = {
       attemptId: progressAttempt._id.toString(),
       sections: progressAttempt.sections,
       responses: progressAttempt.responses,
       remainingDurationSeconds: remainingTime,
-      duration: progressAttempt.series?.duration, // Assuming series was populated or duration stored
+      duration: seriesDuration, 
+      status: 'in-progress', // Explicitly add status
       startedAt: progressAttempt.startedAt,
-      expiresAt: progressAttempt.expiresAt,
+      expiresAt: attemptExpiresAt,
       lastSavedAt: progressAttempt.lastSavedAt
-    });
+    };
+    console.log('Backend getProgress: Returning progress response:', JSON.stringify(successResponse, null, 2));
+    return res.json(successResponse);
 
   } catch (err) {
     console.error('❌ Error in getProgress:', err);
