@@ -52,6 +52,13 @@ interface Attempt {
   sections: Section[];
 }
 
+// Added interface for display
+interface DisplayedSectionReview {
+  title: string;
+  order: number;
+  responses: ResponseItem[];
+}
+
 @Component({
   selector: 'app-review-attempt',
   standalone: true,
@@ -64,6 +71,7 @@ export class ReviewAttemptComponent implements OnInit {
   loading = true;
   error = '';
   attempt: Attempt | undefined; // Use the Attempt interface
+  displayedSections: DisplayedSectionReview[] = []; // Added property
 
   constructor(
     private route: ActivatedRoute,
@@ -103,6 +111,40 @@ export class ReviewAttemptComponent implements OnInit {
               }
             }
           });
+
+          // New logic to populate displayedSections
+          this.displayedSections = [];
+          // Ensure this.attempt is defined before sorting its sections
+          if (this.attempt && this.attempt.sections) {
+            this.attempt.sections.sort((a, b) => a.order - b.order); // Ensure sections are ordered
+
+            this.attempt.sections.forEach(sectionFromBackend => {
+              const responsesForThisSection: ResponseItem[] = [];
+              // sectionFromBackend.questions are the questions in their presented order for this attempt
+              sectionFromBackend.questions.forEach(questionDetailInSec => { // questionDetailInSec is a FullQuestion
+                // Ensure this.attempt and this.attempt.responses are defined before finding a response
+                const matchingResponse = this.attempt?.responses.find(
+                  resp => resp.question._id === questionDetailInSec.question // .question is the ID
+                );
+                if (matchingResponse) {
+                  // matchingResponse is already enriched from the loop above
+                  responsesForThisSection.push(matchingResponse);
+                }
+                // If no matchingResponse, it means a question in the section structure
+                // didn't have a corresponding entry in attempt.responses.
+                // This shouldn't happen if every presented question gets a response slot.
+                // For review, we only show what has a response.
+              });
+
+              if (responsesForThisSection.length > 0) {
+                this.displayedSections.push({
+                  title: sectionFromBackend.title,
+                  order: sectionFromBackend.order,
+                  responses: responsesForThisSection
+                });
+              }
+            });
+          }
         }
         this.loading = false;
       },
@@ -112,6 +154,18 @@ export class ReviewAttemptComponent implements OnInit {
         this.loading = false;
       }
     });
+  }
+
+  getGlobalQuestionNumberForReview(sectionIdx: number, questionInSectionIdx: number): number {
+    let globalIndex = 0;
+    for (let i = 0; i < sectionIdx; i++) {
+      // Ensure displayedSections and its elements are defined
+      if (this.displayedSections && this.displayedSections[i] && this.displayedSections[i].responses) {
+        globalIndex += this.displayedSections[i].responses.length;
+      }
+    }
+    globalIndex += questionInSectionIdx;
+    return globalIndex + 1;
   }
 
   // Helper to render the student’s answer text
@@ -142,11 +196,17 @@ export class ReviewAttemptComponent implements OnInit {
   getCorrectText(r: ResponseItem): string {
     if (!r) return 'Response data missing';
 
+    // Log the options being checked
+    if (r.questionData && r.questionData.options) {
+      console.log('getCorrectText - Checking r.questionData.options for Q_ID:', r.questionData.question, r.questionData.options);
+    } else {
+      console.log('getCorrectText - r.questionData or r.questionData.options is missing for response:', r);
+    }
+
     if (!r.populatedCorrectOptions || !Array.isArray(r.populatedCorrectOptions) || r.populatedCorrectOptions.length === 0) {
-      // Check if it was a valid question where correct options might not have been processed or specified
       if (r.questionData && r.questionData.options) {
-         // Check if any option was marked as correct in the source
          const hasAnyCorrectOption = r.questionData.options.some((opt: Option) => opt.isCorrect);
+         console.log('getCorrectText - hasAnyCorrectOption based on opt.isCorrect:', hasAnyCorrectOption, 'for Q_ID:', r.questionData.question);
          return hasAnyCorrectOption ? 'Correct answer text not processed' : 'Correct answer not specified in question data';
       }
       return 'Correct answer N/A';

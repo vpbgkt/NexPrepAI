@@ -4,6 +4,16 @@ const Question     = require('../models/Question');
 const PDFDocument = require('pdfkit');
 const moment = require('moment');
 
+// Helper function to shuffle an array
+function shuffleArray(array) {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+}
+
 // ────────────────────────────────────────────────────────────────────────────────
 // startTest: creates a new TestAttempt and returns detailed question data
 // ────────────────────────────────────────────────────────────────────────────────
@@ -11,7 +21,7 @@ exports.startTest = async (req, res) => {
   try {
     const { seriesId } = req.body;
     const userId = req.user.userId;
-    const series = await TestSeries.findById(seriesId);
+    const series = await TestSeries.findById(seriesId).lean(); // Use .lean() for plain JS object
     if (!series) return res.status(404).json({ message: 'Test not found' });
 
     // Abort any previous in-progress attempts for this user and series
@@ -62,71 +72,100 @@ exports.startTest = async (req, res) => {
       selectedVariant = series.variants[
         Math.floor(Math.random() * series.variants.length)
       ];
+      // If variant is a Mongoose subdocument, convert its sections to plain objects
+      if (selectedVariant.sections) {
+        selectedVariant.sections = selectedVariant.sections.map(s => (typeof s.toObject === 'function' ? s.toObject() : ({ ...s, questions: s.questions ? s.questions.map(q => (typeof q.toObject === 'function' ? q.toObject() : {...q})) : [] }) ));
+      }
     }
 
     // assemble a raw layout of sections:
-    let rawLayout = [];
+    let initialLayout = [];
     if (selectedVariant?.sections?.length) {
-      // use the chosen variant’s sections
-      rawLayout = selectedVariant.sections;
+      // use the chosen variant’s sections (already converted to plain objects if selectedVariant was processed)
+      initialLayout = selectedVariant.sections;
     } else if (Array.isArray(series.sections) && series.sections.length) {
-      // use any sections defined on the series
-      rawLayout = series.sections;
+      // use any sections defined on the series (convert to plain objects)
+      initialLayout = series.sections.map(s => (typeof s.toObject === 'function' ? s.toObject() : ({ ...s, questions: s.questions ? s.questions.map(q => (typeof q.toObject === 'function' ? q.toObject() : {...q})) : [] }) ));
     } else if (Array.isArray(series.questions) && series.questions.length) {
       // fallback: wrap a flat questions[] into one section
-      rawLayout = [{
+      initialLayout = [{
         title: 'All Questions',
         order: 1,
-        questions: series.questions.map(qId => ({
-          question: qId,
-          marks: 1
-        }))
+        questions: series.questions.map(qItem => ({
+          question: qItem.question, // Assuming qItem is {question: ObjectId, marks: Number, negativeMarks: Number}
+          marks: qItem.marks || 1,
+          negativeMarks: qItem.negativeMarks === undefined ? 0 : qItem.negativeMarks
+        })),
+        questionPool: [],
+        questionsToSelectFromPool: 0,
+        randomizeQuestionOrderInSection: false
       }];
     }
 
+    // Process layout for randomization and pooling
+    let processedLayout = JSON.parse(JSON.stringify(initialLayout)); // Deep copy to ensure plain objects and no side effects
+
+    if (series.randomizeSectionOrder) {
+      processedLayout = shuffleArray(processedLayout);
+      // Re-assign order based on new shuffled positions
+      processedLayout.forEach((sec, index) => sec.order = index + 1);
+    }
+
+    for (let i = 0; i < processedLayout.length; i++) {
+      const section = processedLayout[i];
+
+      if (section.questionsToSelectFromPool > 0 && section.questionPool && section.questionPool.length > 0) {
+        let pool = [...section.questionPool];
+        let selectedQuestionIds = shuffleArray(pool).slice(0, section.questionsToSelectFromPool);
+        
+        section.questions = selectedQuestionIds.map(qId => ({
+          question: qId,
+          marks: section.defaultMarksForPooledQuestion !== undefined ? section.defaultMarksForPooledQuestion : 1,
+          negativeMarks: section.defaultNegativeMarksForPooledQuestion !== undefined ? section.defaultNegativeMarksForPooledQuestion : 0
+        }));
+      } else if (section.randomizeQuestionOrderInSection && section.questions && section.questions.length > 0) {
+        section.questions = shuffleArray(section.questions);
+      }
+    }
+    
     // now build detailed sections for the frontend and for storing in TestAttempt
+    // using the processedLayout
     const detailedSectionsForAttempt = await Promise.all(
-      rawLayout.map(async sec => ({
+      processedLayout.map(async sec => ({
         title: sec.title,
         order: sec.order,
         questions: await Promise.all(
-          sec.questions.map(async q => {
+          (sec.questions || []).map(async q => { // q is an item from processedLayout.section.questions
             const doc = await Question.findById(q.question)
-              .select('translations type difficulty questionHistory') // MODIFIED: Added questionHistory
+              .select('translations type difficulty questionHistory')
               .lean();
 
-            // We will now pass the full translations array if it exists
-            // and retain the existing fallback for questionText and options
-            // if translations are not present (though the goal is for translations to always be present)
-
-            let questionText = ''; // Fallback
-            let options = [];      // Fallback
-            let translations = []; // Default to empty array
+            let questionText = ''; 
+            let options = [];      
+            let translations = []; 
 
             if (Array.isArray(doc?.translations) && doc.translations.length) {
-              translations = doc.translations; // Send all translations
-              // Still provide a default top-level questionText and options,
-              // preferably from English or the first available translation.
+              translations = doc.translations; 
               const defaultTranslation = doc.translations.find(t => t.lang === 'en') || doc.translations[0];
               if (defaultTranslation) {
                 questionText = defaultTranslation.questionText;
                 options = defaultTranslation.options || [];
               }
             } else if (doc) {
-              // Fallback if translations array is missing but doc exists (legacy data perhaps)
-              questionText = doc.questionText || ''; // Assuming direct fields if no translations
+              questionText = doc.questionText || ''; 
               options = doc.options || [];
             }
 
             return {
               question:     q.question.toString(),
-              marks:        q.marks || 1,
-              translations: translations, // Send the full translations array
-              questionText: questionText, // Keep a fallback/default
-              options:      options.map(opt => ({ text: opt.text, isCorrect: opt.isCorrect })), // Keep a fallback/default
+              marks:        q.marks || 1, // Uses marks from processedLayout (derived from TestSeries), defaults to 1
+              negativeMarks: q.negativeMarks || 0, // Uses negativeMarks from processedLayout, defaults to 0
+              translations: translations, 
+              questionText: questionText, 
+              options:      options.map(opt => ({ text: opt.text, isCorrect: opt.isCorrect })), 
               type:         doc?.type,
               difficulty:   doc?.difficulty,
-              questionHistory: doc?.questionHistory || [] // ADDED: Include questionHistory
+              questionHistory: doc?.questionHistory || []
             };
           })
         )
@@ -190,72 +229,112 @@ exports.submitAttempt = async (req, res) => {
       return res.status(400).json({ message: 'This test has already been submitted.' });
     }
 
-    const series = await TestSeries.findById(attempt.series);
+    const series = await TestSeries.findById(attempt.series).lean(); // .lean() for series settings
 
-    let total = 0, max = 0;
+    // Fetch master question data for all questions in the attempt
+    const questionIdsInAttempt = Array.from(new Set(
+      attempt.sections.flatMap(sec => sec.questions.map(q => q.question.toString()))
+    ));
+
+    const masterQuestionsData = await Question.find({ _id: { $in: questionIdsInAttempt }})
+                                            .select('translations options type') // Select fields needed for correct options and type
+                                            .lean();
+    const masterQuestionsMap = new Map(masterQuestionsData.map(qDoc => [qDoc._id.toString(), qDoc]));
+
+    let totalScore = 0;
+    let maxScore = 0;
     const checkedResponses = [];
 
-    // Iterate over the questions in the attempt's sections to ensure correct marks and structure
     for (const section of attempt.sections) {
-      for (const qDetail of section.questions) {
+      for (const qDetail of section.questions) { // qDetail is from attempt.sections
         const questionIdStr = qDetail.question.toString();
-        max += qDetail.marks || 0;
+        maxScore += qDetail.marks || 0; // Marks from the attempt snapshot
+
+        const masterQ = masterQuestionsMap.get(questionIdStr);
+        let earnedMarks = 0;
+        let userSelectedOptionIndices = [];
 
         const userResponse = responses.find(r => r.question.toString() === questionIdStr);
-        let earned = 0;
-        let selectedOptions = [];
 
-        if (userResponse) {
-          selectedOptions = Array.isArray(userResponse.selected) ? userResponse.selected : (userResponse.selected ? [userResponse.selected.toString()] : []);
-          
-          // Fetch full question for correct options if not already in qDetail (best to have it in qDetail from startTest)
-          // For now, assuming qDetail.options has isCorrect field
-          const correctOptTexts = qDetail.options.filter(opt => opt.isCorrect).map(opt => opt.text);
-          
-          // Convert selected indices to option texts if necessary, or ensure comparison logic is robust
-          // This part needs careful alignment with how frontend sends `selected` (indices or values)
-          // Assuming frontend sends option *values* (text) or *indices* that map to qDetail.options
-          // For simplicity, let's assume frontend sends selected option *indices* as strings.
-          
-          const selectedCorrectly = selectedOptions.length === correctOptTexts.length &&
-                                   selectedOptions.every(selectedIndex => {
-                                       const optionIndex = parseInt(selectedIndex, 10);
-                                       return qDetail.options[optionIndex] && qDetail.options[optionIndex].isCorrect;
-                                   });
+        if (!masterQ) {
+          console.error(`Master question data not found for ID: ${questionIdStr} during submit. Awarding 0 marks.`);
+          // Fallback or error handling if master question is missing (e.g., deleted)
+          // For now, assume 0 marks if master data is gone.
+        } else if (userResponse && userResponse.selected) {
+          userSelectedOptionIndices = userResponse.selected.map(s => parseInt(s, 10)).filter(n => !isNaN(n));
 
-          const nm = qDetail.negativeMarks != null // Assuming negativeMarks might be per question
+          let definitiveOptionsSource = [];
+          if (masterQ.translations && masterQ.translations.length > 0) {
+            const defaultTranslation = masterQ.translations.find(t => t.lang === 'en') || masterQ.translations[0];
+            definitiveOptionsSource = defaultTranslation.options || [];
+          } else if (masterQ.options) { // Fallback to top-level options
+            definitiveOptionsSource = masterQ.options || [];
+          }
+
+          const definitiveCorrectOptionIndices = [];
+          definitiveOptionsSource.forEach((opt, index) => {
+            if (opt.isCorrect) {
+              definitiveCorrectOptionIndices.push(index);
+            }
+          });
+
+          const numberOfCorrectOptions = definitiveCorrectOptionIndices.length;
+          const numberOfSelectedOptions = userSelectedOptionIndices.length;
+
+          let allSelectedAreTrulyCorrect = true;
+          if (numberOfSelectedOptions > 0) {
+            allSelectedAreTrulyCorrect = userSelectedOptionIndices.every(selectedIndex =>
+              definitiveCorrectOptionIndices.includes(selectedIndex)
+            );
+          } else { // No options selected by user
+            allSelectedAreTrulyCorrect = (numberOfCorrectOptions === 0); // Correct if there were no correct options to begin with
+          }
+          
+          const selectedCorrectly = (numberOfSelectedOptions === numberOfCorrectOptions) && allSelectedAreTrulyCorrect;
+
+          const negativeMarkValue = qDetail.negativeMarks !== undefined
             ? qDetail.negativeMarks
-            : (series.negativeMarkEnabled ? series.negativeMarkValue : 0);
-
-          earned = selectedCorrectly ? (qDetail.marks || 0) : -nm;
+            : (series && series.negativeMarkEnabled ? (series.negativeMarkValue !== undefined ? series.negativeMarkValue : 0) : 0);
+          
+          earnedMarks = selectedCorrectly ? (qDetail.marks || 0) : -negativeMarkValue;
+        } else {
+          // No response from user for this question
+          const negativeMarkValue = qDetail.negativeMarks !== undefined
+            ? qDetail.negativeMarks
+            : (series && series.negativeMarkEnabled ? (series.negativeMarkValue !== undefined ? series.negativeMarkValue : 0) : 0);
+          // Typically, unattempted questions get 0, unless specific negative marking for unattempted is in place.
+          // If negativeMarkValue applies to incorrect answers only, then unattempted should be 0.
+          // For now, if -negativeMarkValue is 0, this results in 0. If negativeMarkValue is >0, it implies penalty for incorrect.
+          // Let's assume 0 for unattempted unless explicitly defined otherwise by business logic for "negative marks for unattempted"
+           earnedMarks = 0; // Default to 0 for unattempted.
         }
-        total += earned;
+        
+        totalScore += earnedMarks;
         checkedResponses.push({
-          question: qDetail.question,
-          selected: selectedOptions, // Store what the user selected
-          // correctOptions: correctOptTexts, // Storing correct options for review
-          earned,
+          question: qDetail.question, // ObjectId
+          selected: userResponse ? userResponse.selected : [], // Store what user sent (string indices)
+          earned: earnedMarks,
           review: userResponse ? userResponse.review || false : false
         });
       }
     }
 
-    attempt.responses = checkedResponses;
-    attempt.score = total;
-    attempt.maxScore = max;
-    attempt.percentage = max > 0 ? Math.round((total / max) * 100) : 0;
+    attempt.responses = checkedResponses; // Save the processed responses
+    attempt.score = totalScore;
+    attempt.maxScore = maxScore;
+    attempt.percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
     attempt.submittedAt = new Date();
     attempt.status = 'completed';
-    attempt.remainingDurationSeconds = 0; // Test completed
+    attempt.remainingDurationSeconds = 0;
     await attempt.save();
 
     console.log('✅ Test submitted and graded for attemptId:', attemptId);
 
     return res.status(200).json({
-      score: total,
-      maxScore: max,
+      score: totalScore,
+      maxScore: maxScore,
       percentage: attempt.percentage,
-      breakdown: checkedResponses
+      breakdown: checkedResponses // Send processed responses for immediate feedback if needed
     });
   } catch (err) {
     console.error('🔥 submitAttempt failed:', err);
@@ -352,14 +431,67 @@ exports.getMyTestAttempts = async (req, res) => {
 exports.reviewAttempt = async (req, res) => {
   try {
     const { attemptId } = req.params;
-    // Populate both the question reference and its correctOptions
     const attempt = await TestAttempt.findById(attemptId)
       .populate({
         path: 'responses.question',
-        select: 'questionText options correctOptions',
+        select: 'translations questionText options type difficulty correctOptions questionHistory',
       })
       .lean();
+
     if (!attempt) return res.status(404).json({ message: 'Not found' });
+
+    if (attempt.sections && attempt.sections.length > 0) {
+      const questionIdsFromSections = Array.from(new Set(
+        attempt.sections.flatMap(s => s.questions.map(q => q.question.toString()))
+      ));
+
+      if (questionIdsFromSections.length > 0) {
+        const masterQuestionsData = await Question.find({ '_id': { $in: questionIdsFromSections } })
+                                            .select('translations options')
+                                            .lean();
+        const masterQuestionsMap = new Map(masterQuestionsData.map(qDoc => [qDoc._id.toString(), qDoc]));
+
+        for (const section of attempt.sections) {
+          for (const qInSection of section.questions) {
+            const masterQData = masterQuestionsMap.get(qInSection.question.toString());
+            if (masterQData) {
+              if (Array.isArray(qInSection.options)) {
+                let sourceOptionsForIsCorrect = [];
+                const mDefaultTranslation = masterQData.translations?.find(t => t.lang === 'en') || masterQData.translations?.[0];
+                if (mDefaultTranslation?.options) {
+                  sourceOptionsForIsCorrect = mDefaultTranslation.options;
+                } else if (Array.isArray(masterQData.options)) {
+                  sourceOptionsForIsCorrect = masterQData.options;
+                }
+                qInSection.options = qInSection.options.map(optInAttempt => {
+                  const masterOpt = sourceOptionsForIsCorrect.find(mOpt => mOpt.text === optInAttempt.text);
+                  return {
+                    ...optInAttempt,
+                    isCorrect: masterOpt ? !!masterOpt.isCorrect : (typeof optInAttempt.isCorrect === 'boolean' ? optInAttempt.isCorrect : false)
+                  };
+                });
+              }
+              if (Array.isArray(qInSection.translations)) {
+                qInSection.translations = qInSection.translations.map(transInAttempt => {
+                  const masterTrans = masterQData.translations?.find(mt => mt.lang === transInAttempt.lang);
+                  let enrichedTransOptions = transInAttempt.options;
+                  if (masterTrans?.options && Array.isArray(transInAttempt.options)) {
+                    enrichedTransOptions = transInAttempt.options.map(optInAttempt => {
+                      const masterOpt = masterTrans.options.find(mOpt => mOpt.text === optInAttempt.text);
+                      return {
+                        ...optInAttempt,
+                        isCorrect: masterOpt ? !!masterOpt.isCorrect : (typeof optInAttempt.isCorrect === 'boolean' ? optInAttempt.isCorrect : false)
+                      };
+                    });
+                  }
+                  return { ...transInAttempt, options: enrichedTransOptions };
+                });
+              }
+            }
+          }
+        }
+      }
+    }
     return res.json(attempt);
   } catch (err) {
     console.error('❌ Error in reviewAttempt:', err);
@@ -369,20 +501,20 @@ exports.reviewAttempt = async (req, res) => {
 
 exports.getStudentStats = async (req, res) => {
   try {
-    const attempts = await TestAttempt.find({
+    const studentAttempts = await TestAttempt.find({
       student:     req.user.userId,
       submittedAt: { $exists: true }
     });
-    const total       = attempts.length;
-    const totalScore  = attempts.reduce((s, a) => s + (a.score || 0), 0);
-    const maxScoreSum = attempts.reduce((s, a) => s + (a.maxScore || 0), 0);
+    const totalAttempts       = studentAttempts.length;
+    const totalAttemptScore  = studentAttempts.reduce((s, a) => s + (a.score || 0), 0);
+    const maxAttemptScoreSum = studentAttempts.reduce((s, a) => s + (a.maxScore || 0), 0);
 
     return res.json({
-      total,
-      averagePercentage: maxScoreSum > 0
-        ? Math.round((totalScore / maxScoreSum) * 100)
+      total: totalAttempts,
+      averagePercentage: maxAttemptScoreSum > 0
+        ? Math.round((totalAttemptScore / maxAttemptScoreSum) * 100)
         : 0,
-      bestPercentage: attempts.reduce(
+      bestPercentage: studentAttempts.reduce(
         (best, a) => Math.max(best, a.percentage || 0), 0
       )
     });
@@ -486,47 +618,45 @@ exports.getProgress = async (req, res) => {
 
     console.log(`🔍 Getting progress for seriesId: ${seriesId}, userId: ${userId}`);
 
-    // Find the most recent attempt that’s in progress (not submitted)
-    const attempt = await TestAttempt.findOne({
+    const progressAttempt = await TestAttempt.findOne({
       student: userId,
       series:  seriesId,
       status: 'in-progress'
     })
-    .sort({ startedAt: -1 }) // Sort by startedAt descending to get the latest
-    // .populate('sections.questions.question') // Optionally populate if sections don't store full q data
+    .sort({ startedAt: -1 })
     .lean();
 
-    if (!attempt) {
-      console.log('🤔 No in-progress attempt found.');
-      return res.json({}); // no progress
+    if (!progressAttempt) {
+      console.log('No in-progress attempt found.');
+      return res.json({}); // Return empty object if no progress attempt
     }
 
-    console.log('Backend getProgress: attempt.sections from DB:', JSON.stringify(attempt.sections, null, 2)); // <--- ADD THIS LOG
-    console.log('Backend getProgress: attempt.responses from DB:', JSON.stringify(attempt.responses, null, 2)); // <--- ADD THIS LOG
+    console.log('Backend getProgress: attempt.sections from DB:', JSON.stringify(progressAttempt.sections, null, 2));
+    console.log('Backend getProgress: attempt.responses from DB:', JSON.stringify(progressAttempt.responses, null, 2));
 
-    // Frontend expects remainingTime in seconds for the timer.
-    // The `remainingDurationSeconds` field should be the authoritative source.
-    const remainingTime = attempt.remainingDurationSeconds;
+    const remainingTime = progressAttempt.remainingDurationSeconds;
 
-    // If remainingDurationSeconds is 0 or less, and there's an expiresAt, check server-side expiry
-    if (remainingTime <= 0 && attempt.expiresAt && new Date(attempt.expiresAt) < new Date()) {
-        console.log('⏰ Attempt expired server-side. Marking as aborted/completed.');
-        // Optionally, update status to 'aborted' or 'completed' here if it makes sense for your logic
-        // For now, just return no progress or an expired status
-        // await TestAttempt.findByIdAndUpdate(attempt._id, { status: 'aborted', remainingDurationSeconds: 0 });
-        return res.json({ attemptId: attempt._id.toString(), remainingTime: 0, sections: attempt.sections, expired: true });
+    if (remainingTime <= 0 && progressAttempt.expiresAt && new Date(progressAttempt.expiresAt) < new Date()) {
+      console.log('⏰ Attempt expired server-side.');
+      // Optionally, could trigger a submission or mark as aborted here if TestAttempt wasn't .lean()
+      // For a lean object, we just report its state.
+      return res.json({ ...progressAttempt, status: 'expired', remainingDurationSeconds: 0 }); // Indicate expired
     }
-    
-    console.log('✅ In-progress attempt found:', attempt._id, 'Remaining Duration:', remainingTime);
 
+    // If not expired, return the progress
     return res.json({
-      attemptId:     attempt._id.toString(),
-      remainingTime: remainingTime, // This is in seconds
-      sections:      attempt.sections,  // These sections should include question details and saved responses
-      responses:     attempt.responses // Send the saved responses
+      attemptId: progressAttempt._id.toString(),
+      sections: progressAttempt.sections,
+      responses: progressAttempt.responses,
+      remainingDurationSeconds: remainingTime,
+      duration: progressAttempt.series?.duration, // Assuming series was populated or duration stored
+      startedAt: progressAttempt.startedAt,
+      expiresAt: progressAttempt.expiresAt,
+      lastSavedAt: progressAttempt.lastSavedAt
     });
+
   } catch (err) {
-    console.error('Error fetching progress:', err);
-    res.status(500).json({ message: 'Server error fetching progress' });
+    console.error('❌ Error in getProgress:', err);
+    return res.status(500).json({ message: 'Failed to get progress', error: err.message });
   }
 };

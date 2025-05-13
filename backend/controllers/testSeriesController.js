@@ -18,6 +18,30 @@ const mongoose   = require('mongoose');
 const TestSeries = require('../models/TestSeries');   // ← make sure this points to /backend/models/tests.js
 const Question   = require('../models/Question');
 
+// Helper function to process sections and include new fields
+function processSections(sections) {
+  if (!sections || !Array.isArray(sections)) {
+    return [];
+  }
+  return sections.map(section => ({
+    ...section, // Keep existing section properties like title, order, questions
+    questionPool: section.questionPool || [],
+    questionsToSelectFromPool: section.questionsToSelectFromPool || 0,
+    randomizeQuestionOrderInSection: section.randomizeQuestionOrderInSection || false,
+  }));
+}
+
+// Helper function to process variants and their sections
+function processVariants(variants) {
+  if (!variants || !Array.isArray(variants)) {
+    return [];
+  }
+  return variants.map(variant => ({
+    ...variant, // Keep existing variant properties like code
+    sections: processSections(variant.sections), // Process sections within each variant
+  }));
+}
+
 // 1) Create a new TestSeries by sampling questions
 async function createTestSeries(req, res) {
   try {
@@ -36,7 +60,8 @@ async function createTestSeries(req, res) {
       stream,
       paper,
       shift,
-      createdBy
+      createdBy,
+      randomizeSectionOrder // Added: new field for randomizing section order
     } = req.body;
 
     // Fixed user ID access - verifyToken middleware stores it as req.user.userId
@@ -60,8 +85,9 @@ async function createTestSeries(req, res) {
       maxAttempts,
       startAt,
       endAt,
-      ...(variants?.length > 0 ? { variants }
-        : sections?.length > 0 ? { sections }
+      randomizeSectionOrder, // Added: save the new field
+      ...(variants?.length > 0 ? { variants: processVariants(variants) }
+        : sections?.length > 0 ? { sections: processSections(sections) }
         : { questions: req.body.questions }),
       createdBy: userId  // Use the correctly accessed userId
     });
@@ -169,11 +195,22 @@ exports.updateTestSeries = async (req, res) => {
     const fields = [
       'title', 'family', 'stream', 'paper', 'shift', 'duration',
       'negativeMarkEnabled', 'negativeMarkValue', 'mode', 'type',
-      'year', 'maxAttempts', 'sections', 'variants', 'startAt', 'endAt'
+      'year', 'maxAttempts', 'sections', 'variants', 'startAt', 'endAt',
+      'randomizeSectionOrder' // Added randomizeSectionOrder
     ];
     const payload = {};
-    fields.forEach(f => { if (req.body[f] !== undefined) payload[f] = req.body[f]; });
-    payload.updatedBy = req.user._id;
+    fields.forEach(f => {
+      if (req.body[f] !== undefined) {
+        if (f === 'sections') {
+          payload[f] = processSections(req.body[f]);
+        } else if (f === 'variants') {
+          payload[f] = processVariants(req.body[f]);
+        } else {
+          payload[f] = req.body[f];
+        }
+      }
+    });
+    payload.updatedBy = req.user._id; // Assuming req.user._id is available from auth middleware
 
     const updated = await TestSeries.findByIdAndUpdate(id, payload, { new: true });
     if (!updated) {

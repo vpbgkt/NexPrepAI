@@ -125,11 +125,11 @@
       required
       #statusCtrl="ngModel"
     >
-      <option value="Draft">Draft</option>
+      <option value="draft">Draft</option>
       <option value="Published">Published</option>
-      <option value="Archived">Archived</option>
       <option value="Pending Review">Pending Review</option>
-      <!-- Add other statuses as needed -->
+      <option value="active">Active</option>
+      <option value="inactive">Inactive</option>
     </select>
     <div *ngIf="statusCtrl.invalid && (statusCtrl.touched || f.submitted)" class="error">
       Status is required.

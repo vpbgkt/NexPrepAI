@@ -67,7 +67,6 @@ export class ExamPlayerComponent implements OnInit {
   form: FormGroup;
   timeLeft = 0; // This will store remaining duration in seconds
   timerHandle!: any;
-  currentQuestionIndex = 0;
   hasSavedProgress: boolean = false;
   private savedResponses: any[] = [];
 
@@ -81,6 +80,14 @@ export class ExamPlayerComponent implements OnInit {
   currentLanguage: 'en' | 'hi' = 'en'; // Default to English
   readonly defaultLanguage: 'en' | 'hi' = 'en';
   // --- End Language Properties ---
+
+  // New properties for section-aware navigation
+  currentSectionIndex = 0;
+  currentQuestionInSectionIndex = 0; // Index of the question within the current section
+
+  // currentQuestionIndex will now refer to the global index in the flat responses FormArray
+  // It will be updated whenever currentSectionIndex or currentQuestionInSectionIndex changes.
+  currentGlobalQuestionIndex = 0;
 
   constructor(
     private fb: FormBuilder,
@@ -147,6 +154,8 @@ export class ExamPlayerComponent implements OnInit {
     this.pendingSections = [];
     this.pendingSavedResponses = [];
     this.pendingTimeLeft = 0;
+    this.currentSectionIndex = 0; // Reset for new test
+    this.currentQuestionInSectionIndex = 0; // Reset for new test
     // this.attemptId will be set by startNewTest() -> testSvc.startTest() response
     this.startNewTest();
   }
@@ -164,6 +173,7 @@ export class ExamPlayerComponent implements OnInit {
       console.log('FE: resumeTest - this.savedResponses INITIALIZED:', JSON.stringify(this.savedResponses, null, 2)); // <--- ADD THIS LOG
       this.hasSavedProgress = false; // Clear the flag as we are now resuming
       
+      // buildFormAndTimer will set currentSectionIndex, currentQuestionInSectionIndex, and currentGlobalQuestionIndex
       this.buildFormAndTimer(); 
       this.attachAutoSave();
 
@@ -187,6 +197,8 @@ export class ExamPlayerComponent implements OnInit {
         this.timeLeft = (res.duration || 0) * 60; 
         this.sections = this.processSections(res.sections);
         this.savedResponses = []; // Fresh test has no saved responses yet
+        // buildFormAndTimer will set currentSectionIndex, currentQuestionInSectionIndex to 0,0
+        // and currentGlobalQuestionIndex to 0
         this.buildFormAndTimer();
         this.attachAutoSave();
       },
@@ -260,23 +272,87 @@ export class ExamPlayerComponent implements OnInit {
     return `${m}:${s}`;
   }
 
-  goToQuestion(i: number) {
-    if (i >= 0 && i < this.responses.length) {
-      this.currentQuestionIndex = i;
+  // --- Navigation Methods ---
+  goToQuestion(sectionIdx: number, questionInSectionIdx: number) {
+    if (this.sections[sectionIdx] && this.sections[sectionIdx].questions[questionInSectionIdx]) {
+      this.currentSectionIndex = sectionIdx;
+      this.currentQuestionInSectionIndex = questionInSectionIdx;
+      this.currentGlobalQuestionIndex = this.getGlobalIndex(sectionIdx, questionInSectionIdx);
+      console.log(`Navigating to S:${sectionIdx}, Q:${questionInSectionIdx}, GlobalQ:${this.currentGlobalQuestionIndex}`);
     }
   }
 
   next() {
-    if (this.currentQuestionIndex < this.responses.length - 1) {
-      this.currentQuestionIndex++;
+    if (this.currentQuestionInSectionIndex < this.sections[this.currentSectionIndex].questions.length - 1) {
+      // Next question in the same section
+      this.currentQuestionInSectionIndex++;
+    } else if (this.currentSectionIndex < this.sections.length - 1) {
+      // Next section, first question
+      this.currentSectionIndex++;
+      this.currentQuestionInSectionIndex = 0;
+    } else {
+      // Already at the last question of the last section
+      return;
     }
+    this.currentGlobalQuestionIndex = this.getGlobalIndex(this.currentSectionIndex, this.currentQuestionInSectionIndex);
   }
 
   prev() {
-    if (this.currentQuestionIndex > 0) {
-      this.currentQuestionIndex--;
+    if (this.currentQuestionInSectionIndex > 0) {
+      // Previous question in the same section
+      this.currentQuestionInSectionIndex--;
+    } else if (this.currentSectionIndex > 0) {
+      // Previous section, last question
+      this.currentSectionIndex--;
+      this.currentQuestionInSectionIndex = this.sections[this.currentSectionIndex].questions.length - 1;
+    } else {
+      // Already at the first question of the first section
+      return;
     }
+    this.currentGlobalQuestionIndex = this.getGlobalIndex(this.currentSectionIndex, this.currentQuestionInSectionIndex);
   }
+
+  // --- Helper methods for template and logic ---
+  getGlobalIndex(sectionIdx: number, questionInSectionIdx: number): number {
+    let globalIndex = 0;
+    for (let i = 0; i < sectionIdx; i++) {
+      globalIndex += this.sections[i].questions.length;
+    }
+    globalIndex += questionInSectionIdx;
+    return globalIndex;
+  }
+
+  getGlobalQuestionNumber(sectionIdx: number, questionInSectionIdx: number): number {
+    return this.getGlobalIndex(sectionIdx, questionInSectionIdx) + 1;
+  }
+
+  isCurrentQuestion(sectionIdx: number, questionInSectionIdx: number): boolean {
+    return this.currentSectionIndex === sectionIdx && this.currentQuestionInSectionIndex === questionInSectionIdx;
+  }
+  
+  // Used by the *ngIf in the template to show the current question form
+  isCurrentQuestionByIndex(globalIdx: number): boolean {
+    return this.currentGlobalQuestionIndex === globalIdx;
+  }
+
+  isQuestionFlagged(sectionIdx: number, questionInSectionIdx: number): boolean {
+    const globalIndex = this.getGlobalIndex(sectionIdx, questionInSectionIdx);
+    const formCtrl = this.responses.at(globalIndex);
+    return formCtrl ? formCtrl.get('review')!.value : false;
+  }
+
+  isFirstQuestionOverall(): boolean {
+    return this.currentSectionIndex === 0 && this.currentQuestionInSectionIndex === 0;
+  }
+
+  isLastQuestionOverall(): boolean {
+    if (!this.sections || this.sections.length === 0) return true; // Or false, depending on desired behavior for empty
+    const lastSectionIdx = this.sections.length - 1;
+    const lastQuestionInSectionIdx = this.sections[lastSectionIdx].questions.length - 1;
+    return this.currentSectionIndex === lastSectionIdx && this.currentQuestionInSectionIndex === lastQuestionInSectionIdx;
+  }
+  
+  // --- End Helper methods ---
 
   // Method to process sections and questions from the server
   // Backend now sends more detailed section info, so this might be simpler
@@ -363,15 +439,10 @@ export class ExamPlayerComponent implements OnInit {
 
   // Getter for the currently displayed question's content (based on currentQuestionIndex and currentLanguage)
   get currentQuestionDisplayData(): PlayerQuestion | undefined {
-    const formCtrl = this.responses.at(this.currentQuestionIndex);
-    if (formCtrl) {
-      const sectionIndex = formCtrl.value.sectionIndex;
-      const questionIndexInSection = formCtrl.value.questionIndex;
-      if (this.sections[sectionIndex]?.questions[questionIndexInSection]) {
-        // The question object itself now holds the displayable text/options
-        // which are updated by changeLanguage()
-        return this.sections[sectionIndex].questions[questionIndexInSection];
-      }
+    if (this.sections && 
+        this.sections[this.currentSectionIndex] &&
+        this.sections[this.currentSectionIndex].questions[this.currentQuestionInSectionIndex]) {
+      return this.sections[this.currentSectionIndex].questions[this.currentQuestionInSectionIndex];
     }
     return undefined;
   }
@@ -396,44 +467,82 @@ export class ExamPlayerComponent implements OnInit {
         let initialSelectedValue = '';
         if (savedResponse && savedResponse.selected && Array.isArray(savedResponse.selected) && savedResponse.selected.length > 0) {
           initialSelectedValue = savedResponse.selected[0]; 
+        } else if (savedResponse && savedResponse.selected && typeof savedResponse.selected === 'string') { // Handle if saved as string
+            initialSelectedValue = savedResponse.selected;
         }
 
         // Ensure the question ID logged here is the one from the current question `q` in the loop,
         // and the savedResponse is the one fetched by index.
-        console.log(`FE: buildFormAndTimer - Q_Display_Index: ${globalQuestionCounter}, Q_ID_from_Section: ${q.question} - Matched_SavedResp_by_Index: ${JSON.stringify(savedResponse)} - InitialSelectedValue: '${initialSelectedValue}'`);
+        console.log(`FE: buildFormAndTimer - GlobalIdx: ${globalQuestionCounter}, S:${sIdx}, Q_in_S:${qIdx}, Q_ID: ${q.question} - SavedResp: ${JSON.stringify(savedResponse)} - InitialSelected: '${initialSelectedValue}'`);
 
         const questionFormGroup = this.fb.group({
-          question:      [q.question],
-          selected:      [String(initialSelectedValue)], // Explicitly use String()
+          question:      [q.question], // Store question ID
+          selected:      [String(initialSelectedValue)], 
           review:        [savedResponse ? savedResponse.review || false : false],
-          sectionIndex:  [sIdx],
-          questionIndex: [qIdx]
+          // Storing section/question index in form can be useful for debugging or complex logic later,
+          // but primary navigation now uses component properties currentSectionIndex/currentQuestionInSectionIndex
+          _sectionIndexDebug:  [sIdx], // For debugging, not directly used by core logic
+          _questionIndexDebug: [qIdx]  // For debugging
         });
         responsesFormArray.push(questionFormGroup);
         globalQuestionCounter++; // Increment for the next question
       });
     });
 
-    // Log value of a specific control after loop
-    if (responsesFormArray.length > 0) {
-      const firstSelectedControl = responsesFormArray.at(0)?.get('selected');
-      console.log('FE: buildFormAndTimer - Value of first question\'s \'selected\' control after loop:', firstSelectedControl?.value, 'Type:', typeof firstSelectedControl?.value);
-      if (responsesFormArray.length > 1) {
-        const secondSelectedControl = responsesFormArray.at(1)?.get('selected');
-        console.log('FE: buildFormAndTimer - Value of second question\'s \'selected\' control after loop:', secondSelectedControl?.value, 'Type:', typeof secondSelectedControl?.value);
-      }
-      if (responsesFormArray.length > 2) {
-        const thirdSelectedControl = responsesFormArray.at(2)?.get('selected');
-        console.log('FE: buildFormAndTimer - Value of third question\'s \'selected\' control after loop:', thirdSelectedControl?.value, 'Type:', typeof thirdSelectedControl?.value);
-      }
-      if (responsesFormArray.length > 3) {
-        const fourthSelectedControl = responsesFormArray.at(3)?.get('selected');
-        console.log('FE: buildFormAndTimer - Value of fourth question\'s \'selected\' control after loop:', fourthSelectedControl?.value, 'Type:', typeof fourthSelectedControl?.value);
-      }
+    // Initialize current question display
+    if (this.savedResponses.length > 0 && this.sections.length > 0) {
+        let firstUnansweredGlobalIndex = -1;
+        for(let i=0; i < responsesFormArray.controls.length; i++) { 
+            const savedResp = (this.savedResponses && i < this.savedResponses.length) ? this.savedResponses[i] : undefined;
+            if (!savedResp || !savedResp.selected || 
+                (Array.isArray(savedResp.selected) && savedResp.selected.length > 0 && savedResp.selected[0] === '') ||
+                (typeof savedResp.selected === 'string' && savedResp.selected === '')
+            ) { 
+                firstUnansweredGlobalIndex = i;
+                break;
+            }
+        }
+        
+        if (firstUnansweredGlobalIndex !== -1) {
+            this.currentGlobalQuestionIndex = firstUnansweredGlobalIndex;
+        } else {
+            this.currentGlobalQuestionIndex = 0; // Default to first question if all answered or no saved responses
+        }
+
+        // Convert global index back to section and question-in-section index
+        let qCount = 0;
+        let found = false;
+        for (let sIdx = 0; sIdx < this.sections.length; sIdx++) {
+            for (let qIdx = 0; qIdx < this.sections[sIdx].questions.length; qIdx++) {
+                if (qCount === this.currentGlobalQuestionIndex) {
+                    this.currentSectionIndex = sIdx;
+                    this.currentQuestionInSectionIndex = qIdx;
+                    found = true;
+                    break;
+                }
+                qCount++;
+            }
+            if (found) break;
+        }
+        if (!found && this.sections.length > 0 && this.sections[0].questions.length > 0) { // Fallback if something went wrong
+            this.currentSectionIndex = 0;
+            this.currentQuestionInSectionIndex = 0;
+            this.currentGlobalQuestionIndex = 0;
+        }
+
+    } else if (this.sections.length > 0 && this.sections[0].questions.length > 0) {
+        this.currentSectionIndex = 0;
+        this.currentQuestionInSectionIndex = 0;
+        this.currentGlobalQuestionIndex = 0;
+    } else {
+        // No sections or questions, set to defaults that won't cause errors
+        this.currentSectionIndex = 0;
+        this.currentQuestionInSectionIndex = 0;
+        this.currentGlobalQuestionIndex = 0;
     }
 
-    // Force change detection
-    this.cd.detectChanges(); // <--- ADD THIS
+    console.log('Form built. Initial S:', this.currentSectionIndex, 'Q_in_S:', this.currentQuestionInSectionIndex, 'GlobalQ:', this.currentGlobalQuestionIndex);
+    this.cd.detectChanges();
 
     // Timer initialization (this.timeLeft should already be in seconds)
     if (this.timerHandle) {
@@ -450,23 +559,6 @@ export class ExamPlayerComponent implements OnInit {
         this.submit(); 
       }
     }, 1000);
-
-    // Determine initial currentQuestionIndex
-    // If resuming, try to find the first unanswered question or default to 0
-    if (this.savedResponses.length > 0) {
-        let firstUnanswered = -1;
-        for(let i=0; i < responsesFormArray.controls.length; i++) { 
-            const savedResp = (this.savedResponses && i < this.savedResponses.length) ? this.savedResponses[i] : undefined;
-            if (!savedResp || !savedResp.selected || (Array.isArray(savedResp.selected) && savedResp.selected.length > 0 && savedResp.selected[0] === '')) { 
-                firstUnanswered = i;
-                break;
-            }
-        }
-        this.currentQuestionIndex = firstUnanswered !== -1 ? firstUnanswered : 0;
-    } else {
-        this.currentQuestionIndex = 0;
-    }
-    console.log('Form built. Initial currentQuestionIndex:', this.currentQuestionIndex);
   }
 
   /**
@@ -479,8 +571,14 @@ export class ExamPlayerComponent implements OnInit {
     }
     console.log('Manual save initiated. TimeLeft:', this.timeLeft);
     // Include timeLeft when saving progress
+    const progressResponses = this.responses.controls.map(ctrl => ({
+        question: ctrl.get('question')!.value,
+        selected: ctrl.get('selected')!.value !== '' ? [Number(ctrl.get('selected')!.value)] : [], // Ensure it's an array, even if empty or single
+        review: ctrl.get('review')!.value
+    }));
+
     this.testSvc
-      .saveProgress(this.attemptId, { responses: this.form.value.responses, timeLeft: this.timeLeft })
+      .saveProgress(this.attemptId, { responses: progressResponses, timeLeft: this.timeLeft })
       .subscribe({
         next: () => alert('✔️ Progress saved'),
         error: err => {

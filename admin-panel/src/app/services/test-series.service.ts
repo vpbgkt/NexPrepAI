@@ -16,6 +16,7 @@ export interface TestSeries {
   startAt:     Date | null;
   endAt:       Date | null;
   family:      string; // ObjectId reference
+  randomizeSectionOrder?: boolean; // ADDED
   sections?:   Array<{
     title: string;
     order: number;
@@ -24,7 +25,25 @@ export interface TestSeries {
       marks: number;
       negativeMarks: number;
     }>;
+    questionPool?: string[]; // ADDED - Array of Question ObjectIds
+    questionsToSelectFromPool?: number; // ADDED
+    randomizeQuestionOrderInSection?: boolean; // ADDED
   }>;
+  variants?: Array<{
+    code: string;
+    sections: Array<{
+      title: string;
+      order: number;
+      questions: Array<{
+        question: string; // ObjectId reference
+        marks: number;
+        negativeMarks: number;
+      }>;
+      questionPool?: string[]; // ADDED
+      questionsToSelectFromPool?: number; // ADDED
+      randomizeQuestionOrderInSection?: boolean; // ADDED
+    }>;
+  }>; // Assuming variants can also have these new section properties
 }
 
 @Injectable({ providedIn: 'root' })

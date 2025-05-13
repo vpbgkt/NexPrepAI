@@ -27,94 +27,95 @@
   </div>
   <!-- End Language Switcher -->
 
-  <aside class="sidebar">
-    <ul>
-      <li
-        *ngFor="let ctrl of responses.controls; let idx = index"
-        (click)="goToQuestion(idx)"
-        [class.current]="idx === currentQuestionIndex"
-        [class.flagged]="ctrl.value.review"
-      >
-        Q{{ idx + 1 }}
-      </li>
-    </ul>
-  </aside>
-
-  <p>Time left: {{ formatTime(timeLeft) }}</p>
-
-  <!-- Manual save button -->
-  <button (click)="manualSave()" [disabled]="!attemptId">
-    Save Progress
-  </button>
-
-  <form [formGroup]="form" (ngSubmit)="submit()">
-    <div formArrayName="responses">
-      <ng-container *ngFor="let ctrl of responses.controls; let i = index">
-        <div *ngIf="i === currentQuestionIndex && currentQuestionDisplayData" [formGroupName]="i">
-          <!-- question markup -->
-          <p>
-            Q{{ i + 1 }}:
-            {{ currentQuestionDisplayData.displayQuestionText }}
-          </p>
-
-          <!-- UPDATED: Display Question History -->
-          <div *ngIf="currentQuestionDisplayData.questionHistory && currentQuestionDisplayData.questionHistory.length > 0" class="question-history-display" style="font-size: 0.9em; color: #555; margin-bottom: 10px;">
-            <span *ngFor="let historyItem of currentQuestionDisplayData.questionHistory; let isLast = last">
-              [{{ historyItem.title }} ({{ historyItem.askedAt | date:'yyyy' }})]<span *ngIf="!isLast">, </span>
-            </span>
-          </div>
-          <!-- End Question History -->
-          
-          <!-- Display images if any for the current translation -->
-          <div *ngIf="currentQuestionDisplayData.displayOptions && currentQuestionDisplayData.translations">
-            <ng-container *ngFor="let translation of currentQuestionDisplayData.translations">
-              <div *ngIf="translation.lang === currentLanguage">
-                <!-- Check if images array exists and has content -->
-                <ng-container *ngIf="translation.images && translation.images.length > 0">
-                  <div *ngFor="let imageUrl of translation.images">
-                    <!-- Check if imageUrl itself is a non-empty string before rendering the img tag -->
-                    <img *ngIf="imageUrl" [src]="imageUrl" alt="Question Image" style="max-width: 100%; height: auto; margin-bottom: 10px;">
-                  </div>
-                </ng-container>
-              </div>
-            </ng-container>
-          </div>
-
-          <!-- Options -->
-          <div
-            *ngFor="let opt of currentQuestionDisplayData.displayOptions; let oi = index"
+  <div *ngIf="attemptId && sections.length > 0">
+    <aside class="sidebar">
+      <!-- New Sectioned Palette -->
+      <ng-container *ngFor="let section of sections; let sectionIdx = index">
+        <div class="section-title">{{ section.title }} (Order: {{section.order}})</div>
+        <ul>
+          <li
+            *ngFor="let question of section.questions; let questionInSectionIdx = index"
+            (click)="goToQuestion(sectionIdx, questionInSectionIdx)"
+            [class.current]="isCurrentQuestion(sectionIdx, questionInSectionIdx)"
+            [class.flagged]="isQuestionFlagged(sectionIdx, questionInSectionIdx)"
           >
-            <label>
-              <input
-                type="radio" 
-                formControlName="selected" 
-                [value]="oi.toString()" 
-              />
-              {{ opt.text }}
-              <!-- Display option image if any -->
-              <img *ngIf="opt.img" [src]="opt.img" alt="Option Image" style="max-width: 200px; height: auto; margin-left: 10px;">
-            </label>
-          </div>
-
-          <label>
-            <input type="checkbox" formControlName="review" />
-            Mark for review
-          </label>
-
-          <button type="button" (click)="prev()" [disabled]="currentQuestionIndex===0">
-            Prev
-          </button>
-          <button type="button" (click)="next()" [disabled]="currentQuestionIndex===responses.length-1">
-            Next
-          </button>
-
-          <!-- only on last question show Submit -->
-          <button
-            *ngIf="currentQuestionIndex === responses.length-1"
-            type="submit"
-          >Submit Exam</button>
-        </div>
+            Q{{ getGlobalQuestionNumber(sectionIdx, questionInSectionIdx) }}
+          </li>
+        </ul>
       </ng-container>
-    </div>
-  </form>
+    </aside>
+
+    <p>Time left: {{ formatTime(timeLeft) }}</p>
+    <button (click)="manualSave()" [disabled]="!attemptId">Save Progress</button>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div formArrayName="responses">
+        <!-- The ngFor for responses.controls might need to stay as is,
+             but the *ngIf condition to display a question will change based on
+             currentSectionIndex and currentQuestionInSectionIndex -->
+        <ng-container *ngFor="let ctrl of responses.controls; let globalIdx = index">
+          <div *ngIf="isCurrentQuestionByIndex(globalIdx) && currentQuestionDisplayData" [formGroupName]="globalIdx">
+            <!-- question markup -->
+            <p>
+              <!-- Display global question number -->
+              Q{{ getGlobalQuestionNumber(currentSectionIndex, currentQuestionInSectionIndex) }}:
+              {{ currentQuestionDisplayData.displayQuestionText }}
+            </p>
+
+            <!-- ... (rest of the question display: history, images, options, review checkbox) ... -->
+            <!-- Note: The existing structure for displaying question details, images, options, etc.,
+                 can largely remain the same as currentQuestionDisplayData will provide the correct data.
+                 The key is that currentQuestionDisplayData itself is correctly populated. -->
+
+            <div *ngIf="currentQuestionDisplayData.questionHistory && currentQuestionDisplayData.questionHistory.length > 0" class="question-history-display" style="font-size: 0.9em; color: #555; margin-bottom: 10px;">
+              <span *ngFor="let historyItem of currentQuestionDisplayData.questionHistory; let isLast = last">
+                [{{ historyItem.title }} ({{ historyItem.askedAt | date:'yyyy' }})]<span *ngIf="!isLast">, </span>
+              </span>
+            </div>
+            
+            <div *ngIf="currentQuestionDisplayData.displayOptions && currentQuestionDisplayData.translations">
+              <ng-container *ngFor="let translation of currentQuestionDisplayData.translations">
+                <div *ngIf="translation.lang === currentLanguage">
+                  <ng-container *ngIf="translation.images && translation.images.length > 0">
+                    <div *ngFor="let imageUrl of translation.images">
+                      <img *ngIf="imageUrl" [src]="imageUrl" alt="Question Image" style="max-width: 100%; height: auto; margin-bottom: 10px;">
+                    </div>
+                  </ng-container>
+                </div>
+              </ng-container>
+            </div>
+
+            <div *ngFor="let opt of currentQuestionDisplayData.displayOptions; let oi = index">
+              <label>
+                <input
+                  type="radio" 
+                  formControlName="selected" 
+                  [value]="oi.toString()" 
+                />
+                {{ opt.text }}
+                <img *ngIf="opt.img" [src]="opt.img" alt="Option Image" style="max-width: 200px; height: auto; margin-left: 10px;">
+              </label>
+            </div>
+
+            <label>
+              <input type="checkbox" formControlName="review" />
+              Mark for review
+            </label>
+            <!-- Navigation buttons will need to be updated in the .ts file -->
+            <button type="button" (click)="prev()" [disabled]="isFirstQuestionOverall()">
+              Prev
+            </button>
+            <button type="button" (click)="next()" [disabled]="isLastQuestionOverall()">
+              Next
+            </button>
+
+            <button
+              *ngIf="isLastQuestionOverall()"
+              type="submit"
+            >Submit Exam</button>
+          </div>
+        </ng-container>
+      </div>
+    </form>
+  </div>
 </div>

@@ -1,8 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core'; // MODIFIED: Added OnDestroy
-import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule, FormsModule, AbstractControl } from '@angular/forms'; // MODIFIED: Added AbstractControl
 import { CommonModule } from '@angular/common';
-import { Subject, Subscription } from 'rxjs'; // ADDED: Subject, Subscription
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators'; // ADDED: debounceTime, distinctUntilChanged
+import { Subject, Subscription, combineLatest, merge } from 'rxjs'; // MODIFIED: Added combineLatest, merge
+import { debounceTime, distinctUntilChanged, map, startWith } from 'rxjs/operators'; // MODIFIED: Added map, startWith
 
 import { TestSeriesService, TestSeries } from '../../services/test-series.service';
 import { QuestionService } from '../../services/question.service';
@@ -55,6 +55,7 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
 
   private searchDebouncers: Subject<string>[] = []; // MODIFIED: Changed Subject<number> to Subject<string>
   private searchSubscriptions: Subscription[] = [];
+  private sectionInteractionSubscriptions: Subscription[] = []; // ADDED
 
   constructor(
     private fb: FormBuilder,
@@ -84,7 +85,8 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     this.seriesForm = this.fb.group({
       title:     ['', Validators.required],
       duration:  [60, Validators.required],
-      type:      ['practice', Validators.required],
+      type:      ['Practice_Exam', Validators.required], // MODIFIED: Aligned with backend enum and set a default
+      mode:      ['practice', Validators.required], // ADDED: Mode selection
       maxAttempts: [5, [Validators.required, Validators.min(1)]], // ★ ADD
       year:      [this.currentYear, Validators.required],
       startAt:   [null],
@@ -93,6 +95,7 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
       stream:    ['', Validators.required],
       paper:     ['', Validators.required],
       shift:     ['', Validators.required],
+      randomizeSectionOrder: [false], // ADDED: For randomizing section order
       sections:  this.fb.array([])
     });
 
@@ -164,7 +167,8 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     this.qService.getAll().subscribe(q => this.questionsList = q);
 
     // Debounce search input
-    this.sections.controls.forEach((_, index) => this.setupSearchDebouncer(index));
+    // MODIFIED: setupSearchDebouncer and setupSectionInteractionLogic will be called in addSection
+    // this.sections.controls.forEach((_, index) => this.setupSearchDebouncer(index));
   }
 
   ngOnDestroy(): void {
@@ -177,6 +181,11 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
       if (debouncer) debouncer.complete();
     });
     this.searchDebouncers = []; // Clear the array
+
+    this.sectionInteractionSubscriptions.forEach(sub => { // ADDED: Cleanup for interaction subscriptions
+      if (sub) sub.unsubscribe();
+    });
+    this.sectionInteractionSubscriptions = [];
   }
 
   private setupSearchDebouncer(secIndex: number): void {
@@ -198,31 +207,118 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     });
   }
 
+  private setupSectionInteractionLogic(secIndex: number): void {
+    const sectionGroup = this.sections.at(secIndex) as FormGroup;
+    const poolCtrl = sectionGroup.get('questionPool')!;
+    const numToSelectCtrl = sectionGroup.get('questionsToSelectFromPool')!;
+    const manualQuestionsArr = sectionGroup.get('questions') as FormArray;
+
+    const interactionSub = new Subscription();
+    this.sectionInteractionSubscriptions[secIndex] = interactionSub;
+
+    // Monitor pool controls
+    const poolActivity$ = combineLatest([
+      poolCtrl.valueChanges.pipe(startWith(poolCtrl.value)),
+      numToSelectCtrl.valueChanges.pipe(startWith(numToSelectCtrl.value))
+    ]).pipe(
+      map(([poolVal, numVal]) => (typeof poolVal === 'string' && poolVal.trim() !== '') || (typeof numVal === 'number' && numVal > 0))
+    );
+
+    interactionSub.add(poolActivity$.subscribe(isPoolActive => {
+      if (isPoolActive) {
+        if (manualQuestionsArr.enabled) {
+          // console.log(`Section ${secIndex}: Pool active, disabling manual questions.`);
+          while (manualQuestionsArr.length > 0) {
+            manualQuestionsArr.removeAt(0, { emitEvent: false });
+          }
+          manualQuestionsArr.disable({ emitEvent: false });
+        }
+      } else {
+        // Pool is not active, ensure manual questions array is enabled
+        // This case is tricky because manualQuestionsArr.valueChanges will also fire.
+        // The enabling of manualQuestionsArr should happen if pool becomes inactive AND manual questions are not driving the state.
+        // This is covered by the manualQuestionsArr.valueChanges subscription.
+        if (manualQuestionsArr.disabled && manualQuestionsArr.length === 0) { // Only enable if truly nothing is driving manual mode
+            // console.log(`Section ${secIndex}: Pool inactive, enabling manual questions array.`);
+            manualQuestionsArr.enable({ emitEvent: false });
+        }
+      }
+    }));
+
+    // Monitor manual questions array (length)
+    interactionSub.add(manualQuestionsArr.valueChanges.pipe(
+      startWith(manualQuestionsArr.value), // Check initial state
+      map(questions => questions.length > 0)
+    ).subscribe(isManualActive => {
+      if (isManualActive) {
+        if (poolCtrl.enabled || numToSelectCtrl.enabled) {
+          // console.log(`Section ${secIndex}: Manual questions active, disabling pool controls.`);
+          poolCtrl.setValue('', { emitEvent: false });
+          numToSelectCtrl.setValue(0, { emitEvent: false });
+          poolCtrl.disable({ emitEvent: false });
+          numToSelectCtrl.disable({ emitEvent: false });
+        }
+      } else {
+        // No manual questions, ensure pool controls are enabled
+        // This case is tricky because poolActivity$ will also fire.
+        // The enabling of pool controls should happen if manual becomes inactive AND pool is not driving the state.
+        if (poolCtrl.disabled && poolCtrl.value.trim() === '' && numToSelectCtrl.disabled && numToSelectCtrl.value === 0) {
+            // console.log(`Section ${secIndex}: Manual questions inactive, enabling pool controls.`);
+            poolCtrl.enable({ emitEvent: false });
+            numToSelectCtrl.enable({ emitEvent: false });
+        }
+      }
+    }));
+
+    // Initial state check to ensure consistency if form is pre-filled or reset
+    // This logic might be redundant if startWith in subscriptions handles all initial cases.
+    const initialPoolActive = (typeof poolCtrl.value === 'string' && poolCtrl.value.trim() !== '') || (typeof numToSelectCtrl.value === 'number' && numToSelectCtrl.value > 0);
+    const initialManualActive = manualQuestionsArr.length > 0;
+
+    if (initialPoolActive && !initialManualActive) {
+        manualQuestionsArr.disable({ emitEvent: false });
+    } else if (initialManualActive && !initialPoolActive) {
+        poolCtrl.disable({ emitEvent: false });
+        numToSelectCtrl.disable({ emitEvent: false });
+    } else if (initialPoolActive && initialManualActive) {
+        // Conflict: prioritize pool, clear manual (or vice-versa based on desired default)
+        // console.warn(`Section ${secIndex}: Conflict in initial state. Prioritizing pool.`);
+        while (manualQuestionsArr.length > 0) {
+            manualQuestionsArr.removeAt(0, { emitEvent: false });
+        }
+        manualQuestionsArr.disable({ emitEvent: false });
+        poolCtrl.enable({ emitEvent: false }); // Ensure pool controls are enabled
+        numToSelectCtrl.enable({ emitEvent: false });
+    } else { // Neither active, ensure both are enabled
+        manualQuestionsArr.enable({ emitEvent: false });
+        poolCtrl.enable({ emitEvent: false });
+        numToSelectCtrl.enable({ emitEvent: false });
+    }
+  }
+
   get sections(): FormArray {
     return this.seriesForm.get('sections') as FormArray;
   }
 
   addSection() {
-    const newIndex = this.sections.length;
-    this.sections.push(this.fb.group({
+    const sectionForm = this.fb.group({
       title: ['', Validators.required],
-      order: [newIndex + 1, Validators.required],
-      questions: this.fb.array([])
-    }));
-    this.sectionSearchTerms.push('');
-    this.sectionSearchResults.push([]);
-    this.previewedQuestions.push([]);
-    
-    // Ensure arrays are ready for the new index before calling setupSearchDebouncer
-    // which will assign to this.searchDebouncers[newIndex] and this.searchSubscriptions[newIndex]
-    // If setupSearchDebouncer is called for an index not yet "prepared" in these arrays,
-    // it might lead to issues if not handled carefully inside setupSearchDebouncer or here.
-    // However, setupSearchDebouncer itself assigns new Subject/Subscription, so direct push isn't strictly needed here
-    // if setupSearchDebouncer is robust. For safety, we can ensure the arrays are extended.
-    this.searchDebouncers.length = Math.max(this.searchDebouncers.length, newIndex + 1);
-    this.searchSubscriptions.length = Math.max(this.searchSubscriptions.length, newIndex + 1);
+      order: [this.sections.length + 1, Validators.required],
+      questions: this.fb.array([]),
+      questionPool: [''], // Initialize as empty string or appropriate default
+      questionsToSelectFromPool: [0, Validators.min(0)], 
+      defaultMarksForPooledQuestion: [1, Validators.min(0)], // ADDED
+      defaultNegativeMarksForPooledQuestion: [0, Validators.min(0)], // ADDED
+      randomizeQuestionOrderInSection: [false]
+    });
 
-    this.setupSearchDebouncer(newIndex); // Setup debouncer for the new section
+    this.sections.push(sectionForm);
+    const newIndex = this.sections.length - 1;
+    this.previewedQuestions[newIndex] = [];
+    this.sectionSearchTerms[newIndex] = '';
+    this.sectionSearchResults[newIndex] = [];
+    this.setupSearchDebouncer(newIndex);
+    this.setupSectionInteractionLogic(newIndex); // ADDED: Call to setup interaction logic for the new section
   }
 
   removeSection(i: number) {
@@ -239,6 +335,11 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
       this.searchDebouncers[i].complete();
     }
     this.searchDebouncers.splice(i, 1); // Remove from array
+
+    if (this.sectionInteractionSubscriptions[i]) { // ADDED: Cleanup for interaction subscription
+      this.sectionInteractionSubscriptions[i].unsubscribe();
+    }
+    this.sectionInteractionSubscriptions.splice(i, 1);
   }
 
   getQuestions(secIndex: number): FormArray {
@@ -246,6 +347,12 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
   }
 
   addQuestion(secIndex: number) {
+    const sectionGroup = this.sections.at(secIndex) as FormGroup;
+    if (sectionGroup.get('questions')?.disabled) {
+      // console.log(`Section ${secIndex}: Cannot add manual question, pool mode is active or manual questions disabled.`);
+      alert('Cannot add manual question when question pool is active or manual entry is disabled for this section.');
+      return;
+    }
     const qArray = this.getQuestions(secIndex);
     const newIndex = qArray.length;
     qArray.push(this.fb.group({
@@ -272,6 +379,12 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
   }
 
   importCsv(event: Event, secIndex: number) {
+    const sectionGroup = this.sections.at(secIndex) as FormGroup;
+    if (sectionGroup.get('questions')?.disabled) {
+      // console.log(`Section ${secIndex}: Cannot import CSV, pool mode is active or manual questions disabled.`);
+      alert('Cannot import CSV when question pool is active or manual entry is disabled for this section.');
+      return;
+    }
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -312,7 +425,28 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
   }
 
   onSubmit() {
-    this.tsService.create(this.seriesForm.value as Partial<TestSeries>)
+    const formValue = this.seriesForm.getRawValue();
+
+    if (formValue.sections) {
+      formValue.sections.forEach((section: any) => {
+        // Ensure questionPool is an array of strings
+        if (typeof section.questionPool === 'string') {
+          section.questionPool = section.questionPool.split(',')
+            .map((id: string) => id.trim())
+            .filter((id: string) => id && id.length > 0); // Ensure IDs are valid (e.g., 24 char hex for MongoDB ObjectId)
+        } else if (section.questionPool === null || section.questionPool === undefined) {
+          section.questionPool = [];
+        }
+
+        // Backend should prioritize pool if questionsToSelectFromPool > 0
+        // If manual questions were used, questionPool would be [], questionsToSelectFromPool = 0
+        // If pool questions were used, questions array would be []
+        // This component's logic ensures this exclusivity based on enabled/disabled state.
+        // No specific clearing needed here if getRawValue() respects disabled state values correctly.
+      });
+    }
+
+    this.tsService.create(formValue as Partial<TestSeries>)
       .subscribe(
         (res: any) => { alert('Test Series created!'); },
         (err: any) => { alert('Creation failed: ' + err.message); }
@@ -380,11 +514,21 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
 
   // Called from the template on search input change
   onSearchInputChanged(secIndex: number): void {
-    // The [(ngModel)]="sectionSearchTerms[i]" already updates the term
+    const sectionGroup = this.sections.at(secIndex) as FormGroup;
+    if (sectionGroup.get('questions')?.disabled) {
+      // console.log(`Section ${secIndex}: Search disabled, pool mode is active.`);
+      return; // Don't search if manual questions are disabled
+    }
     this.searchDebouncers[secIndex].next(this.sectionSearchTerms[secIndex]);
   }
 
   addQuestionFromSearchResults(secIndex: number, questionToAdd: Question) {
+    const sectionGroup = this.sections.at(secIndex) as FormGroup;
+    if (sectionGroup.get('questions')?.disabled) {
+      // console.log(`Section ${secIndex}: Cannot add from search results, pool mode is active.`);
+      alert('Cannot add question from search results when question pool is active or manual entry is disabled for this section.');
+      return;
+    }
     const questionsArray = this.getQuestions(secIndex);
     const newIndex = questionsArray.length;
 

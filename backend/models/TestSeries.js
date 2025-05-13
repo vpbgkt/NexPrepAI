@@ -33,7 +33,13 @@ const sectionSchema = new Schema({
       marks: { type: Number, required: true },
       negativeMarks: { type: Number, default: 0 } // null → use series default
     }
-  ]
+  ],
+  questionPool: [{ // Pool of question IDs for this section
+    type: Schema.Types.ObjectId,
+    ref: 'Question'
+  }],
+  questionsToSelectFromPool: { type: Number, default: 0 }, // How many questions to randomly pick from questionPool
+  randomizeQuestionOrderInSection: { type: Boolean, default: false } // Whether to randomize question order within this section
 }, { _id: false });
 
 const variantSchema = new Schema({
@@ -54,6 +60,7 @@ const testSeriesSchema = new Schema({
   sections:     [ sectionSchema ],
 
   variants:     [ variantSchema ],       // ← new multi‑form support
+  randomizeSectionOrder: { type: Boolean, default: false }, // Whether to randomize the order of sections
 
   maxAttempts: { type: Number, default: 1 },
   mode: {
@@ -67,7 +74,7 @@ const testSeriesSchema = new Schema({
   endAt: {
     type: Date
   },
-  type: { type: String, enum: ['official', 'practice', 'live'], required: true },
+  type: { type: String, enum: ['Real_Exam', 'Practice_Exam', 'Live_Exam', 'Quiz_Exam'], required: true },
   family: {
     type: Schema.Types.ObjectId,
     ref: 'ExamFamily',

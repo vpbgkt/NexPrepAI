@@ -5,16 +5,22 @@
 <div *ngIf="loading">Loading review data...</div>
 <div *ngIf="error">{{ error }}</div>
 
-<div *ngIf="!loading && !error && attempt">
+<div *ngIf="!loading && !error && attempt && displayedSections.length > 0">
   <h2>Review: {{ attempt.series?.title || 'Test Series' }}</h2>
-  <div *ngFor="let r of attempt.responses; let idx = index">
-    <h3>Q{{ idx + 1 }}: {{ r.questionData?.questionText || 'Question text not available' }}</h3>
-    <p>Your answer:   {{ getAnswerText(r) }}</p>
-    <p>Correct answer: {{ getCorrectText(r) }}</p>
-    <hr />
-  </div>
+  
+  <ng-container *ngFor="let section of displayedSections; let sectionIdx = index">
+    <h3 class="mt-4 mb-3">{{ section.title }}</h3>
+    <div *ngFor="let r of section.responses; let questionInSectionIdx = index">
+      <h4>Q{{ getGlobalQuestionNumberForReview(sectionIdx, questionInSectionIdx) }}: {{ r.questionData?.questionText || 'Question text not available' }}</h4>
+      <p>Your answer:   {{ getAnswerText(r) }}</p>
+      <p>Correct answer: {{ getCorrectText(r) }}</p>
+      <p>Marks Earned: {{ r.earned }} / {{r.questionData?.marks}}</p>
+      <hr />
+    </div>
+  </ng-container>
+
 </div>
 
-<div *ngIf="!loading && !error && !attempt">
-  No attempt data found.
+<div *ngIf="!loading && !error && (!attempt || displayedSections.length === 0)">
+  No attempt data or sections found for review.
 </div>

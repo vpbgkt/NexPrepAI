@@ -9,13 +9,23 @@
   <label>Duration (min)</label>
   <input formControlName="duration" type="number" />
 
-  <!-- Added inputs for paper-level metadata -->
+  <!-- Type -->
   <label>Type</label>
   <select formControlName="type">
-    <option value="official">Official</option>
-    <option value="practice">Practice</option>
-    <option value="live">Live</option>
+    <option value="Real_Exam">Real Exam</option>
+    <option value="Practice_Exam">Practice Exam</option>
+    <option value="Live_Exam">Live Exam</option>
+    <option value="Quiz_Exam">Quiz Exam</option>
   </select>
+
+  <!-- Mode -->
+  <div>
+    <label for="mode">Mode:</label>
+    <select id="mode" formControlName="mode">
+      <option value="practice">Practice</option>
+      <option value="live">Live</option>
+    </select>
+  </div>
 
   <label>Max Attempts</label>
   <input
@@ -33,6 +43,11 @@
 
   <label>End At</label>
   <input formControlName="endAt" type="datetime-local" />
+
+  <div>
+    <label for="randomizeSectionOrder">Randomize Section Order:</label>
+    <input type="checkbox" id="randomizeSectionOrder" formControlName="randomizeSectionOrder">
+  </div>
 
   <!-- Family -->
   <select #familySelect formControlName="family" (change)="onFamilyChange(familySelect.value)">
@@ -78,6 +93,33 @@
       <input formControlName="title" type="text" />
       <label>Order</label>
       <input formControlName="order" type="number" />
+
+      <div>
+        <label for="randomizeQuestionOrderInSection-{{i}}">Randomize Question Order in Section:</label>
+        <input type="checkbox" id="randomizeQuestionOrderInSection-{{i}}" formControlName="randomizeQuestionOrderInSection">
+      </div>
+
+      <div>
+        <label for="questionsToSelectFromPool-{{i}}">Number of Questions to Select from Pool:</label>
+        <input type="number" id="questionsToSelectFromPool-{{i}}" formControlName="questionsToSelectFromPool" min="0">
+      </div>
+
+      <div>
+        <label for="questionPool-{{i}}">Question Pool (comma-separated IDs):</label>
+        <textarea id="questionPool-{{i}}" formControlName="questionPool" rows="3" placeholder="Enter question IDs, separated by commas"></textarea>
+      </div>
+
+      <!-- ADDED: Inputs for default marks for pooled questions -->
+      <div *ngIf="secCtrl.get('questionsToSelectFromPool')?.value > 0">
+        <label for="defaultMarksForPooledQuestion-{{i}}">Default Marks for Pooled Questions:</label>
+        <input type="number" id="defaultMarksForPooledQuestion-{{i}}" formControlName="defaultMarksForPooledQuestion" min="0">
+      </div>
+
+      <div *ngIf="secCtrl.get('questionsToSelectFromPool')?.value > 0">
+        <label for="defaultNegativeMarksForPooledQuestion-{{i}}">Default Negative Marks for Pooled Questions:</label>
+        <input type="number" id="defaultNegativeMarksForPooledQuestion-{{i}}" formControlName="defaultNegativeMarksForPooledQuestion" min="0" step="0.25">
+      </div>
+      <!-- End of ADDED section -->
 
       <!-- Question selection -->
       <div formArrayName="questions">
