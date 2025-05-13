@@ -53,10 +53,13 @@ exports.addQuestion = async (req, res) => {
       difficulty             = 'Not-mentioned',
       type:  qType           = 'single',    // single | multiple | integer | matrix
       branchId, subjectId, topicId, subtopicId,
-      images                 = [],          // language-neutral images
       options                = [],          // *deprecated* flat options
       correctOptions         = [],          // *deprecated* flat answers
-      questionHistory        = []           // [{examName,year}, …]
+      questionHistory        = [],           // [{examName,year}, …]
+      status,
+      tags,
+      recommendedTimeAllotment,
+      internalNotes
     } = req.body;
 
     /* ---------- 2. basic ENUM validations ----------------------- */
@@ -80,10 +83,12 @@ exports.addQuestion = async (req, res) => {
       }
     } else {
       // legacy flat payload → wrap as English
+      // This block is also entered if req.body.translations is an array,
+      // as array.en is undefined.
       finalTranslationsArr = [{
         lang: 'en',
         questionText : req.body.questionText || '',
-        images       : images,
+        images       : [], // CORRECTED: Was 'images', which is undefined. Default to empty array.
         options      : options.map(o =>
           typeof o === 'string'
             ? { text:o, img:'', isCorrect:false }
@@ -116,7 +121,7 @@ exports.addQuestion = async (req, res) => {
         lang: detectedLang,
         ...p,
         // Make sure images are included in each translation
-        images: p.images || images || []
+        images: p.images || []
       };
     });
 
@@ -177,8 +182,12 @@ exports.addQuestion = async (req, res) => {
       branch, subject, topic, subTopic,
       type        : qType,
       difficulty  : diff,
-      images,
       translations: trArr,
+
+      status: status || 'draft', // Provide a default if not sent
+      tags: tags || [],
+      recommendedTimeAllotment,
+      internalNotes,
 
       questionText  : trArr[0].questionText,
       options       : trArr[0].options,
