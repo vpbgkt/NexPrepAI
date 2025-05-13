@@ -32,19 +32,12 @@ exports.startTest = async (req, res) => {
     });
 
     if (existingInProgressAttempts.length > 0) {
-      console.log(`Found ${existingInProgressAttempts.length} existing in-progress attempts. Marking as aborted.`);
       for (const oldAttempt of existingInProgressAttempts) {
         oldAttempt.status = 'aborted';
         oldAttempt.remainingDurationSeconds = 0; // Or whatever is appropriate for aborted
         await oldAttempt.save();
-        console.log(`Marked attempt ${oldAttempt._id} as aborted.`);
       }
     }
-
-    console.log('🕒 Checking mode:', series.mode);
-    console.log('🕒 startAt:', series.startAt);
-    console.log('🕒 endAt:', series.endAt);
-    console.log('🕒 now:', new Date());
 
     if (series.mode?.toLowerCase() === 'live') {
       const now = new Date();
@@ -172,8 +165,6 @@ exports.startTest = async (req, res) => {
       }))
     );
     
-    console.log('Backend startTest: detailedSectionsForAttempt before save:', JSON.stringify(detailedSectionsForAttempt, null, 2)); // <--- ADD THIS LOG
-
     const startedAt = new Date();
     let expiresAt = null;
     let remainingDurationSeconds = null;
@@ -197,8 +188,6 @@ exports.startTest = async (req, res) => {
       remainingDurationSeconds
     });
     await attempt.save();
-
-    console.log('🚀 Test started, attempt created:', attempt._id);
 
     return res.status(201).json({
       attemptId: attempt._id.toString(),
@@ -328,8 +317,6 @@ exports.submitAttempt = async (req, res) => {
     attempt.remainingDurationSeconds = 0;
     await attempt.save();
 
-    console.log('✅ Test submitted and graded for attemptId:', attemptId);
-
     return res.status(200).json({
       score: totalScore,
       maxScore: maxScore,
@@ -374,10 +361,6 @@ exports.saveProgress = async (req, res) => {
     const { attemptId } = req.params;
     const { responses, timeLeft } = req.body; 
 
-    console.log(`Backend saveProgress: Received for attemptId: ${attemptId}`);
-    console.log('Backend saveProgress: Received responses payload:', responses ? responses.length : 'No responses'); // Log count or indicate if null/undefined
-    console.log(`Backend saveProgress: Received timeLeft from frontend: ${timeLeft}`);
-
     const attempt = await TestAttempt.findById(attemptId);
     if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
 
@@ -389,17 +372,11 @@ exports.saveProgress = async (req, res) => {
     attempt.lastSavedAt = new Date();
     if (timeLeft !== undefined) {
       attempt.remainingDurationSeconds = timeLeft;
-      console.log(`Backend saveProgress: Updated attempt.remainingDurationSeconds to: ${timeLeft}`);
-    } else {
-      console.log('Backend saveProgress: timeLeft was undefined, remainingDurationSeconds not updated.');
     }
     
     await attempt.save();
     
     const savedAttempt = await TestAttempt.findById(attemptId).lean(); // Fetch again to see saved data
-    console.log('💾 Progress saved for attemptId:', attemptId);
-    console.log('Backend saveProgress: attempt.responses count after save in DB:', savedAttempt.responses ? savedAttempt.responses.length : 'No responses');
-    console.log('Backend saveProgress: attempt.remainingDurationSeconds after save in DB:', savedAttempt.remainingDurationSeconds); // Crucial log
 
     res.json({ message: 'Progress saved successfully' });
   } catch (err) {
@@ -619,8 +596,6 @@ exports.getProgress = async (req, res) => {
     const seriesId = req.params.seriesId;
     const userId   = req.user.userId;
 
-    console.log(`🔍 Getting progress for seriesId: ${seriesId}, userId: ${userId}`);
-
     const progressAttempt = await TestAttempt.findOne({
       student: userId,
       series:  seriesId,
@@ -631,7 +606,6 @@ exports.getProgress = async (req, res) => {
     .lean();
 
     if (!progressAttempt) {
-      console.log('Backend getProgress: No in-progress attempt found.');
       return res.json({}); // Return empty object if no progress attempt
     }
 
@@ -640,21 +614,8 @@ exports.getProgress = async (req, res) => {
     const attemptExpiresAt = progressAttempt.expiresAt;
     const currentTime = new Date();
 
-    console.log(`Backend getProgress: Data for attemptId ${progressAttempt._id}:`);
-    console.log(`  - remainingDurationSeconds from DB: ${remainingTime}`);
-    console.log(`  - series.duration (total, minutes): ${seriesDuration}`);
-    console.log(`  - attempt.startedAt from DB: ${progressAttempt.startedAt}`);
-    console.log(`  - attempt.expiresAt from DB: ${attemptExpiresAt}`);
-    console.log(`  - Current server time: ${currentTime}`);
-    if (attemptExpiresAt) {
-      console.log(`  - Is current time > expiresAt? : ${currentTime > new Date(attemptExpiresAt)}`);
-    }
-
-
     // Check for expiration
     if (remainingTime <= 0 || (attemptExpiresAt && currentTime > new Date(attemptExpiresAt))) {
-      console.log('⏰ Backend getProgress: Attempt determined to be expired.');
-      console.log(`   - Condition check: remainingTime (${remainingTime}) <= 0 OR (expiresAt (${attemptExpiresAt}) valid AND currentTime (${currentTime}) > expiresAt)`);
       
       const expiredResponse = {
         attemptId: progressAttempt._id.toString(),
@@ -667,7 +628,6 @@ exports.getProgress = async (req, res) => {
         expiresAt: attemptExpiresAt,
         lastSavedAt: progressAttempt.lastSavedAt
       };
-      console.log('Backend getProgress: Returning expired response:', JSON.stringify(expiredResponse, null, 2));
       return res.json(expiredResponse);
     }
 
@@ -683,7 +643,6 @@ exports.getProgress = async (req, res) => {
       expiresAt: attemptExpiresAt,
       lastSavedAt: progressAttempt.lastSavedAt
     };
-    console.log('Backend getProgress: Returning progress response:', JSON.stringify(successResponse, null, 2));
     return res.json(successResponse);
 
   } catch (err) {
