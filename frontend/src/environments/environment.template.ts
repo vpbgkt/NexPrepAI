@@ -1,7 +1,7 @@
 export const environment = {
-  production: true,
+  production: false,
   firebase: {
-    apiKey: "AIzaSyCdfNaGNk2PlgHBBM_5IFUnQa3zxAM__NA",
+    apiKey: "YOUR_API_KEY", // Replace with your Firebase API key
     authDomain: "nexprepauth.firebaseapp.com",
     projectId: "nexprepauth",
     storageBucket: "nexprepauth.firebasestorage.app",
