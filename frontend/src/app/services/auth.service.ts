@@ -43,8 +43,13 @@ export class AuthService {
 
   // New method to handle successful Firebase sign-in & backend token exchange
   handleFirebaseLogin(token: string, user: BackendUser) {
+    if (!user) {
+      console.error("User object is undefined in handleFirebaseLogin");
+      return;
+    }
+    
     localStorage.setItem('token', token);
-    localStorage.setItem('role', user.role);
+    localStorage.setItem('role', user.role || 'student'); // Provide a default role if undefined
     if (user.name) localStorage.setItem('appUserName', user.name); // Also store for consistency
     if (user.email) localStorage.setItem('appUserEmail', user.email); // Also store for consistency
     // User object from backend might contain more details like name, photoURL, etc.

@@ -20,11 +20,14 @@ export class StudentDashboardComponent implements OnInit {
   ngOnInit() {
     this.testSvc.getMyAttempts().subscribe({
       next: data => {
-        this.attempts = data;
+        // Filter out null/undefined items or items without required properties
+        this.attempts = (data || []).filter(item => item && item.series);
         this.loading = false;
+        console.log('Loaded attempts:', this.attempts);
       },
       error: err => {
-        this.error = err.message;
+        this.error = err.message || 'An error occurred while loading your test attempts.';
+        console.error('Error loading attempts:', err);
         this.loading = false;
       }
     });
