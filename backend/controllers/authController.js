@@ -85,48 +85,68 @@ exports.firebaseSignIn = async (req, res) => {
   }
 
   try {
+    console.log('Received Firebase token for verification:', firebaseToken.substring(0, 20) + '...');
     const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
-    const { uid, email, name, picture } = decodedToken;
-
-    let user = await User.findOne({ firebaseUid: uid });
+    console.log('Token decoded successfully. Auth type:', decodedToken.firebase?.sign_in_provider);
+    const { uid, email, name, picture, phone_number } = decodedToken;    let user = await User.findOne({ firebaseUid: uid });
 
     if (user) {
       // User exists with this Firebase UID, update details if necessary
+      console.log(`User found with Firebase UID: ${uid}`);
       user.name = name || user.name;
       user.email = email || user.email; // Firebase email is usually verified
       user.photoURL = picture || user.photoURL;
+      // Update phone if available
+      if (phone_number && !user.phoneNumber) {
+        user.phoneNumber = phone_number;
+      }
       // If displayName is not set, consider using name from Firebase
       if (!user.displayName && name) {
         user.displayName = name;
       }
       await user.save();
     } else {
-      // No user with this Firebase UID, try to find by email
-      user = await User.findOne({ email: email });
-      if (user) {
-        // User exists with this email, link Firebase account
+      // No user with this Firebase UID, try to find by email or phone
+      if (email) {
+        user = await User.findOne({ email: email });
+      } else if (phone_number) {
+        user = await User.findOne({ phoneNumber: phone_number });
+      }      if (user) {
+        // User exists with this email or phone, link Firebase account
+        console.log(`User found with ${email ? 'email' : 'phone'}. Linking Firebase UID.`);
         user.firebaseUid = uid;
         user.name = name || user.name; // Update name if provided by Firebase
         user.photoURL = picture || user.photoURL;
+        // Update phone number if provided and not already set
+        if (phone_number && !user.phoneNumber) {
+          user.phoneNumber = phone_number;
+        }
         if (!user.displayName && name) {
           user.displayName = name;
         }
         // If user was created with a password, it remains.
-        // If user had no username (e.g. if schema changes), this is an issue.
-        // For now, assume username exists if user was found by email.
       } else {
-        // No user with this email, create a new user
-        let newUsername = email.split('@')[0]; // Basic username generation
-        const existingUsername = await User.findOne({ username: newUsername });
+        // No user with this email or phone, create a new user
+        console.log(`Creating new user with Firebase UID: ${uid}`);
+        let username = '';
+        if (email) {
+          username = email.split('@')[0]; // Basic username generation from email
+        } else if (phone_number) {
+          // Create username from phone number (strip non-alphanumeric chars)
+          username = `user_${phone_number.replace(/\D/g, '').substring(0, 8)}`;
+        } else {
+          username = `user_${uid.substring(0, 8)}`;
+        }        const existingUsername = await User.findOne({ username: username });
         if (existingUsername) {
-          newUsername = `${newUsername}_${uid.substring(0, 5)}`; // Make it more unique
+          username = `${username}_${uid.substring(0, 5)}`; // Make it more unique
         }
 
         user = new User({
           firebaseUid: uid,
-          email: email,
-          name: name || email.split('@')[0], // Default name if not provided
-          username: newUsername,
+          email: email || '', // Email might be null for phone auth
+          phoneNumber: phone_number || '', // Add phone number if available
+          name: name || (email ? email.split('@')[0] : phone_number || uid.substring(0, 8)), // Default name
+          username: username,
           displayName: name || '',
           photoURL: picture || '',
           role: 'student', // Default role
@@ -153,12 +173,24 @@ exports.firebaseSignIn = async (req, res) => {
       photoURL: user.photoURL,
       firebaseUid: user.firebaseUid
     });
-
   } catch (error) {
     console.error('Error during Firebase sign-in:', error);
-    if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error') {
-      return res.status(401).json({ message: 'Invalid or expired Firebase token.' });
+    if (error.code === 'auth/id-token-expired') {
+      return res.status(401).json({ message: 'Firebase token expired. Please sign in again.' });
+    } else if (error.code === 'auth/argument-error') {
+      return res.status(401).json({ message: 'Invalid Firebase token. Please sign in again.' });
+    } else if (error.code === 'auth/invalid-id-token') {
+      return res.status(401).json({ message: 'Invalid Firebase token format. Please sign in again.' });
     }
-    res.status(500).json({ message: 'Server error during Firebase sign-in.' });
+    // Log detailed error for server-side debugging
+    console.error('Firebase sign-in error details:', {
+      code: error.code,
+      message: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({ 
+      message: 'Server error during Firebase sign-in.', 
+      details: error.message 
+    });
   }
 };

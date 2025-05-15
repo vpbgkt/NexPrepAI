@@ -1,5 +1,5 @@
 import { Injectable, NgZone } from '@angular/core'; // Import NgZone
-import { Auth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User as FirebaseUser, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult, AuthError } from '@angular/fire/auth';
+import { Auth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User as FirebaseUser, AuthError } from '@angular/fire/auth';
 import { Router } from '@angular/router';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http'; // For backend communication
@@ -21,13 +21,9 @@ interface FirebaseSignInResponse { // Duplicating from AuthService for clarity
 @Injectable({
   providedIn: 'root'
 })
-export class FirebaseAuthService {
-  private userSubject = new BehaviorSubject<FirebaseUser | null>(null);
+export class FirebaseAuthService {  private userSubject = new BehaviorSubject<FirebaseUser | null>(null);
   currentUser$: Observable<FirebaseUser | null> = this.userSubject.asObservable();
   private backendUrl = 'http://localhost:5000/api/auth'; // Adjust if your backend URL is different
-
-  recaptchaVerifier: RecaptchaVerifier | null = null;
-  confirmationResult: ConfirmationResult | null = null;
 
   private firebaseUserJustSignedOut = false; // Flag to track explicit Firebase sign-out
 
@@ -126,7 +122,6 @@ export class FirebaseAuthService {
       }); // End of ngZone.run
     });
   }
-
   async googleSignIn(): Promise<void> {
     const provider = new GoogleAuthProvider();
     try {
@@ -137,65 +132,6 @@ export class FirebaseAuthService {
       console.error('Google Sign-In failed:', error);
       const authError = error as AuthError;
       alert(authError.message || 'Google Sign-In was unsuccessful.');
-      throw authError;
-    }
-  }
-
-  async setupRecaptcha(elementId: string): Promise<void> {
-    if (this.recaptchaVerifier) {
-        this.recaptchaVerifier.clear(); // Clear previous instance if any
-    }
-    try {
-        this.recaptchaVerifier = new RecaptchaVerifier(this.fireAuth, elementId, {
-            'size': 'invisible',
-            'callback': (response: any) => {
-                console.log('reCAPTCHA solved');
-            },
-            'expired-callback': () => {
-                console.log('reCAPTCHA expired');
-                if(this.recaptchaVerifier) {
-                    this.recaptchaVerifier.render().catch(e => console.error('Error re-rendering reCAPTCHA', e));
-                }
-            }
-        });
-        await this.recaptchaVerifier.render();
-    } catch (error: any) {
-        console.error('Recaptcha setup failed:', error);
-        const authError = error as AuthError;
-        alert(authError.message || 'Failed to initialize reCAPTCHA. Phone login may not work.');
-        throw authError;
-    }
-  }
-
-  async signInWithPhoneNumber(phoneNumber: string): Promise<void> {
-    if (!this.recaptchaVerifier) {
-      console.error('RecaptchaVerifier not initialized.');
-      throw new Error('Please complete the reCAPTCHA challenge.');
-    }
-    try {
-      this.confirmationResult = await signInWithPhoneNumber(this.fireAuth, phoneNumber, this.recaptchaVerifier);
-    } catch (error: any) {
-      console.error('SMS not sent or other error:', error);
-      const authError = error as AuthError;
-      this.recaptchaVerifier.clear();
-      this.setupRecaptcha('recaptcha-container').catch(e => console.error("Failed to auto-reset reCAPTCHA", e));
-      alert(authError.message || 'Failed to send OTP. reCAPTCHA might need to be solved again.');
-      throw authError;
-    }
-  }
-
-  async verifyOtp(otpCode: string): Promise<void> {
-    if (!this.confirmationResult) {
-      console.error('No confirmation result available to verify OTP.');
-      throw new Error('OTP verification process not initiated.');
-    }
-    try {
-      await this.confirmationResult.confirm(otpCode);
-      // onAuthStateChanged will handle the rest
-    } catch (error: any) {
-      console.error('OTP Verification failed:', error);
-      const authError = error as AuthError;
-      alert(authError.message || 'Invalid OTP or OTP has expired.');
       throw authError;
     }
   }

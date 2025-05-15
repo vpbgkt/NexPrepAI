@@ -9,11 +9,11 @@ const userSchema = new mongoose.Schema({
   name: { // Added name field
     type: String,
     required: true,
-  },
-  email: {
+  },  email: {
     type: String,
-    required: true,
+    required: false, // Changed from true to false since phone users might not have email
     unique: true,
+    sparse: true // Allows multiple null values for phone-only users
   },
   password: {
     type: String,
@@ -32,11 +32,11 @@ const userSchema = new mongoose.Schema({
   photoURL: { // URL to profile picture
     type: String,
     trim: true,
-  },
-  phoneNumber: { // User's phone number
+  },  phoneNumber: { // User's phone number
     type: String,
     trim: true,
-    // Consider adding validation or uniqueness if required by your logic later
+    unique: true,
+    sparse: true // Allows multiple null values since not all users have phone numbers
   },
   role: {
     type: String,

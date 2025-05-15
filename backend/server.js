@@ -66,4 +66,14 @@ app.get('/', (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
+  
+  // Log Firebase auth availability
+  try {
+    const admin = require('./config/firebaseAdmin');
+    if (admin) {
+      console.log('✅ Firebase Admin SDK available');
+    }
+  } catch (error) {
+    console.error('❌ Firebase Admin SDK not properly initialized', error);
+  }
 });
