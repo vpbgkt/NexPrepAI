@@ -1,1 +1,3 @@
 backend/.env
+# Firebase service account key
+backend/config/nexprepauth-firebase-adminsdk-fbsvc-4b2f8377b1.json

@@ -96,6 +96,7 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
       paper:     ['', Validators.required],
       shift:     ['', Validators.required],
       randomizeSectionOrder: [false], // ADDED: For randomizing section order
+      enablePublicLeaderboard: [false], // ADDED: For public leaderboard
       sections:  this.fb.array([])
     });
 

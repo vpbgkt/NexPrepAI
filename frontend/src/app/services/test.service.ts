@@ -10,6 +10,7 @@ export interface TestSeries {
   startAt:    string;                            // ISO date string
   endAt:      string;                            // ISO date string
   year?: number;
+  enablePublicLeaderboard?: boolean; // Added this field
   // any other fields you need
 }
 
@@ -18,6 +19,20 @@ export interface StartTestResponse {
   duration: number; // in minutes
   questions?: any[]; // ← add this line
   sections?: any[]; // your sections from the server
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  studentInfo: {
+    _id: string;
+    displayName: string;
+    photoURL?: string;
+  };
+  score: number;
+  totalMarks: number;
+  percentage: number;
+  submittedAt: string; // ISO date string
+  timeTakenSeconds: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -82,5 +97,9 @@ export class TestService {
   /** New: fetch review details for an attempt */
   getReview(attemptId: string): Observable<any> {
     return this.http.get<any>(`${this.base}/tests/${attemptId}/review`);
+  }
+
+  getLeaderboard(seriesId: string): Observable<LeaderboardEntry[]> {
+    return this.http.get<LeaderboardEntry[]>(`${this.base}/tests/${seriesId}/leaderboard`);
   }
 }

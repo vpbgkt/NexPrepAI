@@ -9,6 +9,7 @@
       <th>Out Of</th>
       <th>%</th>
       <th>Review</th>
+      <th>Leaderboard</th> <!-- New column -->
     </tr>
   </thead>
   <tbody>
@@ -19,6 +20,10 @@
       <td>{{ a.percentage }}%</td>
       <td>
         <a [routerLink]="['/review', a._id]">Review</a>
+      </td>
+      <td> <!-- New cell for leaderboard link -->
+        <a *ngIf="a.series?.enablePublicLeaderboard" [routerLink]="['/leaderboard', a.series._id]">View</a>
+        <span *ngIf="!a.series?.enablePublicLeaderboard">N/A</span>
       </td>
     </tr>
   </tbody>

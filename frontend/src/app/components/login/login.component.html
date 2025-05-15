@@ -1,12 +1,69 @@
-<h2>Student Login</h2>
-<form [formGroup]="form" (ngSubmit)="onSubmit()">
-  <label>Email</label>
-  <input formControlName="email" type="email" />
-  <label>Password</label>
-  <input formControlName="password" type="password" />
-  <button type="submit" [disabled]="form.invalid">Login</button>
-</form>
-<p>
-  New user?
-  <a routerLink="/register">Register here</a>
-</p>
+<div class="login-container">
+  <h2>Login to NexPrep</h2>
+
+  <!-- Traditional Email/Password Login -->
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="Enter your email" formControlName="email" required>
+      <div *ngIf="form.get('email')!.invalid && (form.get('email')!.dirty || form.get('email')!.touched)" class="error-message">
+        <span *ngIf="form.get('email')!.errors?.['required']">Email is required.</span>
+        <span *ngIf="form.get('email')!.errors?.['email']">Invalid email format.</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Enter your password" formControlName="password" required>
+      <div *ngIf="form.get('password')!.invalid && (form.get('password')!.dirty || form.get('password')!.touched)" class="error-message">
+        <span *ngIf="form.get('password')!.errors?.['required']">Password is required.</span>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary" [disabled]="form.invalid">Login</button>
+  </form>
+
+  <div class="social-login-divider">
+    <span>OR</span>
+  </div>
+
+  <!-- Google Sign-In Button -->
+  <button type="button" class="btn btn-google" (click)="signInWithGoogle()">
+    <img src="assets/google-logo.png" alt="Google logo" class="google-logo"> Sign in with Google
+  </button>
+
+  <div class="social-login-divider">
+    <span>OR</span>
+  </div>
+
+  <!-- Phone Number OTP Login -->
+  <form [formGroup]="phoneForm">
+    <div class="form-group">
+      <label for="phoneNumber">Phone Number (e.g., +16505551234)</label>
+      <input type="tel" id="phoneNumber" placeholder="Enter your phone number" formControlName="phoneNumber" [readonly]="isOtpSent" required>
+      <div *ngIf="phoneForm.get('phoneNumber')!.invalid && (phoneForm.get('phoneNumber')!.dirty || phoneForm.get('phoneNumber')!.touched)" class="error-message">
+        <span *ngIf="phoneForm.get('phoneNumber')!.errors?.['required']">Phone number is required.</span>
+        <span *ngIf="phoneForm.get('phoneNumber')!.errors?.['pattern']">Invalid phone number format.</span>
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-secondary" (click)="sendOtp()" *ngIf="!isOtpSent" [disabled]="phoneForm.get('phoneNumber')!.invalid || !firebaseAuthService.recaptchaVerifier">Send OTP</button>
+
+    <div *ngIf="isOtpSent" class="form-group otp-group">
+      <label for="otp">OTP</label>
+      <input type="text" id="otp" placeholder="Enter OTP" formControlName="otp" required>
+      <div *ngIf="phoneForm.get('otp')!.invalid && (phoneForm.get('otp')!.dirty || phoneForm.get('otp')!.touched)" class="error-message">
+        <span *ngIf="phoneForm.get('otp')!.errors?.['required']">OTP is required.</span>
+        <span *ngIf="phoneForm.get('otp')!.errors?.['minlength'] || phoneForm.get('otp')!.errors?.['maxlength']">OTP must be 6 digits.</span>
+      </div>
+      <button type="button" class="btn btn-primary" (click)="verifyOtp()" [disabled]="phoneForm.get('otp')!.invalid">Verify OTP & Sign In</button>
+    </div>
+  </form>
+
+  <!-- reCAPTCHA Container (Invisible) -->
+  <div id="recaptcha-container" style="margin-top: 10px;"></div>
+
+  <p class="register-link">
+    Don't have an account? <a routerLink="/register">Register here</a>
+  </p>
+</div>

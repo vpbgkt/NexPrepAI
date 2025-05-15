@@ -3,6 +3,7 @@ const TestAttempt  = require('../models/TestAttempt');
 const Question     = require('../models/Question');
 const PDFDocument = require('pdfkit');
 const moment = require('moment');
+const mongoose = require('mongoose'); // Added mongoose require
 
 // Helper function to shuffle an array
 function shuffleArray(array) {
@@ -506,31 +507,99 @@ exports.getStudentStats = async (req, res) => {
 
 exports.getLeaderboardForSeries = async (req, res) => {
   try {
-    const attempts = await TestAttempt.find({
-      series:      req.params.seriesId,
-      submittedAt: { $exists: true }
-    })
-      .populate('student', 'name email')
-      .sort({ percentage: -1, submittedAt: 1 })
-      .limit(10);
+    const seriesId = req.params.seriesId;
+    const currentSeries = await TestSeries.findById(seriesId).select('enablePublicLeaderboard title').lean();
 
-    if (!attempts.length) {
-      return res.json({ leaderboard: [], message: 'No submissions yet.' });
+    if (!currentSeries) {
+      return res.status(404).json({ message: 'Test series not found.' });
     }
 
-    const leaderboard = attempts.map((a, i) => ({
-      rank:       i + 1,
-      student:    a.student?.name || a.student?.email || 'Anonymous',
-      score:      a.score,
-      maxScore:   a.maxScore,
-      percentage: a.percentage,
-      submittedAt: a.submittedAt
+    if (!currentSeries.enablePublicLeaderboard) {
+      return res.json({
+        leaderboard: [],
+        message: 'Leaderboard is not enabled for this test series.',
+        title: currentSeries.title
+      });
+    }
+
+    const leaderboardData = await TestAttempt.aggregate([
+      {
+        $match: {
+          series: new mongoose.Types.ObjectId(seriesId),
+          status: 'completed' // Consider only completed attempts
+        }
+      },
+      {
+        $sort: {
+          student: 1,       // Sort by student to easily pick their best attempt
+          percentage: -1,   // Best percentage first
+          score: -1,        // Tie-break with score
+          submittedAt: 1    // Further tie-break with submission time (earlier is better)
+        }
+      },
+      {
+        $group: {
+          _id: "$student",    // Group by student ID
+          bestAttemptId: { $first: "$_id" }, // Keep the ID of the best attempt
+          score: { $first: "$score" },
+          maxScore: { $first: "$maxScore" },
+          percentage: { $first: "$percentage" },
+          submittedAt: { $first: "$submittedAt" }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",      // Collection name for User model
+          localField: "_id",  // This is the student ID from the $group stage
+          foreignField: "_id",// Match with _id in the users collection
+          as: "studentInfo"
+        }
+      },
+      {
+        $unwind: "$studentInfo" // Deconstruct the studentInfo array (should be one user per attempt)
+      },
+      {
+        $sort: {
+          percentage: -1,   // Sort final list by percentage
+          score: -1,         // Tie-break with score
+          submittedAt: 1    // Further tie-break with submission time
+        }
+      },
+      {
+        $limit: 10 // Limit to top 10 entries
+      },
+      {
+        $project: {
+          _id: 0, // Exclude the default _id (which is studentId from $group stage)
+          studentId: "$studentInfo._id",
+          displayName: {
+            $ifNull: ["$studentInfo.displayName", { $ifNull: ["$studentInfo.name", "$studentInfo.email"] }]
+          },
+          score: 1,
+          maxScore: 1,
+          percentage: 1,
+          submittedAt: 1
+        }
+      }
+    ]);
+
+    if (!leaderboardData.length) {
+      return res.json({ 
+        leaderboard: [], 
+        message: 'No completed attempts yet for this series.',
+        title: currentSeries.title
+      });
+    }
+
+    const leaderboard = leaderboardData.map((entry, index) => ({
+      ...entry,
+      rank: index + 1
     }));
 
-    return res.json({ leaderboard });
+    return res.json({ leaderboard, title: currentSeries.title });
   } catch (err) {
     console.error('❌ getLeaderboardForSeries error:', err);
-    return res.status(500).json({ message: 'Failed to get leaderboard' });
+    return res.status(500).json({ message: 'Failed to get leaderboard', error: err.message });
   }
 };
 

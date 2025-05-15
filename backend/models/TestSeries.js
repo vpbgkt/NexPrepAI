@@ -61,6 +61,7 @@ const testSeriesSchema = new Schema({
 
   variants:     [ variantSchema ],       // ← new multi‑form support
   randomizeSectionOrder: { type: Boolean, default: false }, // Whether to randomize the order of sections
+  enablePublicLeaderboard: { type: Boolean, default: false }, // Added for public leaderboard
 
   maxAttempts: { type: Number, default: 1 },
   mode: {

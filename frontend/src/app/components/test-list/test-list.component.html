@@ -9,6 +9,7 @@
       <th>Start Time</th>
       <th>End Time</th>
       <th>Action</th>
+      <th>Leaderboard</th> <!-- New column -->
     </tr>
   </thead>
   <tbody>
@@ -27,6 +28,10 @@
           [title]="disabledReason(s)">
           Start
         </button>
+      </td>
+      <td> <!-- New cell for leaderboard link -->
+        <a *ngIf="s.enablePublicLeaderboard" [routerLink]="['/leaderboard', s._id]">View</a>
+        <span *ngIf="!s.enablePublicLeaderboard">N/A</span>
       </td>
     </tr>
   </tbody>

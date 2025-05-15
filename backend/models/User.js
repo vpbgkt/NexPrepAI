@@ -17,7 +17,26 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
+    // Not strictly required if using Firebase Auth primarily, but good for existing accounts
+    // required: true, 
+  },
+  firebaseUid: { // Firebase Unique ID
+    type: String,
+    unique: true,
+    sparse: true // Allows multiple null values if not all users have Firebase UID
+  },
+  displayName: { // For user-chosen public display
+    type: String,
+    trim: true,
+  },
+  photoURL: { // URL to profile picture
+    type: String,
+    trim: true,
+  },
+  phoneNumber: { // User's phone number
+    type: String,
+    trim: true,
+    // Consider adding validation or uniqueness if required by your logic later
   },
   role: {
     type: String,

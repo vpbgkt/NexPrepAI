@@ -15,11 +15,12 @@
 
 const express = require('express');
 const router = express.Router();
-const { register, login } = require('../controllers/authController');
+const { register, login, firebaseSignIn } = require('../controllers/authController'); // Added firebaseSignIn
 const authenticateUser = require('../middleware/auth'); // ✅ NEW
 
 router.post('/register', register);
 router.post('/login', login);
+router.post('/firebase-signin', firebaseSignIn); // New route for Firebase Sign-In
 
 // ✅ NEW protected route
 router.get('/profile', authenticateUser, async (req, res) => {

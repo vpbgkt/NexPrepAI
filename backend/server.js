@@ -37,6 +37,7 @@ app.use(express.json());
 
 // API Routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/users', require('./routes/users')); // Added user routes
 app.use('/api/questions', require('./routes/questions'));
 app.use('/api/tests', require('./routes/tests'));
 app.use('/api/hierarchy', require('./routes/hierarchy'));

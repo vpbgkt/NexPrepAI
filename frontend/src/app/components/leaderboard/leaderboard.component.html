@@ -1,0 +1,48 @@
+<div class="leaderboard-container">
+  <div *ngIf="isLoading" class="loading-spinner">
+    <p>Loading leaderboard...</p>
+    <!-- You can add a more sophisticated spinner here -->
+  </div>
+
+  <div *ngIf="error && !isLoading" class="error-message">
+    <p>{{ error }}</p>
+    <a routerLink="/tests">Go back to Test Series List</a>
+  </div>
+
+  <div *ngIf="!isLoading && !error && leaderboard.length > 0">
+    <h2>Leaderboard</h2>
+    <h3 *ngIf="seriesTitle">{{ seriesTitle }}</h3>
+    <!-- Optional: Add a link to go back or to the test series details -->
+    <!-- <a [routerLink]="['/series', seriesId]">Back to Series</a> -->
+
+    <table>
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Name</th>
+          <th>Score</th>
+          <th>Percentage</th>
+          <th>Submitted At</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let entry of leaderboard; let i = index">
+          <td>{{ entry.rank || (i + 1) }}</td>
+          <td>
+            <img *ngIf="entry.studentInfo.photoURL" [src]="entry.studentInfo.photoURL" alt="Avatar" class="avatar-sm">
+            {{ entry.studentInfo.displayName || 'Anonymous' }}
+          </td>
+          <td>{{ entry.score }}/{{ entry.totalMarks }}</td>
+          <td>{{ entry.percentage | number:'1.2-2' }}%</td>
+          <td>{{ entry.submittedAt | date:'medium' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="!isLoading && !error && leaderboard.length === 0 && !this.error" class="empty-leaderboard">
+    <p>No entries in the leaderboard yet, or it may be disabled for this test series.</p>
+    <a routerLink="/tests">Go back to Test Series List</a>
+  </div>
+
+</div>

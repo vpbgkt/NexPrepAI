@@ -44,6 +44,72 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  .top-nav {
+    display: flex;
+    justify-content: space-between; /* Align items to start, center and end */
+    align-items: center;
+    padding: 1rem 2rem;
+    background-color: var(--gray-900);
+    color: white;
+  }
+
+  .nav-links a, .nav-auth a, .nav-user a {
+    color: white;
+    text-decoration: none;
+    margin-left: 1rem; /* Spacing between links */
+    padding: 0.5rem;
+  }
+  .nav-links a.active, .nav-auth a.active {
+    font-weight: bold;
+    border-bottom: 2px solid var(--bright-blue);
+  }
+  .nav-links a:hover, .nav-auth a:hover, .nav-user a:hover {
+    color: var(--electric-violet);
+  }
+
+  .nav-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white;
+    text-decoration: none;
+  }
+  .nav-brand:hover {
+    color: var(--bright-blue);
+  }
+
+  .nav-left {
+    display: flex;
+    align-items: center;
+  }
+  .nav-left .nav-links {
+    display: flex;
+    margin-left: 2rem; /* Space between brand and links */
+  }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+  }
+
+  .nav-user {
+    display: flex;
+    align-items: center;
+    margin-left: 1rem;
+  }
+
+  .user-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    object-fit: cover;
+    border: 1px solid var(--gray-400);
+  }
+
+  .nav-user span {
+    margin-right: 1rem;
+  }
+
   h1 {
     font-size: 3.125rem;
     color: var(--gray-900);
@@ -174,13 +240,61 @@
       background: var(--red-to-pink-to-purple-horizontal-gradient);
       margin-block: 1.5rem;
     }
+    .top-nav {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .nav-left, .nav-right {
+      width: 100%;
+      justify-content: space-between;
+    }
+    .nav-left .nav-links {
+      margin-left: 0;
+      margin-top: 0.5rem;
+    }
+    .nav-user {
+      margin-top: 0.5rem;
+    }
+    .nav-auth {
+      margin-top: 0.5rem;
+    }
   }
 </style>
 
 <nav class="top-nav">
-  <a routerLink="/tests"       routerLinkActive="active">Tests</a>
-  <a routerLink="/dashboard"   routerLinkActive="active">Dashboard</a>
-  <a (click)="logout()">Logout</a>
+  <div class="nav-left">
+    <a routerLink="/" class="nav-brand">NexPrep</a>
+    <div class="nav-links" *ngIf="isAppLoggedIn"> <!-- Use component property -->
+      <a routerLink="/tests" routerLinkActive="active">Tests</a>
+      <a routerLink="/student/dashboard" routerLinkActive="active">Dashboard</a>
+      <!-- Add other authenticated links here -->
+    </div>
+  </div>
+
+  <div class="nav-right">
+    <ng-container *ngIf="isAppLoggedIn"> <!-- Use component property -->
+      <div class="nav-user">
+        <ng-container *ngIf="(currentUser$ | async) as firebaseUser; else traditionalUserDisplay">
+          <!-- Firebase User Logged In -->
+          <img *ngIf="firebaseUser.photoURL" [src]="firebaseUser.photoURL" alt="User Avatar" class="user-avatar">
+          <!-- Show default avatar if Firebase user exists but has no photoURL -->
+          <img *ngIf="!firebaseUser.photoURL && firebaseUser" src="assets/default-avatar.png" alt="User Avatar" class="user-avatar">
+          <span>{{ firebaseUser.displayName || firebaseUser.email }}</span>
+        </ng-container>
+        <ng-template #traditionalUserDisplay>
+          <!-- Traditional User Logged In (isAppLoggedIn is true, but no firebaseUser) -->
+          <img src="assets/default-avatar.png" alt="User Avatar" class="user-avatar"> <!-- Corrected path -->
+          <span>{{ appUserDisplayName }}</span> <!-- Use component property -->
+        </ng-template>
+        <a (click)="logout()" style="cursor: pointer;">Logout</a>
+      </div>
+    </ng-container>
+
+    <div class="nav-auth" *ngIf="!isAppLoggedIn"> <!-- Use component property -->
+      <a routerLink="/login" routerLinkActive="active">Login</a>
+      <a routerLink="/register" routerLinkActive="active">Register</a>
+    </div>
+  </div>
 </nav>
 
 <router-outlet></router-outlet>

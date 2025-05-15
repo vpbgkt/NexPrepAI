@@ -49,6 +49,11 @@
     <input type="checkbox" id="randomizeSectionOrder" formControlName="randomizeSectionOrder">
   </div>
 
+  <div>
+    <label for="enablePublicLeaderboard">Enable Public Leaderboard:</label>
+    <input type="checkbox" id="enablePublicLeaderboard" formControlName="enablePublicLeaderboard">
+  </div>
+
   <!-- Family -->
   <select #familySelect formControlName="family" (change)="onFamilyChange(familySelect.value)">
     <option value="">Select Family</option>
