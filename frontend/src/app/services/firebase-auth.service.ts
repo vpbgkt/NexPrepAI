@@ -15,7 +15,14 @@ interface BackendUser { // Duplicating from AuthService for clarity, consider a 
 
 interface FirebaseSignInResponse { // Duplicating from AuthService for clarity
   token: string;
-  user: BackendUser;
+  user?: BackendUser;  // Make user optional
+  // Additional fields that might be in the response
+  userId?: string;
+  name?: string;
+  displayName?: string;
+  email?: string;
+  role?: string;
+  photoURL?: string;
 }
 
 @Injectable({
@@ -37,8 +44,7 @@ export class FirebaseAuthService {  private userSubject = new BehaviorSubject<Fi
     onAuthStateChanged(this.fireAuth, async (user) => {
       this.ngZone.run(async () => { // Run callback in Angular's zone
         console.log('FirebaseAuthService: onAuthStateChanged triggered. Firebase User:', user ? user.uid : 'null');
-        this.userSubject.next(user);
-        if (user) {
+        this.userSubject.next(user);        if (user) {
           this.firebaseUserJustSignedOut = false; // Reset flag on user presence
           // User is signed in with Firebase
           try {
@@ -47,12 +53,23 @@ export class FirebaseAuthService {  private userSubject = new BehaviorSubject<Fi
             // Send token to backend to create/verify user and get app-specific token/session
             this.http.post<FirebaseSignInResponse>(`${this.backendUrl}/firebase-signin`, { firebaseToken: idToken })
               .subscribe({
-                next: (response) => {
+                next: (response: FirebaseSignInResponse) => {
                   console.log('FirebaseAuthService: Backend /firebase-signin SUCCESS.', response);
-                  // Use AuthService to handle storing app token and user role
-                  this.authService.handleFirebaseLogin(response.token, response.user);
+                  
+                  // Create a user object if it doesn't exist in the response
+                  const userObj: BackendUser = response.user || {
+                    _id: response.userId || '',
+                    email: response.email || '',
+                    name: response.name || response.displayName || '',
+                    role: response.role || 'student', // Default to student if role is missing
+                    photoURL: response.photoURL
+                  };
+                  
+                  // Use AuthService to handle storing app token and user object
+                  this.authService.handleFirebaseLogin(response.token, userObj);
+                  
                   // Navigate based on role after successful backend sign-in
-                  const role = response.user.role;
+                  const role = userObj.role;
                   const targetRoute = role === 'admin' ? '/admin/dashboard' : '/student/dashboard';
                   console.log(`FirebaseAuthService: Attempting to navigate to ${targetRoute}`);
                   this.router.navigate([targetRoute])
@@ -121,9 +138,18 @@ export class FirebaseAuthService {  private userSubject = new BehaviorSubject<Fi
         }
       }); // End of ngZone.run
     });
-  }
-  async googleSignIn(): Promise<void> {
+  }  async googleSignIn(): Promise<void> {
     const provider = new GoogleAuthProvider();
+    
+    // Add additional scopes if needed
+    provider.addScope('profile');
+    provider.addScope('email');
+    
+    // Set custom parameters
+    provider.setCustomParameters({
+      prompt: 'select_account' // Force account selection even if user is already signed in
+    });
+    
     try {
       console.log('FirebaseAuthService: Initiating Google Sign-In with popup.');
       await signInWithPopup(this.fireAuth, provider);
