@@ -1,14 +1,46 @@
-<h2>Student Register</h2>
-<form [formGroup]="form" (ngSubmit)="onSubmit()">
-  <label>Username</label>
-  <input formControlName="username" />
-  <label>Email</label>
-  <input formControlName="email" type="email" />
-  <label>Password</label>
-  <input formControlName="password" type="password" />
-  <button type="submit" [disabled]="form.invalid">Register</button>
-</form>
-<p>
-  Already have an account?
-  <a routerLink="/login">Login here</a>
-</p>
+<div class="register-container">
+  <h2>Student Register</h2>
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="form-group">
+      <label for="name">Full Name</label>
+      <input id="name" formControlName="name" />
+      <div *ngIf="form.get('name')!.invalid && (form.get('name')!.dirty || form.get('name')!.touched)" class="error-message">
+        <span *ngIf="form.get('name')!.errors?.['required']">Name is required.</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="username">Username</label>
+      <input id="username" formControlName="username" />
+      <!-- Add validation messages if needed -->
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input id="email" formControlName="email" type="email" />
+      <!-- Add validation messages if needed -->
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input id="password" formControlName="password" type="password" />
+      <!-- Add validation messages if needed -->
+    </div>
+
+    <button type="submit" class="btn btn-primary" [disabled]="form.invalid">Register</button>
+  </form>
+
+  <div class="social-login-divider">
+    <span>OR</span>
+  </div>
+
+  <!-- Google Sign-In Button -->
+  <button type="button" class="btn btn-google" (click)="signInWithGoogle()">
+    <img src="assets/google-logo.png" alt="Google logo" class="google-logo"> Sign up with Google
+  </button>
+
+  <p class="login-link">
+    Already have an account?
+    <a routerLink="/login" class="auth-link">Login here</a>
+  </p>
+</div>

@@ -63,9 +63,9 @@ export class AuthService {
     // and this method would then navigate.
   }
 
-  register(username: string, email: string, password: string) {
+  register(name: string, username: string, email: string, password: string) { // Added name parameter
     // student self-registration; always gets role=student
-    return this.http.post(`${this.base}/register`, { username, email, password });
+    return this.http.post(`${this.base}/register`, { name, username, email, password }); // Added name to payload
   }
 
   logout() {

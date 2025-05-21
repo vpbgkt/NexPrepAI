@@ -8,13 +8,13 @@ import {
   FormControl // Import FormControl
 } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router'; // Import RouterLink
 import { FirebaseAuthService } from '../../services/firebase-auth.service'; // Import FirebaseAuthService
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink], // Add RouterLink to imports
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
 })

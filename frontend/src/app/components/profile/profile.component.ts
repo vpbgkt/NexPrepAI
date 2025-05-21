@@ -85,8 +85,10 @@ export class ProfileComponent implements OnInit {
         this.profileForm.patchValue(updatedProfile); // Update form with potentially sanitized/modified data from backend
         this.successMessage = 'Profile updated successfully!';
         this.isLoading = false;
-        // Optionally, reload or re-patch form if backend returns more/different data
-        this.loadUserProfile(); 
+        // Optionally, clear the success message after a few seconds
+        setTimeout(() => {
+          this.successMessage = null;
+        }, 5000);
       },
       error: (err) => {
         this.errorMessage = 'Failed to update profile. ' + (err.error?.message || err.message);
