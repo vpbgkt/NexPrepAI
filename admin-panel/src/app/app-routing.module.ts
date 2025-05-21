@@ -39,7 +39,7 @@ import { StudentGuard } from './guards/student.guard';
 
 export const routes: Routes = [
   // Public
-  { path: '',            redirectTo: 'login', pathMatch: 'full' }, // Default route redirects to login
+  { path: '',            redirectTo: 'home', pathMatch: 'full' }, // Default route now redirects to home
   { path: 'login',       component: LoginComponent },
   { path: 'register',    component: RegisterComponent },
   { path: 'logout',      component: LogoutComponent },

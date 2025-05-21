@@ -23,16 +23,14 @@ export interface StartTestResponse {
 
 export interface LeaderboardEntry {
   rank: number;
-  studentInfo: {
-    _id: string;
-    displayName: string;
-    photoURL?: string;
-  };
+  studentId?: string;  // Changed from nested studentInfo
+  displayName: string; // Changed from nested studentInfo
+  photoURL?: string;   // Optional
   score: number;
-  totalMarks: number;
+  maxScore: number;    // Changed from totalMarks to match backend
   percentage: number;
   submittedAt: string; // ISO date string
-  timeTakenSeconds: number;
+  timeTakenSeconds?: number; // Made optional
 }
 
 @Injectable({ providedIn: 'root' })
@@ -94,12 +92,10 @@ export class TestService {
     );
   }
 
-  /** New: fetch review details for an attempt */
-  getReview(attemptId: string): Observable<any> {
+  /** New: fetch review details for an attempt */  getReview(attemptId: string): Observable<any> {
     return this.http.get<any>(`${this.base}/tests/${attemptId}/review`);
   }
-
-  getLeaderboard(seriesId: string): Observable<LeaderboardEntry[]> {
-    return this.http.get<LeaderboardEntry[]>(`${this.base}/tests/${seriesId}/leaderboard`);
+  getLeaderboard(seriesId: string): Observable<{leaderboard: LeaderboardEntry[], title: string, message?: string}> {
+    return this.http.get<{leaderboard: LeaderboardEntry[], title: string, message?: string}>(`${this.base}/tests/leaderboard/${seriesId}`);
   }
 }

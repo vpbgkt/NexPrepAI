@@ -1,48 +1,140 @@
-<div class="leaderboard-container">
-  <div *ngIf="isLoading" class="loading-spinner">
-    <p>Loading leaderboard...</p>
-    <!-- You can add a more sophisticated spinner here -->
+<div class="leaderboard-container">  <div *ngIf="isLoading" class="loading-spinner">
+    <div class="spinner">
+      <div class="bounce1"></div>
+      <div class="bounce2"></div>
+      <div class="bounce3"></div>
+    </div>
+    <p>Loading leaderboard data...</p>
   </div>
-
   <div *ngIf="error && !isLoading" class="error-message">
+    <div class="error-icon">⚠️</div>
+    <h3>Unable to Load Leaderboard</h3>
     <p>{{ error }}</p>
-    <a routerLink="/tests">Go back to Test Series List</a>
-  </div>
-
-  <div *ngIf="!isLoading && !error && leaderboard.length > 0">
+    <a routerLink="/tests" class="back-btn">Return to Test Series</a>
+  </div>  <div *ngIf="!isLoading && !error && leaderboard.length > 0">
     <h2>Leaderboard</h2>
-    <h3 *ngIf="seriesTitle">{{ seriesTitle }}</h3>
-    <!-- Optional: Add a link to go back or to the test series details -->
-    <!-- <a [routerLink]="['/series', seriesId]">Back to Series</a> -->
-
-    <table>
+    <h3 *ngIf="seriesTitle">{{ seriesTitle }}</h3>    <div class="leaderboard-controls">
+      <div class="back-link">
+        <a routerLink="/tests">&larr; Back to Test Series</a>
+      </div>
+      
+      <div class="filters">
+        <label for="timeFilter">Show results from: </label>
+        <select id="timeFilter" [(ngModel)]="selectedTimeFilter" (change)="onTimeFilterChange()">
+          <option *ngFor="let option of timeFilterOptions" [value]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+        <label for="pageSizeFilter">Show: </label>
+        <select id="pageSizeFilter" [(ngModel)]="selectedPageSize" (change)="onPageSizeChange()">
+          <option *ngFor="let size of pageSizeOptions" [value]="size">
+            {{ size }} entries
+          </option>
+        </select>
+        <button (click)="refreshLeaderboard()" class="refresh-btn" [disabled]="isRefreshing">
+          <span *ngIf="!isRefreshing">↻ Refresh</span>
+          <span *ngIf="isRefreshing">Refreshing...</span>
+        </button>
+      </div>
+    </div>
+    
+    <div *ngIf="filteredLeaderboard.length === 0" class="no-filtered-results">
+      <p>No results found for the selected time period.</p>
+    </div>    <table *ngIf="filteredLeaderboard.length > 0">
       <thead>
-        <tr>
-          <th>Rank</th>
+        <tr>          <th (click)="onSortColumn('rank')" class="sortable">
+            Rank
+            <span class="sort-icon" *ngIf="sortColumn === 'rank'">
+              {{ sortDirection === 'asc' ? '▲' : '▼' }}
+            </span>
+          </th>
           <th>Name</th>
-          <th>Score</th>
-          <th>Percentage</th>
-          <th>Submitted At</th>
-        </tr>
-      </thead>
+          <th (click)="onSortColumn('score')" class="sortable">
+            Score
+            <span class="sort-icon" *ngIf="sortColumn === 'score'">
+              {{ sortDirection === 'asc' ? '▲' : '▼' }}
+            </span>
+          </th>
+          <th (click)="onSortColumn('percentage')" class="sortable">
+            Percentage
+            <span class="sort-icon" *ngIf="sortColumn === 'percentage'">
+              {{ sortDirection === 'asc' ? '▲' : '▼' }}
+            </span>
+          </th>
+          <th (click)="onSortColumn('timeTakenSeconds')" class="sortable">
+            Time Taken
+            <span class="sort-icon" *ngIf="sortColumn === 'timeTakenSeconds'">
+              {{ sortDirection === 'asc' ? '▲' : '▼' }}
+            </span>
+          </th>
+          <th (click)="onSortColumn('submittedAt')" class="sortable">
+            Submitted At
+            <span class="sort-icon" *ngIf="sortColumn === 'submittedAt'">
+              {{ sortDirection === 'asc' ? '▲' : '▼' }}
+            </span>
+          </th>
+        </tr>      </thead>
       <tbody>
-        <tr *ngFor="let entry of leaderboard; let i = index">
-          <td>{{ entry.rank || (i + 1) }}</td>
-          <td>
-            <img *ngIf="entry.studentInfo.photoURL" [src]="entry.studentInfo.photoURL" alt="Avatar" class="avatar-sm">
-            {{ entry.studentInfo.displayName || 'Anonymous' }}
+        <tr *ngFor="let entry of displayedLeaderboard; let i = index" [ngClass]="{
+          'gold': entry.rank === 1 || (entry.rank !== undefined && entry.rank === 1) || (i === 0 && currentPage === 1),
+          'silver': entry.rank === 2 || (entry.rank !== undefined && entry.rank === 2) || (i === 1 && currentPage === 1),
+          'bronze': entry.rank === 3 || (entry.rank !== undefined && entry.rank === 3) || (i === 2 && currentPage === 1)
+        }">
+          <td class="rank-cell">
+            <span class="rank">{{ entry.rank || ((currentPage - 1) * pageSize + i + 1) }}</span>
           </td>
-          <td>{{ entry.score }}/{{ entry.totalMarks }}</td>
-          <td>{{ entry.percentage | number:'1.2-2' }}%</td>
+          <td>
+            <img *ngIf="entry.photoURL" [src]="entry.photoURL" alt="Avatar" class="avatar-sm">
+            <span class="student-name">{{ entry.displayName || 'Anonymous' }}</span>
+          </td>          <td>{{ entry.score }}/{{ entry.maxScore }}</td>
+          <td class="percentage">{{ entry.percentage | number:'1.2-2' }}%</td>
+          <td>{{ formatTime(entry.timeTakenSeconds) }}</td>
           <td>{{ entry.submittedAt | date:'medium' }}</td>
         </tr>
       </tbody>
     </table>
+      <!-- Pagination controls -->
+    <div *ngIf="filteredLeaderboard.length > pageSize" class="pagination-controls">
+      <button 
+        [disabled]="currentPage === 1" 
+        (click)="updatePage(currentPage - 1)" 
+        class="page-btn prev"
+        [ngClass]="{'disabled': currentPage === 1}">
+        &laquo; Previous
+      </button>
+      
+      <div class="page-numbers">
+        <button 
+          *ngFor="let pageNumber of getPageNumbers()" 
+          (click)="updatePage(pageNumber)" 
+          [ngClass]="{'active': currentPage === pageNumber}">
+          {{ pageNumber }}
+        </button>
+      </div>
+      
+      <button 
+        [disabled]="currentPage === totalPages" 
+        (click)="updatePage(currentPage + 1)" 
+        class="page-btn next"
+        [ngClass]="{'disabled': currentPage === totalPages}">
+        Next &raquo;
+      </button>
+    </div>
+    
+    <div class="pagination-info" *ngIf="filteredLeaderboard.length > 0">
+      Showing {{ (currentPage - 1) * pageSize + 1 }} to {{ Math.min(currentPage * pageSize, filteredLeaderboard.length) }} 
+      of {{ filteredLeaderboard.length }} entries
+    </div>
   </div>
-
-  <div *ngIf="!isLoading && !error && leaderboard.length === 0 && !this.error" class="empty-leaderboard">
-    <p>No entries in the leaderboard yet, or it may be disabled for this test series.</p>
-    <a routerLink="/tests">Go back to Test Series List</a>
+  <div *ngIf="!isLoading && !error && leaderboard.length === 0" class="empty-leaderboard">
+    <div class="empty-icon">📊</div>
+    <h3>No entries in the leaderboard yet</h3>
+    <p>This leaderboard may be empty because:</p>
+    <ul>
+      <li>No students have completed this test series yet</li>
+      <li>The leaderboard may be disabled for this test series</li>
+    </ul>
+    <a routerLink="/tests" class="back-btn">Go back to Test Series List</a>
   </div>
 
 </div>

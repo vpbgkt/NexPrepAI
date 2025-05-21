@@ -396,7 +396,7 @@ exports.getMyTestAttempts = async (req, res) => {
       // only pull title & year—no nested populate on examType
       .populate({
         path: 'series',
-        select: 'title year'
+        select: 'title year enablePublicLeaderboard' // Added enablePublicLeaderboard
       })
       .sort({ submittedAt: -1 });
 
@@ -536,15 +536,15 @@ exports.getLeaderboardForSeries = async (req, res) => {
           score: -1,        // Tie-break with score
           submittedAt: 1    // Further tie-break with submission time (earlier is better)
         }
-      },
-      {
+      },      {
         $group: {
           _id: "$student",    // Group by student ID
           bestAttemptId: { $first: "$_id" }, // Keep the ID of the best attempt
           score: { $first: "$score" },
           maxScore: { $first: "$maxScore" },
           percentage: { $first: "$percentage" },
-          submittedAt: { $first: "$submittedAt" }
+          submittedAt: { $first: "$submittedAt" },
+          timeTakenSeconds: { $first: "$timeTakenSeconds" } // Include time taken
         }
       },
       {
@@ -558,15 +558,11 @@ exports.getLeaderboardForSeries = async (req, res) => {
       {
         $unwind: "$studentInfo" // Deconstruct the studentInfo array (should be one user per attempt)
       },
-      {
-        $sort: {
+      {        $sort: {
           percentage: -1,   // Sort final list by percentage
           score: -1,         // Tie-break with score
           submittedAt: 1    // Further tie-break with submission time
         }
-      },
-      {
-        $limit: 10 // Limit to top 10 entries
       },
       {
         $project: {
@@ -574,11 +570,11 @@ exports.getLeaderboardForSeries = async (req, res) => {
           studentId: "$studentInfo._id",
           displayName: {
             $ifNull: ["$studentInfo.displayName", { $ifNull: ["$studentInfo.name", "$studentInfo.email"] }]
-          },
-          score: 1,
+          },          score: 1,
           maxScore: 1,
           percentage: 1,
-          submittedAt: 1
+          submittedAt: 1,
+          timeTakenSeconds: 1 // Include time taken
         }
       }
     ]);

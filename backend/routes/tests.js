@@ -67,7 +67,8 @@ router.get('/my-attempts', verifyToken, getMyTestAttempts);
 // REVIEW (fixed to use the same param name the controller expects)
 router.get('/:attemptId/review', verifyToken, requireRole('student'), reviewAttempt);
 router.get('/stats/me', verifyToken, getStudentStats);
-router.get('/leaderboard/:seriesId', verifyToken, getLeaderboardForSeries);
+// Public leaderboard endpoint (removed verifyToken to make it public)
+router.get('/leaderboard/:seriesId', getLeaderboardForSeries);
 
 // Generate a PDF result sheet for one attempt
 router.get('/:attemptId/pdf',
