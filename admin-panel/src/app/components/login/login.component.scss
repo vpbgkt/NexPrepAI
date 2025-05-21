@@ -1,0 +1,261 @@
+@use 'sass:color';
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+// Variables - consistent with app component
+$primary-color: #6200ea;
+$primary-light: #a255ff;
+$primary-dark: #3700b3;
+$secondary-color: #03dac6;
+$secondary-dark: #018786;
+$danger-color: #cf6679;
+$warning-color: #ffb74d;
+$success-color: #69f0ae;
+$neutral-light: #f5f5f5;
+$neutral-medium: #e0e0e0;
+$neutral-dark: #757575;
+$text-primary: #212121;
+$text-secondary: #757575;
+$white: #ffffff;
+$box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+$border-radius: 12px;
+
+// Derived colors
+$primary-hover: color.adjust($primary-color, $lightness: 5%);
+$primary-bg: color.adjust($primary-light, $lightness: 30%);
+
+// Login container
+:host {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, $primary-color, $primary-dark);
+  font-family: 'Poppins', sans-serif;
+  padding: 1rem;
+  animation: gradientBg 10s ease infinite;
+  background-size: 300% 300%;
+}
+
+@keyframes gradientBg {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+form {
+  width: 100%;
+  max-width: 420px;
+  padding: 2.5rem;
+  background-color: $white;
+  border-radius: $border-radius;
+  box-shadow: $box-shadow;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.5s ease-out forwards;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 6px;
+    background: linear-gradient(to right, $primary-color, $primary-light);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+h2 {
+  color: $primary-color;
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+  font-weight: 600;
+  text-align: center;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 3px;
+    background: linear-gradient(to right, $primary-color, $primary-light);
+    border-radius: 3px;
+  }
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+  
+  label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: $text-primary;
+    font-weight: 500;
+    font-size: 0.95rem;
+  }
+  
+  input {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 1px solid $neutral-medium;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    font-family: 'Poppins', sans-serif;
+    color: $text-primary;
+    background-color: $neutral-light;
+    
+    &:focus {
+      outline: none;
+      border-color: $primary-light;
+      box-shadow: 0 0 0 3px rgba(162, 85, 255, 0.2);
+      background-color: $white;
+    }
+    
+    &.invalid {
+      border-color: $danger-color;
+      background-color: color.adjust($danger-color, $lightness: 35%);
+    }
+    
+    &::placeholder {
+      color: $text-secondary;
+      opacity: 0.7;
+    }
+  }
+}
+
+.error-message {
+  color: $danger-color;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease-in;
+  
+  span {
+    display: block;
+    margin-bottom: 0.25rem;
+    
+    &::before {
+      content: "•";
+      margin-right: 0.5rem;
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+button {
+  margin-top: 0.5rem;
+  padding: 0.85rem 0;
+  background-color: $primary-color;
+  color: $white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  
+  &:hover:not(:disabled) {
+    background-color: $primary-hover;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(98, 0, 234, 0.3);
+  }
+  
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+  }
+  
+  &:focus:not(:active)::after {
+    animation: ripple 1s ease-out;
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0, 0);
+    opacity: 0.5;
+  }
+  20% {
+    transform: scale(25, 25);
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(40, 40);
+  }
+}
+
+.form-footer {
+  margin-top: 2rem;
+  text-align: center;
+  
+  p {
+    color: $text-secondary;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  a {
+    color: $primary-color;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+    
+    &:hover {
+      color: $primary-dark;
+      text-decoration: underline;
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 480px) {
+  form {
+    padding: 2rem 1.5rem;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+  }
+}
+

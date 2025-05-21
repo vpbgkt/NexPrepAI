@@ -36,24 +36,24 @@ export class LoginComponent implements OnInit {
       // as the component will be navigated away from shortly.
     }
   }
-
   onSubmit() {
     if (this.form.invalid) return;
-    const { email, password } = this.form.value as { email: string; password: string };
-
-    this.auth.login(email, password).subscribe({
-      next: (res: any) => { // Assuming res might contain user info
-        alert('Login successful!');
-        // AuthService should handle storing token and user info (like name)
-        // For example, if res.user.name contains the user's name:
-        // if (res.user && res.user.name) {
-        //   localStorage.setItem('userName', res.user.name); 
-        // }
-        this.router.navigate(['/home']); // Redirect to home page
+    const { email, password } = this.form.value as { email: string; password: string };    this.auth.login(email, password).subscribe({
+      next: (res: any) => {
+        // Check if the user has admin role
+        if (res.role !== 'admin') {
+          // If not admin, log them out and show error
+          this.auth.logout();
+          alert('Access denied: Only administrators can access this panel. Please login with admin credentials.');
+          return;
+        }
+        
+        // If admin, proceed with login
+        this.router.navigate(['/home']);
       },
       error: err => {
         // err.error.message comes from your backend
-        const msg = err.error?.message || 'Login failed';
+        const msg = err.error?.message || 'Login failed. Please check your credentials and try again.';
         alert(msg);
       }
     });

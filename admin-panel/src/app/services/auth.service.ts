@@ -40,30 +40,34 @@ export class AuthService {
     localStorage.removeItem('userName'); // Clear user's name
     localStorage.removeItem('userId');
     this.role$.next(null);
-    this.userName$.next(null); // Clear BehaviorSubject
+    this.userName$.next(null); // Update BehaviorSubject
+  }
+
+  isLoggedIn(): boolean {
+    return !!localStorage.getItem('token');
   }
 
   getToken(): string | null {
     return localStorage.getItem('token');
   }
-
-  getRole(): string | null {
+  getUserRole(): string | null {
     return localStorage.getItem('role');
   }
+  
+  // Alias for getUserRole for backward compatibility
+  getRole(): string | null {
+    return this.getUserRole();
+  }
 
-  getUserName(): string | null { // Added method to get user's name
+  getUserName(): string | null {
     return localStorage.getItem('userName');
   }
-
-  getUserNameObservable(): Observable<string | null> { // Added observable for name
-    return this.userName$.asObservable();
-  }
-
+  
   getUserId(): string | null {
     return localStorage.getItem('userId');
   }
 
-  isLoggedIn(): boolean {
-    return !!this.getToken();
+  getUserNameObservable(): Observable<string | null> {
+    return this.userName$.asObservable();
   }
 }

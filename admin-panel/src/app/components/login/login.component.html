@@ -1,10 +1,38 @@
-<h2>Login</h2>
 <form [formGroup]="form" (ngSubmit)="onSubmit()">
-  <label>Email</label>
-  <input formControlName="email" type="email" />
+  <h2>Admin Login</h2>
+  
+  <div class="form-group">
+    <label for="email">Email Address</label>
+    <input 
+      id="email"
+      formControlName="email" 
+      type="email" 
+      placeholder="Enter your email"
+      [ngClass]="{'invalid': form.get('email')?.invalid && form.get('email')?.touched}"
+    />
+    <div class="error-message" *ngIf="form.get('email')?.invalid && form.get('email')?.touched">
+      <span *ngIf="form.get('email')?.errors?.['required']">Email is required</span>
+      <span *ngIf="form.get('email')?.errors?.['email']">Please enter a valid email</span>
+    </div>
+  </div>
 
-  <label>Password</label>
-  <input formControlName="password" type="password" />
+  <div class="form-group">
+    <label for="password">Password</label>
+    <input 
+      id="password"
+      formControlName="password" 
+      type="password" 
+      placeholder="Enter your password"
+      [ngClass]="{'invalid': form.get('password')?.invalid && form.get('password')?.touched}"
+    />
+    <div class="error-message" *ngIf="form.get('password')?.invalid && form.get('password')?.touched">
+      <span *ngIf="form.get('password')?.errors?.['required']">Password is required</span>
+    </div>
+  </div>
 
   <button type="submit" [disabled]="form.invalid">Sign In</button>
+  
+  <div class="form-footer">
+    <p>NexPrep Administration Panel</p>
+  </div>
 </form>

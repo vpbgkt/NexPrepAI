@@ -1,12 +1,96 @@
-<div style="text-align:center">
-  <h1>Welcome to the Admin Panel</h1>
-  <nav>
-    <a routerLink="/questions">📄 View Questions</a> |
-    <a routerLink="/add-question">➕ Add Question</a> |
-    <a routerLink="/csv-import">📥 CSV Import</a>
-    <a routerLink="/test-series">Test Series</a>
-    <a routerLink="/test-series/create">New Series</a>
-  </nav>
-</div>
+<div class="app-container">
+  <header class="main-header" *ngIf="authService.isLoggedIn()">
+    <div class="header-content">
+      <div class="logo">
+        <h1>NexPrep Admin</h1>
+      </div>
+      
+      <button class="mobile-toggle" (click)="toggleMobileMenu()" [class.active]="mobileMenuOpen" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      
+      <nav class="main-nav" [class.mobile-open]="mobileMenuOpen">
+        <ul class="nav-list">
+          <li class="nav-item">
+            <a routerLink="/home" routerLinkActive="active" (click)="closeMobileMenu()">
+              <i class="nav-icon dashboard-icon"></i>
+              Dashboard
+            </a>
+          </li>
+          
+          <li class="nav-item dropdown" [class.open]="activeDropdown === 'questions'" (clickOutside)="closeDropdown()">
+            <a class="dropdown-toggle" (click)="toggleDropdown('questions')">
+              <i class="nav-icon questions-icon"></i>
+              Questions
+              <i class="dropdown-arrow"></i>
+            </a>
+            <div class="dropdown-menu">
+              <a routerLink="/questions" routerLinkActive="active" (click)="closeMobileMenu()">View Questions</a>
+              <a routerLink="/add-question" routerLinkActive="active" (click)="closeMobileMenu()">Add Question</a>
+              <a routerLink="/csv-import" routerLinkActive="active" (click)="closeMobileMenu()">CSV Import</a>
+            </div>
+          </li>
+          
+          <li class="nav-item dropdown" [class.open]="activeDropdown === 'test-series'" (clickOutside)="closeDropdown()">
+            <a class="dropdown-toggle" (click)="toggleDropdown('test-series')">
+              <i class="nav-icon test-icon"></i>
+              Test Series
+              <i class="dropdown-arrow"></i>
+            </a>
+            <div class="dropdown-menu">
+              <a routerLink="/test-series" routerLinkActive="active" (click)="closeMobileMenu()">View All</a>
+              <a routerLink="/test-series/create" routerLinkActive="active" (click)="closeMobileMenu()">Create New</a>
+            </div>
+          </li>
+            <li class="nav-item dropdown" [class.open]="activeDropdown === 'content'" (clickOutside)="closeDropdown()">
+            <a class="dropdown-toggle" (click)="toggleDropdown('content')">
+              <i class="nav-icon hierarchy-icon"></i>
+              Content Structure
+              <i class="dropdown-arrow"></i>
+            </a>
+            <div class="dropdown-menu">
+              <a routerLink="/subjects" routerLinkActive="active" (click)="closeMobileMenu()">Subjects</a>
+              <a routerLink="/topics" routerLinkActive="active" (click)="closeMobileMenu()">Topics</a>
+              <a routerLink="/subtopics" routerLinkActive="active" (click)="closeMobileMenu()">Subtopics</a>
+            </div>
+          </li>
+          
+          <li class="nav-item">
+            <a routerLink="/analytics" routerLinkActive="active" (click)="closeMobileMenu()">
+              <i class="nav-icon analytics-icon"></i>
+              Analytics
+            </a>
+          </li>
+          
+          <li class="nav-item mobile-only">
+            <a (click)="logout(); closeMobileMenu()">
+              <i class="nav-icon logout-icon"></i>
+              Logout
+            </a>
+          </li>
+        </ul>
+      </nav>
+      
+      <div class="user-menu">
+        <div class="user-info">
+          <div class="user-avatar">
+            {{ userName?.charAt(0) || 'A' }}
+          </div>
+          <span class="user-name">{{ userName }}</span>
+          <button class="logout-btn" (click)="logout()">Logout</button>
+        </div>
+      </div>
+    </div>
+  </header>
 
-<router-outlet></router-outlet>
+  <main class="main-content">
+    <router-outlet></router-outlet>
+  </main>
+  <footer class="main-footer" *ngIf="authService.isLoggedIn()">
+    <div class="footer-content">
+      <p>&copy; {{ currentYear }} NexPrep Admin Panel. All rights reserved.</p>
+    </div>
+  </footer>
+</div>
