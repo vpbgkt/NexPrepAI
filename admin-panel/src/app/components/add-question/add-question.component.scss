@@ -1,23 +1,251 @@
-a {
-  cursor: pointer;
-  color: blue;
-  text-decoration: underline;
-  margin-left: 10px;
-  z-index: 10;   // Ensure it's clickable and above other elements
-  position: relative;
+@use 'sass:color';
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+// Variables - consistent with frontend components
+$primary-color: #6200ea;
+$primary-light: #a255ff;
+$primary-dark: #3700b3;
+$secondary-color: #03dac6;
+$secondary-dark: #018786;
+$danger-color: #cf6679;
+$warning-color: #ffb74d;
+$success-color: #69f0ae;
+$neutral-light: #f5f5f5;
+$neutral-medium: #e0e0e0;
+$neutral-dark: #757575;
+$text-primary: #212121;
+$text-secondary: #757575;
+$white: #ffffff;
+
+// Derived color variables
+$primary-hover: color.adjust($primary-color, $lightness: 5%);
+$primary-light-lighter: color.adjust($primary-light, $lightness: 25%);
+
+:host {
+  display: block;
+  font-family: 'Poppins', sans-serif;
+  padding: 24px;
+  background-color: $neutral-light;
+  color: $text-primary;
 }
 
+form {
+  background-color: $white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: $primary-color;
+  position: relative;
+  padding-bottom: 0.5rem;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    width: 60px;
+    background: linear-gradient(to right, $primary-color, $primary-light);
+    border-radius: 3px;
+  }
+}
+
+// Language switch styling
+.lang-switch {
+  display: flex;
+  margin-bottom: 1.5rem;
+  
+  button {
+    background-color: $neutral-medium;
+    border: none;
+    color: $text-primary;
+    padding: 0.5rem 1.25rem;
+    border-radius: 6px;
+    margin-right: 0.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    &.active {
+      background-color: $primary-color;
+      color: $white;
+      box-shadow: 0 4px 8px rgba(98, 0, 234, 0.2);
+    }
+    
+    &:hover:not(.active) {
+      background-color: color.adjust($neutral-medium, $lightness: -10%);
+    }
+  }
+}
+
+// Form controls
+label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: $text-primary;
+}
+
+input, select, textarea {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid $neutral-medium;
+  border-radius: 6px;
+  margin-bottom: 1.25rem;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  
+  &:focus {
+    border-color: $primary-light;
+    box-shadow: 0 0 0 3px rgba(162, 85, 255, 0.2);
+    outline: none;
+  }
+  
+  &:disabled {
+    background-color: $neutral-light;
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+}
+
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23757575' d='M6 8.825l-4.9-4.9 1.415-1.414L6 6.004l3.485-3.493L10.9 3.925z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: calc(100% - 1rem) center;
+  background-size: 12px;
+  padding-right: 2.5rem;
+  appearance: none;
+}
+
+textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+// Option groups
+.option-group {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  border-radius: 8px;
+  background-color: color.adjust($neutral-light, $lightness: 2%);
+  
+  label {
+    color: $primary-dark;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+}
+
+// Error messages
+.error {
+  color: $danger-color;
+  margin-top: -1rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+// Links
+a {
+  cursor: pointer;
+  color: $primary-color;
+  text-decoration: none;
+  margin-left: 10px;
+  z-index: 10;
+  position: relative;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    color: $primary-dark;
+    text-decoration: underline;
+  }
+}
+
+// Small buttons for utility actions
 .btn-small {
   margin-left: 0.5rem;
-  padding: 0.25rem 0.5rem;
+  padding: 0.35rem 0.75rem;
   font-size: 0.8rem;
+  font-weight: 500;
   cursor: pointer;
-  background-color: #f0f0f0;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  transition: background-color 0.2s;
+  background-color: $neutral-light;
+  border: 1px solid $neutral-medium;
+  border-radius: 4px;
+  transition: all 0.2s ease;
 
   &:hover {
-    background-color: #e0e0e0;
+    background-color: color.adjust($neutral-light, $lightness: -5%);
+  }
+  
+  &:active {
+    transform: translateY(1px);
+  }
+}
+
+// Submit button
+button[type="submit"] {
+  background-color: $primary-color;
+  color: $white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(98, 0, 234, 0.2);
+  margin-top: 1rem;
+  
+  &:hover:not(:disabled) {
+    background-color: $primary-hover;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(98, 0, 234, 0.3);
+  }
+  
+  &:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 3px rgba(98, 0, 234, 0.2);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: $neutral-dark;
+    box-shadow: none;
+  }
+}
+
+// Helper text
+small {
+  display: block;
+  color: $text-secondary;
+  margin-top: -1rem;
+  margin-bottom: 1rem;
+  font-size: 0.8rem;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  form {
+    padding: 1.5rem;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+  }
+  
+  input, select, textarea {
+    padding: 0.6rem 0.8rem;
   }
 }

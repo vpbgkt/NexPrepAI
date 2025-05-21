@@ -1,30 +1,45 @@
-<div *ngIf="loading">Loading your attempts…</div>
-<div *ngIf="error">{{ error }}</div>
+<div class="dashboard-container fade-in">
+  <div class="dashboard-header">
+    <h1 class="dashboard-title">My Dashboard</h1>
+    <p class="dashboard-subtitle">Track your progress and performance across all tests</p>
+  </div>
 
-<table *ngIf="!loading && !error">
-  <thead>
-    <tr>
-      <th>Mock</th>
-      <th>Score</th>
-      <th>Out Of</th>
-      <th>%</th>
-      <th>Review</th>
-      <th>Leaderboard</th> <!-- New column -->
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let a of attempts">
-      <td>{{ a?.series?.title || 'Unknown Test' }} ({{ a?.series?.year || 'N/A' }})</td>
-      <td>{{ a?.score || 0 }}</td>
-      <td>{{ a?.maxScore || 0 }}</td>
-      <td>{{ a?.percentage || 0 }}%</td>
-      <td>
-        <a [routerLink]="['/review', a?._id]">Review</a>
-      </td>
-      <td> <!-- New cell for leaderboard link -->
-        <a *ngIf="a?.series?.enablePublicLeaderboard" [routerLink]="['/leaderboard', a?.series?._id]">View</a>
-        <span *ngIf="!a?.series?.enablePublicLeaderboard">N/A</span>
-      </td>
-    </tr>
-  </tbody>
-</table>
+  <div *ngIf="loading" class="loading">Loading your attempts…</div>
+  <div *ngIf="error" class="error">{{ error }}</div>
+
+  <table *ngIf="!loading && !error && attempts && attempts.length > 0">
+    <thead>
+      <tr>
+        <th>Mock</th>
+        <th>Score</th>
+        <th>Out Of</th>
+        <th>%</th>
+        <th>Review</th>
+        <th>Leaderboard</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let a of attempts">
+        <td>{{ a?.series?.title || 'Unknown Test' }} ({{ a?.series?.year || 'N/A' }})</td>
+        <td>{{ a?.score || 0 }}</td>
+        <td>{{ a?.maxScore || 0 }}</td>
+        <td>{{ a?.percentage || 0 }}%</td>
+        <td>
+          <a [routerLink]="['/review', a?._id]">Review</a>
+        </td>
+        <td>
+          <a *ngIf="a?.series?.enablePublicLeaderboard" [routerLink]="['/leaderboard', a?.series?._id]">View</a>
+          <span *ngIf="!a?.series?.enablePublicLeaderboard">N/A</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Empty state when there are no attempts -->
+  <div *ngIf="!loading && !error && (!attempts || attempts.length === 0)" class="empty-state">
+    <div class="empty-icon">📝</div>
+    <h3 class="empty-title">No Test Attempts Yet</h3>
+    <p class="empty-message">Take your first test to see your results here.</p>
+    <a [routerLink]="['/tests']" class="empty-action">Browse Tests</a>
+  </div>
+</div>

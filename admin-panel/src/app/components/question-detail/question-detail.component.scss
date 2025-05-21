@@ -1,83 +1,278 @@
-/* filepath: c:\Users\vpbgk\OneDrive\Desktop\project\NexPrep\admin-panel\src\app\components\question-detail\question-detail.component.scss */
+@use 'sass:color';
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+// Variables - consistent with frontend components
+$primary-color: #6200ea;
+$primary-light: #a255ff;
+$primary-dark: #3700b3;
+$secondary-color: #03dac6;
+$secondary-dark: #018786;
+$danger-color: #cf6679;
+$warning-color: #ffb74d;
+$success-color: #69f0ae;
+$neutral-light: #f5f5f5;
+$neutral-medium: #e0e0e0;
+$neutral-dark: #757575;
+$text-primary: #212121;
+$text-secondary: #757575;
+$white: #ffffff;
+
+// Derived colors
+$primary-hover: color.adjust($primary-color, $lightness: 5%);
+$primary-light-lighter: color.adjust($primary-light, $lightness: 25%);
+
+:host {
+  display: block;
+  font-family: 'Poppins', sans-serif;
+}
+
 .question-detail-container {
-  padding: 20px;
-  font-family: Arial, sans-serif;
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  background-color: $neutral-light;
 }
 
 .loading-indicator,
 .error-message {
   text-align: center;
-  padding: 20px;
+  padding: 40px 20px;
   font-size: 1.2em;
+  background-color: $white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: 2rem;
+  
+  .spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 4px solid color.adjust($primary-light, $lightness: 20%);
+    border-radius: 50%;
+    border-top-color: $primary-color;
+    animation: spin 1s ease-in-out infinite;
+    margin-bottom: 1rem;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
 }
 
-.error-message button,
+.error-message {
+  color: $danger-color;
+  border-left: 4px solid $danger-color;
+  
+  button {
+    background-color: $primary-color;
+    color: $white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.6rem 1.25rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 1rem;
+    
+    &:hover {
+      background-color: $primary-hover;
+      box-shadow: 0 4px 8px rgba(98, 0, 234, 0.2);
+    }
+  }
+}
+
+.action-buttons {
+  display: flex;
+  margin-bottom: 1.5rem;
+}
+
 .back-button,
 .edit-button {
-  padding: 8px 15px;
-  margin-top: 10px;
-  margin-right: 10px;
+  padding: 0.6rem 1.25rem;
+  margin-right: 1rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.9em;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  i, svg {
+    margin-right: 0.5rem;
+  }
 }
 
 .back-button {
-  background-color: #6c757d;
-  color: white;
+  background-color: $neutral-medium;
+  color: $text-primary;
+  
+  &:hover {
+    background-color: color.adjust($neutral-medium, $lightness: -5%);
+  }
 }
 
 .edit-button {
-  background-color: #007bff;
-  color: white;
-}
-
-.error-message button {
-  background-color: #007bff;
-  color: white;
+  background-color: $primary-color;
+  color: $white;
+  
+  &:hover {
+    background-color: $primary-hover;
+  }
 }
 
 .detail-section {
-  background-color: #f9f9f9;
-  border: 1px solid #eee;
-  padding: 15px;
-  margin-bottom: 20px;
-  border-radius: 5px;
+  background-color: $white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: 2rem;
+  
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: $primary-color;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid color.adjust($primary-light, $lightness: 15%);
+  }
+  
+  .property {
+    margin-bottom: 1.25rem;
+    
+    .label {
+      font-weight: 600;
+      color: $text-primary;
+      display: block;
+      margin-bottom: 0.4rem;
+      font-size: 0.95rem;
+    }
+    
+    .value {
+      padding: 0.75rem;
+      background-color: $neutral-light;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      border-left: 3px solid $primary-light;
+    }
+    
+    .option-correct {
+      color: $success-color;
+      font-weight: 600;
+      
+      &::before {
+        content: '✓ ';
+      }
+    }
+    
+    .option-incorrect {
+      color: $text-secondary;
+      
+      &::before {
+        content: '○ ';
+      }
+    }
+  }
+  
+  .images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+    
+    img {
+      max-width: 300px;
+      max-height: 200px;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      object-fit: contain;
+      border: 1px solid $neutral-medium;
+    }
+  }
 }
 
-.detail-section h3 {
-  margin-top: 0;
-  color: #333;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 10px;
-  margin-bottom: 15px;
+// Metadata section
+.metadata {
+  font-size: 0.85rem;
+  color: $text-secondary;
+  background-color: color.adjust($neutral-light, $lightness: 2%);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-top: 2rem;
+  
+  .meta-item {
+    display: flex;
+    margin-bottom: 0.5rem;
+    
+    .meta-label {
+      min-width: 120px;
+      font-weight: 600;
+    }
+  }
 }
 
-.detail-section p,
-.detail-section li {
-  margin-bottom: 8px;
-  line-height: 1.6;
+// Question tags
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  
+  .tag {
+    background-color: color.adjust($primary-light, $lightness: 20%);
+    color: $primary-dark;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 16px;
+    font-weight: 500;
+  }
 }
 
-.detail-section strong {
-  color: #555;
+// Responsive adjustments
+@media (max-width: 768px) {
+  .question-detail-container {
+    padding: 16px;
+  }
+  
+  .detail-section {
+    padding: 1.25rem;
+  }
+  
+  .images img {
+    max-width: 100%;
+  }
 }
 
+// Detail section additional styling
 .translation-block {
-  border: 1px dashed #ccc;
+  border: 1px dashed $neutral-medium;
   padding: 15px;
   margin-top: 15px;
-  background-color: #fff;
-}
-
-.translation-block h4 {
-  margin-top: 0;
-  color: #0056b3;
-}
-
-.translation-block ul {
-  padding-left: 20px;
+  background-color: $white;
+  border-radius: 6px;
+  
+  h4 {
+    margin-top: 0;
+    color: $primary-color;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  ul {
+    padding-left: 20px;
+  }
 }
 
 /* Styles for content displayed with [innerHTML] */

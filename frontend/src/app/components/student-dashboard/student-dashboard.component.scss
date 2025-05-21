@@ -1,0 +1,316 @@
+@use 'sass:color';  // Add this import for color module functions
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+// Variables - using the same color scheme as the exam player for consistency
+$primary-color: #6200ea;
+$primary-light: #a255ff;
+$primary-dark: #3700b3;
+$secondary-color: #03dac6;
+$secondary-dark: #018786;
+$danger-color: #cf6679;
+$warning-color: #ffb74d;
+$success-color: #69f0ae;
+$neutral-light: #f5f5f5;
+$neutral-medium: #e0e0e0;
+$neutral-dark: #757575;
+$text-primary: #212121;
+$text-secondary: #757575;
+$white: #ffffff;
+$box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+$border-radius: 12px;
+$transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+// Derived colors using color module instead of darken/lighten
+$success-color-dark: color.adjust($success-color, $lightness: -10%);
+$warning-color-dark: color.adjust($warning-color, $lightness: -10%);
+$danger-color-dark: color.adjust($danger-color, $lightness: -15%);
+$danger-color-light: color.adjust($danger-color, $lightness: 25%);
+$primary-light-lighter: color.adjust($primary-light, $lightness: 25%);
+$primary-light-lighter-20: color.adjust($primary-light, $lightness: 20%);
+$neutral-light-darker: color.adjust($neutral-light, $lightness: -5%);
+
+:host {
+  display: block;
+  font-family: 'Poppins', sans-serif;
+  padding: 24px;
+  background-color: $neutral-light;
+  min-height: 100vh;
+}
+
+// Dashboard container
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+// Dashboard header
+.dashboard-header {
+  margin-bottom: 32px;
+  
+  .dashboard-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: $primary-color;
+    margin-bottom: 8px;
+    position: relative;
+    display: inline-block;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 40%;
+      height: 4px;
+      background: linear-gradient(to right, $primary-color, $primary-light);
+      border-radius: 2px;
+    }
+  }
+  
+  .dashboard-subtitle {
+    font-size: 1.1rem;
+    color: $text-secondary;
+    font-weight: 400;
+  }
+}
+
+// Loading and error states
+.loading, .error {
+  padding: 24px;
+  border-radius: $border-radius;
+  text-align: center;
+  margin: 24px 0;
+  font-size: 1.1rem;
+}
+
+.loading {
+  background-color: $primary-light-lighter;
+  color: $primary-dark;
+  position: relative;
+  
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba($primary-color, 0.3);
+    border-radius: 50%;
+    border-top-color: $primary-color;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 12px;
+    vertical-align: middle;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+}
+
+.error {
+  background-color: $danger-color-light;
+  color: $danger-color-dark;
+}
+
+// Table styling
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  box-shadow: $box-shadow;
+  border-radius: $border-radius;
+  overflow: hidden;
+  background-color: $white;
+  margin: 20px 0;
+  
+  thead {
+    tr {
+      background: linear-gradient(135deg, $primary-color, $primary-dark);
+      
+      th {
+        color: $white;
+        font-weight: 600;
+        font-size: 1rem;
+        padding: 16px;
+        text-align: left;
+        position: relative;
+        
+        &::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 16px;
+          right: 16px;
+          height: 2px;
+          background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        &:first-child {
+          border-top-left-radius: $border-radius;
+        }
+        
+        &:last-child {
+          border-top-right-radius: $border-radius;
+        }
+      }
+    }
+  }
+  
+  tbody {
+    tr {
+      transition: $transition-smooth;
+      
+      &:nth-child(even) {
+        background-color: rgba($neutral-light, 0.5);
+      }
+      
+      &:hover {
+        background-color: rgba($primary-light, 0.05);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba($primary-dark, 0.1);
+      }
+      
+      &:last-child {
+        td {
+          &:first-child {
+            border-bottom-left-radius: $border-radius;
+          }
+          
+          &:last-child {
+            border-bottom-right-radius: $border-radius;
+          }
+        }
+      }
+      
+      td {
+        padding: 16px;
+        font-size: 0.95rem;
+        color: $text-primary;
+        border-bottom: 1px solid $neutral-medium;
+        vertical-align: middle;
+        
+        &:nth-child(1) {
+          font-weight: 500;
+          color: $primary-dark;
+        }
+        
+        &:nth-child(2), &:nth-child(3) {
+          text-align: center;
+          font-weight: 500;
+        }
+        
+        &:nth-child(4) {
+          text-align: center;
+          font-weight: 700;
+          color: $primary-color;
+        }
+        
+        a {
+          display: inline-block;
+          padding: 8px 16px;
+          background-color: $primary-light;
+          color: $white;
+          text-decoration: none;
+          border-radius: 20px;
+          font-weight: 500;
+          transition: $transition-smooth;
+          text-align: center;
+          min-width: 80px;
+          
+          &:hover {
+            background-color: $primary-color;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba($primary-dark, 0.2);
+          }
+          
+          &[routerLink*="review"] {
+            background-color: $secondary-color;
+            color: $text-primary;
+            
+            &:hover {
+              background-color: $secondary-dark;
+              color: $white;
+              box-shadow: 0 4px 8px rgba($secondary-dark, 0.2);
+            }
+          }
+        }
+        
+        span {
+          display: inline-block;
+          padding: 8px 16px;
+          background-color: $neutral-medium;
+          color: $text-secondary;
+          border-radius: 20px;
+          font-size: 0.9rem;
+          text-align: center;
+          min-width: 80px;
+        }
+      }
+    }
+  }
+}
+
+// Empty state
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  background-color: $white;
+  border-radius: $border-radius;
+  box-shadow: $box-shadow;
+  
+  .empty-icon {
+    font-size: 3rem;
+    color: $neutral-dark;
+    margin-bottom: 16px;
+  }
+  
+  .empty-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: $text-primary;
+    margin-bottom: 8px;
+  }
+  
+  .empty-message {
+    color: $text-secondary;
+    margin-bottom: 24px;
+  }
+  
+  .empty-action {
+    display: inline-block;
+    padding: 12px 24px;
+    background-color: $primary-color;
+    color: $white;
+    border-radius: 24px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: $transition-smooth;
+    
+    &:hover {
+      background-color: $primary-dark;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba($primary-dark, 0.2);
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    
+    th, td {
+      white-space: nowrap;
+    }
+  }
+}
+
+// Animation utilities
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
