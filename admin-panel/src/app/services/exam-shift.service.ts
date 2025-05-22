@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 
 export interface ExamShift {
   _id: string;
@@ -30,5 +31,33 @@ export class ExamShiftService {
   /** Create a shift */
   create(shift: Partial<ExamShift>): Observable<ExamShift> {
     return this.http.post<ExamShift>(this.base, shift);
+  }
+
+  /**
+   * Get a shift for a paper, creating a default one if none exists
+   * @param paperId The ID of the paper
+   * @returns Observable with the shift to use
+   */
+  getOrCreateDefaultShift(paperId: string): Observable<ExamShift> {
+    return this.getByPaper(paperId).pipe(
+      switchMap(shifts => {
+        if (shifts && shifts.length > 0) {
+          // If shifts exist, return the first one
+          return of(shifts[0]);
+        } else {
+          // Create a default "Main Shift" for this paper
+          const defaultShift: Partial<ExamShift> = {
+            paper: paperId,
+            code: 'main-shift',
+            name: 'Main Shift'
+          };
+          return this.create(defaultShift);
+        }
+      }),
+      catchError(error => {
+        console.error('Error getting or creating default shift:', error);
+        throw error;
+      })
+    );
   }
 }

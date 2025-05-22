@@ -43,7 +43,7 @@
               <a routerLink="/test-series" routerLinkActive="active" (click)="closeMobileMenu()">View All</a>
               <a routerLink="/test-series/create" routerLinkActive="active" (click)="closeMobileMenu()">Create New</a>
             </div>
-          </li>            <li class="nav-item dropdown" [class.open]="activeDropdown === 'content'" (clickOutside)="closeDropdown()">
+          </li>          <li class="nav-item dropdown" [class.open]="activeDropdown === 'content'" (clickOutside)="closeDropdown()">
             <a class="dropdown-toggle" (click)="toggleDropdown('content')">
               <i class="nav-icon hierarchy-icon"></i>
               Content Structure
@@ -53,6 +53,20 @@
               <a routerLink="/subjects" routerLinkActive="active" (click)="closeMobileMenu()">Subjects</a>
               <a routerLink="/topics" routerLinkActive="active" (click)="closeMobileMenu()">Topics</a>
               <a routerLink="/subtopics" routerLinkActive="active" (click)="closeMobileMenu()">Subtopics</a>
+            </div>
+          </li>
+          
+          <li class="nav-item dropdown" [class.open]="activeDropdown === 'exam-structure'" (clickOutside)="closeDropdown()">
+            <a class="dropdown-toggle" (click)="toggleDropdown('exam-structure')">
+              <i class="nav-icon hierarchy-icon"></i>
+              Exam Structure
+              <i class="dropdown-arrow"></i>
+            </a>
+            <div class="dropdown-menu">
+              <a routerLink="/exam-families" routerLinkActive="active" (click)="closeMobileMenu()">Exam Families</a>
+              <a routerLink="/exam-streams" routerLinkActive="active" (click)="closeMobileMenu()">Exam Streams</a>
+              <a routerLink="/exam-papers" routerLinkActive="active" (click)="closeMobileMenu()">Exam Papers</a>
+              <a routerLink="/exam-shifts" routerLinkActive="active" (click)="closeMobileMenu()">Exam Shifts</a>
             </div>
           </li>
           

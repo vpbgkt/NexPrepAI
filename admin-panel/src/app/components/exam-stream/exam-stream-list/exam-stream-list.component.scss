@@ -1,0 +1,123 @@
+@use 'sass:color';
+
+// Define Sass color variables directly instead of using CSS variables
+$primary-color: #6200ea;
+$primary-light: #a255ff;
+$primary-dark: #3700b3;
+$secondary-color: #03dac6;
+$secondary-dark: #018786;
+$danger-color: #cf6679;
+$warning-color: #ffb74d;
+$success-color: #69f0ae;
+$neutral-light: #f5f5f5;
+$neutral-medium: #e0e0e0;
+$neutral-dark: #757575;
+$text-primary: #212121;
+$text-secondary: #757575;
+$white: #ffffff;
+
+:host {
+  display: block;
+  padding: 1.5rem;
+}
+
+h2 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: $primary-dark;
+}
+
+button {
+  background-color: $primary-color;
+  color: $white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background-color: color.adjust($primary-color, $lightness: -5%);
+  }
+  
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px color.adjust($primary-light, $alpha: -0.7);
+  }
+  
+  &.btn-small {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+  }
+}
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: $white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: 2rem;
+  
+  th, td {
+    padding: 1rem 1.25rem;
+    text-align: left;
+  }
+  
+  th {
+    background-color: color.adjust($primary-light, $lightness: 25%);
+    color: $primary-dark;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+  }
+  
+  tr {
+    transition: background-color 0.2s ease;
+    
+    &:hover td {
+      background-color: color.adjust($neutral-light, $lightness: 2%);
+    }
+    
+    &:nth-child(even) td {
+      background-color: color.adjust($neutral-light, $lightness: 1%);
+    }
+  }
+  
+  td {
+    border-bottom: 1px solid $neutral-medium;
+    font-size: 0.9rem;
+    vertical-align: middle;
+    
+    &:first-child {
+      font-weight: 500;
+    }
+  }
+  
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  
+  button {
+    width: 100%;
+    justify-content: center;
+  }
+}

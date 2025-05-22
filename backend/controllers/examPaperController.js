@@ -33,6 +33,31 @@ exports.getByStream = async (req, res) => {
 };
 
 /**
+ * GET /api/examPapers?family=<familyId>
+ * Returns papers filtered by family.
+ */
+exports.getByFamily = async (req, res) => {
+  try {
+    const familyId = req.query.family;
+    if (!familyId) {
+      return res.status(400).json({ message: 'family query param required' });
+    }
+    
+    // Find all streams for this family first
+    const ExamStream = require('../models/ExamStream');
+    const streams = await ExamStream.find({ family: familyId }).select('_id');
+    const streamIds = streams.map(stream => stream._id);
+    
+    // Then find all papers for those streams
+    const papers = await ExamPaper.find({ stream: { $in: streamIds } }).sort('name');
+    res.json(papers);
+  } catch (err) {
+    console.error('Error fetching papers by family:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
  * POST /api/examPapers
  * Create a new paper.
  */

@@ -79,7 +79,6 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     console.warn('[getQuestionIdString] Unexpected ID format:', idValue);
     return String(idValue); 
   }
-
   ngOnInit(): void {
     // Rebuilt FormGroup to remove negativeMark and examBody
     this.seriesForm = this.fb.group({
@@ -92,9 +91,9 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
       startAt:   [null],
       endAt:     [null],
       family:    ['', Validators.required],
-      stream:    ['', Validators.required],
-      paper:     ['', Validators.required],
-      shift:     ['', Validators.required],
+      stream:    [{value: '', disabled: true}, Validators.required],
+      paper:     [{value: '', disabled: true}, Validators.required],
+      shift:     [{value: '', disabled: true}, Validators.required],
       randomizeSectionOrder: [false], // ADDED: For randomizing section order
       enablePublicLeaderboard: [false], // ADDED: For public leaderboard
       sections:  this.fb.array([])
@@ -104,9 +103,7 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     this.efService.getAll().subscribe(f => {
       console.log('🗂️ Fetched families:', f);
       this.families = f;
-    });
-
-    // When family changes, load streams and reset dependent fields
+    });    // When family changes, load streams and reset dependent fields
     this.seriesForm.get('family')!.valueChanges.subscribe(familyId => {
       console.log('[BuildPaperComponent] Family selected. ID:', familyId);
 
@@ -121,8 +118,10 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
       this.papers = [];
       this.shifts = [];
       console.log('[BuildPaperComponent] Dependent data arrays (streams, papers, shifts) cleared.');
-
-      if (familyId && String(familyId).trim() !== '') { // Ensure familyId is not null, undefined, or empty string
+      
+      // Ensure the paper and shift dropdowns are disabled
+      this.seriesForm.get('paper')?.disable();
+      this.seriesForm.get('shift')?.disable();      if (familyId && String(familyId).trim() !== '') { // Ensure familyId is not null, undefined, or empty string
         console.log(`[BuildPaperComponent] Fetching streams for familyId: "${familyId}"`);
         this.streamService.getByFamily(familyId).subscribe({
           next: streamsData => {
@@ -130,6 +129,11 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
             if (Array.isArray(streamsData)) {
               this.streams = streamsData;
               console.log(`[BuildPaperComponent] this.streams populated. Count: ${this.streams.length}. First item (if any):`, this.streams.length > 0 ? this.streams[0] : 'empty');
+              
+              // Enable the stream dropdown if streams are available
+              if (this.streams.length > 0) {
+                this.seriesForm.get('stream')?.enable();
+              }
             } else {
               console.error('[BuildPaperComponent] streamsData is not an array:', streamsData);
               this.streams = []; // Ensure streams is an array
@@ -143,24 +147,82 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
       } else {
         console.log('[BuildPaperComponent] familyId is null or empty. Not fetching streams. Dependent dropdowns will be empty.');
       }
-    });
-
-    // When stream changes, load papers
+    });    // When stream changes, load papers
     this.seriesForm.get('stream')!.valueChanges.subscribe(sid => {
+      // Reset dependent form controls
+      this.seriesForm.get('paper')!.setValue(null, { emitEvent: false });
+      this.seriesForm.get('shift')!.setValue(null, { emitEvent: false });
+      
+      // Clear current papers and shifts arrays
       this.papers = [];
       this.shifts = [];
-      if (sid) {
+      
+      // Disable the paper and shift dropdowns by default
+      this.seriesForm.get('paper')?.disable();
+      this.seriesForm.get('shift')?.disable();
+      
+      if (sid && String(sid).trim() !== '') {
+        console.log(`[BuildPaperComponent] Fetching papers for streamId: "${sid}"`);
         this.paperService.getByStream(sid)
-          .subscribe(p => this.papers = p);
+          .subscribe({
+            next: papersData => {
+              if (Array.isArray(papersData)) {
+                this.papers = papersData;
+                console.log(`[BuildPaperComponent] Loaded ${this.papers.length} papers for stream ${sid}`);
+                
+                // Enable the paper dropdown if papers are available
+                if (this.papers.length > 0) {
+                  this.seriesForm.get('paper')?.enable();
+                } 
+              } else {
+                console.error('[BuildPaperComponent] papersData is not an array:', papersData);
+                this.papers = [];
+              }
+            },
+            error: err => {
+              console.error('[BuildPaperComponent] Error fetching papers:', err);
+              this.papers = [];
+            }
+          });
+      } else {
+        console.log('[BuildPaperComponent] streamId is null or empty. Not fetching papers.');
       }
-    });
-
-    // When paper changes, load shifts
+    });    // When paper changes, load shifts
     this.seriesForm.get('paper')!.valueChanges.subscribe(pid => {
+      // Reset shift form control
+      this.seriesForm.get('shift')!.setValue(null, { emitEvent: false });
+      
+      // Clear current shifts array
       this.shifts = [];
-      if (pid) {
+      
+      // Disable the shift dropdown by default
+      this.seriesForm.get('shift')?.disable();
+      
+      if (pid && String(pid).trim() !== '') {
+        console.log(`[BuildPaperComponent] Fetching shifts for paperId: "${pid}"`);
         this.shiftService.getByPaper(pid)
-          .subscribe(v => this.shifts = v);
+          .subscribe({
+            next: shiftsData => {
+              if (Array.isArray(shiftsData)) {
+                this.shifts = shiftsData;
+                console.log(`[BuildPaperComponent] Loaded ${this.shifts.length} shifts for paper ${pid}`);
+                
+                // Enable the shift dropdown if shifts are available
+                if (this.shifts.length > 0) {
+                  this.seriesForm.get('shift')?.enable();
+                }
+              } else {
+                console.error('[BuildPaperComponent] shiftsData is not an array:', shiftsData);
+                this.shifts = [];
+              }
+            },
+            error: err => {
+              console.error('[BuildPaperComponent] Error fetching shifts:', err);
+              this.shifts = [];
+            }
+          });
+      } else {
+        console.log('[BuildPaperComponent] paperId is null or empty. Not fetching shifts.');
       }
     });
 
@@ -424,53 +486,124 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
       }
     });
   }
-
   onSubmit() {
-    const formValue = this.seriesForm.getRawValue();
+    if (this.seriesForm.invalid) {
+      console.error('Form is invalid!', this.seriesForm.errors);
+      return;
+    }
 
-    if (formValue.sections) {
-      formValue.sections.forEach((section: any) => {
+    // Validate that the test series has at least two questions
+    const hasEnoughQuestions = this.validateMinimumQuestions(2); // Require at least 2 questions
+    if (!hasEnoughQuestions) {
+      alert('Test series must have at least 2 questions. Please add more questions before submitting.');
+      return;
+    }
+
+    // Get form values using getRawValue to include disabled controls
+    const formValues = this.seriesForm.getRawValue();
+    const paperId = formValues.paper;
+
+    // Process the question pool from comma-separated string to array
+    if (formValues.sections) {
+      formValues.sections.forEach((section: any) => {
         // Ensure questionPool is an array of strings
         if (typeof section.questionPool === 'string') {
           section.questionPool = section.questionPool.split(',')
             .map((id: string) => id.trim())
-            .filter((id: string) => id && id.length > 0); // Ensure IDs are valid (e.g., 24 char hex for MongoDB ObjectId)
+            .filter((id: string) => id && id.length > 0); // Ensure IDs are valid
         } else if (section.questionPool === null || section.questionPool === undefined) {
           section.questionPool = [];
         }
-
-        // Backend should prioritize pool if questionsToSelectFromPool > 0
-        // If manual questions were used, questionPool would be [], questionsToSelectFromPool = 0
-        // If pool questions were used, questions array would be []
-        // This component's logic ensures this exclusivity based on enabled/disabled state.
-        // No specific clearing needed here if getRawValue() respects disabled state values correctly.
       });
     }
 
-    this.tsService.create(formValue as Partial<TestSeries>)
-      .subscribe(
-        (res: any) => { alert('Test Series created!'); },
-        (err: any) => { alert('Creation failed: ' + err.message); }
-      );
+    // Check if shift is selected or needs to be created automatically
+    if (!formValues.shift && paperId) {
+      console.log('No shift selected, trying to get or create a default one');
+      // Use the getOrCreateDefaultShift method to either get an existing shift or create a default one
+      this.shiftService.getOrCreateDefaultShift(paperId).subscribe({
+        next: (shift) => {
+          console.log('Using default shift:', shift);
+          // Create a new object with the shift ID
+          const valuesWithShift = { ...formValues, shift: shift._id };
+          this.submitTestSeries(valuesWithShift);
+        },
+        error: (err) => {
+          console.error('Failed to get or create default shift:', err);
+          alert('Failed to create default shift. Please try again or manually select a shift.');
+        }
+      });
+    } else {
+      // Shift is already selected or not required, proceed with form submission
+      this.submitTestSeries(formValues);
+    }
+  }
+
+  // Helper method to submit the test series to the backend
+  private submitTestSeries(formValues: any) {
+    this.tsService.create(formValues as Partial<TestSeries>)
+      .subscribe({
+        next: (res: any) => { 
+          alert('Test Series created!'); 
+        },
+        error: (err: any) => { 
+          alert('Creation failed: ' + (err.message || 'Unknown error')); 
+        }
+      });
   }
 
   onFamilyChange(familyId: string) {
-    this.streams = []; this.papers = []; this.shifts = [];
-    this.streamService.getByFamily(familyId).subscribe(list => this.streams = list);
+    console.log(`Family changed to ${familyId}`);
+    // The valueChanges subscription will handle loading streams
+    
+    // Reset the form values for dependent fields to ensure UI consistency
+    if (!familyId || familyId === '') {
+      this.seriesForm.get('stream')!.setValue('', { emitEvent: true });
+      this.seriesForm.get('paper')!.setValue('', { emitEvent: true });
+      this.seriesForm.get('shift')!.setValue('', { emitEvent: true });
+      this.streams = [];
+      this.papers = [];
+      this.shifts = [];
+    } else {
+      // When streams are loading, check after a brief delay if we have any streams
+      setTimeout(() => {
+        if (this.streams.length === 0) {
+          console.log('[BuildPaperComponent] No streams found for this family. Disabling dropdown.');
+          this.seriesForm.get('stream')?.disable();
+        }
+      }, 500);
+    }
   }
 
   onStreamChange(streamId: string) {
-    this.papers = []; this.shifts = [];
-    this.paperService.getByStream(streamId).subscribe(list => this.papers = list);
+    console.log(`Stream changed to ${streamId}`);
+    // The valueChanges subscription will handle loading papers
+    // This method is for additional logic if needed
+    
+    // Reset paper and shift if stream is empty
+    if (!streamId || streamId === '') {
+      this.seriesForm.get('paper')!.setValue('', { emitEvent: true });
+      this.seriesForm.get('shift')!.setValue('', { emitEvent: true });
+      this.papers = [];
+      this.shifts = [];
+    }
   }
 
   onPaperChange(paperId: string) {
-    this.shifts = [];
-    this.shiftService.getByPaper(paperId).subscribe(list => this.shifts = list);
+    console.log(`Paper changed to ${paperId}`);
+    // The valueChanges subscription will handle loading shifts
+    // This method is for additional logic if needed
+    
+    // Reset shift if paper is empty
+    if (!paperId || paperId === '') {
+      this.seriesForm.get('shift')!.setValue('', { emitEvent: true });
+      this.shifts = [];
+    }
   }
 
   onShiftChange(shiftId: string) {
-    // if you need to do anything when shift changes, handle it here
+    console.log(`Shift changed to ${shiftId}`);
+    // This method is for additional logic if needed when shift changes
   }
 
   performSearch(secIndex: number) {
@@ -550,5 +683,50 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     if (this.searchDebouncers[secIndex]) {
       this.searchDebouncers[secIndex].next('');
     }
+  }
+
+  /**
+   * Validates that the test series has at least the minimum required number of questions
+   * @param minQuestions Minimum number of questions required
+   * @returns boolean indicating if the requirement is met
+   */
+  private validateMinimumQuestions(minQuestions: number): boolean {
+    let totalQuestions = 0;
+
+    // Count questions from each section
+    if (this.sections.length > 0) {
+      // Count manually added questions in each section
+      for (let i = 0; i < this.sections.length; i++) {
+        const sectionGroup = this.sections.at(i) as FormGroup;
+        const questionArray = sectionGroup.get('questions') as FormArray;
+        
+        // Count manual questions if enabled
+        if (!questionArray.disabled) {
+          totalQuestions += questionArray.length;
+        }
+        
+        // Count questions from the question pool if using pool
+        const poolCtrl = sectionGroup.get('questionPool');
+        const numToSelectCtrl = sectionGroup.get('questionsToSelectFromPool');
+        
+        if (poolCtrl && numToSelectCtrl && !poolCtrl.disabled && !numToSelectCtrl.disabled) {
+          const poolValue = poolCtrl.value;
+          const numToSelect = numToSelectCtrl.value;
+          
+          if (typeof poolValue === 'string' && poolValue.trim() !== '' && typeof numToSelect === 'number' && numToSelect > 0) {
+            // Count the number of question IDs in the pool
+            const questionIds = poolValue.split(',')
+              .map((id: string) => id.trim())
+              .filter((id: string) => id && id.length > 0);
+            
+            // Add the smaller of the number to select or total IDs in pool
+            totalQuestions += Math.min(numToSelect, questionIds.length);
+          }
+        }
+      }
+    }
+
+    console.log(`Total questions in test series: ${totalQuestions}, minimum required: ${minQuestions}`);
+    return totalQuestions >= minQuestions;
   }
 }

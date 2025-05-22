@@ -66,10 +66,93 @@ async function createTestSeries(req, res) {
 
     // Fixed user ID access - verifyToken middleware stores it as req.user.userId
     const userId = createdBy || req.user?.userId;
-    
-    if (!userId) {
+      if (!userId) {
       console.log('DEBUG: User data available:', req.user); // Add debug logging
-      return res.status(400).json({ message: 'User ID is required but not found' });
+      return res.status(400).json({ message: 'User ID is required but not found' });    }
+
+    // Validate minimum question count
+    let totalQuestions = 0;
+    
+    // Count questions from sections
+    if (sections && Array.isArray(sections)) {
+      sections.forEach(section => {
+        // Count manual questions
+        if (section.questions && Array.isArray(section.questions)) {
+          totalQuestions += section.questions.length;
+        }
+        
+        // Count questions from pool if applicable
+        if (section.questionPool && Array.isArray(section.questionPool) && 
+            section.questionsToSelectFromPool && section.questionsToSelectFromPool > 0) {
+          const poolSize = section.questionPool.length;
+          const toSelect = section.questionsToSelectFromPool;
+          totalQuestions += Math.min(poolSize, toSelect);
+        }
+      });
+    }
+    
+    // Count questions from variants
+    if (variants && Array.isArray(variants)) {
+      variants.forEach(variant => {
+        if (variant.sections && Array.isArray(variant.sections)) {
+          variant.sections.forEach(section => {
+            // Count manual questions in variant sections
+            if (section.questions && Array.isArray(section.questions)) {
+              totalQuestions += section.questions.length;
+            }
+            
+            // Count questions from pool in variant sections
+            if (section.questionPool && Array.isArray(section.questionPool) && 
+                section.questionsToSelectFromPool && section.questionsToSelectFromPool > 0) {
+              const poolSize = section.questionPool.length;
+              const toSelect = section.questionsToSelectFromPool;
+              totalQuestions += Math.min(poolSize, toSelect);
+            }
+          });
+        }
+      });
+    }
+    
+    // Count individual questions if used directly
+    if (req.body.questions && Array.isArray(req.body.questions)) {
+      totalQuestions += req.body.questions.length;
+    }
+    
+    // Enforce minimum question count
+    const MIN_QUESTIONS_REQUIRED = 2;
+    if (totalQuestions < MIN_QUESTIONS_REQUIRED) {
+      return res.status(400).json({ 
+        message: `Test series must have at least ${MIN_QUESTIONS_REQUIRED} questions. Current count: ${totalQuestions}` 
+      });
+    }
+
+    // Handle the case where shift is not provided but needed for the test series
+    let shiftId = shift;
+    
+    // If shift is not provided but paper is, try to find a default shift
+    if (!shiftId && paper) {
+      const ExamShift = require('../models/ExamShift');
+      
+      // Try to find any shift for this paper
+      const existingShifts = await ExamShift.find({ paper }).limit(1);
+      
+      if (existingShifts && existingShifts.length > 0) {
+        // Use the first available shift
+        shiftId = existingShifts[0]._id;
+        console.log(`Using existing shift ${shiftId} for paper ${paper}`);
+      } else {
+        // Create a default "Main Shift" for this paper
+        const defaultShift = new ExamShift({
+          paper,
+          code: 'main-shift',
+          name: 'Main Shift',
+          createdBy: userId
+        });
+        
+        const savedShift = await defaultShift.save();
+        shiftId = savedShift._id;
+        console.log(`Created default shift ${shiftId} for paper ${paper}`);
+      }
     }
 
     const newSeries = new TestSeries({
@@ -77,7 +160,7 @@ async function createTestSeries(req, res) {
       family,
       stream,
       paper,
-      shift,
+      shift: shiftId, // Use the found or created shift ID
       duration,
       mode,
       type,

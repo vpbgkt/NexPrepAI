@@ -60,18 +60,16 @@
     <option *ngFor="let f of families" [value]="f._id">{{ f.name }}</option>
   </select>
   <p *ngIf="!families.length" class="empty-list-message">Families not available or list is empty.</p>
-
   <!-- Stream -->
-  <select #streamSelect formControlName="stream" [disabled]="!streams.length" (change)="onStreamChange(streamSelect.value)">
+  <select #streamSelect formControlName="stream" (change)="onStreamChange(streamSelect.value)">
     <option value="">Select Stream</option>
     <option *ngFor="let s of streams" [value]="s._id">{{ s.name }}</option>
   </select>
   <p *ngIf="seriesForm.get('family')?.value && !streams.length" class="empty-list-message">
     Streams not available for the selected family or list is empty.
   </p>
-
   <!-- Paper -->
-  <select #paperSelect formControlName="paper" [disabled]="!papers.length" (change)="onPaperChange(paperSelect.value)">
+  <select #paperSelect formControlName="paper" (change)="onPaperChange(paperSelect.value)">
     <option value="">Select Paper</option>
     <option *ngFor="let p of papers" [value]="p._id">
       {{ p.name }}<ng-container *ngIf="p.code"> ({{ p.code }})</ng-container>
@@ -79,15 +77,13 @@
   </select>
   <p *ngIf="seriesForm.get('stream')?.value && !papers.length" class="empty-list-message">
     Papers not available for the selected stream or list is empty.
-  </p>
-
-  <!-- Shift/Variant -->
-  <select #shiftSelect formControlName="shift" [disabled]="!shifts.length" (change)="onShiftChange(shiftSelect.value)">
+  </p>  <!-- Shift/Variant -->
+  <select #shiftSelect formControlName="shift" (change)="onShiftChange(shiftSelect.value)">
     <option value="">Select Shift</option>
     <option *ngFor="let v of shifts" [value]="v._id">{{ v.name }}</option>
   </select>
   <p *ngIf="seriesForm.get('paper')?.value && !shifts.length" class="empty-list-message">
-    Shifts not available for the selected paper or list is empty.
+    No shifts available for this paper. A default "Main Shift" will be created automatically.
   </p>
 
   <!-- Sections -->
@@ -184,14 +180,14 @@
           accept=".csv"
         />
         <button type="button" (click)="addQuestion(i)">+ Add Question</button>
-      </div>
-
-      <button type="button" (click)="removeSection(i)">Remove Section</button>
+      </div>      <button type="button" (click)="removeSection(i)">Remove Section</button>
     </div>
   </div>
   <button type="button" (click)="addSection()">+ Add Section</button>
 
   <p><strong>Total Marks:</strong> {{ computedTotal }}</p>
+  
+  <p class="requirement-note"><strong>Note:</strong> Test series must have at least 2 questions to be valid.</p>
 
   <button type="submit" [disabled]="seriesForm.invalid">Create Test Series</button>
 </form>

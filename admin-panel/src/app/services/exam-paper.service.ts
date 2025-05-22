@@ -29,6 +29,13 @@ export class ExamPaperService {
     });
   }
 
+  /** Only papers for a given family - we need to add this API endpoint to the backend */
+  getByFamily(familyId: string): Observable<ExamPaper[]> {
+    return this.http.get<ExamPaper[]>(this.base, {
+      params: { family: familyId }
+    });
+  }
+
   /** Create new paper */
   create(paper: Partial<ExamPaper>): Observable<ExamPaper> {
     return this.http.post<ExamPaper>(this.base, paper);

@@ -90,11 +90,10 @@ const testSeriesSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'ExamPaper',
     required: true
-  },
-  shift: {
+  },  shift: {
     type: Schema.Types.ObjectId,
     ref: 'ExamShift',
-    required: true
+    required: false
   },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
