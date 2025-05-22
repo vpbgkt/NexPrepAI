@@ -4,14 +4,20 @@
   No test series found. Create one!
 </div>
 
-<ul *ngIf="seriesList.length">
-  <li *ngFor="let s of seriesList">
-    <h3>{{ s.title }}</h3>
-    <p>
-      Duration: {{ s.duration }} min |
-      Total Marks: {{ s.totalMarks }} |
-      Mode: {{ s.mode }} |
-      Max Attempts: {{ s.maxAttempts }}
-    </p>
-  </li>
-</ul>
+<div *ngIf="seriesList.length">
+  <div *ngFor="let family of familyGroups" class="family-group">
+    <h3>{{ family }}</h3>
+    <ul class="test-series-grid">
+      <li *ngFor="let s of groupedSeries[family]" class="test-series-card">
+        <h4>{{ s.title }}</h4>
+        <p>
+          Duration: {{ s.duration }} min |
+          Total Marks: {{ s.totalMarks }} |
+          Mode: {{ s.mode }} |
+          Max Attempts: {{ s.maxAttempts }}
+        </p>
+        <!-- Add more details or actions here -->
+      </li>
+    </ul>
+  </div>
+</div>

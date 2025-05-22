@@ -31,14 +31,11 @@ export class LoginComponent implements OnInit {
     this.form = this.fb.group({
       email:    ['', [Validators.required, Validators.email]],
       password: ['', Validators.required]
-    });
-
-    // Subscribe to Firebase auth state changes to handle navigation and app token
+    });    // Subscribe to Firebase auth state changes to handle navigation and app token
     this.firebaseAuthService.currentUser$.subscribe(user => {
-      if (user && localStorage.getItem('token')) { // Check if app token is also set
-        // This implies that onAuthStateChanged in service has completed backend exchange
-        // and the app token is stored by AuthService's handleFirebaseLogin or traditional login.
-        // Navigate based on role if needed, or to a default dashboard.
+      if (user && localStorage.getItem('token') && this.router.url === '/login') { 
+        // Only redirect if we're on the login page
+        // This prevents unwanted redirects when refreshing other pages like /tests
         const role = this.authService.getRole();
         if (role === 'admin') {
             this.router.navigate(['/admin/dashboard']);

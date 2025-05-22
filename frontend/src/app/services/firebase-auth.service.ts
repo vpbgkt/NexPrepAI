@@ -64,22 +64,27 @@ export class FirebaseAuthService {  private userSubject = new BehaviorSubject<Fi
                     role: response.role || 'student', // Default to student if role is missing
                     photoURL: response.photoURL
                   };
-                  
-                  // Use AuthService to handle storing app token and user object
+                    // Use AuthService to handle storing app token and user object
                   this.authService.handleFirebaseLogin(response.token, userObj);
                   
-                  // Navigate based on role after successful backend sign-in
-                  const role = userObj.role;
-                  const targetRoute = role === 'admin' ? '/admin/dashboard' : '/student/dashboard';
-                  console.log(`FirebaseAuthService: Attempting to navigate to ${targetRoute}`);
-                  this.router.navigate([targetRoute])
-                    .then(navSuccess => {
-                      console.log(`FirebaseAuthService: Navigation to ${targetRoute} status: ${navSuccess}`);
-                      if (!navSuccess) {
-                        console.error('FirebaseAuthService: Navigation failed silently. Check router configuration and guards.');
-                      }
-                    })
-                    .catch(err => console.error(`FirebaseAuthService: Navigation to ${targetRoute} ERROR:`, err));
+                  // Only navigate if we're on the login page or a page that requires authentication but doesn't exist
+                  const currentUrl = this.router.url;
+                  if (currentUrl === '/login') {
+                    // Navigate based on role after successful backend sign-in
+                    const role = userObj.role;
+                    const targetRoute = role === 'admin' ? '/admin/dashboard' : '/student/dashboard';
+                    console.log(`FirebaseAuthService: Navigating from login to ${targetRoute}`);
+                    this.router.navigate([targetRoute])
+                      .then(navSuccess => {
+                        console.log(`FirebaseAuthService: Navigation to ${targetRoute} status: ${navSuccess}`);
+                        if (!navSuccess) {
+                          console.error('FirebaseAuthService: Navigation failed silently. Check router configuration and guards.');
+                        }
+                      })
+                      .catch(err => console.error(`FirebaseAuthService: Navigation to ${targetRoute} ERROR:`, err));
+                  } else {
+                    console.log(`FirebaseAuthService: Staying on current page: ${currentUrl}`);
+                  }
                 },
                 error: (err: HttpErrorResponse) => {
                   console.error('FirebaseAuthService: Backend /firebase-signin FAILED:', err);

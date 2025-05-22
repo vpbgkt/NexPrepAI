@@ -15,7 +15,7 @@ export interface TestSeries {
   examBody:    string | null;
   startAt:     Date | null;
   endAt:       Date | null;
-  family:      string; // ObjectId reference
+  family:      { _id: string; name: string; } | string; // ObjectId reference or populated object
   randomizeSectionOrder?: boolean; // ADDED
   sections?:   Array<{
     title: string;
