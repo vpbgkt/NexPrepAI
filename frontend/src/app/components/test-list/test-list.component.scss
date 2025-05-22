@@ -68,6 +68,60 @@ table {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
+// Family group styling
+.test-family-group {
+  margin-bottom: 2.5rem;
+  
+  .family-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0;
+    padding: 1rem 1.25rem;
+    background-color: color.adjust($primary-color, $lightness: 38%);
+    color: $primary-dark;
+    border-radius: 12px 12px 0 0;
+    border-bottom: 2px solid $primary-light;
+  }
+  
+  table {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    margin-top: 0;
+  }
+}
+
+// Test hierarchy display
+.test-hierarchy {
+  display: flex;
+  flex-direction: column;
+  
+  .stream {
+    font-weight: 500;
+    color: $primary-dark;
+  }
+  
+  .paper {
+    font-size: 0.9em;
+    color: $text-secondary;
+  }
+}
+
+// Empty state
+.no-tests {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem;
+  background-color: $neutral-light;
+  border-radius: 8px;
+  
+  p {
+    color: $text-secondary;
+    font-size: 1.1rem;
+    font-weight: 500;
+  }
+}
+
 th, td {
   padding: 1rem 1.25rem;
   text-align: left;
@@ -268,4 +322,3 @@ td span:not([class]) {
     box-shadow: 0 0 0 0 rgba(98, 0, 234, 0);
   }
 }
-  

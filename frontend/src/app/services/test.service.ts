@@ -11,6 +11,21 @@ export interface TestSeries {
   endAt:      string;                            // ISO date string
   year?: number;
   enablePublicLeaderboard?: boolean; // Added this field
+  family: {
+    _id: string;
+    name: string;
+    code: string;
+  };
+  stream: {
+    _id: string;
+    name: string;
+    code: string;
+  };
+  paper: {
+    _id: string;
+    name: string;
+    code: string;
+  };
   // any other fields you need
 }
 

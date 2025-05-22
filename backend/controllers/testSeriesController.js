@@ -215,6 +215,9 @@ async function cloneTestSeries(req, res) {
 async function getAllTestSeries(req, res) {
   try {
     const all = await TestSeries.find()
+      .populate('family', 'name code') // Populate family with name and code
+      .populate('stream', 'name code') // Populate stream with name and code
+      .populate('paper', 'name code')  // Populate paper with name and code
       .sort({ createdAt: -1 });
 
     res.json(all);

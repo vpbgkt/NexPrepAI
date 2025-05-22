@@ -1,38 +1,53 @@
 <h2>Your Tests</h2>
 
-<table>
-  <thead>
-    <tr>
-      <th>Title</th>
-      <th>Mode</th>
-      <th>Max Attempts</th>
-      <th>Start Time</th>
-      <th>End Time</th>
-      <th>Action</th>
-      <th>Leaderboard</th> <!-- New column -->
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let s of series">
-      <td>{{ s.title }}</td>
-      <td>
-        <span [class]="modeClass(s.mode)">{{ s.mode | titlecase }}</span>
-      </td>
-      <td>{{ s.maxAttempts }}</td>
-      <td>{{ s.startAt | date:'short' }}</td>
-      <td>{{ s.endAt   | date:'short' }}</td>
-      <td>
-        <button
-          (click)="startSeries(s)"
-          [disabled]="isDisabled(s)"
-          [title]="disabledReason(s)">
-          Start
-        </button>
-      </td>
-      <td> <!-- New cell for leaderboard link -->
-        <a *ngIf="s.enablePublicLeaderboard" [routerLink]="['/leaderboard', s._id]">View</a>
-        <span *ngIf="!s.enablePublicLeaderboard">N/A</span>
-      </td>
-    </tr>
-  </tbody>
-</table>
+<div *ngFor="let group of groupedSeries" class="test-family-group">
+  <h3 class="family-title">{{ group.familyName }}</h3>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Stream/Paper</th>
+        <th>Mode</th>
+        <th>Max Attempts</th>
+        <th>Start Time</th>
+        <th>End Time</th>
+        <th>Action</th>
+        <th>Leaderboard</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let s of group.tests">
+        <td>{{ s.title }}</td>
+        <td>
+          <div class="test-hierarchy">
+            <span class="stream">{{ s.stream?.name || 'N/A' }}</span>
+            <span class="paper" *ngIf="s.paper?.name">/ {{ s.paper?.name }}</span>
+          </div>
+        </td>
+        <td>
+          <span [class]="modeClass(s.mode)">{{ s.mode | titlecase }}</span>
+        </td>
+        <td>{{ s.maxAttempts }}</td>
+        <td>{{ s.startAt | date:'short' }}</td>
+        <td>{{ s.endAt | date:'short' }}</td>
+        <td>
+          <button
+            (click)="startSeries(s)"
+            [disabled]="isDisabled(s)"
+            [title]="disabledReason(s)">
+            Start
+          </button>
+        </td>
+        <td>
+          <a *ngIf="s.enablePublicLeaderboard" [routerLink]="['/leaderboard', s._id]">View</a>
+          <span *ngIf="!s.enablePublicLeaderboard">N/A</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div *ngIf="groupedSeries.length === 0" class="no-tests">
+  <p>No tests available at the moment. Please check back later.</p>
+</div>
