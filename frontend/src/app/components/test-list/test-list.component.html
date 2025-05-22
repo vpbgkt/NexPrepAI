@@ -1,6 +1,22 @@
 <h2>Your Tests</h2>
 
-<div *ngFor="let group of groupedSeries" class="test-family-group">
+<!-- Family Navigation Shortcuts -->
+<div class="family-navigation">
+  <ng-container *ngIf="groupedSeries.length > 0">
+    <span class="navigation-label">Jump to:</span>
+    <div class="family-buttons">
+      <a *ngFor="let group of groupedSeries" 
+         [href]="'#family-' + group.familyId"
+         class="family-nav-button"
+         [class.active]="activeFamily === group.familyId"
+         (click)="setActiveFamily(group.familyId, $event)">
+        {{ group.familyName }}
+      </a>
+    </div>
+  </ng-container>
+</div>
+
+<div *ngFor="let group of groupedSeries" class="test-family-group" [id]="'family-' + group.familyId">
   <h3 class="family-title">{{ group.familyName }}</h3>
   
   <table>

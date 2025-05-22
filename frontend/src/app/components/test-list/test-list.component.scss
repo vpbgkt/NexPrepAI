@@ -36,6 +36,54 @@ $live-hover: color.adjust($live-color, $lightness: -10%);
   color: $text-primary;
 }
 
+// Family navigation styles
+.family-navigation {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: $white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  
+  .navigation-label {
+    font-weight: 600;
+    color: $text-secondary;
+    margin-right: 1rem;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  
+  .family-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  
+  .family-nav-button {
+    display: inline-block;
+    padding: 0.6rem 1.2rem;
+    border-radius: 30px;
+    background-color: $neutral-light;
+    color: $text-primary;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+    
+    &:hover {
+      background-color: $neutral-medium;
+      transform: translateY(-2px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    &.active {
+      background-color: color.adjust($primary-color, $lightness: 38%);
+      color: $primary-dark;
+      border-color: $primary-color;
+      font-weight: 600;
+    }
+  }
+}
+
 h2 {
   font-size: 2rem;
   font-weight: 600;

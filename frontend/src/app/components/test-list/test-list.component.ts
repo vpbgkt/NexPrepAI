@@ -21,13 +21,25 @@ export class TestListComponent implements OnInit {
   series: TestSeries[] = [];
   groupedSeries: GroupedTests[] = [];
   now = new Date();
+  activeFamily: string | null = null;
 
   constructor(private svc: TestService, private router: Router) {}
-
   ngOnInit() {
     this.svc.getSeries().subscribe(data => {
       this.series = data;
       this.groupTestsByFamily();
+      
+      // Check if there's a hash in the URL and navigate to that family
+      setTimeout(() => {
+        const hash = window.location.hash;
+        if (hash && hash.startsWith('#family-')) {
+          const familyId = hash.replace('#family-', '');
+          this.setActiveFamily(familyId);
+        } else if (this.groupedSeries.length > 0) {
+          // Set the first family as active by default
+          this.activeFamily = this.groupedSeries[0].familyId;
+        }
+      }, 100);
     });
   }
 
@@ -108,5 +120,29 @@ export class TestListComponent implements OnInit {
       practice:  'badge-practice',
       live:      'badge-live'
     }[mode] || '';
+  }
+
+  // Set active family and handle navigation
+  setActiveFamily(familyId: string, event?: MouseEvent): void {
+    if (event) {
+      // Prevent default only if needed for smooth scrolling
+      event.preventDefault();
+    }
+    
+    this.activeFamily = familyId;
+    
+    // Scroll to the family section with smooth behavior
+    const element = document.getElementById('family-' + familyId);
+    if (element) {
+      element.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+      
+      // Update the URL with the hash without causing a page reload
+      if (history.pushState) {
+        history.pushState(null, '', '#family-' + familyId);
+      }
+    }
   }
 }
