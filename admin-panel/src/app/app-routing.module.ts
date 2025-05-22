@@ -73,12 +73,13 @@ export const routes: Routes = [
       { path: 'questions',            component: QuestionListComponent },
       { path: 'add-question',         component: AddQuestionComponent },
       { path: 'questions/edit/:id',   component: EditQuestionComponent },
-      { path: 'questions/:id/view',   component: QuestionDetailComponent, canActivate: [AdminGuard] }, // ADDED
-
-      // Hierarchy CRUD
+      { path: 'questions/:id/view',   component: QuestionDetailComponent, canActivate: [AdminGuard] }, // ADDED      // Hierarchy CRUD
       { path: 'branches/new',   component: AddBranchComponent },
+      { path: 'subjects',       component: HomeComponent, data: { hierarchySection: 'subjects' } },
       { path: 'subjects/new',   component: AddSubjectComponent },
+      { path: 'topics',         component: HomeComponent, data: { hierarchySection: 'topics' } },
       { path: 'topics/new',     component: AddTopicComponent },
+      { path: 'subtopics',      component: HomeComponent, data: { hierarchySection: 'subtopics' } },
       { path: 'subtopics/new',  component: AddSubtopicComponent },
       { path: 'csv-import',     component: CsvUploadComponent },
 

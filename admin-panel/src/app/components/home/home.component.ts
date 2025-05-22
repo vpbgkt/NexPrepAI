@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service'; 
-import { Router } from '@angular/router'; // Import Router
+import { Router, ActivatedRoute } from '@angular/router'; // Import ActivatedRoute
 
 @Component({
   selector: 'app-home',
@@ -12,20 +12,31 @@ import { Router } from '@angular/router'; // Import Router
 })
 export class HomeComponent implements OnInit {
   userName: string | null = null;
+  hierarchySection: string | null = null;
 
-  constructor(private authService: AuthService, private router: Router) {} // Inject Router
+  constructor(
+    private authService: AuthService, 
+    private router: Router,
+    private route: ActivatedRoute
+  ) {} // Inject ActivatedRoute
 
   ngOnInit(): void {
     this.userName = this.authService.getUserName(); 
-    // If you want the name to be reactive to changes (e.g., if it might load asynchronously after login)
-    // you could subscribe to the observable:
-    // this.authService.getUserNameObservable().subscribe(name => {
-    //   this.userName = name;
-    // });
+    
+    // Get data from route
+    this.route.data.subscribe(data => {
+      this.hierarchySection = data['hierarchySection'] || null;
+    });
   }
 
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
+  }
+  
+  navigateToCreate(): void {
+    if (this.hierarchySection) {
+      this.router.navigate([`/${this.hierarchySection}/new`]);
+    }
   }
 }

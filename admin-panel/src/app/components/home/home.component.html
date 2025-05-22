@@ -1,9 +1,28 @@
-<div *ngIf="userName; else genericWelcome">
-  <h2>Welcome, {{ userName }}!</h2>
+<div class="container">
+  <!-- If it's a hierarchy section page -->
+  <div *ngIf="hierarchySection; else defaultHome" class="hierarchy-section">
+    <div class="section-header">
+      <h2>{{ hierarchySection | titlecase }} Management</h2>
+      <button class="add-btn" (click)="navigateToCreate()">Add New {{ hierarchySection | titlecase }}</button>
+    </div>
+    
+    <div class="section-content">
+      <div class="under-construction">
+        <h3>This page is under construction</h3>
+        <p>The {{ hierarchySection | titlecase }} listing page is currently being developed.</p>
+        <p>In the meantime, you can add new {{ hierarchySection }} by clicking the button above.</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Default home page -->
+  <ng-template #defaultHome>
+    <div *ngIf="userName; else genericWelcome">
+      <h2>Welcome, {{ userName }}!</h2>
+    </div>
+    <ng-template #genericWelcome>
+      <h2>Welcome to the Admin Panel!</h2>
+    </ng-template>
+    <p>Use the navigation menu to manage your content.</p>
+  </ng-template>
 </div>
-<ng-template #genericWelcome>
-  <h2>Welcome to the Admin Panel!</h2>
-</ng-template>
-<p>This is your new home page.</p>
-
-<button (click)="logout()">Logout</button>

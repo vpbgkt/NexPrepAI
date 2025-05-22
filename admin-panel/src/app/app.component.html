@@ -43,8 +43,7 @@
               <a routerLink="/test-series" routerLinkActive="active" (click)="closeMobileMenu()">View All</a>
               <a routerLink="/test-series/create" routerLinkActive="active" (click)="closeMobileMenu()">Create New</a>
             </div>
-          </li>
-            <li class="nav-item dropdown" [class.open]="activeDropdown === 'content'" (clickOutside)="closeDropdown()">
+          </li>            <li class="nav-item dropdown" [class.open]="activeDropdown === 'content'" (clickOutside)="closeDropdown()">
             <a class="dropdown-toggle" (click)="toggleDropdown('content')">
               <i class="nav-icon hierarchy-icon"></i>
               Content Structure
