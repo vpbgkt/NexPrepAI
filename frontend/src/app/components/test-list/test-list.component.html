@@ -37,8 +37,8 @@
         <td>{{ s.title }}</td>
         <td>
           <div class="test-hierarchy">
-            <span class="stream">{{ s.stream?.name || 'N/A' }}</span>
-            <span class="paper" *ngIf="s.paper?.name">/ {{ s.paper?.name }}</span>
+            <span class="stream">{{ s.stream.name || 'N/A' }}</span>
+            <span class="paper" *ngIf="s.paper.name">/ {{ s.paper.name }}</span>
           </div>
         </td>
         <td>
