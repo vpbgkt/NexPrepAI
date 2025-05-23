@@ -683,3 +683,90 @@ $neutral-medium-dark: color.adjust($neutral-medium, $lightness: -10%);
 .hidden {
   display: none !important;
 }
+
+// Question Palette Button Styling
+.question-palette-btn {
+  // Default state (unanswered)
+  &.unanswered {
+    background-color: $neutral-medium;
+    color: $text-primary;
+    border: 1px solid color.adjust($neutral-medium, $lightness: -10%);
+
+    &:hover {
+      background-color: color.adjust($neutral-medium, $lightness: -5%);
+    }
+  }
+
+  // Answered state
+  &.answered {
+    background-color: $success-color;
+    color: $white;
+    border: 1px solid color.adjust($success-color, $lightness: -10%);
+
+    &:hover {
+      background-color: color.adjust($success-color, $lightness: -5%);
+    }
+  }
+
+  // Marked for review state
+  &.marked-for-review {
+    background-color: $warning-color;
+    color: $text-primary; // Dark text for better contrast on yellow
+    border: 1px solid color.adjust($warning-color, $lightness: -10%);
+
+    &:hover {
+      background-color: color.adjust($warning-color, $lightness: -5%);
+    }
+  }
+
+  // Style for the currently active question in the palette
+  &.current-question-in-palette {
+    border: 2px solid $primary-dark;
+    box-shadow: 0 0 8px rgba($primary-dark, 0.5);
+    transform: scale(1.05); // Slightly larger
+  }
+}
+
+// Legend for question statuses
+.palette-legend {
+  padding: 16px;
+  border-top: 1px solid $neutral-medium;
+  margin-top: auto; // Pushes legend to the bottom of the sidebar if space allows
+
+  .legend-title {
+    font-weight: 600;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+    color: $text-primary;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+
+    .legend-color-box {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      margin-right: 10px;
+      border: 1px solid $neutral-dark;
+    }
+
+    .unanswered-box { background-color: $neutral-medium; }
+    .answered-box { background-color: $success-color; }
+    .marked-box { background-color: $warning-color; }
+    .current-box { 
+      border: 2px solid $primary-dark; 
+      background-color: $white; // Or a neutral color if it also has a status color
+    }
+     .flagged-icon-legend {
+        color: $danger-color; // Or the color used for the flag icon
+        font-size: 1rem; // Match icon size if possible
+        margin-right: 8px;
+        width: 18px; // align with boxes
+        text-align: center;
+    }
+  }
+}

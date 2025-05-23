@@ -8,114 +8,137 @@
   <button (click)="start()">Start New Exam</button>
 </div>
 
-<div *ngIf="attemptId">
-  <!-- Language Switcher -->
-  <div class="language-switcher" style="margin-bottom: 15px; padding: 10px; border-bottom: 1px solid #eee;">
-    <span>View Question In: </span>
-    <button (click)="changeLanguage('en')" [class.active-lang]="currentLanguage === 'en'" [disabled]="currentLanguage === 'en'">
-      English
-    </button>
-    <button (click)="changeLanguage('hi')" [class.active-lang]="currentLanguage === 'hi'" [disabled]="currentLanguage === 'hi'">
-      हिंदी (Hindi)
-    </button>
-    <span *ngIf="currentQuestionDisplayData && currentQuestionDisplayData.originalLanguageForDisplay !== currentLanguage && currentQuestionDisplayData.availableLanguages.includes(currentLanguage)" style="margin-left: 10px; font-style: italic; color: #777;">
-      (Showing in {{ currentQuestionDisplayData.originalLanguageForDisplay === 'en' ? 'English' : 'Hindi' }} as {{ currentLanguage === 'en' ? 'English' : 'Hindi' }} is not available for this question)
-    </span>
-     <span *ngIf="currentQuestionDisplayData && !currentQuestionDisplayData.availableLanguages.includes(currentLanguage)" style="margin-left: 10px; font-style: italic; color: #cc0000;">
-      Selected language ({{ currentLanguage === 'en' ? 'English' : 'Hindi' }}) is not available. Showing in {{ currentQuestionDisplayData.originalLanguageForDisplay === 'en' ? 'English' : 'Hindi' }}.
-    </span>
-  </div>
-  <!-- End Language Switcher -->
+<div *ngIf="attemptId" class="exam-layout-container"> <!-- Added a wrapper class -->
+  <div class="sidebar"> <!-- Sidebar Wrapper -->
+    <div class="sidebar-header">
+      <div class="exam-title">{{ testSeriesTitle }}</div>
+      <div class="timer-display">
+        <span class="material-icons-outlined timer-icon">timer</span>
+        <span class="time-counter">{{ formatTime(timeLeft) }}</span>
+      </div>
+      <!-- Language Switcher -->
+      <div class="language-switcher">
+        <button (click)="changeLanguage('en')" [class.active]="currentLanguage === 'en'">English</button>
+        <button (click)="changeLanguage('hi')" [class.active]="currentLanguage === 'hi'">हिंदी</button>
+      </div>
+    </div>
 
-  <div *ngIf="attemptId && sections.length > 0">
-    <aside class="sidebar">
-      <!-- New Sectioned Palette -->
-      <ng-container *ngFor="let section of sections; let sectionIdx = index">
-        <div class="section-title">{{ section.title }} (Order: {{section.order}})</div>
-        <ul>
-          <li
-            *ngFor="let question of section.questions; let questionInSectionIdx = index"
-            (click)="goToQuestion(sectionIdx, questionInSectionIdx)"
-            [class.current]="isCurrentQuestion(sectionIdx, questionInSectionIdx)"
-            [class.flagged]="isQuestionFlagged(sectionIdx, questionInSectionIdx)"
-          >
-            Q{{ getGlobalQuestionNumber(sectionIdx, questionInSectionIdx) }}
-          </li>
-        </ul>
-      </ng-container>
-    </aside>
+    <div class="section-navigator" #sectionNavigator>
+      <div *ngFor="let section of sections; let sIdx = index" class="section-block">
+        <div class="section-title">{{ section.title }}</div>
+        <div class="question-palette">
+          <button *ngFor="let q of section.questions; let qIdx = index"
+                  (click)="goToQuestion(sIdx, qIdx)"
+                  [attr.title]="'Question ' + getGlobalQuestionNumber(sIdx, qIdx)"
+                  [ngClass]="{
+                    'answered': getQuestionStatus(sIdx, qIdx) === 'answered',
+                    'marked-for-review': getQuestionStatus(sIdx, qIdx) === 'marked-for-review',
+                    'unanswered': getQuestionStatus(sIdx, qIdx) === 'unanswered',
+                    'current-question-in-palette': isCurrentQuestion(sIdx, qIdx)
+                  }"
+                  class="question-palette-btn">
+            {{ getGlobalQuestionNumber(sIdx, qIdx) }}
+            <span *ngIf="isQuestionFlagged(sIdx, qIdx)" class="material-icons-outlined flag-icon">flag</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
-    <p>Time left: {{ formatTime(timeLeft) }}</p>
+    <div class="palette-legend">
+      <div class="legend-title">Legend</div>
+      <div class="legend-item">
+        <span class="legend-color-box unanswered-box"></span> Unanswered
+      </div>
+      <div class="legend-item">
+        <span class="legend-color-box answered-box"></span> Answered
+      </div>
+      <div class="legend-item">
+        <span class="legend-color-box marked-box"></span> Marked for Review
+      </div>
+      <div class="legend-item">
+        <span class="legend-color-box current-box"></span> Current Question
+      </div>
+      <div class="legend-item">
+        <span class="material-icons-outlined flag-icon-legend">flag</span> Flagged for Review
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="submit-exam-btn global-submit-btn" (click)="submit()">
+        <span class="material-icons-outlined">done_all</span> Submit Exam
+      </button>
+    </div>
+  </div> <!-- End of Sidebar -->
+
+  <div class="main-question-area"> <!-- Main Content Area for Question -->
+    <!-- This p tag for Time left was originally in the removed block, 
+         it's also shown in the sidebar header. Decide if it's needed here too.
+         For now, re-adding as per the structure of the removed block. -->
+    <p>Time left: {{ formatTime(timeLeft) }}</p> 
+    
+    <!-- Assuming manualSave() method exists or will be added if this button is desired.
+         Auto-save is already implemented. -->
     <button (click)="manualSave()" [disabled]="!attemptId">Save Progress</button>
 
-    <form [formGroup]="form" (ngSubmit)="submit()">
+    <form [formGroup]="form" (ngSubmit)="submit()"> <!-- (ngSubmit) might be for Enter key, main submit is in sidebar -->
       <div formArrayName="responses">
-        <!-- The ngFor for responses.controls might need to stay as is,
-             but the *ngIf condition to display a question will change based on
-             currentSectionIndex and currentQuestionInSectionIndex -->
         <ng-container *ngFor="let ctrl of responses.controls; let globalIdx = index">
-          <div *ngIf="isCurrentQuestionByIndex(globalIdx) && currentQuestionDisplayData" [formGroupName]="globalIdx">
-            <!-- question markup -->
-            <p>
-              <!-- Display global question number -->
+          <!-- Display current question based on globalIdx matching currentGlobalQuestionIndex -->
+          <div *ngIf="isCurrentQuestionByIndex(globalIdx) && currentQuestionDisplayData" [formGroupName]="globalIdx" class="question-display-container">
+            <p class="question-text">
               Q{{ getGlobalQuestionNumber(currentSectionIndex, currentQuestionInSectionIndex) }}:
               {{ currentQuestionDisplayData.displayQuestionText }}
             </p>
 
-            <!-- ... (rest of the question display: history, images, options, review checkbox) ... -->
-            <!-- Note: The existing structure for displaying question details, images, options, etc.,
-                 can largely remain the same as currentQuestionDisplayData will provide the correct data.
-                 The key is that currentQuestionDisplayData itself is correctly populated. -->
-
-            <div *ngIf="currentQuestionDisplayData.questionHistory && currentQuestionDisplayData.questionHistory.length > 0" class="question-history-display" style="font-size: 0.9em; color: #555; margin-bottom: 10px;">
+            <div *ngIf="currentQuestionDisplayData.questionHistory && currentQuestionDisplayData.questionHistory.length > 0" class="question-history-display">
               <span *ngFor="let historyItem of currentQuestionDisplayData.questionHistory; let isLast = last">
                 [{{ historyItem.title }} ({{ historyItem.askedAt | date:'yyyy' }})]<span *ngIf="!isLast">, </span>
               </span>
             </div>
             
-            <div *ngIf="currentQuestionDisplayData.displayOptions && currentQuestionDisplayData.translations">
+            <div *ngIf="currentQuestionDisplayData.displayOptions && currentQuestionDisplayData.translations" class="question-images-options">
+              <!-- Display Images for the current language -->
               <ng-container *ngFor="let translation of currentQuestionDisplayData.translations">
                 <div *ngIf="translation.lang === currentLanguage">
                   <ng-container *ngIf="translation.images && translation.images.length > 0">
-                    <div *ngFor="let imageUrl of translation.images">
+                    <div *ngFor="let imageUrl of translation.images" class="question-image-wrapper">
                       <img *ngIf="imageUrl" [src]="imageUrl" alt="Question Image" style="max-width: 100%; height: auto; margin-bottom: 10px;">
                     </div>
                   </ng-container>
                 </div>
               </ng-container>
+            
+              <!-- Display Options for the current language -->
+              <div *ngFor="let opt of currentQuestionDisplayData.displayOptions; let oi = index" class="option-item">
+                <label>
+                  <input
+                    type="radio" 
+                    formControlName="selected" 
+                    [value]="oi.toString()" 
+                  />
+                  {{ opt.text }}
+                  <img *ngIf="opt.img" [src]="opt.img" alt="Option Image" class="option-image" style="max-width: 200px; height: auto; margin-left: 10px;">
+                </label>
+              </div>
             </div>
 
-            <div *ngFor="let opt of currentQuestionDisplayData.displayOptions; let oi = index">
-              <label>
-                <input
-                  type="radio" 
-                  formControlName="selected" 
-                  [value]="oi.toString()" 
-                />
-                {{ opt.text }}
-                <img *ngIf="opt.img" [src]="opt.img" alt="Option Image" style="max-width: 200px; height: auto; margin-left: 10px;">
+            <div class="question-actions">
+              <label class="mark-for-review-label">
+                <input type="checkbox" formControlName="review" />
+                Mark for review
               </label>
+              <div class="navigation-buttons">
+                <button type="button" (click)="prev()" [disabled]="isFirstQuestionOverall()" class="nav-btn prev-btn">
+                  Prev
+                </button>
+                <button type="button" (click)="next()" [disabled]="isLastQuestionOverall()" class="nav-btn next-btn">
+                  Next
+                </button>
+              </div>
             </div>
-
-            <label>
-              <input type="checkbox" formControlName="review" />
-              Mark for review
-            </label>
-            <!-- Navigation buttons will need to be updated in the .ts file -->
-            <button type="button" (click)="prev()" [disabled]="isFirstQuestionOverall()">
-              Prev
-            </button>
-            <button type="button" (click)="next()" [disabled]="isLastQuestionOverall()">
-              Next
-            </button>
-
-            <button
-              *ngIf="isLastQuestionOverall()"
-              type="submit"
-            >Submit Exam</button>
           </div>
         </ng-container>
       </div>
     </form>
-  </div>
+  </div> <!-- End of Main Question Area -->
 </div>
