@@ -1,11 +1,29 @@
-<div *ngIf="!attemptId && !hasSavedProgress">
-  <button (click)="start()">Start Exam</button>
+<div *ngIf="!attemptId && !hasSavedProgress" class="start-screen">
+  <div class="start-card">
+    <h1>Ready to Start?</h1>
+    <p>Click the button below to begin your exam.</p>
+    <button class="btn btn-primary btn-lg" (click)="start()">
+      <span class="material-icons-outlined">play_arrow</span>
+      Start Exam
+    </button>
+  </div>
 </div>
 
-<div *ngIf="!attemptId && hasSavedProgress">
-  <p>You have saved progress for this exam.</p>
-  <button (click)="resumeTest()">Resume Exam</button>
-  <button (click)="start()">Start New Exam</button>
+<div *ngIf="!attemptId && hasSavedProgress" class="resume-screen">
+  <div class="start-card">
+    <h1>Continue Your Exam</h1>
+    <p>You have saved progress for this exam.</p>
+    <div class="button-group">
+      <button class="btn btn-primary btn-lg" (click)="resumeTest()">
+        <span class="material-icons-outlined">play_arrow</span>
+        Resume Exam
+      </button>
+      <button class="btn btn-secondary btn-lg" (click)="start()">
+        <span class="material-icons-outlined">refresh</span>
+        Start New Exam
+      </button>
+    </div>
+  </div>
 </div>
 
 <div *ngIf="attemptId" class="exam-layout-container"> <!-- Added a wrapper class -->
@@ -17,9 +35,9 @@
         <span class="time-counter">{{ formatTime(timeLeft) }}</span>
       </div>
       <!-- Language Switcher -->
-      <div class="language-switcher">
-        <button (click)="changeLanguage('en')" [class.active]="currentLanguage === 'en'">English</button>
-        <button (click)="changeLanguage('hi')" [class.active]="currentLanguage === 'hi'">हिंदी</button>
+      <div class="language-switcher" *ngIf="currentQuestionDisplayData && currentQuestionDisplayData.availableLanguages && currentQuestionDisplayData.availableLanguages.length > 1">
+        <button *ngIf="currentQuestionDisplayData.availableLanguages.includes('en')" (click)="changeLanguage('en')" [class.active]="currentLanguage === 'en'">English</button>
+        <button *ngIf="currentQuestionDisplayData.availableLanguages.includes('hi')" (click)="changeLanguage('hi')" [class.active]="currentLanguage === 'hi'">हिंदी</button>
       </div>
     </div>
 
@@ -64,22 +82,18 @@
     </div>
 
     <div class="sidebar-footer">
-      <button class="submit-exam-btn global-submit-btn" (click)="submit()">
+      <button class="btn btn-secondary btn-block mb-2" (click)="manualSave()" [disabled]="!attemptId">
+        <span class="material-icons-outlined">save</span>
+        Save Progress
+      </button>
+      <button class="btn btn-danger btn-block global-submit-btn" (click)="submit()">
         <span class="material-icons-outlined">done_all</span> Submit Exam
       </button>
     </div>
   </div> <!-- End of Sidebar -->
-
   <div class="main-question-area"> <!-- Main Content Area for Question -->
-    <!-- This p tag for Time left was originally in the removed block, 
-         it's also shown in the sidebar header. Decide if it's needed here too.
-         For now, re-adding as per the structure of the removed block. -->
     <p>Time left: {{ formatTime(timeLeft) }}</p> 
     
-    <!-- Assuming manualSave() method exists or will be added if this button is desired.
-         Auto-save is already implemented. -->
-    <button (click)="manualSave()" [disabled]="!attemptId">Save Progress</button>
-
     <form [formGroup]="form" (ngSubmit)="submit()"> <!-- (ngSubmit) might be for Enter key, main submit is in sidebar -->
       <div formArrayName="responses">
         <ng-container *ngFor="let ctrl of responses.controls; let globalIdx = index">
@@ -128,10 +142,10 @@
                 Mark for review
               </label>
               <div class="navigation-buttons">
-                <button type="button" (click)="prev()" [disabled]="isFirstQuestionOverall()" class="nav-btn prev-btn">
+                <button type="button" (click)="prev()" [disabled]="isFirstQuestionOverall()" class="nav-btn prev-btn btn btn-secondary">
                   Prev
                 </button>
-                <button type="button" (click)="next()" [disabled]="isLastQuestionOverall()" class="nav-btn next-btn">
+                <button type="button" (click)="next()" [disabled]="isLastQuestionOverall()" class="nav-btn next-btn btn btn-primary">
                   Next
                 </button>
               </div>

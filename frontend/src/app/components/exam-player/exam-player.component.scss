@@ -1,772 +1,591 @@
-@use 'sass:color';
-// Modern Exam Player - Clean, Elegant, Material-inspired Design
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+/* Base Variables */
+$font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+$font-size-base: 1rem; // Assumes 16px
+$line-height-base: 1.6;
 
-// Variables
-$primary-color: #6200ea;
-$primary-light: #a255ff;
-$primary-dark: #3700b3;
-$secondary-color: #03dac6;
-$secondary-dark: #018786;
-$danger-color: #cf6679;
-$warning-color: #ffb74d;
-$success-color: #69f0ae;
-$neutral-light: #f5f5f5;
-$neutral-medium: #e0e0e0;
-$neutral-dark: #757575;
-$text-primary: #212121;
-$text-secondary: #757575;
+/* Colors */
+$primary-color: #007bff; // Blue
+$secondary-color: #6c757d; // Grey
+$light-gray: #f8f9fa;
+$medium-gray: #dee2e6;
+$dark-gray: #343a40;
 $white: #ffffff;
-$box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-$border-radius: 12px;
-$transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+$black: #000000;
 
-// Derived color variables to replace darken/lighten functions
-$success-color-dark: color.adjust($success-color, $lightness: -10%);
-$warning-color-dark: color.adjust($warning-color, $lightness: -10%);
-$neutral-light-dark: color.adjust($neutral-light, $lightness: -5%);
-$primary-light-lighter-20: color.adjust($primary-light, $lightness: 20%);
-$primary-light-lighter-25: color.adjust($primary-light, $lightness: 25%);
-$neutral-medium-dark: color.adjust($neutral-medium, $lightness: -10%);
+/* Question State Colors */
+$answered-color: #28a745; // Green
+$marked-review-color: #ffc107; // Orange/Yellow
+$unanswered-color: #dc3545; // Red
+$unvisited-bg-color: #e9ecef; // Light Grey for background
+$unvisited-text-color: #495057; // Darker Grey for text
+$current-question-color: $primary-color; // Blue
+$current-question-text-color: $white;
 
-:host {
-  display: flex;
-  min-height: 100vh;
-  font-family: 'Poppins', sans-serif;
-  background-color: $neutral-light;
-  color: $text-primary;
+/* Spacing */
+$spacing-unit: 1rem;
+
+/* Borders */
+$border-radius: 0.3rem;
+$border-color: $medium-gray;
+
+/* Breakpoints */
+$breakpoint-sm: 576px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 992px;
+$breakpoint-xl: 1200px;
+
+/* Mixins */
+@mixin transition($property: all, $duration: 0.2s, $timing: ease-in-out) {
+  transition: $property $duration $timing;
 }
 
-// Exam Container
-.exam-container {
-  display: flex;
-  width: 100%;
-  position: relative;
-  overflow: hidden;
+@mixin box-shadow($shadow: 0 0.125rem 0.25rem rgba($black, 0.075)) {
+  box-shadow: $shadow;
 }
 
-// Sidebar
-.sidebar {
-  width: 320px;
-  background-color: $white;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
-  z-index: 10;
-  transition: $transition-smooth;
-
-  .sidebar-header {
-    padding: 24px;
-    border-bottom: 1px solid $neutral-medium;
-    
-    .exam-title {
-      font-size: 1.2rem;
-      font-weight: 600;
-      color: $primary-color;
-      margin-bottom: 8px;
-    }
-    
-    .timer-display {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 16px 0;
-      
-      .time-counter {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: $primary-dark;
-        background: linear-gradient(135deg, $primary-light, $primary-dark);
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
-    }
-  }
-  
-  .section-navigator {
-    flex: 1;
-    overflow-y: auto;
-    padding: 16px;
-
-    .section-block {
-      margin-bottom: 24px;
-      
-      .section-title {
-        font-size: 1rem;
-        font-weight: 600;
-        color: $text-primary;
-        margin-bottom: 12px;
-        display: flex;
-        align-items: center;
-        
-        &::before {
-          content: '';
-          display: inline-block;
-          width: 12px;
-          height: 12px;
-          border-radius: 50%;
-          background-color: $primary-light;
-          margin-right: 8px;
-        }
-      }
-      
-      .question-palette {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 8px;
-        
-        .question-button {
-          aspect-ratio: 1;
-          border-radius: 50%;
-          border: 2px solid $neutral-medium;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.9rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: $transition-smooth;
-          background-color: $white;
-          color: $text-primary;
-          position: relative;
-          
-          &:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-          }
-          
-          &.current {
-            background-color: $primary-color;
-            color: $white;
-            border-color: $primary-color;
-            transform: scale(1.1);
-            box-shadow: 0 4px 12px rgba(98, 0, 234, 0.3);
-            font-weight: 600;
-          }
-          
-          &.answered {
-            background-color: $success-color;
-            color: $text-primary;
-            border-color: $success-color-dark;
-          }
-            &.flagged {
-            background-color: $warning-color;
-            color: $text-primary;
-            border-color: $warning-color-dark;
-            
-            &::after {
-              content: '⚑';
-              position: absolute;
-              top: -8px;
-              right: -4px;
-              font-size: 0.8rem;
-              color: $danger-color;
-            }
-          }
-          
-          &.answered-flagged {
-            background: linear-gradient(135deg, $success-color, $warning-color);
-            color: $text-primary;
-            border-color: $secondary-dark;
-            
-            &::after {
-              content: '⚑';
-              position: absolute;
-              top: -8px;
-              right: -4px;
-              font-size: 0.8rem;
-              color: $danger-color;
-            }
-          }
-        }
-      }
-    }
-  }
-  
-  .sidebar-footer {
-    padding: 16px;
-    border-top: 1px solid $neutral-medium;
-    
-    .btn-save-progress {
-      width: 100%;
-      padding: 12px;
-      border-radius: $border-radius;
-      background-color: $secondary-color;
-      color: $text-primary;
-      font-weight: 600;
-      border: none;
-      cursor: pointer;
-      transition: $transition-smooth;
-      
-      &:hover {
-        background-color: $secondary-dark;
-        color: $white;
-      }
-      
-      &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-    }
-  }
+/* Reset and Body */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-// Main Content
-.main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 24px;
-  background-color: $neutral-light;
-  overflow-y: auto;
-  
-  .top-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    
-    .language-control {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background-color: $white;
-      padding: 8px 16px;
-      border-radius: $border-radius;
-      box-shadow: $box-shadow;
-      
-      .lang-label {
-        font-weight: 500;
-        color: $text-secondary;
-      }
-      
-      .lang-button-group {
-        display: flex;
-        gap: 8px;
-        
-        button {
-          padding: 8px 16px;
-          border-radius: 20px;
-          background-color: $neutral-light;
-          color: $text-secondary;
-          border: 1px solid $neutral-medium;
-          font-weight: 500;
-          cursor: pointer;
-          transition: $transition-smooth;
-          
-          &:hover {
-            background-color: $neutral-light-dark;
-          }
-          
-          &.active-lang {
-            background-color: $primary-color;
-            color: $white;
-            border-color: $primary-dark;
-          }
-          
-          &:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-          }
-        }
-      }
-      
-      .lang-status {
-        font-size: 0.85rem;
-        
-        &.info {
-          color: $text-secondary;
-          font-style: italic;
-        }
-        
-        &.warning {
-          color: $danger-color;
-          font-weight: 500;
-        }
-      }
-    }
-  }
-  
-  .question-card {
-    background-color: $white;
-    border-radius: $border-radius;
-    box-shadow: $box-shadow;
-    padding: 32px;
-    margin-bottom: 24px;
-    flex: 1;
-    
-    .question-header {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 24px;
-      
-      .question-number {
-        font-size: 1.4rem;
-        font-weight: 600;
-        color: $primary-color;
-      }
-      
-      .question-meta {
-        font-size: 0.9rem;
-        color: $text-secondary;
-      }
-    }
-    
-    .question-content {
-      margin-bottom: 32px;
-      
-      .question-text {
-        font-size: 1.1rem;
-        line-height: 1.6;
-        color: $text-primary;
-        margin-bottom: 16px;
-      }
-      
-      .question-images {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 16px;
-        margin: 16px 0;
-        
-        img {
-          max-width: 100%;
-          border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-      }
-    }
-    
-    .answer-options {
-      .option-item {
-        margin-bottom: 16px;
-        padding: 16px;
-        border-radius: 8px;
-        background-color: $neutral-light;
-        transition: $transition-smooth;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        
-        &:hover {
-          background-color: $primary-light-lighter-25;
-        }
-        
-        &.selected {
-          background-color: $primary-light-lighter-20;
-          border: 1px solid $primary-light;
-        }
-        
-        .option-marker {
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          background-color: $white;
-          border: 2px solid $neutral-dark;
-          margin-right: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: $transition-smooth;
-          
-          &.checked {
-            background-color: $primary-color;
-            border-color: $primary-color;
-            
-            &::after {
-              content: '';
-              width: 10px;
-              height: 10px;
-              border-radius: 50%;
-              background-color: $white;
-            }
-          }
-        }
-        
-        .option-content {
-          flex: 1;
-          
-          .option-text {
-            font-size: 1rem;
-            color: $text-primary;
-          }
-          
-          img {
-            max-width: 200px;
-            margin-top: 8px;
-            border-radius: 4px;
-          }
-        }
-      }
-    }
-    
-    .question-actions {
-      display: flex;
-      align-items: center;
-      margin-top: 24px;
-      
-      .mark-review {
-        display: flex;
-        align-items: center;
-        cursor: pointer;
-        
-        input[type="checkbox"] {
-          appearance: none;
-          -webkit-appearance: none;
-          width: 20px;
-          height: 20px;
-          border: 2px solid $neutral-dark;
-          border-radius: 4px;
-          margin-right: 10px;
-          position: relative;
-          transition: $transition-smooth;
-            &:checked {
-            background-color: $warning-color;
-            border-color: $warning-color-dark;
-            
-            &::after {
-              content: '✓';
-              position: absolute;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%);
-              color: $text-primary;
-              font-size: 0.9rem;
-              font-weight: bold;
-            }
-          }
-        }
-        
-        .review-label {
-          font-size: 1rem;
-          color: $text-primary;
-        }
-      }
-    }
-  }
-  
-  .bottom-controls {
-    display: flex;
-    justify-content: space-between;
-    padding: 16px;
-    background-color: $white;
-    border-radius: $border-radius;
-    box-shadow: $box-shadow;
-    
-    .left-controls {
-      .btn-save {
-        background-color: $secondary-color;
-        color: $text-primary;
-        font-weight: 500;
-        border: none;
-        padding: 12px 24px;
-        border-radius: 24px;
-        cursor: pointer;
-        transition: $transition-smooth;
-        
-        &:hover {
-          background-color: $secondary-dark;
-          color: $white;
-        }
-        
-        &:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-      }
-    }
-    
-    .right-controls {
-      display: flex;
-      gap: 16px;
-      
-      button {
-        padding: 12px 24px;
-        border-radius: 24px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: $transition-smooth;
-        border: none;
-        
-        &.btn-prev {
-          background-color: $neutral-medium;
-          color: $text-primary;
-          
-          &:hover {
-            background-color: $neutral-medium-dark;
-          }
-          
-          &:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-          }
-        }
-        
-        &.btn-next {
-          background-color: $primary-light;
-          color: $white;
-          
-          &:hover {
-            background-color: $primary-color;
-          }
-          
-          &:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-          }
-        }
-        
-        &.btn-submit {
-          background-color: $success-color;
-          color: $text-primary;
-          font-weight: 600;
-          
-          &:hover {
-            background-color: $success-color-dark;
-          }
-        }
-      }
-    }
-  }
+body { // Assuming this component might be used in a context where body styles are influential
+  font-family: $font-family-sans-serif;
+  font-size: $font-size-base;
+  line-height: $line-height-base;
+  color: $dark-gray;
+  background-color: $light-gray; // Overall page background
 }
 
-// Initial screens
-.initial-screen {
-  display: flex;
-  flex-direction: column;
+/* General Button Styling */
+.btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 100vh;
+  gap: $spacing-unit * 0.5;
+  padding: ($spacing-unit * 0.6) ($spacing-unit * 1.2);
+  font-size: $font-size-base * 0.9;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: center;
+  text-decoration: none;
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: $border-radius;
+  @include transition;
+
+  .material-icons-outlined {
+    font-size: $font-size-base * 1.2;
+    margin-right: $spacing-unit * 0.25; // Adjust if only icon
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+}
+
+.btn-primary {
+  color: $white;
+  background-color: $primary-color;
+  border-color: $primary-color;
+  @include box-shadow;
+
+  &:hover:not(:disabled) {
+    background-color: darken($primary-color, 10%);
+    border-color: darken($primary-color, 10%);
+  }
+}
+
+.btn-secondary {
+  color: $dark-gray;
+  background-color: $white;
+  border-color: $medium-gray;
+  @include box-shadow(0 0.125rem 0.25rem rgba($black, 0.05));
+
+  &:hover:not(:disabled) {
+    background-color: $light-gray;
+    border-color: darken($medium-gray, 10%);
+  }
+}
+
+.btn-danger {
+  color: $white;
+  background-color: $secondary-color; // Changed to secondary-color (grey)
+  border-color: $secondary-color; // Changed to secondary-color (grey)
+  @include box-shadow;
+
+  &:hover:not(:disabled) {
+    background-color: darken($secondary-color, 10%);
+    border-color: darken($secondary-color, 10%);
+  }
+}
+
+.btn-lg {
+  padding: ($spacing-unit * 0.8) ($spacing-unit * 1.6);
+  font-size: $font-size-base * 1.1;
+}
+
+/* Start and Resume Screens */
+.start-screen, .resume-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: $spacing-unit;
+  background-color: $light-gray;
+}
+
+.start-card {
+  background-color: $white;
+  padding: $spacing-unit * 2;
+  border-radius: $border-radius * 2;
+  @include box-shadow(0 0.5rem 1rem rgba($black, 0.1));
+  text-align: center;
+  max-width: 450px;
   width: 100%;
-  background: linear-gradient(135deg, $primary-light-lighter-20, $neutral-light);
+
+  h1 {
+    font-size: $font-size-base * 1.75;
+    color: $primary-color;
+    margin-bottom: $spacing-unit;
+  }
+
+  p {
+    font-size: $font-size-base * 1.1;
+    color: $secondary-color;
+    margin-bottom: $spacing-unit * 1.5;
+  }
+
+  .button-group {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-unit;
+
+    @media (min-width: $breakpoint-sm) {
+      flex-direction: row;
+      justify-content: center;
+    }
+  }
+}
+
+/* Main Exam Layout */
+.exam-layout-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: $white; // Main content area background
+
+  @media (min-width: $breakpoint-lg) {
+    flex-direction: row;
+  }
+}
+
+/* Sidebar */
+.sidebar {
+  background-color: $light-gray; // Sidebar background
+  border-bottom: 1px solid $border-color;
+  padding: $spacing-unit;
+  display: flex;
+  flex-direction: column;
   
-  .initial-card {
+  @media (min-width: $breakpoint-lg) {
+    width: 300px;
+    min-width: 300px;
+    height: 100vh;
+    border-right: 1px solid $border-color;
+    border-bottom: none;
+    overflow-y: auto;
+  }
+}
+
+.sidebar-header {
+  padding-bottom: $spacing-unit;
+  margin-bottom: $spacing-unit;
+  border-bottom: 1px solid $border-color;
+
+  .exam-title {
+    font-size: $font-size-base * 1.25;
+    font-weight: 600;
+    color: $primary-color;
+    margin-bottom: $spacing-unit * 0.75;
+  }
+
+  .timer-display {
+    display: flex;
+    align-items: center;
+    gap: $spacing-unit * 0.5;
+    font-size: $font-size-base * 1.1;
+    font-weight: 500;
+    padding: ($spacing-unit * 0.5) ($spacing-unit * 0.75);
     background-color: $white;
     border-radius: $border-radius;
-    box-shadow: $box-shadow;
-    padding: 32px;
-    width: 100%;
-    max-width: 500px;
-    text-align: center;
-    
-    .card-title {
-      font-size: 1.8rem;
-      font-weight: 700;
+    @include box-shadow(0 1px 2px rgba($black, 0.05));
+    margin-bottom: $spacing-unit * 0.75;
+
+    .timer-icon {
       color: $primary-color;
-      margin-bottom: 16px;
     }
-    
-    .card-message {
-      font-size: 1.1rem;
-      color: $text-secondary;
-      margin-bottom: 32px;
+    .time-counter {
+      color: $dark-gray;
     }
-    
-    .button-group {
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-      
-      button {
-        padding: 14px 30px;
-        border-radius: 30px;
-        font-size: 1.1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: $transition-smooth;
-        border: none;
-        
-        &.btn-start {
-          background-color: $primary-color;
-          color: $white;
-          
-          &:hover {
-            background-color: $primary-dark;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(98, 0, 234, 0.3);
-          }
-        }
-        
-        &.btn-resume {
-          background-color: $secondary-color;
-          color: $text-primary;
-          
-          &:hover {
-            background-color: $secondary-dark;
-            color: $white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(3, 218, 198, 0.3);
-          }
-        }
-        
-        &.btn-new {
-          background-color: $neutral-medium;
-          color: $text-primary;
-          
-          &:hover {
-            background-color: $neutral-dark;
-            color: $white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-          }
-        }
+  }
+
+  .language-switcher {
+    display: flex;
+    gap: $spacing-unit * 0.5;
+    button {
+      flex: 1;
+      padding: ($spacing-unit * 0.4) ($spacing-unit * 0.8);
+      font-size: $font-size-base * 0.85;
+      border: 1px solid $medium-gray;
+      background-color: $white;
+      color: $secondary-color;
+      border-radius: $border-radius;
+      cursor: pointer;
+      @include transition;
+
+      &.active, &:hover {
+        background-color: $primary-color;
+        color: $white;
+        border-color: $primary-color;
       }
     }
   }
 }
 
-// Responsive adjustments
-@media (max-width: 992px) {
-  .exam-container {
-    flex-direction: column;
-  }
-  
-  .sidebar {
-    width: 100%;
-    height: auto;
-    max-height: 200px;
-    
-    .sidebar-header {
-      padding: 16px;
-    }
-    
-    .section-navigator {
-      display: flex;
-      overflow-x: auto;
-      
-      .section-block {
-        min-width: 250px;
-        margin-right: 16px;
-      }
-    }
-  }
-  
-  .main-content {
-    .top-controls {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 16px;
-    }
-    
-    .bottom-controls {
-      flex-wrap: wrap;
-      gap: 16px;
-      
-      .left-controls, .right-controls {
-        width: 100%;
-        justify-content: center;
-      }
-    }
+.section-navigator {
+  flex-grow: 1;
+  overflow-y: auto; // For scrolling sections if they exceed sidebar height
+  margin-bottom: $spacing-unit;
+}
+
+.section-block {
+  margin-bottom: $spacing-unit * 1.5;
+
+  .section-title {
+    font-size: $font-size-base * 1.1;
+    font-weight: 600;
+    color: $dark-gray;
+    margin-bottom: $spacing-unit * 0.75;
+    padding-bottom: $spacing-unit * 0.25;
+    border-bottom: 1px solid $medium-gray;
   }
 }
 
-// Animation utilities
-.fade-in {
-  animation: fadeIn 0.5s ease-in-out;
+.question-palette {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); // Consistent size
+  gap: $spacing-unit * 0.5;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.slide-up {
-  animation: slideUp 0.5s ease-in-out;
-}
-
-@keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-// Utility classes
-.hidden {
-  display: none !important;
-}
-
-// Question Palette Button Styling
 .question-palette-btn {
-  // Default state (unanswered)
-  &.unanswered {
-    background-color: $neutral-medium;
-    color: $text-primary;
-    border: 1px solid color.adjust($neutral-medium, $lightness: -10%);
+  width: 40px; // Consistent width
+  height: 40px; // Consistent height
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-base * 0.9;
+  font-weight: 500;
+  border-radius: $border-radius;
+  border: 1px solid $border-color;
+  cursor: pointer;
+  @include transition;
+  position: relative; // For flag icon
 
-    &:hover {
-      background-color: color.adjust($neutral-medium, $lightness: -5%);
-    }
+  // Default: Unvisited
+  background-color: $unvisited-bg-color;
+  color: $unvisited-text-color;
+  border-color: darken($unvisited-bg-color, 10%);
+
+  &:hover {
+    border-color: $primary-color;
+    transform: translateY(-2px);
+    @include box-shadow;
   }
 
-  // Answered state
+  // States
+  &.unanswered { // This might be if they visited but didn't answer, or a specific state
+    background-color: lighten($unanswered-color, 35%);
+    color: $unanswered-color;
+    border-color: $unanswered-color;
+  }
+
   &.answered {
-    background-color: $success-color;
+    background-color: $answered-color;
     color: $white;
-    border: 1px solid color.adjust($success-color, $lightness: -10%);
-
-    &:hover {
-      background-color: color.adjust($success-color, $lightness: -5%);
-    }
+    border-color: darken($answered-color, 10%);
   }
 
-  // Marked for review state
   &.marked-for-review {
-    background-color: $warning-color;
-    color: $text-primary; // Dark text for better contrast on yellow
-    border: 1px solid color.adjust($warning-color, $lightness: -10%);
-
-    &:hover {
-      background-color: color.adjust($warning-color, $lightness: -5%);
-    }
+    background-color: $marked-review-color;
+    color: $dark-gray; // Ensure contrast with yellow/orange
+    border-color: darken($marked-review-color, 10%);
+  }
+  
+  &.current-question-in-palette {
+    background-color: $current-question-color;
+    color: $current-question-text-color;
+    border-color: darken($current-question-color, 10%);
+    transform: scale(1.1);
+    @include box-shadow(0 0 0 0.2rem rgba($current-question-color, 0.25));
+    z-index: 1;
   }
 
-  // Style for the currently active question in the palette
-  &.current-question-in-palette {
-    border: 2px solid $primary-dark;
-    box-shadow: 0 0 8px rgba($primary-dark, 0.5);
-    transform: scale(1.05); // Slightly larger
+  .flag-icon {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: $font-size-base * 0.8;
+    color: $marked-review-color; // Or a distinct flag color if needed
+    filter: drop-shadow(0 0 1px $white); // Make it pop a bit
   }
 }
 
-// Legend for question statuses
 .palette-legend {
-  padding: 16px;
-  border-top: 1px solid $neutral-medium;
-  margin-top: auto; // Pushes legend to the bottom of the sidebar if space allows
+  margin-top: $spacing-unit;
+  padding-top: $spacing-unit;
+  border-top: 1px solid $border-color;
 
   .legend-title {
+    font-size: $font-size-base;
     font-weight: 600;
-    margin-bottom: 10px;
-    font-size: 0.9rem;
-    color: $text-primary;
+    margin-bottom: $spacing-unit * 0.5;
   }
-
   .legend-item {
     display: flex;
     align-items: center;
-    margin-bottom: 8px;
-    font-size: 0.85rem;
+    gap: $spacing-unit * 0.5;
+    font-size: $font-size-base * 0.85;
+    margin-bottom: $spacing-unit * 0.25;
+    color: $secondary-color;
 
     .legend-color-box {
-      width: 18px;
-      height: 18px;
-      border-radius: 4px;
-      margin-right: 10px;
-      border: 1px solid $neutral-dark;
+      width: 16px;
+      height: 16px;
+      border-radius: $border-radius * 0.5;
+      border: 1px solid darken($border-color, 5%);
     }
+    .unanswered-box { background-color: lighten($unanswered-color, 35%); } // Match palette
+    .answered-box { background-color: $answered-color; }
+    .marked-box { background-color: $marked-review-color; }
+    .current-box { background-color: $current-question-color; }
+    // For unvisited, we can show the default button style or a specific box
+    // .unvisited-box { background-color: $unvisited-bg-color; } 
+  }
+  .flag-icon-legend {
+    color: $marked-review-color;
+    font-size: $font-size-base * 1.1;
+  }
+}
 
-    .unanswered-box { background-color: $neutral-medium; }
-    .answered-box { background-color: $success-color; }
-    .marked-box { background-color: $warning-color; }
-    .current-box { 
-      border: 2px solid $primary-dark; 
-      background-color: $white; // Or a neutral color if it also has a status color
+.sidebar-footer {
+  margin-top: auto; // Pushes to the bottom
+  padding-top: $spacing-unit;
+  border-top: 1px solid $border-color;
+  display: flex; // Added for side-by-side buttons
+  flex-direction: column; // Stack buttons vertically by default
+  gap: $spacing-unit * 0.5; // Space between buttons
+
+  @media (min-width: $breakpoint-sm) { // Side-by-side on larger screens
+    flex-direction: row;
+    .btn {
+      flex: 1; // Make buttons share space equally
     }
-     .flagged-icon-legend {
-        color: $danger-color; // Or the color used for the flag icon
-        font-size: 1rem; // Match icon size if possible
-        margin-right: 8px;
-        width: 18px; // align with boxes
-        text-align: center;
+  }
+
+  .btn-block {
+    width: 100%; // Ensure buttons take full width when stacked
+  }
+}
+
+/* Main Question Area */
+.main-question-area {
+  flex: 1;
+  padding: $spacing-unit * 1.5;
+  overflow-y: auto; // For scrollable question content
+  background-color: $white;
+
+  // Temporary time left and save button - integrate better or remove if redundant
+  > p:first-of-type { // "Time left: ..."
+    font-size: $font-size-base * 0.9;
+    color: $secondary-color;
+    margin-bottom: $spacing-unit * 0.5;
+    text-align: right; // Or integrate into a header bar
+  }
+  > .btn-secondary { // Manual Save
+    margin-bottom: $spacing-unit;
+  }
+}
+
+.question-display-container {
+  background-color: $white;
+  // padding: $spacing-unit * 1.5; // Add padding if not already by parent
+  // border-radius: $border-radius;
+  // @include box-shadow; // Optional shadow for question card
+  margin-bottom: $spacing-unit * 1.5;
+
+  .question-text {
+    font-size: $font-size-base * 1.2;
+    font-weight: 500;
+    margin-bottom: $spacing-unit;
+    line-height: 1.4;
+  }
+
+  .question-history-display {
+    font-size: $font-size-base * 0.8;
+    color: $secondary-color;
+    margin-bottom: $spacing-unit;
+    font-style: italic;
+  }
+
+  .question-images-options {
+    margin-bottom: $spacing-unit * 1.5;
+  }
+
+  .question-image-wrapper {
+    margin-bottom: $spacing-unit;
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: $border-radius;
+      border: 1px solid $border-color;
+    }
+  }
+
+  .option-item {
+    margin-bottom: $spacing-unit * 0.75;
+    label {
+      display: flex;
+      align-items: center;
+      gap: $spacing-unit * 0.75;
+      padding: $spacing-unit * 0.75;
+      border: 1px solid $border-color;
+      border-radius: $border-radius;
+      cursor: pointer;
+      @include transition;
+      background-color: $light-gray; // Slight background for options
+
+      &:hover {
+        border-color: $primary-color;
+        background-color: lighten($primary-color, 45%);
+      }
+
+      input[type="radio"] {
+        flex-shrink: 0;
+        width: 1.25em;
+        height: 1.25em;
+        margin-top: 0; // Adjust alignment if needed
+      }
+      .option-image {
+        max-width: 150px; // Adjust as needed
+        height: auto;
+        border-radius: $border-radius * 0.5;
+        margin-left: $spacing-unit * 0.5;
+      }
+    }
+    // Style for selected option if needed (can be done via Angular class binding too)
+    // input[type="radio"]:checked + label { ... } or parent class
+  }
+}
+
+.question-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: $spacing-unit * 1.5;
+  padding-top: $spacing-unit;
+  border-top: 1px solid $border-color;
+
+  .mark-for-review-label {
+    display: flex;
+    align-items: center;
+    gap: $spacing-unit * 0.5;
+    font-size: $font-size-base * 0.9;
+    color: $secondary-color;
+    cursor: pointer;
+
+    input[type="checkbox"] {
+      width: 1.1em;
+      height: 1.1em;
+    }
+  }
+
+  .navigation-buttons {
+    display: flex;
+    gap: $spacing-unit * 0.75;
+  }
+}
+
+/* Responsive Adjustments */
+@media (max-width: #{$breakpoint-lg - 1px}) { // Tablet and Mobile
+  .main-question-area {
+    padding: $spacing-unit;
+  }
+}
+
+@media (max-width: #{$breakpoint-md - 1px}) { // Mobile
+  .start-card {
+    padding: $spacing-unit * 1.5;
+    h1 { font-size: $font-size-base * 1.5; }
+    p { font-size: $font-size-base; }
+  }
+
+  .question-palette {
+    grid-template-columns: repeat(auto-fill, minmax(35px, 1fr));
+    gap: $spacing-unit * 0.3;
+  }
+  .question-palette-btn {
+    width: 35px;
+    height: 35px;
+    font-size: $font-size-base * 0.8;
+  }
+
+  .question-text {
+    font-size: $font-size-base * 1.1;
+  }
+
+  .option-item label {
+    padding: $spacing-unit * 0.5;
+    font-size: $font-size-base * 0.9;
+  }
+
+  .question-actions {
+    flex-direction: column;
+    gap: $spacing-unit;
+    align-items: stretch; // Make buttons full width
+
+    .navigation-buttons {
+      width: 100%;
     }
   }
 }
+
+// Animations (Optional)
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.start-card { // Apply animation
+  animation: fadeIn 0.5s ease-out;
+}
+
+// Ensure form doesn't add extra margins if it's just a wrapper
+form {
+  margin: 0;
+  padding: 0;
+}
+
+// Hide the default form submit button if it's not the primary action
+// form[formGroup="form"] > button[type="submit"] {
+//   display: none; // If the (ngSubmit) is only for Enter key and main submit is elsewhere
+// }
+
+// Final clean-ups and considerations:
+// - Test thoroughly on different devices/screen sizes.
+// - Ensure accessibility (contrast ratios, keyboard navigation).
