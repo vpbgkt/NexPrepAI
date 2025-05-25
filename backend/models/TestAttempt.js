@@ -29,6 +29,14 @@ const attemptOptionSchema = new Schema({
   _id: false
 });
 
+// Define a schema for the individual response items within the TestAttempt.responses array
+const attemptResponseItemSchema = new mongoose.Schema({
+  question: { type: String, required: true }, // Storing question ID as string, as currently done
+  selected: mongoose.Schema.Types.Mixed,
+  earned: { type: Number }, // Made optional, will be populated by submitAttempt
+  status: { type: String }, // Made optional, will be populated by submitAttempt
+}, { _id: false });
+
 const responseSchema = new Schema({
   question:  { type: Schema.Types.ObjectId, ref: 'Question', required: true },
   selected:  [{ type: String }],            // Array of selected option identifiers
@@ -81,7 +89,7 @@ const testAttemptSchema = new Schema({
   series:   { type: Schema.Types.ObjectId, ref: 'TestSeries', required: true },
   student:  { type: Schema.Types.ObjectId, ref: 'User', required: true },
 
-  responses: [responseSchema],
+  responses: [attemptResponseItemSchema], // Use the new explicit schema here
 
   score:     { type: Number },
   maxScore:  { type: Number },
@@ -97,7 +105,8 @@ const testAttemptSchema = new Schema({
   },
   expiresAt: { type: Date }, // Calculated once when test starts if there is a fixed duration
   lastSavedAt: { type: Date },
-  remainingDurationSeconds: { type: Number } // Stores the countdown value from frontend
+  remainingDurationSeconds: { type: Number }, // Stores the countdown value from frontend
+  timeTakenSeconds: { type: Number } // <--- ADDED THIS FIELD
 });
 
 // Added attemptNo field to the schema

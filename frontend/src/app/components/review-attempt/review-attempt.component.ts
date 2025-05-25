@@ -15,6 +15,7 @@ interface Option {
 interface FullQuestion {
   question: string; // This is the ID
   marks: number;
+  negativeMarks?: number; // Added
   questionText: string;
   options: Option[];
   type: string;
@@ -29,7 +30,7 @@ interface Section {
 }
 
 interface ResponseItem { // Renamed from Response to avoid conflict if Response is a global type
-  question: { _id: string };
+  question: string; // MODIFIED: This is the ID of the master question
   selected: string[];
   correctOptions: any[]; // Kept as any[] as it was empty in JSON
   earned: number;
@@ -72,6 +73,9 @@ export class ReviewAttemptComponent implements OnInit {
   error = '';
   attempt: Attempt | undefined; // Use the Attempt interface
   displayedSections: DisplayedSectionReview[] = []; // Added property
+  
+  // To map responses from the flat list to the structured sections by index
+  private flatResponseIndex = 0; 
 
   constructor(
     private route: ActivatedRoute,
@@ -83,64 +87,81 @@ export class ReviewAttemptComponent implements OnInit {
     this.attemptId = this.route.snapshot.paramMap.get('attemptId')!;
     this.loading = true; // Set loading to true before the call
     this.testSvc.reviewAttempt(this.attemptId).subscribe({
-      next: (data: any) => { // Explicitly type data as any for now, or create a more specific DTO if backend structure is stable
+      next: (data: any) => { 
         console.log('FE: ReviewAttemptComponent - Data received:', JSON.stringify(data, null, 2));
-        this.attempt = data as Attempt; // Cast to our defined Attempt interface
+        this.attempt = data as Attempt; 
 
         if (this.attempt && this.attempt.responses && this.attempt.sections) {
-          const questionDetailsMap = new Map<string, FullQuestion>();
+          // The backend now sends responses in the order of question slots.
+          // The `attempt.responses` array itself should have `questionData` and `earned` marks
+          // correctly calculated by the backend for each slot.
+
+          // 1. Create a map of question master details (text, options, type) for quick lookup
+          const questionMasterDetailsMap = new Map<string, FullQuestion>();
           this.attempt.sections.forEach((section: Section) => {
             if (section.questions && Array.isArray(section.questions)) {
               section.questions.forEach((fq: FullQuestion) => {
-                questionDetailsMap.set(fq.question, fq); // fq.question is the ID
+                // fq.question is the ID, fq itself contains text, options, type etc.
+                // This map is for the *master* details of a question ID.
+                if (!questionMasterDetailsMap.has(fq.question)) {
+                    questionMasterDetailsMap.set(fq.question, fq);
+                }
               });
             }
           });
 
-          this.attempt.responses.forEach((response: ResponseItem) => {
-            const fullQuestion = questionDetailsMap.get(response.question._id);
-            if (fullQuestion) {
-              response.questionData = fullQuestion;
+          // 2. Enrich each response in attempt.responses with its master question data
+          //    The backend should ideally do this, but if not, we can do it here.
+          //    The `attempt.responses` from backend already has `question._id`.
+          //    And `attempt.sections[s].questions[q]` has the full question detail for that slot.
+          //    The `earned` marks are already calculated by the backend per response slot.
 
-              if (fullQuestion.options && Array.isArray(fullQuestion.options)) {
-                response.populatedCorrectOptions = fullQuestion.options
-                                                    .filter((opt: Option) => opt.isCorrect)
-                                                    .map((opt: Option) => opt.text);
-              } else {
-                response.populatedCorrectOptions = [];
-              }
-            }
-          });
-
-          // New logic to populate displayedSections
+          // 3. Reconstruct displayedSections ensuring each slot gets its specific response from the ordered list.
           this.displayedSections = [];
-          // Ensure this.attempt is defined before sorting its sections
+          this.flatResponseIndex = 0; // Reset for each time data is processed
+
           if (this.attempt && this.attempt.sections) {
-            this.attempt.sections.sort((a, b) => a.order - b.order); // Ensure sections are ordered
+            this.attempt.sections.sort((a, b) => a.order - b.order); 
 
             this.attempt.sections.forEach(sectionFromBackend => {
-              const responsesForThisSection: ResponseItem[] = [];
-              // sectionFromBackend.questions are the questions in their presented order for this attempt
-              sectionFromBackend.questions.forEach(questionDetailInSec => { // questionDetailInSec is a FullQuestion
-                // Ensure this.attempt and this.attempt.responses are defined before finding a response
-                const matchingResponse = this.attempt?.responses.find(
-                  resp => resp.question._id === questionDetailInSec.question // .question is the ID
-                );
-                if (matchingResponse) {
-                  // matchingResponse is already enriched from the loop above
-                  responsesForThisSection.push(matchingResponse);
+              const responsesForThisDisplayedSection: ResponseItem[] = [];
+              
+              sectionFromBackend.questions.forEach(questionSlotDetails => { // questionSlotDetails is a FullQuestion from the section structure
+                if (this.attempt && this.attempt.responses && this.flatResponseIndex < this.attempt.responses.length) {
+                  const responseForThisSlot = this.attempt.responses[this.flatResponseIndex];
+
+                  // Sanity check: Does the question ID in the response match the current question slot's ID?
+                  if (responseForThisSlot.question === questionSlotDetails.question) { // MODIFIED comparison
+                    // Populate questionData for the response if not already robustly populated by backend
+                    // The `questionSlotDetails` IS the full data for this specific slot.
+                    responseForThisSlot.questionData = questionSlotDetails;
+                    
+                    // Populate correct options text for display if not already done
+                    if (questionSlotDetails.options && Array.isArray(questionSlotDetails.options)) {
+                        responseForThisSlot.populatedCorrectOptions = questionSlotDetails.options
+                                                                .filter((opt: Option) => opt.isCorrect)
+                                                                .map((opt: Option) => opt.text);
+                    } else {
+                        responseForThisSlot.populatedCorrectOptions = [];
+                    }
+                    
+                    responsesForThisDisplayedSection.push(responseForThisSlot);
+                  } else {
+                    console.warn(`Mismatched question ID at flatResponseIndex ${this.flatResponseIndex}. Expected ${questionSlotDetails.question}, found ${responseForThisSlot.question}. Skipping this response for display in this slot.`); // MODIFIED console warning
+                    // We might need a placeholder or error display for this slot.
+                    // For now, it just means this slot in the section won't show a response.
+                  }
+                  this.flatResponseIndex++;
+                } else {
+                  console.warn(`Ran out of responses in attempt.responses while processing section ${sectionFromBackend.title}, question ${questionSlotDetails.question}`);
                 }
-                // If no matchingResponse, it means a question in the section structure
-                // didn't have a corresponding entry in attempt.responses.
-                // This shouldn't happen if every presented question gets a response slot.
-                // For review, we only show what has a response.
               });
 
-              if (responsesForThisSection.length > 0) {
+              if (responsesForThisDisplayedSection.length > 0) {
                 this.displayedSections.push({
                   title: sectionFromBackend.title,
                   order: sectionFromBackend.order,
-                  responses: responsesForThisSection
+                  responses: responsesForThisDisplayedSection 
                 });
               }
             });
@@ -172,13 +193,13 @@ export class ReviewAttemptComponent implements OnInit {
   getAnswerText(r: ResponseItem): string {
     if (!r) return 'Response data missing';
 
-    // Handle unanswered questions (selected array might be empty or contain an empty string)
-    if (!r.selected?.length || r.selected[0] === "") {
-      return (r.questionData && r.questionData.options) ? 'No answer' : 'Question data or options not available for unanswered';
+    if (!r.selected?.length || (r.selected.length === 1 && r.selected[0] === "")) { // Check for empty string too
+      return 'No answer';
     }
 
     if (!r.questionData || !r.questionData.options || !Array.isArray(r.questionData.options)) {
-      return 'Options data not available for this question';
+      // This might happen if questionData was not populated correctly for this response
+      return 'Question/Options data not available';
     }
 
     return r.selected
@@ -192,24 +213,11 @@ export class ReviewAttemptComponent implements OnInit {
       .join(', ');
   }
 
-  // Helper to render the correct answer texts
   getCorrectText(r: ResponseItem): string {
     if (!r) return 'Response data missing';
 
-    // Log the options being checked
-    if (r.questionData && r.questionData.options) {
-      console.log('getCorrectText - Checking r.questionData.options for Q_ID:', r.questionData.question, r.questionData.options);
-    } else {
-      console.log('getCorrectText - r.questionData or r.questionData.options is missing for response:', r);
-    }
-
     if (!r.populatedCorrectOptions || !Array.isArray(r.populatedCorrectOptions) || r.populatedCorrectOptions.length === 0) {
-      if (r.questionData && r.questionData.options) {
-         const hasAnyCorrectOption = r.questionData.options.some((opt: Option) => opt.isCorrect);
-         console.log('getCorrectText - hasAnyCorrectOption based on opt.isCorrect:', hasAnyCorrectOption, 'for Q_ID:', r.questionData.question);
-         return hasAnyCorrectOption ? 'Correct answer text not processed' : 'Correct answer not specified in question data';
-      }
-      return 'Correct answer N/A';
+      return 'Correct answer N/A'; // Or 'Not specified'
     }
     return r.populatedCorrectOptions.join(', ');
   }

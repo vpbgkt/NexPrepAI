@@ -77,6 +77,7 @@ export class LeaderboardComponent implements OnInit {
           // Check for message in response if available
           this.error = data.message || 'Leaderboard is not available or no attempts have been made yet.';
         } else {
+          console.log('Leaderboard data received by frontend:', JSON.stringify(this.leaderboard, null, 2));
           this.filterLeaderboard(); // Apply initial filter
         }
       },
