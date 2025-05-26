@@ -1,134 +1,194 @@
 <div class="profile-container">
-  <h2>My Profile</h2>
+  <div class="profile-content">
+    <!-- Profile Header -->
+    <div class="profile-header">
+      <h1>My Profile</h1>
+      <p>Manage your account settings and referral information</p>
+    </div>
 
-  <div *ngIf="isLoading && !profileForm.dirty" class="loading-spinner">
-    <p>Loading profile...</p>
-    <!-- You can replace this with a more sophisticated spinner component -->
-  </div>
-
-  <div *ngIf="errorMessage" class="alert alert-danger">
-    {{ errorMessage }}
-  </div>
-
-  <div *ngIf="successMessage" class="alert alert-success">
-    {{ successMessage }}
-  </div>
-
-  <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" *ngIf="currentUser || !isLoading">
-    <div class="form-group mb-3">
-      <label for="name" class="form-label">Name:</label>
-      <input id="name" type="text" formControlName="name" class="form-control"
-             [ngClass]="{ 'is-invalid': profileForm.get('name')?.invalid && (profileForm.get('name')?.dirty || profileForm.get('name')?.touched) }">
-      <div *ngIf="profileForm.get('name')?.invalid && (profileForm.get('name')?.dirty || profileForm.get('name')?.touched)" class="invalid-feedback">
-        <small *ngIf="profileForm.get('name')?.errors?.['required']">Name is required.</small>
+    <!-- Loading Spinner -->
+    <div *ngIf="isLoading && !profileForm.dirty" class="loading-spinner">
+      <div class="spinner-border" role="status">
+        <span class="visually-hidden">Loading profile...</span>
       </div>
     </div>
 
-    <div class="form-group mb-3">
-      <label for="displayName" class="form-label">Display Name:</label>
-      <input id="displayName" type="text" formControlName="displayName" class="form-control">
-      <small class="form-text text-muted">This name will be shown on public leaderboards (if enabled for a test series).</small>
-    </div>
+    <!-- Alert Messages -->
+    <div class="profile-form" *ngIf="!isLoading || profileForm.dirty">
+      <div *ngIf="errorMessage" class="alert alert-danger fade-in">
+        {{ errorMessage }}
+      </div>
 
-    <div class="form-group mb-3">
-      <label for="photoURL" class="form-label">Photo URL:</label>
-      <input id="photoURL" type="url" formControlName="photoURL" class="form-control">
-      <small class="form-text text-muted">Link to your profile picture.</small>
-    </div>
+      <div *ngIf="successMessage" class="alert alert-success fade-in">
+        {{ successMessage }}
+      </div>
 
-    <div class="form-group mb-3">
-      <label for="phoneNumber" class="form-label">Phone Number:</label>
-      <input id="phoneNumber" type="tel" formControlName="phoneNumber" class="form-control">
-    </div>
-
-    <div class="form-group mb-3" *ngIf="currentUser?.email">
-      <label class="form-label">Email:</label>
-      <p class="form-control-plaintext">{{ currentUser?.email }}</p>
-    </div>
-
-    <div class="form-group mb-3" *ngIf="currentUser?.username">
-      <label class="form-label">Username:</label>
-      <p class="form-control-plaintext">{{ currentUser?.username }}</p>
-    </div>    <button type="submit" class="btn btn-primary" [disabled]="profileForm.invalid || isLoading">
-      <span *ngIf="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-      {{ isLoading ? ' Saving...' : 'Save Changes' }}
-    </button>
-  </form>
-
-  <!-- Referral Information Section -->
-  <div class="referral-section mt-5" *ngIf="currentUser || !isLoading">
-    <h3>Referral Program</h3>
-    
-    <div *ngIf="isLoadingReferral && !referralInfo" class="loading-spinner">
-      <p>Loading referral information...</p>
-    </div>
-
-    <div *ngIf="referralMessage" class="alert" 
-         [ngClass]="referralMessage.includes('Failed') ? 'alert-danger' : 'alert-success'">
-      {{ referralMessage }}
-    </div>
-
-    <div *ngIf="referralInfo" class="referral-info">
-      <!-- Referral Code Section -->
-      <div class="card mb-3">
-        <div class="card-header">
-          <h5 class="card-title mb-0">Your Referral Code</h5>
-        </div>
-        <div class="card-body">
-          <div class="input-group">
-            <input type="text" class="form-control" [value]="referralInfo.referralCode" readonly>
-            <button class="btn btn-outline-secondary" type="button" 
-                    (click)="copyToClipboard(referralInfo.referralCode, 'Referral code')">
-              <i class="fas fa-copy"></i> Copy
-            </button>
+      <!-- Profile Form -->
+      <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" *ngIf="currentUser || !isLoading">
+        <h2>Personal Information</h2>
+        <div class="form-group mb-3">
+          <label for="name" class="form-label">Name:</label>
+          <input id="name" type="text" formControlName="name" class="form-control"
+                 [ngClass]="{ 'is-invalid': profileForm.get('name')?.invalid && (profileForm.get('name')?.dirty || profileForm.get('name')?.touched) }">
+          <div *ngIf="profileForm.get('name')?.invalid && (profileForm.get('name')?.dirty || profileForm.get('name')?.touched)" class="invalid-feedback">
+            <small *ngIf="profileForm.get('name')?.errors?.['required']">Name is required.</small>
           </div>
-          <small class="form-text text-muted mt-2">Share this code with friends to refer them to NexPrep!</small>
+        </div>
+
+        <div class="form-group mb-3">
+          <label for="displayName" class="form-label">Display Name:</label>
+          <input id="displayName" type="text" formControlName="displayName" class="form-control">
+          <small class="form-text text-muted">This name will be shown on public leaderboards (if enabled for a test series).</small>
+        </div>
+
+        <div class="form-group mb-3">
+          <label for="photoURL" class="form-label">Photo URL:</label>
+          <input id="photoURL" type="url" formControlName="photoURL" class="form-control">
+          <small class="form-text text-muted">Link to your profile picture.</small>
+        </div>
+
+        <div class="form-group mb-3">
+          <label for="phoneNumber" class="form-label">Phone Number:</label>
+          <input id="phoneNumber" type="tel" formControlName="phoneNumber" class="form-control">
+        </div>
+
+        <div class="form-group mb-3" *ngIf="currentUser?.email">
+          <label class="form-label">Email:</label>
+          <input type="email" class="form-control" [value]="currentUser?.email" readonly>
+          <div class="form-text">Your email address cannot be changed</div>
+        </div>
+
+        <div class="form-group mb-3" *ngIf="currentUser?.username">
+          <label class="form-label">Username:</label>
+          <input type="text" class="form-control" [value]="currentUser?.username" readonly>
+          <div class="form-text">Your username cannot be changed</div>
+        </div>
+
+        <div class="btn-group">
+          <button type="submit" class="btn btn-primary" [disabled]="profileForm.invalid || isLoading">
+            <span *ngIf="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            {{ isLoading ? ' Saving...' : 'Save Changes' }}
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="resetForm()" [disabled]="isLoading">
+            Reset
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Referral Information Section -->
+    <div class="referral-section" *ngIf="currentUser || !isLoading">
+      <h3>Referral Program</h3>
+      
+      <div *ngIf="isLoadingReferral && !referralInfo" class="loading-spinner">
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Loading referral information...</span>
         </div>
       </div>
 
-      <!-- Referral Link Section -->
-      <div class="card mb-3">
-        <div class="card-header">
-          <h5 class="card-title mb-0">Referral Link</h5>
-        </div>
-        <div class="card-body">
-          <div class="input-group">
-            <input type="text" class="form-control" [value]="referralInfo.referralLink" readonly>
-            <button class="btn btn-outline-secondary" type="button" 
-                    (click)="copyToClipboard(referralInfo.referralLink, 'Referral link')">
-              <i class="fas fa-copy"></i> Copy
-            </button>
+      <div *ngIf="referralMessage" class="alert fade-in" 
+           [ngClass]="referralMessage.includes('Failed') ? 'alert-danger' : 'alert-success'">
+        {{ referralMessage }}
+      </div>
+
+      <div *ngIf="referralInfo" class="referral-info">
+        <!-- Referral Code Section -->
+        <div class="card mb-4 hover-lift">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Your Referral Code</h5>
           </div>
-          <small class="form-text text-muted mt-2">Share this link directly with friends!</small>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-8">
+                <div class="input-group">
+                  <input type="text" class="form-control" [value]="referralInfo.referralCode" readonly>
+                  <button class="btn" type="button" 
+                          (click)="copyToClipboard(referralInfo.referralCode, 'Referral code')">
+                    <i class="fas fa-copy"></i> Copy
+                  </button>
+                </div>
+                <small class="form-text text-muted mt-2">Share this code with friends to refer them to NexPrep!</small>
+              </div>
+              <div class="col-md-4 text-center d-flex align-items-center justify-content-center">
+                <div class="referral-icon">
+                  <i class="fas fa-gift fa-3x text-primary"></i>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>      <!-- Referral Stats Section -->
-      <div class="card mb-3">
-        <div class="card-header">
-          <h5 class="card-title mb-0">Referral Statistics</h5>
-        </div>
-        <div class="card-body">
+
+        <!-- Referral Link Section -->
+        <div class="card mb-4 hover-lift">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Referral Link</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-8">
+                <div class="input-group">
+                  <input type="text" class="form-control" [value]="referralInfo.referralLink" readonly>
+                  <button class="btn" type="button" 
+                          (click)="copyToClipboard(referralInfo.referralLink, 'Referral link')">
+                    <i class="fas fa-copy"></i> Copy
+                  </button>
+                </div>
+                <small class="form-text text-muted mt-2">Share this link directly with friends!</small>
+              </div>
+              <div class="col-md-4 text-center d-flex align-items-center justify-content-center">
+                <div class="referral-icon">
+                  <i class="fas fa-link fa-3x text-info"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>        <!-- Referral Stats Section -->
+        <div class="stats-container">
           <div class="row">
             <div class="col-md-6">
-              <div class="stat-item">
+              <div class="stat-item successful-referrals hover-lift">
                 <h6>Successful Referrals</h6>
-                <p class="display-6 text-success">{{ referralInfo.successfulReferrals || 0 }}</p>
+                <div class="display-6">{{ referralInfo.successfulReferrals || 0 }}</div>
+                <div class="text-info">Active Users</div>
               </div>
             </div>
-            <div class="col-md-6" *ngIf="referralInfo.referredBy">
-              <div class="stat-item">
-                <h6>Referred By</h6>
-                <p class="text-info">{{ referralInfo.referredBy.name }}</p>
-                <small class="text-muted">{{ referralInfo.referredBy.email }}</small>
+            <div class="col-md-6">
+              <div class="stat-item earnings hover-lift">
+                <h6>Referral Code</h6>
+                <div class="display-6 text-primary">{{ referralInfo.referralCode }}</div>
+                <div class="text-info">Your Code</div>
               </div>
             </div>
-            <div class="col-md-6" *ngIf="!referralInfo.referredBy">
-              <div class="stat-item">
-                <h6>Want to Give Credit?</h6>
-                <p class="text-muted mb-2">If someone referred you, you can still give them credit!</p>
-                <button class="btn btn-outline-primary btn-sm" (click)="openReferralModal()">
-                  Apply Referral Code
-                </button>
-              </div>
+          </div>
+        </div>
+
+        <!-- Referred By Section -->
+        <div class="card mt-4 hover-lift" *ngIf="referralInfo.referredBy">
+          <div class="card-header">
+            <h5 class="card-title mb-0">You Were Referred By</h5>
+          </div>
+          <div class="card-body text-center">
+            <div class="referred-by-info">
+              <i class="fas fa-user-friends fa-3x text-success mb-3"></i>
+              <h5 class="text-info">{{ referralInfo.referredBy.name }}</h5>
+              <small class="text-muted">{{ referralInfo.referredBy.email }}</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Apply Referral Code Section -->
+        <div class="card mt-4 hover-lift" *ngIf="!referralInfo.referredBy">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Give Credit Where It's Due</h5>
+          </div>
+          <div class="card-body text-center">
+            <div class="apply-referral-info">
+              <i class="fas fa-handshake fa-3x text-warning mb-3"></i>
+              <h6>Want to Give Credit?</h6>
+              <p class="text-muted mb-3">If someone referred you to NexPrep, you can still give them credit!</p>
+              <button class="btn btn-outline-info" (click)="openReferralModal()">
+                <i class="fas fa-plus-circle me-2"></i>Apply Referral Code
+              </button>
             </div>
           </div>
         </div>

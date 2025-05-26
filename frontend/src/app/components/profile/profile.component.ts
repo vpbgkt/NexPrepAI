@@ -170,10 +170,24 @@ export class ProfileComponent implements OnInit {
   closeReferralModal(): void {
     this.showReferralModal = false;
   }
-
   onReferralSuccess(response: any): void {
     this.referralMessage = response.message || 'Referral code applied successfully!';
     this.loadReferralInfo(); // Reload referral info to show updated data
     this.clearMessageAfterDelay();
+  }
+
+  resetForm(): void {
+    if (this.currentUser) {
+      this.profileForm.patchValue({
+        name: this.currentUser.name,
+        displayName: this.currentUser.displayName,
+        photoURL: this.currentUser.photoURL,
+        phoneNumber: this.currentUser.phoneNumber
+      });
+      this.profileForm.markAsPristine();
+      this.profileForm.markAsUntouched();
+      this.errorMessage = null;
+      this.successMessage = null;
+    }
   }
 }
