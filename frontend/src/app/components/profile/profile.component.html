@@ -49,11 +49,97 @@
     <div class="form-group mb-3" *ngIf="currentUser?.username">
       <label class="form-label">Username:</label>
       <p class="form-control-plaintext">{{ currentUser?.username }}</p>
-    </div>
-
-    <button type="submit" class="btn btn-primary" [disabled]="profileForm.invalid || isLoading">
+    </div>    <button type="submit" class="btn btn-primary" [disabled]="profileForm.invalid || isLoading">
       <span *ngIf="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
       {{ isLoading ? ' Saving...' : 'Save Changes' }}
     </button>
   </form>
+
+  <!-- Referral Information Section -->
+  <div class="referral-section mt-5" *ngIf="currentUser || !isLoading">
+    <h3>Referral Program</h3>
+    
+    <div *ngIf="isLoadingReferral && !referralInfo" class="loading-spinner">
+      <p>Loading referral information...</p>
+    </div>
+
+    <div *ngIf="referralMessage" class="alert" 
+         [ngClass]="referralMessage.includes('Failed') ? 'alert-danger' : 'alert-success'">
+      {{ referralMessage }}
+    </div>
+
+    <div *ngIf="referralInfo" class="referral-info">
+      <!-- Referral Code Section -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Your Referral Code</h5>
+        </div>
+        <div class="card-body">
+          <div class="input-group">
+            <input type="text" class="form-control" [value]="referralInfo.referralCode" readonly>
+            <button class="btn btn-outline-secondary" type="button" 
+                    (click)="copyToClipboard(referralInfo.referralCode, 'Referral code')">
+              <i class="fas fa-copy"></i> Copy
+            </button>
+          </div>
+          <small class="form-text text-muted mt-2">Share this code with friends to refer them to NexPrep!</small>
+        </div>
+      </div>
+
+      <!-- Referral Link Section -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Referral Link</h5>
+        </div>
+        <div class="card-body">
+          <div class="input-group">
+            <input type="text" class="form-control" [value]="referralInfo.referralLink" readonly>
+            <button class="btn btn-outline-secondary" type="button" 
+                    (click)="copyToClipboard(referralInfo.referralLink, 'Referral link')">
+              <i class="fas fa-copy"></i> Copy
+            </button>
+          </div>
+          <small class="form-text text-muted mt-2">Share this link directly with friends!</small>
+        </div>
+      </div>      <!-- Referral Stats Section -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Referral Statistics</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="stat-item">
+                <h6>Successful Referrals</h6>
+                <p class="display-6 text-success">{{ referralInfo.successfulReferrals || 0 }}</p>
+              </div>
+            </div>
+            <div class="col-md-6" *ngIf="referralInfo.referredBy">
+              <div class="stat-item">
+                <h6>Referred By</h6>
+                <p class="text-info">{{ referralInfo.referredBy.name }}</p>
+                <small class="text-muted">{{ referralInfo.referredBy.email }}</small>
+              </div>
+            </div>
+            <div class="col-md-6" *ngIf="!referralInfo.referredBy">
+              <div class="stat-item">
+                <h6>Want to Give Credit?</h6>
+                <p class="text-muted mb-2">If someone referred you, you can still give them credit!</p>
+                <button class="btn btn-outline-primary btn-sm" (click)="openReferralModal()">
+                  Apply Referral Code
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Referral Modal -->
+  <app-referral-modal 
+    [isVisible]="showReferralModal"
+    (close)="closeReferralModal()"
+    (success)="onReferralSuccess($event)">
+  </app-referral-modal>
 </div>

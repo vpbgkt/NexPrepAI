@@ -263,10 +263,12 @@
 
 <nav class="top-nav">
   <div class="nav-left">
-    <a routerLink="/" class="nav-brand">NexPrep</a>
-    <div class="nav-links" *ngIf="isAppLoggedIn"> <!-- Use component property -->
+    <a routerLink="/" class="nav-brand">NexPrep</a>    <div class="nav-links" *ngIf="isAppLoggedIn"> <!-- Use component property -->
       <a routerLink="/tests" routerLinkActive="active">Tests</a>
       <a routerLink="/student/dashboard" routerLinkActive="active">Dashboard</a>
+      <a routerLink="/rewards" routerLinkActive="active">Rewards</a>
+      <!-- Admin-only link -->
+      <a *ngIf="userRole === 'admin'" routerLink="/admin/rewards" routerLinkActive="active">Admin Rewards</a>
       <!-- Add other authenticated links here -->
     </div>
   </div>

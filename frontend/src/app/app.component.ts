@@ -1,7 +1,8 @@
 import { Component, OnInit, NgZone } from '@angular/core';
-import { RouterOutlet, Router, RouterModule, NavigationEnd } from '@angular/router'; // Import NavigationEnd
+import { RouterOutlet, Router, RouterModule, NavigationEnd, ActivatedRoute } from '@angular/router'; // Import ActivatedRoute
 import { AuthService } from './services/auth.service';
 import { FirebaseAuthService } from './services/firebase-auth.service';
+import { ReferralService } from './services/referral.service'; // Import ReferralService
 import { Observable } from 'rxjs';
 import { filter } from 'rxjs/operators'; // Import filter operator
 import { User as FirebaseUser } from '@angular/fire/auth';
@@ -18,18 +19,37 @@ export class AppComponent implements OnInit {
   currentUser$: Observable<FirebaseUser | null>;
   isAppLoggedIn: boolean = false;
   appUserDisplayName: string | null = null;
-
+  userRole: string | null = null; // Add userRole property
   constructor(
     public authService: AuthService, 
     private firebaseAuthService: FirebaseAuthService,
     private router: Router,
-    private ngZone: NgZone 
+    private ngZone: NgZone,
+    private activatedRoute: ActivatedRoute,
+    private referralService: ReferralService 
   ) {
     this.currentUser$ = this.firebaseAuthService.currentUser$;
   }
-
   ngOnInit() {
     console.log('AppComponent: ngOnInit started.');
+    
+    // Check for referral code in URL parameters
+    this.activatedRoute.queryParams.subscribe(params => {
+      const referralCode = params['ref'];
+      if (referralCode) {
+        console.log('AppComponent: Referral code found in URL:', referralCode);
+        this.referralService.setReferralCode(referralCode);
+        
+        // Remove the referral code from URL to clean it up
+        this.router.navigate([], {
+          relativeTo: this.activatedRoute,
+          queryParams: { ref: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true
+        });
+      }
+    });
+    
     // Subscribe to Firebase user state changes
     this.currentUser$.subscribe(fbUser => {
       this.ngZone.run(() => { 
@@ -59,7 +79,6 @@ export class AppComponent implements OnInit {
     });
     console.log('AppComponent: ngOnInit finished setting up subscriptions and initial call.');
   }
-
   updateAuthStates(caller: string) {
     console.log(`AppComponent: updateAuthStates called by: ${caller}`);
     const appIsLoggedInOld = this.isAppLoggedIn;
@@ -67,6 +86,7 @@ export class AppComponent implements OnInit {
 
     const appIsLoggedInNew = this.authService.isLoggedIn();
     this.isAppLoggedIn = appIsLoggedInNew;
+    this.userRole = this.authService.getRole(); // Set user role
 
     if (appIsLoggedInNew) {
       const fbUser = this.firebaseAuthService.getCurrentUser(); 

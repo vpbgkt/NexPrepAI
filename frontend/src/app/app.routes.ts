@@ -7,23 +7,30 @@ import { ReviewComponent } from './components/review/review.component';
 import { StudentDashboardComponent } from './components/student-dashboard/student-dashboard.component';
 import { TestListComponent } from './components/test-list/test-list.component';
 import { studentGuard } from './guards/student.guard';
+import { adminGuard } from './guards/admin.guard'; // Import AdminGuard
 import { ProfileComponent } from './components/profile/profile.component'; // Import ProfileComponent
 import { LeaderboardComponent } from './components/leaderboard/leaderboard.component'; // Import LeaderboardComponent
 import { HomeComponent } from './components/home/home.component'; // Import HomeComponent
+import { RewardsDashboardComponent } from './components/rewards-dashboard/rewards-dashboard.component'; // Import RewardsDashboardComponent
+import { AdminRewardsComponent } from './components/admin-rewards/admin-rewards.component'; // Import AdminRewardsComponent
 
 export const routes: Routes = [
   // Public student routes
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { path: 'leaderboard/:seriesId', component: LeaderboardComponent }, // Public leaderboard route
-
+  
   // Student‐only pages
   { path: 'home', component: HomeComponent, canActivate: [studentGuard] }, // Added home route
   { path: 'exam/:seriesId', component: ExamPlayerComponent, canActivate: [studentGuard] },
   { path: 'review/:attemptId', component: ReviewAttemptComponent, canActivate: [studentGuard] },
   { path: 'student/dashboard', component: StudentDashboardComponent, canActivate: [studentGuard] }, 
   { path: 'tests', component: TestListComponent, canActivate: [studentGuard] },
-  { path: 'profile', component: ProfileComponent, canActivate: [studentGuard] }, 
+  { path: 'profile', component: ProfileComponent, canActivate: [studentGuard] },
+  { path: 'rewards', component: RewardsDashboardComponent, canActivate: [studentGuard] }, // Added rewards dashboard route
+
+  // Admin-only pages
+  { path: 'admin/rewards', component: AdminRewardsComponent, canActivate: [adminGuard] }, // Admin rewards management
 
   // Redirect root
   { path: '', redirectTo: 'home', pathMatch: 'full' }, // Changed to redirect to home

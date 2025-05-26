@@ -62,10 +62,13 @@ export class AuthService {
     // If you want to centralize it, FirebaseAuthService would call this method,
     // and this method would then navigate.
   }
-
-  register(name: string, username: string, email: string, password: string) { // Added name parameter
+  register(name: string, username: string, email: string, password: string, referralCode?: string) { // Added optional referralCode parameter
     // student self-registration; always gets role=student
-    return this.http.post(`${this.base}/register`, { name, username, email, password }); // Added name to payload
+    const payload: any = { name, username, email, password };
+    if (referralCode && referralCode.trim()) {
+      payload.referralCodeInput = referralCode.trim();
+    }
+    return this.http.post(`${this.base}/register`, payload);
   }
 
   logout() {
@@ -83,7 +86,6 @@ export class AuthService {
   getRole() {
     return localStorage.getItem('role');
   }
-
   // New getter methods
   getAppUserName(): string | null {
     return localStorage.getItem('appUserName');
@@ -91,5 +93,14 @@ export class AuthService {
 
   getAppUserEmail(): string | null {
     return localStorage.getItem('appUserEmail');
+  }
+  // Get user's referral information
+  getReferralInfo() {
+    return this.http.get(`${this.base}/referral-info`);
+  }
+
+  // Apply referral code after registration
+  applyReferralCode(referralCode: string) {
+    return this.http.post(`${this.base}/apply-referral-code`, { referralCode });
   }
 }

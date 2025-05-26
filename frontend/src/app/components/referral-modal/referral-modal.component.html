@@ -1,0 +1,58 @@
+<div class="modal-overlay" *ngIf="isVisible" (click)="onBackdropClick($event)">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h4 class="modal-title">Apply Referral Code</h4>
+      <button type="button" class="close-button" (click)="closeModal()" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <p class="modal-description">
+        Do you have a referral code from a friend? Enter it below to give them credit for referring you!
+      </p>
+
+      <div *ngIf="errorMessage" class="alert alert-danger">
+        {{ errorMessage }}
+      </div>
+
+      <form [formGroup]="referralForm" (ngSubmit)="onSubmit()">
+        <div class="form-group">
+          <label for="referralCode" class="form-label">Referral Code</label>
+          <input 
+            id="referralCode" 
+            type="text" 
+            formControlName="referralCode" 
+            class="form-control"
+            placeholder="Enter referral code (e.g., ABC123D)"
+            [ngClass]="{ 'is-invalid': referralForm.get('referralCode')?.invalid && (referralForm.get('referralCode')?.dirty || referralForm.get('referralCode')?.touched) }"
+            maxlength="10"
+            style="text-transform: uppercase">
+          
+          <div *ngIf="referralForm.get('referralCode')?.invalid && (referralForm.get('referralCode')?.dirty || referralForm.get('referralCode')?.touched)" 
+               class="invalid-feedback">
+            <small *ngIf="referralForm.get('referralCode')?.errors?.['required']">Referral code is required.</small>
+            <small *ngIf="referralForm.get('referralCode')?.errors?.['minlength']">Referral code must be at least 6 characters.</small>
+            <small *ngIf="referralForm.get('referralCode')?.errors?.['maxlength']">Referral code must be at most 10 characters.</small>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()" [disabled]="isLoading">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="referralForm.invalid || isLoading">
+            <span *ngIf="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            {{ isLoading ? ' Applying...' : 'Apply Referral Code' }}
+          </button>
+        </div>
+      </form>
+
+      <div class="modal-note">
+        <small class="text-muted">
+          <strong>Note:</strong> You can only apply a referral code once. If you've already been referred by someone, this option won't be available.
+        </small>
+      </div>
+    </div>
+  </div>
+</div>

@@ -15,7 +15,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { register, login, firebaseSignIn } = require('../controllers/authController'); // Added firebaseSignIn
+const { register, login, firebaseSignIn, generateReferralCodes, getReferralInfo, applyReferralCode } = require('../controllers/authController'); // Added referral functions
 const authenticateUser = require('../middleware/auth'); // ✅ NEW
 
 router.post('/register', register);
@@ -33,5 +33,10 @@ router.get('/profile', authenticateUser, async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 });
+
+// Referral system routes
+router.get('/referral-info', authenticateUser, getReferralInfo);
+router.post('/apply-referral-code', authenticateUser, applyReferralCode);
+router.post('/generate-referral-codes', authenticateUser, generateReferralCodes); // Admin only in production
 
 module.exports = router;

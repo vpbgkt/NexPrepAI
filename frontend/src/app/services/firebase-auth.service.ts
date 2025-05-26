@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http'; // For backend communication
 import { AuthService } from './auth.service'; // Import AuthService
+import { ReferralService } from './referral.service'; // Import ReferralService
 
 interface BackendUser { // Duplicating from AuthService for clarity, consider a shared types file
   _id: string;
@@ -33,28 +34,43 @@ export class FirebaseAuthService {  private userSubject = new BehaviorSubject<Fi
   private backendUrl = 'http://localhost:5000/api/auth'; // Adjust if your backend URL is different
 
   private firebaseUserJustSignedOut = false; // Flag to track explicit Firebase sign-out
-
+  private tempReferralCode: string | null = null; // Store referral code during Firebase auth process
   constructor(
     private fireAuth: Auth,
     private router: Router,
     private http: HttpClient,
     private authService: AuthService, // Inject AuthService
-    private ngZone: NgZone // Inject NgZone
+    private ngZone: NgZone, // Inject NgZone
+    private referralService: ReferralService // Inject ReferralService
   ) {
     onAuthStateChanged(this.fireAuth, async (user) => {
       this.ngZone.run(async () => { // Run callback in Angular's zone
         console.log('FirebaseAuthService: onAuthStateChanged triggered. Firebase User:', user ? user.uid : 'null');
-        this.userSubject.next(user);        if (user) {
+        this.userSubject.next(user);          if (user) {
           this.firebaseUserJustSignedOut = false; // Reset flag on user presence
           // User is signed in with Firebase
           try {
             const idToken = await user.getIdToken();
             console.log('FirebaseAuthService: Firebase ID token obtained. Calling backend /firebase-signin.');
+            
+            // Get referral code from stored temp value or from service
+            const referralCode = this.tempReferralCode || this.referralService.getReferralCode();
+            
+            // Prepare the request payload
+            const payload: any = { firebaseToken: idToken };
+            if (referralCode) {
+              payload.referralCodeInput = referralCode;
+              console.log('FirebaseAuthService: Including referral code in Firebase sign-in:', referralCode);
+            }
+            
             // Send token to backend to create/verify user and get app-specific token/session
-            this.http.post<FirebaseSignInResponse>(`${this.backendUrl}/firebase-signin`, { firebaseToken: idToken })
-              .subscribe({
-                next: (response: FirebaseSignInResponse) => {
+            this.http.post<FirebaseSignInResponse>(`${this.backendUrl}/firebase-signin`, payload)
+              .subscribe({                next: (response: FirebaseSignInResponse) => {
                   console.log('FirebaseAuthService: Backend /firebase-signin SUCCESS.', response);
+                  
+                  // Clear referral codes after successful authentication
+                  this.tempReferralCode = null;
+                  this.referralService.clearReferralCode();
                   
                   // Create a user object if it doesn't exist in the response
                   const userObj: BackendUser = response.user || {
@@ -143,7 +159,12 @@ export class FirebaseAuthService {  private userSubject = new BehaviorSubject<Fi
         }
       }); // End of ngZone.run
     });
-  }  async googleSignIn(): Promise<void> {
+  }  async googleSignIn(referralCode?: string): Promise<void> {
+    // Store referral code temporarily for the authentication process
+    if (referralCode) {
+      this.tempReferralCode = referralCode;
+    }
+    
     const provider = new GoogleAuthProvider();
     
     // Add additional scopes if needed
@@ -160,6 +181,8 @@ export class FirebaseAuthService {  private userSubject = new BehaviorSubject<Fi
       await signInWithPopup(this.fireAuth, provider);
       console.log('FirebaseAuthService: Google Sign-In popup successful. onAuthStateChanged will handle the rest.');
     } catch (error: any) {
+      // Clear temp referral code on error
+      this.tempReferralCode = null;
       console.error('Google Sign-In failed:', error);
       const authError = error as AuthError;
       alert(authError.message || 'Google Sign-In was unsuccessful.');

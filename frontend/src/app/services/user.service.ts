@@ -2,6 +2,18 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+// Define an interface for referral information
+export interface ReferralInfo {
+  referralCode: string;
+  successfulReferrals: number;
+  referredBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  referralLink: string;
+}
+
 // Define an interface for the user profile data
 export interface UserProfile {
   _id?: string;
@@ -12,6 +24,13 @@ export interface UserProfile {
   photoURL?: string;
   phoneNumber?: string;
   role?: string;
+  referralCode?: string;
+  successfulReferrals?: number;
+  referredBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
   // Add any other fields you expect from the backend
 }
 
@@ -26,8 +45,11 @@ export class UserService {
   getMyProfile(): Observable<UserProfile> {
     return this.http.get<UserProfile>(`${this.apiUrl}/profile/me`);
   }
-
   updateMyProfile(profileData: UserProfile): Observable<UserProfile> {
     return this.http.put<UserProfile>(`${this.apiUrl}/profile/me`, profileData);
+  }
+
+  getReferralInfo(): Observable<ReferralInfo> {
+    return this.http.get<ReferralInfo>('/api/auth/referral-info');
   }
 }
