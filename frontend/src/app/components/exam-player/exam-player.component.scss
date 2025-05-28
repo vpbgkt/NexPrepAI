@@ -8,6 +8,7 @@ $line-height-base: 1.6;
 /* Colors */
 $primary-color: #007bff; // Blue
 $secondary-color: #6c757d; // Grey
+$warning-color: #ffc107; // Warning Orange/Yellow
 $light-gray: #f8f9fa;
 $medium-gray: #dee2e6;
 $dark-gray: #343a40;
@@ -491,24 +492,92 @@ body { // Assuming this component might be used in a context where body styles a
   margin-top: $spacing-unit * 1.5;
   padding-top: $spacing-unit;
   border-top: 1px solid $border-color;
+  flex-wrap: wrap;
+  gap: $spacing-unit;
 
-  .mark-for-review-label {
+  .action-controls {
     display: flex;
     align-items: center;
-    gap: $spacing-unit * 0.5;
-    font-size: $font-size-base * 0.9;
-    color: $secondary-color;
-    cursor: pointer;
+    gap: $spacing-unit;
+    flex-wrap: wrap;
 
-    input[type="checkbox"] {
-      width: 1.1em;
-      height: 1.1em;
+    .mark-for-review-label {
+      display: flex;
+      align-items: center;
+      gap: $spacing-unit * 0.5;
+      font-size: $font-size-base * 0.9;
+      color: $secondary-color;
+      cursor: pointer;
+
+      input[type="checkbox"] {
+        width: 1.1em;
+        height: 1.1em;
+      }
+    }
+
+    .flag-btn {
+      display: flex;
+      align-items: center;
+      gap: $spacing-unit * 0.25;
+      font-size: $font-size-base * 0.85;
+      padding: ($spacing-unit * 0.4) ($spacing-unit * 0.8);
+      border-radius: $border-radius;
+      
+      &.flagged {
+        background-color: color.adjust($warning-color, $lightness: 35%);
+        border-color: $warning-color;
+        color: color.adjust($warning-color, $lightness: -20%);
+      }
+      
+      &:hover {
+        background-color: color.adjust($warning-color, $lightness: 40%);
+        border-color: color.adjust($warning-color, $lightness: -10%);
+      }
+    }
+
+    .confidence-rating {
+      display: flex;
+      align-items: center;
+      gap: $spacing-unit * 0.5;
+      font-size: $font-size-base * 0.9;
+
+      label {
+        color: $secondary-color;
+        font-weight: 500;
+      }
+
+      .confidence-select {
+        padding: ($spacing-unit * 0.3) ($spacing-unit * 0.6);
+        border: 1px solid $border-color;
+        border-radius: $border-radius;
+        font-size: $font-size-base * 0.85;
+        background-color: $white;
+        
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+          box-shadow: 0 0 0 0.2rem rgba($primary-color, 0.25);
+        }
+      }
     }
   }
 
   .navigation-buttons {
     display: flex;
     gap: $spacing-unit * 0.75;
+  }
+
+  @media (max-width: #{$breakpoint-md - 1px}) {
+    flex-direction: column;
+    align-items: stretch;
+    
+    .action-controls {
+      justify-content: space-between;
+    }
+    
+    .navigation-buttons {
+      justify-content: center;
+    }
   }
 }
 

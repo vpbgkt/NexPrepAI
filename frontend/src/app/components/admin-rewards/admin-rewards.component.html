@@ -1,0 +1,367 @@
+<div class="admin-rewards-container">
+  <div class="header">
+    <h1>Admin Rewards Management</h1>
+    <button class="create-btn" (click)="openCreateRewardModal()">Create New Reward</button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="loading-spinner"></div>
+    <p>Loading...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-state">
+    <p>{{ error }}</p>
+    <button (click)="loadData()" class="retry-btn">Retry</button>
+  </div>
+
+  <!-- Stats Overview -->
+  <div class="stats-grid" *ngIf="!loading && !error">
+    <div class="stat-card">
+      <div class="stat-icon total-rewards">🎁</div>
+      <div class="stat-content">
+        <h3>{{ rewards.length }}</h3>
+        <p>Total Rewards</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon active-rewards">✨</div>
+      <div class="stat-content">
+        <h3>{{ getActiveRewardsCount() }}</h3>
+        <p>Active Rewards</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon pending-redemptions">⏳</div>
+      <div class="stat-content">
+        <h3>{{ getPendingRedemptionsCount() }}</h3>
+        <p>Pending Redemptions</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon total-points">💎</div>
+      <div class="stat-content">
+        <h3>{{ analytics?.pointsStats?.totalPointsEarned || 0 | number }}</h3>
+        <p>Total Points Earned</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tab-navigation">
+    <button 
+      [class]="'tab-button ' + (activeTab === 'overview' ? 'active' : '')"
+      (click)="setActiveTab('overview')">
+      Overview
+    </button>
+    <button 
+      [class]="'tab-button ' + (activeTab === 'rewards' ? 'active' : '')"
+      (click)="setActiveTab('rewards')">
+      Rewards
+    </button>
+    <button 
+      [class]="'tab-button ' + (activeTab === 'redemptions' ? 'active' : '')"
+      (click)="setActiveTab('redemptions')">
+      Redemptions
+    </button>
+    <button 
+      [class]="'tab-button ' + (activeTab === 'analytics' ? 'active' : '')"
+      (click)="setActiveTab('analytics')">
+      Analytics
+    </button>
+    <button 
+      [class]="'tab-button ' + (activeTab === 'points' ? 'active' : '')"
+      (click)="setActiveTab('points')">
+      Points Management
+    </button>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content">
+
+    <!-- Overview Tab -->
+    <div *ngIf="activeTab === 'overview'" class="tab-pane">
+      <div class="overview-grid">
+        <div class="recent-activity">
+          <h3>Recent Activity</h3>
+          <div class="activity-list">
+            <div 
+              *ngFor="let redemption of getRecentRedemptions()" 
+              class="activity-item">
+              <span class="activity-user">{{ redemption.userId.username }}</span>
+              <span class="activity-action">redeemed {{ redemption.rewardId.title }}</span>
+              <span class="activity-time">{{ formatDate(redemption.redemptionDate) }}</span>
+            </div>
+            <div *ngIf="redemptions.length === 0" class="no-activity">
+              No recent activity
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rewards Tab -->
+    <div *ngIf="activeTab === 'rewards'" class="tab-pane">
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Points Required</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let reward of rewards">
+              <td>
+                <div class="reward-info">
+                  <span class="reward-title">{{ reward.title }}</span>
+                  <span class="reward-description">{{ reward.description }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="reward-category">{{ reward.category }}</span>
+              </td>
+              <td>
+                <span class="points-required">{{ reward.pointsRequired | number }}</span>
+              </td>
+              <td>
+                <span [class]="'status-badge ' + (reward.isActive ? 'active' : 'inactive')">
+                  {{ reward.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td>{{ formatDate(reward.createdAt) }}</td>
+              <td>
+                <div class="action-buttons">
+                  <button class="edit-btn" (click)="openEditRewardModal(reward)">Edit</button>
+                  <button class="delete-btn" (click)="deleteReward(reward._id)">Delete</button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="rewards.length === 0">
+              <td colspan="6" class="no-data">No rewards found</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Redemptions Tab -->
+    <div *ngIf="activeTab === 'redemptions'" class="tab-pane">
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Reward</th>
+              <th>Points</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let redemption of redemptions">
+              <td>{{ redemption.userId.username }}</td>
+              <td>{{ redemption.rewardId.title }}</td>
+              <td>{{ redemption.rewardId.pointsRequired | number }}</td>
+              <td>{{ formatDate(redemption.redemptionDate) }}</td>
+              <td>
+                <span [class]="'status-badge ' + getStatusClass(redemption.status)">
+                  {{ redemption.status }}
+                </span>
+              </td>
+              <td>
+                <div class="action-buttons" *ngIf="redemption.status === 'pending'">
+                  <button 
+                    class="approve-btn" 
+                    (click)="updateRedemptionStatus(redemption, 'approved')">
+                    Approve
+                  </button>
+                  <button 
+                    class="reject-btn" 
+                    (click)="updateRedemptionStatus(redemption, 'rejected')">
+                    Reject
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="redemptions.length === 0">
+              <td colspan="6" class="no-data">No redemptions found</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Analytics Tab -->
+    <div *ngIf="activeTab === 'analytics'" class="tab-pane">
+      <div class="analytics-grid">
+        <div class="analytics-card">
+          <h3>User Statistics</h3>
+          <div class="analytics-content">
+            <div class="stat-row">
+              <span>Total Users:</span>
+              <span>{{ analytics?.userStats?.totalUsers || 0 }}</span>
+            </div>
+            <div class="stat-row">
+              <span>Users with Referrals:</span>
+              <span>{{ analytics?.userStats?.usersWithReferrals || 0 }}</span>
+            </div>
+            <div class="stat-row">
+              <span>Total Referrals:</span>
+              <span>{{ analytics?.userStats?.totalReferrals || 0 }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="analytics-card">
+          <h3>Points Statistics</h3>
+          <div class="analytics-content">
+            <div class="stat-row">
+              <span>Total Points Earned:</span>
+              <span>{{ analytics?.pointsStats?.totalPointsEarned || 0 | number }}</span>
+            </div>
+            <div class="stat-row">
+              <span>Total Points Spent:</span>
+              <span>{{ analytics?.pointsStats?.totalPointsSpent || 0 | number }}</span>
+            </div>
+            <div class="stat-row">
+              <span>Points in Circulation:</span>
+              <span>{{ analytics?.pointsStats?.totalPointsInCirculation || 0 | number }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Points Management Tab -->
+    <div *ngIf="activeTab === 'points'" class="tab-pane">
+      <div class="points-management">
+        <button class="adjust-points-btn" (click)="openPointsModal()">Adjust User Points</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Points Adjustment Modal -->
+  <div *ngIf="showPointsModal" class="modal-overlay" (click)="closeModals()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h2>Adjust User Points</h2>
+      <button class="close-btn" (click)="closeModals()">×</button>
+      <form (ngSubmit)="adjustUserPoints()">
+        <div class="form-group">
+          <label for="userId">User ID:</label>
+          <input 
+            type="text" 
+            id="userId" 
+            [(ngModel)]="pointsAdjustment.userId"
+            name="userId"
+            required>
+        </div>
+        <div class="form-group">
+          <label for="username">Username (for reference):</label>
+          <input 
+            type="text" 
+            id="username" 
+            [(ngModel)]="pointsAdjustment.username"
+            name="username">
+        </div>
+        <div class="form-group">
+          <label for="amount">Point Amount:</label>
+          <input 
+            type="number" 
+            id="amount" 
+            [(ngModel)]="pointsAdjustment.amount"
+            name="amount"
+            required>
+          <small>Use negative numbers to deduct points</small>
+        </div>
+        <div class="form-group">
+          <label for="description">Description:</label>
+          <textarea 
+            id="description" 
+            [(ngModel)]="pointsAdjustment.description"
+            name="description"
+            rows="3"
+            placeholder="Reason for adjustment..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="cancel-btn" (click)="closeModals()">Cancel</button>
+          <button type="submit" class="submit-btn">
+            Adjust Points
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Reward Creation/Edit Modal -->
+  <div *ngIf="showCreateRewardModal || showEditRewardModal" class="modal-overlay" (click)="closeModals()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h2>{{ showEditRewardModal ? 'Edit Reward' : 'Create New Reward' }}</h2>
+      <button class="close-btn" (click)="closeModals()">×</button>
+      <form (ngSubmit)="showEditRewardModal ? updateReward() : createReward()">
+        <div class="form-group">
+          <label for="title">Title:</label>
+          <input 
+            type="text" 
+            id="title" 
+            [(ngModel)]="newReward.title"
+            name="title"
+            required>
+        </div>
+        <div class="form-group">
+          <label for="category">Category:</label>
+          <select 
+            id="category" 
+            [(ngModel)]="newReward.category" 
+            name="category" 
+            required>
+            <option value="general">General</option>
+            <option value="discount">Discount</option>
+            <option value="merchandise">Merchandise</option>
+            <option value="digital">Digital Content</option>
+            <option value="premium">Premium Features</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="pointsRequired">Points Required:</label>
+          <input 
+            type="number" 
+            id="pointsRequired" 
+            [(ngModel)]="newReward.pointsRequired"
+            name="pointsRequired"
+            min="1"
+            required>
+        </div>
+        <div class="form-group">
+          <label for="description">Description:</label>
+          <textarea 
+            id="description" 
+            [(ngModel)]="newReward.description"
+            name="description"
+            rows="4"></textarea>
+        </div>
+        <div class="form-group">
+          <label>
+            <input 
+              type="checkbox" 
+              [(ngModel)]="newReward.isActive" 
+              name="isActive">
+            Active
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="cancel-btn" (click)="closeModals()">Cancel</button>
+          <button type="submit" class="save-btn">
+            {{ showEditRewardModal ? 'Update Reward' : 'Create Reward' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

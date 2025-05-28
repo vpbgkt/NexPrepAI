@@ -36,9 +36,14 @@ const {
   getStudentStats,
   getLeaderboardForSeries,
   saveProgress,
-  generatePdf,
-  getProgress
+  getProgress,
+  // Enhanced Review Page endpoints
+  getEnhancedReview,
+  getPerformanceAnalytics,
+  getStudyRecommendations
 } = require('../controllers/testAttemptController');
+
+
 
 /**
  * @swagger
@@ -62,25 +67,21 @@ router.post('/:attemptId/submit', verifyToken, requireRole('student'), submitAtt
 // ✅ SAVE PROGRESS
 router.post('/:attemptId/save', verifyToken, requireRole('student'), saveProgress);
 
+// ✅ GET PROGRESS
+router.get('/:seriesId/progress', verifyToken, requireRole('student'), getProgress);
+
 // ✅ USER ATTEMPT ROUTES
 router.get('/my-attempts', verifyToken, getMyTestAttempts);
 // REVIEW (fixed to use the same param name the controller expects)
 router.get('/:attemptId/review', verifyToken, requireRole('student'), reviewAttempt);
+
+// ✅ ENHANCED REVIEW PAGE ROUTES - Phase 1.2
+router.get('/:attemptId/enhanced-review', verifyToken, requireRole('student'), getEnhancedReview);
+router.get('/:attemptId/analytics', verifyToken, requireRole('student'), getPerformanceAnalytics);
+router.get('/:attemptId/recommendations', verifyToken, requireRole('student'), getStudyRecommendations);
+
 router.get('/stats/me', verifyToken, getStudentStats);
 // Public leaderboard endpoint (removed verifyToken to make it public)
 router.get('/leaderboard/:seriesId', getLeaderboardForSeries);
-
-// Generate a PDF result sheet for one attempt
-router.get('/:attemptId/pdf',
-           verifyToken,
-           requireRole('student'),
-           generatePdf);
-
-// GET /api/tests/:seriesId/progress
-router.get(
-  '/:seriesId/progress',
-  verifyToken,
-  getProgress
-);
 
 module.exports = router;

@@ -32,9 +32,18 @@ const attemptOptionSchema = new Schema({
 // Define a schema for the individual response items within the TestAttempt.responses array
 const attemptResponseItemSchema = new mongoose.Schema({
   question: { type: String, required: true }, // Storing question ID as string, as currently done
+  questionInstanceKey: { type: String }, // Composite key for matching with randomized questions
   selected: mongoose.Schema.Types.Mixed,
   earned: { type: Number }, // Made optional, will be populated by submitAttempt
   status: { type: String }, // Made optional, will be populated by submitAttempt
+  
+  // Enhanced Review Page fields
+  timeSpent: { type: Number, default: 0 }, // Time spent on this question in seconds
+  attempts: { type: Number, default: 1 }, // Number of times answer was changed
+  flagged: { type: Boolean, default: false }, // Whether question was flagged for review
+  confidence: { type: Number, min: 1, max: 5 }, // Confidence level (1-5 scale)
+  visitedAt: { type: Date }, // When the question was first visited
+  lastModifiedAt: { type: Date } // When the answer was last changed
 }, { _id: false });
 
 const responseSchema = new Schema({
@@ -102,11 +111,20 @@ const testAttemptSchema = new Schema({
     type: String, 
     enum: ['in-progress', 'completed', 'aborted'], 
     default: 'in-progress' 
-  },
-  expiresAt: { type: Date }, // Calculated once when test starts if there is a fixed duration
+  },  expiresAt: { type: Date }, // Calculated once when test starts if there is a fixed duration
   lastSavedAt: { type: Date },
   remainingDurationSeconds: { type: Number }, // Stores the countdown value from frontend
-  timeTakenSeconds: { type: Number } // <--- ADDED THIS FIELD
+  timeTakenSeconds: { type: Number }, // <--- ADDED THIS FIELD
+  
+  // Enhanced Review Page fields
+  timePerSection: [{
+    sectionTitle: String,
+    timeSpent: Number // Time spent on each section in seconds
+  }],
+  questionSequence: [{ type: String }], // Order in which questions were visited
+  totalTimeSpent: { type: Number, default: 0 }, // Total time spent on the test in seconds
+  averageTimePerQuestion: { type: Number }, // Calculated field for analytics
+  flaggedQuestions: [{ type: String }] // Array of question IDs that were flagged
 });
 
 // Added attemptNo field to the schema

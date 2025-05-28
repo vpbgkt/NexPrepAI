@@ -1,1 +1,538 @@
-<h2>Review for Attempt {{ attemptId }}</h2>
+<!-- Enhanced Review Page Template -->
+<div class="review-container">
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="loading-spinner"></div>
+    <p>Loading review data...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-state">
+    <div class="error-icon">⚠️</div>
+    <h3>Error Loading Review</h3>
+    <p>{{ error }}</p>
+    <button (click)="loadReviewData()" class="retry-btn">Retry</button>
+  </div>
+
+  <!-- Main Content -->
+  <div *ngIf="!loading && !error && reviewData" class="review-content">    <!-- Header -->
+    <div class="review-header">
+      <div class="header-left">
+        <button (click)="goBack()" class="back-btn">
+          <span class="back-icon">←</span> Back to Dashboard
+        </button>
+      </div>
+      
+      <div class="test-info">
+        <h1>{{ reviewData.attempt.seriesTitle }}</h1>
+        <div class="score-summary">
+          <div class="score-card">
+            <span class="score">{{ reviewData.attempt.score }}/{{ reviewData.attempt.maxScore }}</span>
+            <span class="percentage">{{ reviewData.attempt.percentage | number:'1.1-1' }}%</span>
+          </div>
+          <div class="test-meta">
+            <p><strong>Submitted:</strong> {{ formatDate(reviewData.attempt.submittedAt) }}</p>
+            <p><strong>Time Taken:</strong> {{ formatTime(reviewData.attempt.totalTimeSpent) }}</p>
+          </div>
+        </div>
+      </div>      <div class="header-actions">
+        <button (click)="downloadReviewAsPdf()" class="download-btn primary" [disabled]="downloadingPdf">
+          <span class="download-icon">📄</span>
+          <span *ngIf="!downloadingPdf">Download Review as PDF</span>
+          <span *ngIf="downloadingPdf">Generating PDF...</span>
+        </button>
+      </div>
+    </div><!-- Navigation Tabs -->
+    <div class="tab-navigation">
+      <button 
+        *ngFor="let tab of ['overview', 'questions', 'analytics', 'recommendations']"
+        [class.active]="activeTab === tab"
+        (click)="onTabChange(tab)"
+        class="tab-btn">
+        {{ tab | titlecase }}
+      </button>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      
+      <!-- Overview Tab -->
+      <div *ngIf="activeTab === 'overview'" class="overview-tab">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h3>Overall Performance</h3>
+            <div class="stat-item">
+              <span class="label">Accuracy:</span>
+              <span class="value">{{ reviewData.analytics.overall.accuracy | number:'1.1-1' }}%</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">Correct Answers:</span>
+              <span class="value correct">{{ reviewData.analytics.overall.correctAnswers }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">Incorrect Answers:</span>
+              <span class="value incorrect">{{ reviewData.analytics.overall.incorrectAnswers }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">Unanswered:</span>
+              <span class="value unanswered">{{ reviewData.analytics.overall.unanswered }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">Flagged Questions:</span>
+              <span class="value">{{ reviewData.analytics.overall.flaggedCount }}</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <h3>Time Analysis</h3>
+            <div class="stat-item">
+              <span class="label">Total Time:</span>
+              <span class="value">{{ formatTime(reviewData.analytics.overall.timeSpent) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">Avg per Question:</span>
+              <span class="value">{{ formatTime(reviewData.analytics.overall.averageTimePerQuestion) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">Fastest Question:</span>
+              <span class="value">{{ formatTime(reviewData.analytics.timeAnalysis.fastestQuestion) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">Slowest Question:</span>
+              <span class="value">{{ formatTime(reviewData.analytics.timeAnalysis.slowestQuestion) }}</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <h3>Difficulty Breakdown</h3>
+            <div *ngFor="let difficulty of ['Easy', 'Medium', 'Hard']" class="difficulty-stat">
+              <span class="difficulty-label" [ngClass]="getDifficultyColor(difficulty)">
+                {{ difficulty }}
+              </span>
+              <div class="difficulty-bar">
+                <div class="progress-bar">
+                  <div 
+                    class="progress-fill"
+                    [style.width.%]="(reviewData.analytics.difficultyBreakdown[difficulty]?.correct / reviewData.analytics.difficultyBreakdown[difficulty]?.total) * 100">
+                  </div>
+                </div>
+                <span class="difficulty-score">
+                  {{ reviewData.analytics.difficultyBreakdown[difficulty]?.correct || 0 }}/{{ reviewData.analytics.difficultyBreakdown[difficulty]?.total || 0 }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Navigation -->
+        <div class="quick-nav">
+          <h3>Quick Navigation</h3>
+          <div class="nav-buttons">
+            <button (click)="setActiveTab('questions'); filterBy = 'incorrect'" class="nav-btn incorrect">
+              Review Incorrect ({{ reviewData.analytics.overall.incorrectAnswers }})
+            </button>
+            <button (click)="setActiveTab('questions'); filterBy = 'flagged'" class="nav-btn flagged">
+              Flagged Questions ({{ reviewData.analytics.overall.flaggedCount }})
+            </button>
+            <button (click)="setActiveTab('questions'); filterBy = 'unanswered'" class="nav-btn unanswered">
+              Unanswered ({{ reviewData.analytics.overall.unanswered }})
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Questions Tab -->
+      <div *ngIf="activeTab === 'questions'" class="questions-tab">
+        <!-- Question Filter -->
+        <div class="question-filter">
+          <label>Filter Questions:</label>
+          <select [(ngModel)]="filterBy" class="filter-select">
+            <option value="all">All Questions</option>
+            <option value="correct">Correct Only</option>
+            <option value="incorrect">Incorrect Only</option>
+            <option value="flagged">Flagged Only</option>
+            <option value="unanswered">Unanswered Only</option>
+          </select>
+        </div>
+
+        <!-- Question List -->
+        <div class="question-list">
+          <div 
+            *ngFor="let question of getFilteredQuestions(); let i = index"
+            (click)="goToQuestion(reviewData.questions.indexOf(question))"
+            class="question-item"
+            [ngClass]="getQuestionStatus(question)">
+            
+            <div class="question-header">
+              <span class="question-number">Q{{ reviewData.questions.indexOf(question) + 1 }}</span>
+              <span class="question-status" [ngClass]="getQuestionStatus(question)">
+                {{ getQuestionStatus(question) | titlecase }}
+              </span>
+              <span *ngIf="question.flagged" class="flag-indicator">🚩</span>
+              <span class="difficulty" [ngClass]="getDifficultyColor(question.difficulty)">
+                {{ question.difficulty }}
+              </span>
+            </div>
+            
+            <div class="question-meta">
+              <span class="time-spent">⏱️ {{ formatTime(question.timeSpent) }}</span>
+              <span class="marks">{{ question.earned }}/{{ question.marks }} marks</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Question Detail View -->
+        <div *ngIf="getCurrentQuestion() as currentQuestion" class="question-detail">
+          <div class="question-navigation">
+            <button (click)="prevQuestion()" [disabled]="currentQuestionIndex === 0" class="nav-btn">
+              ← Previous
+            </button>
+            <span class="question-counter">
+              Question {{ currentQuestionIndex + 1 }} of {{ reviewData.questions.length }}
+            </span>
+            <button (click)="nextQuestion()" [disabled]="currentQuestionIndex === reviewData.questions.length - 1" class="nav-btn">
+              Next →
+            </button>
+          </div>
+
+          <div class="question-content">
+            <h4 [innerHTML]="currentQuestion.questionText"></h4>
+
+            <!-- Options Display -->
+            <div *ngFor="let option of currentQuestion.options; let j = index" class="option"
+              [ngClass]="{
+                'selected-user': isOptionSelected(currentQuestion, String(j)),
+                'correct-answer-option': isCorrectOption(currentQuestion, option._id),
+                'incorrect-user-selection': isOptionSelected(currentQuestion, String(j)) && !isCorrectOption(currentQuestion, option._id)
+              }">
+              <span class="option-letter">{{ String.fromCharCode(65 + j) }}.</span>
+              <span [innerHTML]="option.text"></span>
+              <!-- Visual indicators for each option -->
+              <span *ngIf="isOptionSelected(currentQuestion, String(j)) && isCorrectOption(currentQuestion, option._id)" class="feedback-icon correct-pick">
+                ✔️ Your Pick (Correct)
+              </span>
+              <span *ngIf="isOptionSelected(currentQuestion, String(j)) && !isCorrectOption(currentQuestion, option._id)" class="feedback-icon incorrect-pick">
+                ❌ Your Pick (Incorrect)
+              </span>
+              <span *ngIf="!isOptionSelected(currentQuestion, String(j)) && isCorrectOption(currentQuestion, option._id)" class="feedback-icon actual-correct">
+                ✔️ Correct Answer
+              </span>
+            </div>
+
+            <!-- Display User's Answer and Correct Answer Text -->
+            <div class="answer-summary">
+              <div class="user-answer-text">
+                <strong>Your Answer:</strong>
+                <ng-container *ngIf="currentQuestion.status === 'unanswered' || !(currentQuestion.userSelectedOptionTexts && currentQuestion.userSelectedOptionTexts.length > 0)">
+                  <span>Not Attempted</span>
+                </ng-container>
+                <ng-container *ngIf="currentQuestion.status !== 'unanswered' && currentQuestion.userSelectedOptionTexts && currentQuestion.userSelectedOptionTexts.length > 0">
+                  <span *ngFor="let userAnswerText of currentQuestion.userSelectedOptionTexts; let last = last">
+                    <span [innerHTML]="userAnswerText"></span>{{ !last ? ', ' : '' }}
+                  </span>
+                </ng-container>
+              </div>
+
+              <div class="correct-answer-text">
+                <strong>Correct Answer:</strong>
+                <span *ngIf="currentQuestion.correctOptionTexts && currentQuestion.correctOptionTexts.length > 0; else noCorrectAnswerText">
+                  <span *ngFor="let correctAnswerText of currentQuestion.correctOptionTexts; let last = last">
+                    <span [innerHTML]="correctAnswerText"></span>{{ !last ? ', ' : '' }}
+                  </span>
+                </span>
+                <ng-template #noCorrectAnswerText><span>Not Available</span></ng-template>
+              </div>
+            </div>
+
+            <div class="question-performance-details">
+              <p>
+                ⏱️ Time Taken: 
+                <span *ngIf="getCurrentQuestion()!.timeSpent > 0; else noTimeSpent">{{ formatTime(getCurrentQuestion()!.timeSpent) }}</span>
+                <ng-template #noTimeSpent>Not recorded</ng-template>
+                <small *ngIf="getCurrentQuestion()!.estimatedTime && getCurrentQuestion()!.estimatedTime! > 0">
+                  (Expected: {{ formatTime(getCurrentQuestion()!.estimatedTime!) }})
+                </small>
+                <small *ngIf="!getCurrentQuestion()!.estimatedTime || getCurrentQuestion()!.estimatedTime === 0">
+                  (Expected time not set)
+                </small>
+              </p>
+            </div>
+
+            <button (click)="showExplanation = !showExplanation" class="toggle-explanation-btn" [disabled]="!(getCurrentQuestion()?.explanations && getCurrentQuestion()!.explanations.length > 0)">
+              {{ showExplanation ? 'Hide' : 'Show' }} Explanation(s)
+              <span *ngIf="!(getCurrentQuestion()?.explanations && getCurrentQuestion()!.explanations.length > 0)">(None Available)</span>
+            </button>
+
+            <div *ngIf="showExplanation && getCurrentQuestion()?.explanations && getCurrentQuestion()!.explanations.length > 0" class="explanation-section">
+              <h5>Explanation(s)</h5>
+              <ng-container *ngIf="getCurrentQuestion()?.explanations && getCurrentQuestion()!.explanations.length > 0; else noExplanationContent">
+                <div *ngFor="let exp of getCurrentQuestion()!.explanations; let k = index" class="explanation-item">
+                  <p *ngIf="getCurrentQuestion()!.explanations.length > 1"><strong>Explanation {{ k + 1 }}:</strong></p>
+                  <div [innerHTML]="exp.content || exp.text || 'No content for this explanation.'"></div>
+                </div>
+              </ng-container>
+              <ng-template #noExplanationContent>
+                <p>No explanation available for this question.</p>
+              </ng-template>
+            </div>
+
+            <div class="question-history-section">
+              <h5>Question History</h5>
+              <ul *ngIf="getCurrentQuestion()?.questionHistory && getCurrentQuestion()!.questionHistory!.length > 0; else noHistoryContent">
+                <li *ngFor="let historyItem of getCurrentQuestion()!.questionHistory">
+                  {{ historyItem.date | date }}: {{ historyItem.outcome }} ({{ formatTime(historyItem.timeTaken) }})
+                </li>
+              </ul>
+              <ng-template #noHistoryContent>
+                <p>No past performance history available for this question.</p>
+              </ng-template>
+            </div>
+          </div>
+
+          <div class="question-feedback">
+            <h5>Your Feedback</h5>
+            <div class="feedback-item" *ngFor="let fb of getCurrentQuestion()!.feedback">
+              <div class="feedback-type" [ngClass]="{'positive': fb.type === 'correct', 'negative': fb.type === 'incorrect'}">
+                {{ fb.type === 'correct' ? '✔️ Correct' : '❌ Incorrect' }}
+              </div>
+              <div class="feedback-content">
+                <div [innerHTML]="fb.text"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>      <!-- Analytics Tab -->
+      <div *ngIf="activeTab === 'analytics'" class="analytics-tab">
+        <div *ngIf="reviewData" class="analytics-content">
+          <h2>Performance Analytics Dashboard</h2>
+          
+          <!-- Key Metrics Row -->
+          <div class="metrics-row">
+            <div class="metric-card highlight">
+              <div class="metric-icon">🎯</div>
+              <div class="metric-content">
+                <h3>{{ reviewData.analytics.overall.accuracy | number:'1.1-1' }}%</h3>
+                <p>Overall Accuracy</p>
+              </div>
+            </div>
+            
+            <div class="metric-card">
+              <div class="metric-icon">⏱️</div>
+              <div class="metric-content">
+                <h3>{{ formatTime(reviewData.analytics.overall.averageTimePerQuestion) }}</h3>
+                <p>Avg Time/Question</p>
+              </div>
+            </div>
+            
+            <div class="metric-card">
+              <div class="metric-icon">🚩</div>
+              <div class="metric-content">
+                <h3>{{ reviewData.analytics.overall.flaggedCount }}</h3>
+                <p>Flagged Questions</p>
+              </div>
+            </div>
+            
+            <div class="metric-card">
+              <div class="metric-icon">⚡</div>
+              <div class="metric-content">
+                <h3>{{ reviewData.analytics.timeAnalysis.questionsOverTime }}</h3>
+                <p>Over Time Limit</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Section -->
+          <div class="charts-grid">
+            <div class="chart-container">
+              <h3>Answer Distribution</h3>
+              <div class="chart-wrapper">
+                <canvas #accuracyChart></canvas>
+              </div>
+            </div>
+
+            <div class="chart-container">
+              <h3>Time Analysis per Question</h3>
+              <div class="chart-wrapper">
+                <canvas #timeChart></canvas>
+              </div>
+            </div>
+
+            <div class="chart-container">
+              <h3>Performance by Difficulty</h3>
+              <div class="chart-wrapper">
+                <canvas #difficultyChart></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subject Performance Section -->
+          <div class="subject-performance">
+            <h3>Subject-wise Performance</h3>
+            <div class="subject-cards">
+              <div 
+                *ngFor="let subject of getSubjectPerformanceData()" 
+                class="subject-card"
+                [ngClass]="subject.performance">
+                
+                <div class="subject-header">
+                  <h4>{{ subject.name }}</h4>
+                  <span class="accuracy-badge">{{ subject.accuracy }}%</span>
+                </div>
+                
+                <div class="subject-stats">
+                  <div class="stat">
+                    <span class="label">Correct:</span>
+                    <span class="value correct">{{ subject.correct }}</span>
+                  </div>
+                  <div class="stat">
+                    <span class="label">Total:</span>
+                    <span class="value">{{ subject.total }}</span>
+                  </div>
+                  <div class="stat">
+                    <span class="label">Avg Time:</span>
+                    <span class="value">{{ formatTime(subject.avgTime) }}</span>
+                  </div>
+                </div>
+                
+                <div class="progress-bar">
+                  <div class="progress-fill" [style.width.%]="subject.accuracy"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Time Analysis Details -->
+          <div class="time-analysis-details">
+            <h3>Detailed Time Analysis</h3>
+            <div class="time-stats-grid">
+              <div class="time-stat">
+                <span class="time-label">Total Time Spent:</span>
+                <span class="time-value">{{ formatTime(reviewData.analytics.overall.timeSpent) }}</span>
+              </div>
+              <div class="time-stat">
+                <span class="time-label">Fastest Question:</span>
+                <span class="time-value">{{ formatTime(reviewData.analytics.timeAnalysis.fastestQuestion) }}</span>
+              </div>
+              <div class="time-stat">
+                <span class="time-label">Slowest Question:</span>
+                <span class="time-value">{{ formatTime(reviewData.analytics.timeAnalysis.slowestQuestion) }}</span>
+              </div>
+              <div class="time-stat">
+                <span class="time-label">Questions Over Time:</span>
+                <span class="time-value">{{ reviewData.analytics.timeAnalysis.questionsOverTime }} questions</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Performance Insights -->
+          <div class="performance-insights">
+            <h3>Performance Insights</h3>
+            <div class="insights-grid">
+              <div class="insight-card" *ngFor="let insight of getPerformanceInsights()">
+                <div class="insight-icon" [ngClass]="insight.type">{{ insight.icon }}</div>
+                <div class="insight-content">
+                  <h4>{{ insight.title }}</h4>
+                  <p>{{ insight.description }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>      <!-- Recommendations Tab -->
+      <div *ngIf="activeTab === 'recommendations'" class="recommendations-tab">
+        <h3>Study Recommendations</h3>
+        
+        <!-- Performance Level -->
+        <div class="performance-level">
+          <div class="level-indicator" [ngClass]="getPerformanceLevel().toLowerCase().replace(' ', '-')">
+            {{ getPerformanceLevelIcon() }} {{ getPerformanceLevel() }}
+          </div>
+          <div class="level-description">
+            {{ getPerformanceLevelDescription() }}
+          </div>
+        </div>
+
+        <!-- Recommendations Grid -->
+        <div class="recommendations-grid">
+          <!-- Priority Areas -->
+          <div class="recommendation-section">
+            <h4>🔥 Priority Areas</h4>
+            <div class="priority-areas">
+              <div *ngFor="let area of getPriorityAreas()" class="priority-item">
+                <div>
+                  <div class="area-name">{{ area.subject }}</div>
+                  <div style="font-size: 0.9em; color: #6c757d;">{{ area.accuracy | number:'1.1-1' }}% accuracy</div>
+                </div>
+                <span class="priority-badge" [ngClass]="area.priority.toLowerCase()">{{ area.priority }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Time Management Tips -->
+          <div class="recommendation-section">
+            <h4>⏰ Time Management</h4>
+            <ul class="tips-list">
+              <li *ngFor="let tip of getTimeManagementTips()">
+                <div class="tip-title">{{ tip.tip }}</div>
+                <div class="tip-reason">{{ tip.reason }}</div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Strengths -->
+          <div class="recommendation-section">
+            <h4>💪 Your Strengths</h4>
+            <ul class="strengths-list">
+              <li *ngFor="let strength of getStrengths()">
+                <div class="strength-area">{{ strength.area }}</div>
+                <div class="strength-description">{{ strength.description }}</div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Practice Recommendations -->
+          <div class="recommendation-section">
+            <h4>📝 Practice Focus</h4>
+            <ul class="practice-list">
+              <li *ngFor="let practice of getPracticeRecommendations()">
+                <div class="practice-title">{{ practice.title }}</div>
+                <div class="practice-description">{{ practice.description }}</div>
+                <span class="practice-priority" [ngClass]="practice.priority.toLowerCase()">{{ practice.priority }} Priority</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Study Schedule -->
+        <div class="study-schedule">
+          <h4>📅 7-Day Study Schedule</h4>
+          <div class="schedule-grid">
+            <div *ngFor="let day of getStudySchedule()" class="schedule-day">
+              <div class="day-title">{{ day.day }}</div>
+              <div class="day-focus">{{ day.focus }}</div>
+              <ul class="day-activities">
+                <li *ngFor="let activity of day.activities">{{ activity }}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Next Steps -->
+        <div class="next-steps">
+          <h4>🎯 Immediate Next Steps</h4>
+          <ol class="steps-list">
+            <li *ngFor="let step of getNextSteps(); let i = index" class="step-item">
+              <div class="step-number">{{ i + 1 }}</div>
+              <div class="step-content">
+                <div class="step-action">{{ step.action }}</div>
+                <div class="step-description">{{ step.description }}</div>
+                <div class="step-timeframe">{{ step.timeframe }}</div>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

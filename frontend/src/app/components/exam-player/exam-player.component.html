@@ -134,13 +134,37 @@
                   <img *ngIf="opt.img" [src]="opt.img" alt="Option Image" class="option-image" style="max-width: 200px; height: auto; margin-left: 10px;">
                 </label>
               </div>
-            </div>
-
-            <div class="question-actions">
-              <label class="mark-for-review-label">
-                <input type="checkbox" formControlName="review" />
-                Mark for review
-              </label>
+            </div>            <div class="question-actions">
+              <div class="action-controls">
+                <label class="mark-for-review-label">
+                  <input type="checkbox" formControlName="review" />
+                  Mark for review
+                </label>
+                
+                <!-- Flag Toggle Button -->
+                <button type="button" 
+                        (click)="toggleQuestionFlag(currentGlobalQuestionIndex)" 
+                        [ngClass]="{'flagged': isQuestionFlaggedByIndex(currentGlobalQuestionIndex)}"
+                        class="flag-btn btn btn-outline-warning" 
+                        title="Flag this question">
+                  <span class="material-icons-outlined">{{isQuestionFlaggedByIndex(currentGlobalQuestionIndex) ? 'flag' : 'flag_outline'}}</span>
+                  Flag
+                </button>
+                
+                <!-- Confidence Rating -->
+                <div class="confidence-rating">
+                  <label>Confidence Level:</label>
+                  <select formControlName="confidence" class="confidence-select">
+                    <option value="">Select</option>
+                    <option value="1">1 - Very Low</option>
+                    <option value="2">2 - Low</option>
+                    <option value="3">3 - Medium</option>
+                    <option value="4">4 - High</option>
+                    <option value="5">5 - Very High</option>
+                  </select>
+                </div>
+              </div>
+              
               <div class="navigation-buttons">
                 <button type="button" (click)="prev()" [disabled]="isFirstQuestionOverall()" class="nav-btn prev-btn btn btn-secondary">
                   Prev

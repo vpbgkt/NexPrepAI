@@ -1,8 +1,6 @@
 const TestSeries   = require('../models/TestSeries');
 const TestAttempt  = require('../models/TestAttempt');
 const Question     = require('../models/Question');
-const PDFDocument = require('pdfkit');
-const moment = require('moment');
 const mongoose = require('mongoose'); // Added mongoose require
 
 // Helper function to shuffle an array
@@ -78,7 +76,7 @@ exports.startTest = async (req, res) => {
         questions: series.questions.map(qItem => ({
           question: qItem.question, // Assuming qItem is {question: ObjectId, marks: Number, negativeMarks: Number}
           marks: qItem.marks || 1,
-          negativeMarks: qItem.negativeMarks === undefined ? 0 : qItem.negativeMarks
+          negativeMarks: q.negativeMarks === undefined ? 0 : qItem.negativeMarks
         })),
         questionPool: [],
         questionsToSelectFromPool: 0,
@@ -134,7 +132,8 @@ exports.startTest = async (req, res) => {
       }
     }
     
-    // now build detailed sections for the frontend and for storing in TestAttempt
+    // Log the state of processedLayout right before creating detailedSectionsForAttempt
+    console.log(`[${userId}] StartTest: Processed layout before detailing:`, JSON.stringify(processedLayout, null, 2));    // now build detailed sections for the frontend and for storing in TestAttempt
     // using the processedLayout
     const detailedSectionsForAttempt = await Promise.all(
       processedLayout.map(async sec => ({
@@ -143,32 +142,65 @@ exports.startTest = async (req, res) => {
         questions: await Promise.all(
           (sec.questions || []).map(async q => { // q is an item from processedLayout.section.questions
             const doc = await Question.findById(q.question)
-              .select('translations type difficulty questionHistory')
+              .select('questionText translations type difficulty questionHistory options')
               .lean();
 
             let questionText = ''; 
             let options = [];      
             let translations = []; 
 
-            if (Array.isArray(doc?.translations) && doc.translations.length) {
-              translations = doc.translations; 
-              const defaultTranslation = doc.translations.find(t => t.lang === 'en') || doc.translations[0];
-              if (defaultTranslation) {
-                questionText = defaultTranslation.questionText;
-                options = defaultTranslation.options || [];
+            if (doc) {
+              translations = doc.translations || [];
+              
+              // Improved logic for sourcing questionText and options
+              const englishTranslation = translations.find(t => t.lang === 'en');
+              const firstAvailableTranslation = translations.length > 0 ? translations[0] : null;
+              
+              if (englishTranslation?.questionText) {
+                questionText = englishTranslation.questionText;
+                if (englishTranslation.options && Array.isArray(englishTranslation.options)) {
+                  options = englishTranslation.options.map(opt => ({
+                    text: opt.text,
+                    img: opt.img || null,
+                    isCorrect: opt.isCorrect,
+                    _id: opt._id ? opt._id.toString() : undefined
+                  }));
+                }
+              } else if (firstAvailableTranslation?.questionText) {
+                questionText = firstAvailableTranslation.questionText;
+                if (firstAvailableTranslation.options && Array.isArray(firstAvailableTranslation.options)) {
+                  options = firstAvailableTranslation.options.map(opt => ({
+                    text: opt.text,
+                    img: opt.img || null,
+                    isCorrect: opt.isCorrect,
+                    _id: opt._id ? opt._id.toString() : undefined
+                  }));
+                }
               }
-            } else if (doc) {
-              questionText = doc.questionText || ''; 
-              options = doc.options || [];
+              
+              // Fallback to root document fields if translations don't have the data
+              if (!questionText && doc.questionText) {
+                questionText = doc.questionText;
+              }
+              if (options.length === 0 && doc.options && Array.isArray(doc.options)) {
+                options = doc.options.map(opt => ({
+                  text: opt.text,
+                  img: opt.img || null,
+                  isCorrect: opt.isCorrect,
+                  _id: opt._id ? opt._id.toString() : undefined
+                }));
+              }
+            } else {
+              console.warn(`[${userId}] StartTest: Question with ID ${q.question} not found in DB.`);
             }
 
             return {
               question:     q.question.toString(),
-              marks:        q.marks || 1, // Uses marks from processedLayout (derived from TestSeries), defaults to 1
-              negativeMarks: q.negativeMarks || 0, // Uses negativeMarks from processedLayout, defaults to 0
-              translations: translations, 
-              questionText: questionText, 
-              options:      options.map(opt => ({ text: opt.text, isCorrect: opt.isCorrect })), 
+              marks:        q.marks || 1,
+              negativeMarks: q.negativeMarks === undefined ? 0 : q.negativeMarks,
+              translations: translations,
+              questionText: questionText,
+              options:      options,
               type:         doc?.type,
               difficulty:   doc?.difficulty,
               questionHistory: doc?.questionHistory || []
@@ -177,7 +209,9 @@ exports.startTest = async (req, res) => {
         )
       }))
     );
-    
+      // Log the final detailedSectionsForAttempt that will be saved and sent to frontend
+    console.log(`[${userId}] StartTest: Final detailedSectionsForAttempt:`, JSON.stringify(detailedSectionsForAttempt, null, 2));
+
     const startedAt = new Date();
     let expiresAt = null;
     let remainingDurationSeconds = null;
@@ -200,7 +234,18 @@ exports.startTest = async (req, res) => {
       expiresAt,
       remainingDurationSeconds
     });
-    await attempt.save();
+    await attempt.save();    // Debug: Log what we're sending to frontend
+    console.log(`[${userId}] StartTest: Sending to frontend - sections summary:`, 
+      detailedSectionsForAttempt.map(s => ({
+        title: s.title,
+        order: s.order,
+        questionCount: s.questions?.length || 0,
+        firstQuestionId: s.questions?.[0]?.question
+      }))
+    );
+    
+    // Additional debug: Log complete sections data
+    console.log(`[${userId}] StartTest: Complete sections data being sent:`, JSON.stringify(detailedSectionsForAttempt, null, 2));
 
     return res.status(201).json({
       attemptId: attempt._id.toString(),
@@ -257,54 +302,87 @@ exports.submitAttempt = async (req, res) => {
     
     const masterQuestionsMap = new Map(masterQuestions.map(qDoc => [qDoc._id.toString(), qDoc]));
 
-    console.log(`--- Starting Grade Calculation for Attempt: ${attemptId} ---`);
-    console.log(`User ID: ${userId}`);
-    console.log(`Raw responses from client (length ${responses.length}):`, JSON.stringify(responses, null, 2));
-
-    let responseIndex = 0;
-    const processedResponses = []; 
+    console.log(`--- Starting Grade Calculation for Attempt: ${attemptId} ---`);    console.log(`User ID: ${userId}`);
+    // console.log(`Raw responses from client (length ${responses.length}):`, JSON.stringify(responses, null, 2));
+    
+    // Create a position-indexed array of responses to handle duplicate question IDs
+    const clientResponsesArray = Array.isArray(responses) ? responses : [];
+    console.log(`Client responses received (length ${clientResponsesArray.length}):`, JSON.stringify(clientResponsesArray, null, 2));
+    
+    const processedResponses = [];
+    let sectionIndex = 0; // Track section index for composite key generation
 
     if (attempt.sections && Array.isArray(attempt.sections)) {
       for (const section of attempt.sections) {
         if (section.questions && Array.isArray(section.questions)) {
-          for (const attemptQuestion of section.questions) {
+          let questionIndex = 0; // Track question index within section for composite key generation
+          
+          for (const attemptQuestion of section.questions) { // These are the questions as defined in the attempt structure
             const questionId = attemptQuestion.question.toString();
-            const questionDetailsFromAttempt = attemptQuestionsMap.get(questionId);
-            const masterQuestionData = masterQuestionsMap.get(questionId);
+            
+            // Create composite key that matches frontend format: questionId_sectionIdx_questionIdx
+            const questionInstanceKey = `${questionId}_${sectionIndex}_${questionIndex}`;
+            
+            // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
+            // Replace 'SPECIFIC_QUESTION_ID_HERE' with an actual ID you want to trace
+            const debugQuestionId = 'REPLACE_WITH_ACTUAL_QUESTION_ID_TO_DEBUG'; // Example: '60c72b2f9b1d8c001f8e4c22'
+            if (questionId === debugQuestionId) {
+              console.log(`[DEBUG ${attemptId}] Processing question ${questionId} with key ${questionInstanceKey}`);
+            }
+            // #### END DEBUG LOGGING ####
+            const questionDetailsFromAttempt = attemptQuestionsMap.get(questionId); // Marks, negative marks from attempt structure
+            const masterQuestionData = masterQuestionsMap.get(questionId); // Full question data from DB
 
             let earnedForThisSlot = 0;
             let statusForThisSlot = 'not-attempted'; 
+            
+            // Find user response by matching questionInstanceKey instead of position
+            const userResponseForThisSlot = clientResponsesArray.find(response => 
+              response.questionInstanceKey === questionInstanceKey
+            );            
+            // Debug: Log the matching result for troubleshooting
+            if (questionId === debugQuestionId) {
+              console.log(`[DEBUG ${attemptId}] Found response for ${questionInstanceKey}:`, userResponseForThisSlot ? 'YES' : 'NO');
+            }
 
             if (!questionDetailsFromAttempt || !masterQuestionData) {
-              console.warn(`[${attemptId}] Missing details for question ${questionId}. Skipping.`);
-              const userResponseForSkippedSlot = responses[responseIndex];
-              processedResponses.push({
+              console.warn(`[${attemptId}] Missing details for question ${questionId} in attempt structure or master DB. Skipping for grading.`);              processedResponses.push({
                 question: questionId,
-                selected: userResponseForSkippedSlot ? userResponseForSkippedSlot.selected : [],
+                questionInstanceKey: questionInstanceKey, // Add the composite key for matching in review
+                selected: userResponseForThisSlot ? userResponseForThisSlot.selected : [],
                 earned: 0,
-                status: 'error-missing-details'
+                status: 'error-missing-details',
+                timeSpent: userResponseForThisSlot?.timeSpent || 0,
+                attempts: userResponseForThisSlot?.attempts || 0, // Default to 0 if not provided by client for this scenario
+                flagged: userResponseForThisSlot?.flagged || false,
+                confidence: userResponseForThisSlot?.confidence,
+                visitedAt: userResponseForThisSlot?.visitedAt,
+                lastModifiedAt: userResponseForThisSlot?.lastModifiedAt
               });
-              if (questionDetailsFromAttempt) { // Still add to max score if question was in attempt structure
+              if (questionDetailsFromAttempt) {
                 calculatedMaxScore += (questionDetailsFromAttempt.marks || 0);
-              }
-              if (responseIndex < responses.length) {
-                 responseIndex++;
               }
               continue; 
             }
 
-            const qMarks = questionDetailsFromAttempt.marks || 0; // Default to 0 if undefined
+            const qMarks = questionDetailsFromAttempt.marks || 0;
             const qNegativeMarks = typeof questionDetailsFromAttempt.negativeMarks === 'number' ? questionDetailsFromAttempt.negativeMarks : 0;
-            calculatedMaxScore += qMarks; // Increment max score for every question slot in the attempt
+            calculatedMaxScore += qMarks;
 
-            const userResponseForThisSlot = responses[responseIndex];
+            // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
+            if (questionId === debugQuestionId) {
+              console.log(`[DEBUG ${attemptId}] User response for ${questionId}:`, JSON.stringify(userResponseForThisSlot, null, 2));
+              console.log(`[DEBUG ${attemptId}] Master question data for ${questionId}:`, JSON.stringify(masterQuestionData, null, 2));
+            }
+            // #### END DEBUG LOGGING ####
 
-            if (!userResponseForThisSlot || userResponseForThisSlot.question !== questionId) {
-              console.warn(`[${attemptId}] Response/Question ID mismatch or missing response at index ${responseIndex}. Expected Q_ID: ${questionId}, Got response for Q_ID: ${userResponseForThisSlot ? userResponseForThisSlot.question : 'undefined'}. Slot marked not-attempted.`);
-              statusForThisSlot = 'not-attempted'; // Or 'response-mismatch' if a response existed but for wrong Q
-              earnedForThisSlot = 0;
-            } else if (userResponseForThisSlot.selected && userResponseForThisSlot.selected.length > 0) {
-              // Determine correct options from masterQuestionData (e.g., from 'en' translation or root options)
+            if (userResponseForThisSlot && userResponseForThisSlot.selected && userResponseForThisSlot.selected.length > 0) {
+              // User attempted this question
+              // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
+              if (questionId === debugQuestionId) {
+                console.log(`[DEBUG ${attemptId}] Question ${questionId} was attempted by user.`);
+              }
+              // #### END DEBUG LOGGING ####
               let correctOptionTexts = [];
               const defaultTranslation = masterQuestionData.translations?.find(t => t.lang === 'en');
               const optionsSource = defaultTranslation?.options || masterQuestionData.options;
@@ -321,17 +399,37 @@ exports.submitAttempt = async (req, res) => {
                     if (correctOptionTexts.includes(selectedOptionText)) {
                       earnedForThisSlot = qMarks;
                       statusForThisSlot = 'correct';
+                      // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
+                      if (questionId === debugQuestionId) {
+                        console.log(`[DEBUG ${attemptId}] Question ${questionId} marked CORRECT. Earned: ${earnedForThisSlot}`);
+                      }
+                      // #### END DEBUG LOGGING ####
                     } else {
                       earnedForThisSlot = -qNegativeMarks;
                       statusForThisSlot = 'incorrect';
+                      // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
+                      if (questionId === debugQuestionId) {
+                        console.log(`[DEBUG ${attemptId}] Question ${questionId} marked INCORRECT (wrong answer). Earned: ${earnedForThisSlot}`);
+                      }
+                      // #### END DEBUG LOGGING ####
                     }
                   } else {
                     earnedForThisSlot = -qNegativeMarks; // Invalid index
                     statusForThisSlot = 'incorrect';
+                    // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
+                    if (questionId === debugQuestionId) {
+                      console.log(`[DEBUG ${attemptId}] Question ${questionId} marked INCORRECT (invalid index). Earned: ${earnedForThisSlot}`);
+                    }
+                    // #### END DEBUG LOGGING ####
                   }
                 } else {
                   earnedForThisSlot = -qNegativeMarks; // Multiple selected for SCQ or no options source
                   statusForThisSlot = 'incorrect';
+                  // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
+                  if (questionId === debugQuestionId) {
+                    console.log(`[DEBUG ${attemptId}] Question ${questionId} marked INCORRECT (multiple selected for SCQ or no options). Earned: ${earnedForThisSlot}`);
+                  }
+                  // #### END DEBUG LOGGING ####
                 }
               } else if (masterQuestionData.type === 'multiple') {
                 const selectedOptionTextsForMSQ = [];
@@ -344,7 +442,7 @@ exports.submitAttempt = async (req, res) => {
                   });
                 }
                 
-                if (correctOptionTexts.length > 0) { // Proceed only if there are defined correct options
+                if (correctOptionTexts.length > 0) {
                     const correctSelectedCount = selectedOptionTextsForMSQ.filter(optText => correctOptionTexts.includes(optText)).length;
                     const incorrectSelectedCount = selectedOptionTextsForMSQ.filter(optText => !correctOptionTexts.includes(optText)).length;
 
@@ -352,23 +450,20 @@ exports.submitAttempt = async (req, res) => {
                         earnedForThisSlot = qMarks;
                         statusForThisSlot = 'correct';
                     } else {
-                        // MSQs can have partial marking or specific negative marking rules.
-                        // For now, any deviation from perfect match is incorrect and gets negative marks if attempted.
-                        if (selectedOptionTextsForMSQ.length > 0) { // Penalize only if an attempt was made
+                        if (selectedOptionTextsForMSQ.length > 0) {
                             earnedForThisSlot = -qNegativeMarks;
                             statusForThisSlot = 'incorrect';
-                        } else { // Not attempted
+                        } else { 
                             earnedForThisSlot = 0;
                             statusForThisSlot = 'not-attempted';
                         }
                     }
-                } else { // No correct options defined for the MSQ in master, treat as not attempted or error
+                } else { 
                     earnedForThisSlot = 0;
-                    statusForThisSlot = selectedOptionTextsForMSQ.length > 0 ? 'incorrect' : 'not-attempted'; // If user selected something, it's incorrect
+                    statusForThisSlot = selectedOptionTextsForMSQ.length > 0 ? 'incorrect' : 'not-attempted';
                 }
               } else if (masterQuestionData.type === 'integer') {
                 const selectedAnswerText = String(userResponseForThisSlot.selected[0]);
-                // For integer, correctOptionTexts should contain the correct integer answer as a string
                 if (correctOptionTexts.includes(selectedAnswerText)) {
                   earnedForThisSlot = qMarks;
                   statusForThisSlot = 'correct';
@@ -378,55 +473,86 @@ exports.submitAttempt = async (req, res) => {
                 }
               }
             } else {
-              // Genuinely not attempted (selected array is empty or not present)
+              // Genuinely not attempted by the user (no selected array or empty selected array for this questionId)
               statusForThisSlot = 'not-attempted';
-              earnedForThisSlot = 0;
+              earnedForThisSlot = 0;            // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
+              if (questionId === debugQuestionId) {
+                console.log(`[DEBUG ${attemptId}] Question ${questionId} marked NOT-ATTEMPTED. Earned: ${earnedForThisSlot}`);
+              }
+              // #### END DEBUG LOGGING ####
             }
             
-            calculatedScore += earnedForThisSlot; // Add earned marks for this slot to total score
+            calculatedScore += earnedForThisSlot;
 
-            processedResponses.push({
+            // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
+            if (questionId === debugQuestionId) {
+              console.log(`[DEBUG ${attemptId}] Final status for ${questionId}: ${statusForThisSlot}, Earned: ${earnedForThisSlot}. Pushing to processedResponses.`);
+            }
+            
+            // #### END DEBUG LOGGING ####
+              processedResponses.push({
               question: questionId,
+              questionInstanceKey: questionInstanceKey, // Add the composite key for matching in review
               selected: userResponseForThisSlot ? userResponseForThisSlot.selected : [],
               earned: earnedForThisSlot,
-              status: statusForThisSlot
+              status: statusForThisSlot,
+              timeSpent: userResponseForThisSlot?.timeSpent || 0,
+              attempts: userResponseForThisSlot?.attempts || 0, // If not attempted, attempts might be 0 from client
+              flagged: userResponseForThisSlot?.flagged || false,
+              confidence: userResponseForThisSlot?.confidence,
+              visitedAt: userResponseForThisSlot?.visitedAt,
+              lastModifiedAt: userResponseForThisSlot?.lastModifiedAt
             });
-            
-            if (responseIndex < responses.length) {
-                responseIndex++;
-            }
+              // Increment question index within current section
+            questionIndex++;
           }
         }
+        // Increment section index after processing all questions in the section
+        sectionIndex++;
       }
     }
 
     console.log(`[${attemptId}] PRE-SAVE CHECK: Calculated Score: ${calculatedScore}, Calculated MaxScore: ${calculatedMaxScore}`);
 
-    attempt.score = calculatedScore;
-    attempt.maxScore = calculatedMaxScore;
-    attempt.percentage = calculatedMaxScore > 0 ? (calculatedScore / calculatedMaxScore) * 100 : 0;
-    attempt.responses = processedResponses; 
-    attempt.status = 'completed';
-    attempt.submittedAt = new Date();
-
-    if (attempt.startedAt) {
-      const timeTakenMs = attempt.submittedAt.getTime() - attempt.startedAt.getTime();
-      attempt.timeTakenSeconds = Math.round(timeTakenMs / 1000);
-    } else {
-      attempt.timeTakenSeconds = null;
+    // Refetch the attempt just before saving to get the latest version
+    const freshAttempt = await TestAttempt.findById(attemptId);
+    if (!freshAttempt) {
+        // The 'attempt' variable here refers to the one fetched at the beginning of the submitAttempt function.
+        // This log helps understand if the document disappeared or was never found.
+        console.error(`[${attemptId}] CRITICAL: Attempt not found before final save. Original attempt object was ${attempt ? 'populated' : 'null or not found initially'}.`);
+        return res.status(404).json({ message: 'Test attempt not found for final save.' });
     }
 
-    attempt.remainingDurationSeconds = 0;
+    // Apply all calculated and updated fields to the freshAttempt object
+    freshAttempt.score = calculatedScore;
+    freshAttempt.maxScore = calculatedMaxScore;
+    freshAttempt.percentage = calculatedMaxScore > 0 ? (calculatedScore / calculatedMaxScore) * 100 : 0;
+    freshAttempt.responses = processedResponses; 
+    freshAttempt.status = 'completed';
+    freshAttempt.submittedAt = new Date(); // Ensures a consistent submission timestamp
 
-    await attempt.save();
+    // Recalculate timeTakenSeconds based on freshAttempt.startedAt and the new submittedAt
+    if (freshAttempt.startedAt) {
+      const timeTakenMs = freshAttempt.submittedAt.getTime() - freshAttempt.startedAt.getTime();
+      freshAttempt.timeTakenSeconds = Math.round(timeTakenMs / 1000);
+    } else {
+      // Log a warning if startedAt is missing, as this might be an issue with test initialization
+      console.warn(`[${attemptId}] Warning: startedAt is not defined on freshAttempt during submit. timeTakenSeconds will be null.`);
+      freshAttempt.timeTakenSeconds = null;
+    }
 
+    freshAttempt.remainingDurationSeconds = 0; // Standard for completed attempts
+
+    await freshAttempt.save(); // Persist the changes
+
+    // Return success response with details from the saved attempt
     return res.status(200).json({
       message: 'Test submitted successfully.',
-      attemptId: attempt._id,
-      score: attempt.score,
-      maxScore: attempt.maxScore,
-      percentage: attempt.percentage,
-      timeTakenSeconds: attempt.timeTakenSeconds
+      attemptId: freshAttempt._id,
+      score: freshAttempt.score,
+      maxScore: freshAttempt.maxScore,
+      percentage: freshAttempt.percentage,
+      timeTakenSeconds: freshAttempt.timeTakenSeconds
     });
 
   } catch (err) {
@@ -444,9 +570,7 @@ exports.submitAttempt = async (req, res) => {
 exports.submitTest = async (req, res) => {
   try {
     const { attemptId } = req.params;
-    const { responses } = req.body; // array of { question, selected }
-
-    const attempt = await TestAttempt.findById(attemptId);
+    const { responses } = req.body; // array of { question, selected }    const attempt = await TestAttempt.findById(attemptId);
     if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
 
     attempt.responses = responses.map(r => ({
@@ -467,30 +591,62 @@ exports.submitTest = async (req, res) => {
 // ────────────────────────────────────────────────────────────────────────────────
 exports.saveProgress = async (req, res) => {
   try {
-    const { attemptId } = req.params;
+    const { attemptId: currentAttemptId } = req.params; // Renamed to avoid conflict
     const { responses, timeLeft } = req.body; 
 
-    const attempt = await TestAttempt.findById(attemptId);
-    if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
+    const currentAttempt = await TestAttempt.findById(currentAttemptId); // Renamed to avoid conflict
+    if (!currentAttempt) {
+      return res.status(404).json({ message: 'Attempt not found' });
+    }
 
-    if (attempt.status !== 'in-progress') {
+    if (currentAttempt.status !== 'in-progress') {
       return res.status(400).json({ message: 'Test is not in-progress. Cannot save.' });
-    }
+    }    const processedResponses = responses.map(resp => {
+      const newResp = {
+        question: resp.question,
+        questionInstanceKey: resp.questionInstanceKey, // Include composite key for proper matching
+        selected: resp.selectedAnswer, // Map 'selectedAnswer' from client to 'selected'
+        timeSpent: resp.timeSpent,
+        attempts: resp.attempts,
+        flagged: resp.flagged,
+        confidence: resp.confidence,
+        review: resp.review,
+        visitedAt: resp.visitedAt,
+        lastModifiedAt: resp.lastModifiedAt,
+      };
+      // Remove undefined properties to allow schema defaults
+      Object.keys(newResp).forEach(key => {
+        if (newResp[key] === undefined) {
+          delete newResp[key];
+        }
+      });
+      return newResp;
+    });
 
-    attempt.responses = responses; 
-    attempt.lastSavedAt = new Date();
+    currentAttempt.responses = processedResponses;
+    currentAttempt.lastSavedAt = new Date();
+
     if (timeLeft !== undefined) {
-      attempt.remainingDurationSeconds = timeLeft;
+      currentAttempt.remainingDurationSeconds = timeLeft;
     }
     
-    await attempt.save();
+    await currentAttempt.save();
     
-    const savedAttempt = await TestAttempt.findById(attemptId).lean(); // Fetch again to see saved data
-
     res.json({ message: 'Progress saved successfully' });
+
   } catch (err) {
     console.error('❌ Error saving progress for attemptId:', req.params.attemptId, err);
-    res.status(500).json({ message: 'Failed to save progress', error: err.message });
+    if (err.name === 'ValidationError') {
+        console.error('Mongoose Validation Error details:', JSON.stringify(err.errors, null, 2));
+        return res.status(400).json({ 
+            message: 'Validation error saving progress. Please check the data format.', 
+            errors: err.errors 
+        });
+    }
+    // Ensure response is sent only once
+    if (!res.headersSent) {
+        res.status(500).json({ message: 'Failed to save progress', error: err.message });
+    }
   }
 };
 
@@ -719,58 +875,6 @@ exports.getLeaderboardForSeries = async (req, res) => {
   }
 };
 
-exports.generatePdf = async (req, res) => {
-  try {
-    const attemptId = req.params.attemptId;
-
-    const attempt = await TestAttempt.findById(attemptId)
-      .populate('student', 'username email')
-      .populate('series', 'title examType')
-      .lean();
-
-    if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
-
-    // 1) Kick-off streaming PDF response
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=scorecard-${attemptId}.pdf`);
-
-    const doc = new PDFDocument({ margin: 40 });
-    doc.pipe(res);
-
-    // 2) Header
-    doc.fontSize(18).text('NexPrep Scorecard', { align: 'center' });
-    doc.moveDown(0.5);
-    doc.fontSize(12).text(`Series: ${attempt.series.title}`);
-    doc.text(`Attempt #: ${attempt.attemptNo}`);
-    doc.text(`Student : ${attempt.student.username} (${attempt.student.email})`);
-    doc.text(`Date    : ${moment(attempt.submittedAt).format('YYYY-MM-DD  HH:mm')}`);
-    doc.moveDown();
-
-    // 3) Big score
-    doc.fontSize(22).fillColor('#1565c0')
-       .text(`${attempt.score} / ${attempt.maxScore}`, { align: 'center' })
-       .fillColor('black')
-       .fontSize(12)
-       .text(`Percentage: ${attempt.percentage}%`, { align: 'center' });
-    doc.moveDown();
-
-    // 4) Section breakdown (if any)
-    if (attempt.sections?.length) {
-      doc.fontSize(14).text('Section Breakdown');
-      attempt.sections.forEach(sec => {
-        doc.fontSize(12).list([`${sec.title}  –  ${sec.questions.length} Qs`]);
-      });
-      doc.moveDown();
-    }
-
-    doc.text('Thank you for using NexPrep.', { align: 'center' });
-    doc.end(); // triggers stream end
-  } catch (err) {
-    console.error('PDF gen error:', err);
-    res.status(500).json({ message: 'PDF generation failed', error: err.message });
-  }
-};
-
 /**
  * GET /api/tests/:seriesId/progress
  * If there’s an in-progress attempt for this user+series, return its ID,
@@ -835,3 +939,557 @@ exports.getProgress = async (req, res) => {
     return res.status(500).json({ message: 'Failed to get progress', error: err.message });
   }
 };
+
+// ────────────────────────────────────────────────────────────────────────────────
+// Enhanced Review Page Endpoints - Phase 1.2
+// ────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Get comprehensive review data with explanations and time analytics
+ * Enhanced for the new review page implementation
+ */
+exports.getEnhancedReview = async (req, res) => {
+  try {
+    const { attemptId } = req.params;
+    const userId = req.user.userId;
+
+    // Fetch the test attempt with populated data
+    const attempt = await TestAttempt.findOne({ 
+      _id: attemptId, 
+      student: userId 
+    })
+    .populate('series', 'title description duration sections')
+    .lean();    if (!attempt) {
+      return res.status(404).json({ message: 'Test attempt not found' });
+    }
+
+    const detailedQuestions = [];
+    const allQuestionIdsInAttempt = Array.from(new Set(
+        (attempt.sections || []).flatMap(s => (s.questions || []).map(q => q.question.toString()))
+    ));
+    
+    if (allQuestionIdsInAttempt.length > 0) {
+        const masterQuestionsData = await Question.find({ '_id': { $in: allQuestionIdsInAttempt } })
+            .populate('subject', 'name')
+            .populate('topic', 'name')
+            .populate('subTopic', 'name')
+            .lean();
+        const masterQuestionsMap = new Map(masterQuestionsData.map(qDoc => [qDoc._id.toString(), qDoc]));
+        
+        let sectionIndex = 0; // Track section index for composite key generation
+
+        for (const section of attempt.sections || []) {
+            let questionIndex = 0; // Track question index within section for composite key generation
+            
+            for (const questionData of section.questions || []) { // questionData is from attempt.sections.questions
+                const fullQuestion = masterQuestionsMap.get(questionData.question.toString());
+
+                if (fullQuestion) {
+                    // Create composite key that matches frontend format: questionId_sectionIdx_questionIdx
+                    const questionInstanceKey = `${questionData.question.toString()}_${sectionIndex}_${questionIndex}`;                    // Find response by matching questionInstanceKey first, fallback to question ID
+                    let response = (attempt.responses || []).find(resp => 
+                        resp.questionInstanceKey === questionInstanceKey
+                    );
+                    
+                    // Fallback: if no match found by questionInstanceKey, try matching by question ID only
+                    // This handles backward compatibility with older data that might not have questionInstanceKey
+                    if (!response) {
+                        response = (attempt.responses || []).find(resp => 
+                            resp.question && resp.question.toString() === questionData.question.toString()
+                        );
+                    }
+
+                    // Debug logging to help identify the issue
+                    console.log(`[getEnhancedReview] Question ${questionData.question.toString()}: response found = ${!!response}, response.selected = ${response?.selected}, status = ${response?.status}`);
+
+                    let userSelectedOptionTexts = [];
+                    let correctOptionTexts = [];
+                    let actualCorrectOptionIds = [];
+
+                    // Determine the source of options (e.g., from the first translation or root)
+                    // Ensure options are always an array, even if empty.
+                    const optionsSourceForDisplay = (fullQuestion.translations && fullQuestion.translations.length > 0 && fullQuestion.translations[0].options 
+                                                      ? fullQuestion.translations[0].options 
+                                                      : fullQuestion.options) || [];                    // Get user's selected option texts
+                    if (response?.selected && optionsSourceForDisplay.length > 0) {
+                        // Handle both string and array formats for response.selected
+                        const selectedArray = Array.isArray(response.selected) 
+                            ? response.selected 
+                            : [response.selected];
+                        
+                        userSelectedOptionTexts = selectedArray.map(selectedIndex => {
+                            const idx = parseInt(String(selectedIndex), 10);
+                            if (idx >= 0 && idx < optionsSourceForDisplay.length) {
+                                return optionsSourceForDisplay[idx].text;
+                            }
+                            return 'Invalid Selection Index'; // Should ideally not happen
+                        }).filter(text => text !== 'Invalid Selection Index');
+                    }
+
+                    // Get correct option texts and IDs
+                    if (optionsSourceForDisplay.length > 0) {
+                        optionsSourceForDisplay.forEach(opt => {
+                            if (opt.isCorrect) {
+                                correctOptionTexts.push(opt.text);
+                                if (opt._id) {
+                                    actualCorrectOptionIds.push(opt._id.toString());
+                                }
+                            }
+                        });
+                    }
+                    
+                    const questionTextForDisplay = (fullQuestion.translations && fullQuestion.translations.length > 0 && fullQuestion.translations[0].questionText)
+                                                   ? fullQuestion.translations[0].questionText
+                                                   : (fullQuestion.questionText || 'Question text not available');
+
+
+                    detailedQuestions.push({
+                        questionId: fullQuestion._id.toString(),
+                        questionText: questionTextForDisplay,
+                        // Send all options for display, ensuring _id is a string
+                        options: optionsSourceForDisplay.map(opt => ({ 
+                            text: opt.text, 
+                            _id: opt._id ? opt._id.toString() : undefined,
+                            // Potentially include isCorrect if frontend needs to highlight correct options among all choices
+                            // isCorrect: opt.isCorrect || false 
+                        })),
+                        explanations: fullQuestion.explanations || [],
+                        difficulty: fullQuestion.difficulty,
+                        estimatedTime: fullQuestion.recommendedTimeAllotment, // Ensure this field exists or use a fallback
+                        questionHistory: fullQuestion.questionHistory || [],
+                        topics: {
+                            subject: fullQuestion.subject?.name,
+                            topic: fullQuestion.topic?.name,
+                            subTopic: fullQuestion.subTopic?.name
+                        },
+                        tags: fullQuestion.tags || [],                          // Response data
+                        selectedAnswerIndices: response?.selected || [], // User's raw selection (indices)
+                        selectedAnswer: response?.selected ? (Array.isArray(response.selected) ? response.selected : [response.selected]) : [], // Frontend expects this field for option highlighting
+                        userSelectedOptionTexts: userSelectedOptionTexts, // User's selected option text(s)
+                        correctOptionTexts: correctOptionTexts,         // Correct option text(s)
+                        actualCorrectOptionIds: actualCorrectOptionIds, // Correct option ID(s)
+                        
+                        earned: response?.earned || 0,
+                        status: response?.status || 'unanswered', // Status from submitAttempt
+                        
+                        // Enhanced analytics data
+                        timeSpent: response?.timeSpent || 0,
+                        attempts: response?.attempts || 0,
+                        flagged: response?.flagged || false,
+                        confidence: response?.confidence,
+                        visitedAt: response?.visitedAt,
+                        lastModifiedAt: response?.lastModifiedAt,                        // Analysis
+                        isCorrect: response?.status === 'correct', // Determine correctness based on status
+                        marks: questionData.marks || 1 // Marks for the question in this attempt
+                    });
+                }
+                
+                // Increment question index within current section
+                questionIndex++;
+            }
+            // Increment section index after processing all questions in the section
+            sectionIndex++;
+        }
+    }
+
+    // Calculate performance analytics
+    const analytics = calculatePerformanceAnalytics(attempt, detailedQuestions);
+
+    const reviewData = {
+      attempt: {
+        id: attempt._id,
+        seriesTitle: attempt.series?.title,
+        score: attempt.score,
+        maxScore: attempt.maxScore,
+        percentage: attempt.percentage,
+        submittedAt: attempt.submittedAt,
+        totalTimeSpent: attempt.totalTimeSpent || attempt.timeTakenSeconds,
+        timePerSection: attempt.timePerSection || [],
+        questionSequence: attempt.questionSequence || [],
+        flaggedQuestions: attempt.flaggedQuestions || []
+      },
+      questions: detailedQuestions,
+      analytics: analytics
+    };
+
+    res.json(reviewData);
+
+  } catch (err) {
+    console.error('❌ Error in getEnhancedReview:', err);
+    res.status(500).json({ message: 'Failed to get review data', error: err.message });
+  }
+};
+
+/**
+ * Get performance comparison and analytics data
+ */
+exports.getPerformanceAnalytics = async (req, res) => {
+  try {
+    const { attemptId } = req.params;
+    const userId = req.user.userId;
+
+    const attempt = await TestAttempt.findOne({ 
+      _id: attemptId, 
+      student: userId 
+    }).populate('series').lean();
+
+    if (!attempt) {
+      return res.status(404).json({ message: 'Test attempt not found' });
+    }
+
+    // Get other attempts for comparison
+    const allAttempts = await TestAttempt.find({
+      student: userId,
+      status: 'completed'
+    }).populate('series', 'title').lean();
+
+    // Calculate comparative analytics
+    const comparativeData = calculateComparativeAnalytics(attempt, allAttempts);
+    
+    res.json(comparativeData);
+
+  } catch (err) {
+    console.error('❌ Error in getPerformanceAnalytics:', err);
+    res.status(500).json({ message: 'Failed to get analytics', error: err.message });
+  }
+};
+
+/**
+ * Get weakness identification and study recommendations
+ */
+exports.getStudyRecommendations = async (req, res) => {
+  try {
+    const { attemptId } = req.params;
+    const userId = req.user.userId;
+
+    const attempt = await TestAttempt.findOne({ 
+      _id: attemptId, 
+      student: userId 
+    }).lean();
+
+    if (!attempt) {
+      return res.status(404).json({ message: 'Test attempt not found' });
+    }
+
+    // Analyze weak areas
+    const weaknessAnalysis = await analyzeWeaknesses(attempt, userId);
+    
+    res.json(weaknessAnalysis);
+
+  } catch (err) {
+    console.error('❌ Error in getStudyRecommendations:', err);
+    res.status(500).json({ message: 'Failed to get recommendations', error: err.message });
+  }
+};
+
+// ────────────────────────────────────────────────────────────────────────────────
+// Helper Functions
+
+function getGrade(percentage) {
+  if (percentage >= 90) return 'A+';
+  if (percentage >= 80) return 'A';
+  if (percentage >= 70) return 'B';
+  if (percentage >= 60) return 'C';
+  if (percentage >= 50) return 'D';
+  return 'F';
+}
+
+function generatePerformanceSummary(attempt, performanceAnalytics, comparativeAnalytics) {
+  const accuracy = performanceAnalytics.overall.accuracy;
+  const improvement = comparativeAnalytics.improvement;
+  
+  let summary = `Your overall performance on ${attempt.series.title} shows ${accuracy.toFixed(1)}% accuracy `;
+  
+  if (improvement > 5) {
+    summary += `with significant improvement of ${improvement.toFixed(1)}% from your previous attempts. `;
+  } else if (improvement > 0) {
+    summary += `with slight improvement of ${improvement.toFixed(1)}% from your previous attempts. `;
+  } else if (improvement < -5) {
+    summary += `showing a decline of ${Math.abs(improvement).toFixed(1)}% from your previous attempts. `;
+  } else {
+    summary += `maintaining consistent performance. `;
+  }
+  
+  if (accuracy >= 80) {
+    summary += "Excellent work! You're demonstrating strong mastery of the subject matter.";
+  } else if (accuracy >= 70) {
+    summary += "Good performance with room for improvement. Focus on the recommended areas.";
+  } else if (accuracy >= 60) {
+    summary += "Fair performance. Increased study time and focus on weak areas will help improve your scores.";
+  } else {
+    summary += "This exam highlights key areas for improvement. Follow the action plan for better results.";
+  }
+  
+  return summary;
+}
+
+function generateStudyRecommendations(performanceAnalytics, weaknessAnalysis) {
+  const recommendations = [];
+  
+  // Based on accuracy
+  if (performanceAnalytics.overall.accuracy < 70) {
+    recommendations.push("Focus on fundamental concepts before attempting practice tests");
+    recommendations.push("Review incorrect answers thoroughly to understand mistakes");
+  }
+  
+  // Based on time management
+  if (performanceAnalytics.timeAnalysis.questionsOverTime > 5) {
+    recommendations.push("Practice time management with timed question sets");
+    recommendations.push("Identify question patterns that take longer and practice those specifically");
+  }
+  
+  // Based on difficulty performance
+  const diffBreakdown = performanceAnalytics.difficultyBreakdown;
+  if (diffBreakdown.Easy.total > 0 && (diffBreakdown.Easy.correct / diffBreakdown.Easy.total) < 0.8) {
+    recommendations.push("Strengthen foundation by focusing on easy-level questions first");
+  }
+  
+  if (diffBreakdown.Hard.total > 0 && (diffBreakdown.Hard.correct / diffBreakdown.Hard.total) < 0.4) {
+    recommendations.push("Build up to harder questions gradually after mastering medium-level topics");
+  }
+  
+  // Generic recommendations
+  recommendations.push("Create a daily study schedule with regular practice sessions");
+  recommendations.push("Use active recall and spaced repetition techniques");
+  
+  return recommendations;
+}
+
+function generateActionPlan(performanceAnalytics) {
+  const actionPlan = [];
+  
+  actionPlan.push("Review all flagged and incorrect questions from this attempt");
+  actionPlan.push("Identify and study the top 3 weakest subject areas");
+  
+  if (performanceAnalytics.overall.accuracy < 60) {
+    actionPlan.push("Spend 2-3 hours daily on foundational concepts");
+  } else {
+    actionPlan.push("Spend 1-2 hours daily on targeted practice");
+  }
+  
+  actionPlan.push("Take practice tests weekly to track improvement");
+  actionPlan.push("Maintain a study log to track progress and identify patterns");
+  
+  return actionPlan;
+}
+
+function identifyFocusAreas(performanceAnalytics) {
+  const focusAreas = [];
+  
+  // Subject-wise focus
+  const subjects = Object.entries(performanceAnalytics.subjectPerformance)
+    .sort((a, b) => (a[1].correct / a[1].total) - (b[1].correct / b[1].total))
+    .slice(0, 3);
+  
+  subjects.forEach(([subject, stats]) => {
+    const accuracy = ((stats.correct / stats.total) * 100).toFixed(1);
+    focusAreas.push(`${subject} (${accuracy}% accuracy)`);
+  });
+  
+  // Time management if needed
+  if (performanceAnalytics.timeAnalysis.questionsOverTime > 3) {
+    focusAreas.push("Time Management Skills");
+  }
+  
+  // Difficulty-based focus
+  const diffBreakdown = performanceAnalytics.difficultyBreakdown;
+  if (diffBreakdown.Easy.total > 0 && (diffBreakdown.Easy.correct / diffBreakdown.Easy.total) < 0.8) {
+    focusAreas.push("Basic Concept Mastery");
+  }
+  
+  return focusAreas;
+}
+
+function getMotivationalMessage(accuracy) {
+  if (accuracy >= 85) {
+    return "Outstanding performance! You're well on your way to exam success. Keep up this excellent momentum!";
+  } else if (accuracy >= 75) {
+    return "Great job! You're showing strong progress. A little more focus on weak areas will get you to the top!";
+  } else if (accuracy >= 65) {
+    return "Good effort! You're building a solid foundation. Consistent practice will definitely improve your scores!";
+  } else {
+    return "Every expert was once a beginner. Use this analysis to guide your study plan and you'll see improvement soon!";
+  }
+}
+
+async function getQuestionsWithAnalytics(attempt) {
+  const questions = [];
+  
+  for (const section of attempt.sections || []) {
+    for (const qData of section.questions || []) {
+      const questionDetails = await Question.findById(qData.questionId).lean();
+      if (questionDetails) {
+        questions.push({
+          ...qData,
+          ...questionDetails,
+          timeSpent: qData.timeSpent || 0,
+          isCorrect: qData.isCorrect || false,
+          status: qData.status || 'unanswered',
+          flagged: qData.flagged || false,
+          difficulty: questionDetails.difficulty || 'Medium',
+          topics: questionDetails.topics || { subject: 'Unknown' }
+        });
+      }
+    }
+  }
+    return questions;
+}
+
+function calculatePerformanceAnalytics(attempt, questions) {
+  const totalQuestions = questions.length;
+  let correctAnswers = 0;
+  let incorrectAnswers = 0;
+  let unanswered = 0;
+  let totalTimeSpent = 0;
+  let flaggedCount = 0;
+  
+  // Difficulty breakdown
+  const difficultyBreakdown = {
+    Easy: { total: 0, correct: 0 },
+    Medium: { total: 0, correct: 0 },
+    Hard: { total: 0, correct: 0 }
+  };
+  
+  // Subject performance
+  const subjectPerformance = {};
+  
+  // Time analysis
+  let fastestQuestion = Infinity;
+  let slowestQuestion = 0;
+  let questionsOverTime = 0;
+  
+  questions.forEach(q => {
+    // Basic counts
+    if (q.isCorrect) {
+      correctAnswers++;
+    } else if (q.status === 'answered') {
+      incorrectAnswers++;
+    } else {
+      unanswered++;
+    }
+    
+    // Time tracking
+    const timeSpent = q.timeSpent || 0;
+    totalTimeSpent += timeSpent;
+    
+    if (timeSpent > 0) {
+      fastestQuestion = Math.min(fastestQuestion, timeSpent);
+      slowestQuestion = Math.max(slowestQuestion, timeSpent);
+      
+      // Questions taking more than 2 minutes
+      if (timeSpent > 120) {
+        questionsOverTime++;
+      }
+    }
+    
+    // Flagged questions
+    if (q.flagged) {
+      flaggedCount++;
+    }
+    
+    // Difficulty breakdown
+    const difficulty = q.difficulty || 'Medium';
+    if (difficultyBreakdown[difficulty]) {
+      difficultyBreakdown[difficulty].total++;
+      if (q.isCorrect) {
+        difficultyBreakdown[difficulty].correct++;
+      }
+    }
+    
+    // Subject performance
+    const subject = q.topics?.subject || 'Unknown';
+    if (!subjectPerformance[subject]) {
+      subjectPerformance[subject] = { total: 0, correct: 0, timeSpent: 0 };
+    }
+    subjectPerformance[subject].total++;
+    subjectPerformance[subject].timeSpent += timeSpent;
+    if (q.isCorrect) {
+      subjectPerformance[subject].correct++;
+    }
+  });
+  
+  const accuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+  const averageTimePerQuestion = totalQuestions > 0 ? totalTimeSpent / totalQuestions : 0;
+  
+  return {
+    overall: {
+      totalQuestions,
+      correctAnswers,
+      incorrectAnswers,
+      unanswered,
+      accuracy,
+      timeSpent: totalTimeSpent,
+      averageTimePerQuestion,
+      flaggedCount
+    },
+    difficultyBreakdown,
+    subjectPerformance,
+    timeAnalysis: {
+      fastestQuestion: fastestQuestion === Infinity ? 0 : fastestQuestion,
+      slowestQuestion,
+      questionsOverTime
+    }
+  };
+}
+
+function calculateComparativeAnalytics(currentAttempt, allAttempts) {
+  const currentScore = currentAttempt.score || 0;
+  const currentPercentage = currentAttempt.percentage || 0;
+  
+  if (!allAttempts || allAttempts.length <= 1) {
+    return {
+      currentScore,
+      averageScore: currentScore,
+      improvement: 0,
+      totalAttempts: 1,
+      rank: 1,
+      trend: 'first-attempt'
+    };
+  }
+  
+  // Calculate average score
+  const totalScore = allAttempts.reduce((sum, attempt) => sum + (attempt.score || 0), 0);
+  const averageScore = totalScore / allAttempts.length;
+  
+  // Calculate improvement from previous attempt
+  const sortedAttempts = allAttempts.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+  const previousAttempt = sortedAttempts[1]; // Second most recent (first is current)
+  const improvement = previousAttempt ? currentPercentage - (previousAttempt.percentage || 0) : 0;
+  
+  // Calculate rank (simplified - based on current score vs average)
+  const rank = currentScore >= averageScore ? 1 : 2;
+  
+  // Determine trend
+  let trend = 'stable';
+  if (improvement > 5) trend = 'improving';
+  else if (improvement < -5) trend = 'declining';
+  
+  return {
+    currentScore,
+    averageScore,
+    improvement,
+    totalAttempts: allAttempts.length,
+    rank,
+    trend
+  };
+}
+
+async function analyzeWeaknesses(attempt, userId) {
+  // For now, return a simplified analysis
+  // In a full implementation, this would analyze patterns across multiple attempts
+  
+  const weakTopics = ['Organic Chemistry', 'Thermodynamics']; // Placeholder
+  const recommendedStudyTime = 120; // 2 hours
+  const focusAreas = ['Time Management', 'Accuracy'];
+  const nextSteps = [
+    'Review flagged questions',
+    'Practice similar difficulty questions', 
+    'Focus on time management'
+  ];
+    return {
+    weakTopics,
+    recommendedStudyTime,
+    focusAreas,
+    nextSteps
+  };
+}

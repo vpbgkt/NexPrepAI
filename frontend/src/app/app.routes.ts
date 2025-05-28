@@ -23,7 +23,7 @@ export const routes: Routes = [
   // Student‐only pages
   { path: 'home', component: HomeComponent, canActivate: [studentGuard] }, // Added home route
   { path: 'exam/:seriesId', component: ExamPlayerComponent, canActivate: [studentGuard] },
-  { path: 'review/:attemptId', component: ReviewAttemptComponent, canActivate: [studentGuard] },
+  { path: 'review/:attemptId', component: ReviewComponent, canActivate: [studentGuard] }, // Changed to ReviewComponent
   { path: 'student/dashboard', component: StudentDashboardComponent, canActivate: [studentGuard] }, 
   { path: 'tests', component: TestListComponent, canActivate: [studentGuard] },
   { path: 'profile', component: ProfileComponent, canActivate: [studentGuard] },

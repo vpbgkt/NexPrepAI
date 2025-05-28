@@ -106,10 +106,24 @@ export class TestService {
       payload
     );
   }
-
-  /** New: fetch review details for an attempt */  getReview(attemptId: string): Observable<any> {
+  /** New: fetch review details for an attempt */  
+  getReview(attemptId: string): Observable<any> {
     return this.http.get<any>(`${this.base}/tests/${attemptId}/review`);
   }
+
+  // Enhanced Review Page Methods - Phase 1.2
+  getEnhancedReview(attemptId: string): Observable<any> {
+    return this.http.get<any>(`${this.base}/tests/${attemptId}/enhanced-review`);
+  }
+
+  getPerformanceAnalytics(attemptId: string): Observable<any> {
+    return this.http.get<any>(`${this.base}/tests/${attemptId}/analytics`);
+  }
+
+  getStudyRecommendations(attemptId: string): Observable<any> {
+    return this.http.get<any>(`${this.base}/tests/${attemptId}/recommendations`);
+  }
+
   getLeaderboard(seriesId: string): Observable<{leaderboard: LeaderboardEntry[], title: string, message?: string}> {
     return this.http.get<{leaderboard: LeaderboardEntry[], title: string, message?: string}>(`${this.base}/tests/leaderboard/${seriesId}`);
   }

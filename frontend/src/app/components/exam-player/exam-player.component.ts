@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
@@ -7,8 +7,9 @@ import {
   FormGroup
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TestService, StartTestResponse, TestSeries } from '../../services/test.service';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { TestService, StartTestResponse } from '../../services/test.service'; // Ensure StartTestResponse is imported
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators'; // Import takeUntil
+import { Subject } from 'rxjs'; // Import Subject
 
 interface QuestionOption {
   text: string;
@@ -56,7 +57,7 @@ interface PlayerSection {
   templateUrl: './exam-player.component.html',
   styleUrls: ['./exam-player.component.scss']
 })
-export class ExamPlayerComponent implements OnInit {
+export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnDestroy
   seriesId!: string;
   testSeriesTitle: string = 'Loading Test...';
   attemptId: string | undefined;
@@ -79,11 +80,17 @@ export class ExamPlayerComponent implements OnInit {
   currentQuestionInSectionIndex = 0;
   currentGlobalQuestionIndex = 0;
 
-  QuestionStatus = {
+  // Map to store the Date object when a question viewing session starts
+  private questionStartTimes: Map<number, Date> = new Map();
+
+  // Define QuestionStatus object for use in getQuestionStatus method
+  readonly QuestionStatus = {
     ANSWERED: 'answered',
     UNANSWERED: 'unanswered',
     MARKED_FOR_REVIEW: 'marked-for-review'
   };
+
+  private destroy$ = new Subject<void>(); // Subject to signal component destruction
 
   constructor(
     private fb: FormBuilder,
@@ -93,6 +100,8 @@ export class ExamPlayerComponent implements OnInit {
     private cd: ChangeDetectorRef
   ) {
     this.form = this.fb.group({
+      // Each response will be a FormGroup with fields like:
+      // question (id), selected, timeSpent, attempts, flagged, visitedAt, lastModifiedAt
       responses: this.fb.array([])
     });
   }
@@ -102,22 +111,8 @@ export class ExamPlayerComponent implements OnInit {
     console.log(`ExamPlayer: ngOnInit for seriesId: ${this.seriesId}`);
 
     if (this.seriesId) {
-      this.testSvc.getSeries().subscribe({
-        next: (allSeries: TestSeries[]) => {
-          const currentSeries = allSeries.find(series => series._id === this.seriesId);
-          if (currentSeries) {
-            this.testSeriesTitle = currentSeries.title;
-            console.log(`Fetched test series title: ${this.testSeriesTitle}`);
-          } else {
-            console.error(`Test series with ID ${this.seriesId} not found.`);
-            this.testSeriesTitle = 'Test Not Found';
-          }
-        },
-        error: (err: any) => {
-          console.error('Error fetching all test series:', err);
-          this.testSeriesTitle = 'Error Loading Test';
-        }
-      });
+      // Optionally load series title here if needed immediately
+      // this.testSvc.getSeriesById(this.seriesId).subscribe(series => this.testSeriesTitle = series.title);
     }
 
     this.attemptId = undefined;
@@ -129,22 +124,24 @@ export class ExamPlayerComponent implements OnInit {
 
     this.testSvc.getProgress(this.seriesId).subscribe({
       next: (progress: any) => {
-        console.log('FE: ngOnInit - getProgress response:', progress);
-        if (progress && progress.attemptId && progress.status === 'in-progress' && typeof progress.remainingDurationSeconds === 'number' && progress.remainingDurationSeconds > 0) {
-          this.hasSavedProgress = true;
+        if (progress && progress.attemptId && progress.status !== 'expired') {
+          console.log('Found in-progress test:', progress);
           this.pendingAttemptId = progress.attemptId;
-          this.pendingTimeLeft = progress.remainingDurationSeconds;
+          this.pendingTimeLeft = progress.remainingDurationSeconds; // This is already in seconds
           this.pendingSections = progress.sections || [];
           this.pendingSavedResponses = progress.responses || [];
-        } else {
+          this.hasSavedProgress = true;
+        } else if (progress && progress.status === 'expired') {
+          console.log('Found an expired test attempt. User will need to submit or restart.');
           this.hasSavedProgress = false;
-          this.pendingAttemptId = undefined;
+        } else {
+          console.log('No active progress found or progress is invalid.');
+          this.hasSavedProgress = false;
         }
       },
       error: (err: any) => {
-        this.hasSavedProgress = false;
-        this.pendingAttemptId = undefined;
         console.error('Error fetching progress:', err);
+        this.hasSavedProgress = false;
       }
     });
   }
@@ -161,28 +158,25 @@ export class ExamPlayerComponent implements OnInit {
 
   resumeTest(): void {
     if (this.pendingAttemptId && this.pendingSections.length > 0) {
+      console.log('Resuming test with ID:', this.pendingAttemptId);
       this.attemptId = this.pendingAttemptId;
-      this.timeLeft = this.pendingTimeLeft;
-      this.sections = this.processSections(this.pendingSections);
-      this.savedResponses = this.pendingSavedResponses;
+      // pendingTimeLeft is already in seconds, so pass it directly for duration calculation in buildFormAndTimer
+      this.buildFormAndTimer(this.pendingTimeLeft, this.pendingSections, this.pendingSavedResponses);
       this.hasSavedProgress = false;
-      this.buildFormAndTimer();
-      this.attachAutoSave();
-      this.pendingAttemptId = undefined;
     } else {
-      this.start();
+      console.log('No valid pending test to resume, starting new.');
+      this.startNewTest();
     }
   }
 
   private startNewTest() {
     this.testSvc.startTest(this.seriesId).subscribe({
       next: (res: StartTestResponse) => {
+        console.log('New test started successfully:', res);
         this.attemptId = res.attemptId;
-        this.timeLeft = (res.duration || 0) * 60;
-        this.sections = this.processSections(res.sections);
-        this.savedResponses = [];
-        this.buildFormAndTimer();
-        this.attachAutoSave();
+        // Assuming seriesTitle might not be on StartTestResponse, handle it gracefully
+        this.testSeriesTitle = (res as any).seriesTitle || 'Test'; 
+        this.buildFormAndTimer(res.duration * 60, res.sections || [], []);
       },
       error: (err: any) => alert(err.error?.message || 'Failed to start test')
     });
@@ -191,16 +185,13 @@ export class ExamPlayerComponent implements OnInit {
   private attachAutoSave() {
     this.form.valueChanges
       .pipe(
-        debounceTime(2000),
-        distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b))
+        debounceTime(5000),
+        distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
+        takeUntil(this.destroy$) // Unsubscribe when destroy$ emits
       )
       .subscribe(vals => {
-        if (this.attemptId) {
-          this.testSvc.saveProgress(this.attemptId, { responses: vals.responses, timeLeft: this.timeLeft }).subscribe({
-            next: () => console.log('✔️ Auto-saved. TimeLeft:', this.timeLeft),
-            error: (e: any) => console.warn('Auto-save failed', e)
-          });
-        }
+        console.log('Form value changed, attempting auto-save:', vals);
+        this.manualSave();
       });
   }
 
@@ -210,29 +201,38 @@ export class ExamPlayerComponent implements OnInit {
 
   submit() {
     clearInterval(this.timerHandle);
+    this.destroy$.next(); 
+    this.destroy$.complete();
+    this.updateQuestionTimeSpent(this.currentGlobalQuestionIndex); 
+    
     if (!this.attemptId) {
-      alert('Error: Could not submit exam. Attempt ID is missing.');
+      console.error('Submit called without an active attemptId.');
+      alert('No active test attempt to submit.');
       return;
     }
+    
     const payload = this.responses.controls.map(ctrl => {
-      const qId = ctrl.get('question')!.value;
-      const raw = ctrl.get('selected')!.value;
-      let selectedArr: number[];
-      if (Array.isArray(raw)) {
-        selectedArr = raw.map((v: string | number) => Number(v));
-      } else if (typeof raw === 'string') {
-        selectedArr = raw.split(',').filter(x => x !== '').map(x => Number(x));
-      } else {
-        selectedArr = raw === null || raw === undefined || raw === '' ? [] : [Number(raw)];
-      }
-      return { question: qId, selected: selectedArr };
+      const controlValue = ctrl.value;
+      // Log details for the specific question if its ID is known e.g. '681d899f3be3d02afaac6b8e'
+      // You can uncomment and adapt this for specific debugging if needed:
+      // if (controlValue.question === 'YOUR_SPECIFIC_QUESTION_ID_HERE') {
+      //   console.log(`Value for question ${controlValue.question} at submit time:`, JSON.stringify(controlValue, null, 2));
+      // }
+      return controlValue;
     });
+    
+    console.log('Submitting payload (exam-player.component.ts):', JSON.stringify(payload, null, 2));
+    
     this.testSvc.submitAttempt(this.attemptId, { responses: payload }).subscribe({
-      next: () => {
-        alert('Submission successful!');
-        this.router.navigate([`/review/${this.attemptId}`]);
+      next: (submissionResponse: any) => {
+        console.log('Test submitted successfully, response:', submissionResponse);
+        alert('Test submitted successfully!');
+        this.router.navigate(['/review', this.attemptId]);
       },
-      error: (err: any) => alert(err.error?.message || 'Submission failed')
+      error: (err: any) => {
+        console.error('Submission failed (exam-player.component.ts):', err);
+        alert(err.error?.message || 'Submission failed');
+      }
     });
   }
 
@@ -241,37 +241,114 @@ export class ExamPlayerComponent implements OnInit {
     const s = (sec % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   }
+  private initializeQuestionControls(sections: PlayerSection[], savedResponses: any[]): void {
+    this.responses.clear(); 
+    let globalIdx = 0;
+    sections.forEach((section, sectionIdx) => {
+      section.questions.forEach((q, questionIdx) => {
+        // Create unique composite key for each question instance
+        const questionInstanceKey = `${q.question}_${sectionIdx}_${questionIdx}`;
+        
+        // Find existing response by matching global index instead of just question ID
+        const existingResponse = savedResponses.find((r, index) => index === globalIdx);
+        
+        const questionControl = this.fb.group({
+          question: [q.question],
+          questionInstanceKey: [questionInstanceKey], // Add unique identifier
+          selected: [existingResponse?.selected || []],
+          timeSpent: [existingResponse?.timeSpent || 0],
+          attempts: [existingResponse?.attempts || 0],
+          flagged: [existingResponse?.flagged || false],
+          visitedAt: [existingResponse?.visitedAt || null],
+          lastModifiedAt: [existingResponse?.lastModifiedAt || null],
+          review: [existingResponse?.review || ''], // Added review form control
+          confidence: [existingResponse?.confidence || null] // Added confidence form control
+        });
+        this.responses.push(questionControl);
+        globalIdx++;
+      });
+    });
+  }
+  
+  private buildFormAndTimer(durationInSeconds: number, sectionsFromServer: any[], savedResponsesFromProgress?: any[]): void {
+    console.log('buildFormAndTimer called with sections:', sectionsFromServer);
+    
+    this.sections = this.processSections(sectionsFromServer);
+    console.log('Processed sections result:', this.sections);
+    
+    this.initializeQuestionControls(this.sections, savedResponsesFromProgress || this.savedResponses);
+
+    this.timeLeft = durationInSeconds > 0 ? durationInSeconds : 3600 * 3; 
+    clearInterval(this.timerHandle);
+    this.timerHandle = setInterval(() => {
+      this.timeLeft--;
+      if (this.timeLeft <= 0) {
+        clearInterval(this.timerHandle);
+        alert('Time is up!');
+        this.submit(); 
+      }
+    }, 1000);
+
+    this.currentSectionIndex = 0;
+    this.currentQuestionInSectionIndex = 0;
+    this.currentGlobalQuestionIndex = 0;
+    if (this.sections.length > 0 && this.sections[0].questions.length > 0) {
+      this.trackQuestionVisit(this.currentGlobalQuestionIndex); 
+    }
+    this.attachAutoSave();
+    this.attachAnswerChangeTracking(); // Ensure this method exists or is implemented
+    this.cd.detectChanges();
+  }
 
   goToQuestion(sectionIdx: number, questionInSectionIdx: number) {
     if (this.sections[sectionIdx] && this.sections[sectionIdx].questions[questionInSectionIdx]) {
+      this.updateQuestionTimeSpent(this.currentGlobalQuestionIndex);
+
       this.currentSectionIndex = sectionIdx;
       this.currentQuestionInSectionIndex = questionInSectionIdx;
-      this.currentGlobalQuestionIndex = this.getGlobalIndex(sectionIdx, questionInSectionIdx);
+      this.currentGlobalQuestionIndex = this.getGlobalIndex(this.currentSectionIndex, this.currentQuestionInSectionIndex); 
+      
+      this.trackQuestionVisit(this.currentGlobalQuestionIndex);
+      this.cd.detectChanges();
     }
   }
 
   next() {
+    this.updateQuestionTimeSpent(this.currentGlobalQuestionIndex);
+
     if (this.currentQuestionInSectionIndex < this.sections[this.currentSectionIndex].questions.length - 1) {
       this.currentQuestionInSectionIndex++;
     } else if (this.currentSectionIndex < this.sections.length - 1) {
       this.currentSectionIndex++;
       this.currentQuestionInSectionIndex = 0;
     } else {
+      // Already at the last question, do nothing or handle end of test
+      // this.currentGlobalQuestionIndex = this.getGlobalIndex(this.currentSectionIndex, this.currentQuestionInSectionIndex); 
+      // this.trackQuestionVisit(this.currentGlobalQuestionIndex); // Not needed if not moving
       return;
     }
     this.currentGlobalQuestionIndex = this.getGlobalIndex(this.currentSectionIndex, this.currentQuestionInSectionIndex);
+    this.trackQuestionVisit(this.currentGlobalQuestionIndex); 
+    this.cd.detectChanges();
   }
 
   prev() {
+    this.updateQuestionTimeSpent(this.currentGlobalQuestionIndex); 
+
     if (this.currentQuestionInSectionIndex > 0) {
       this.currentQuestionInSectionIndex--;
     } else if (this.currentSectionIndex > 0) {
       this.currentSectionIndex--;
       this.currentQuestionInSectionIndex = this.sections[this.currentSectionIndex].questions.length - 1;
     } else {
+      // Already at the first question, do nothing
+      // this.currentGlobalQuestionIndex = this.getGlobalIndex(this.currentSectionIndex, this.currentQuestionInSectionIdx);
+      // this.trackQuestionVisit(this.currentGlobalQuestionIndex); // Not needed if not moving
       return;
     }
     this.currentGlobalQuestionIndex = this.getGlobalIndex(this.currentSectionIndex, this.currentQuestionInSectionIndex);
+    this.trackQuestionVisit(this.currentGlobalQuestionIndex); 
+    this.cd.detectChanges();
   }
 
   getGlobalIndex(sectionIdx: number, questionInSectionIdx: number): number {
@@ -297,8 +374,12 @@ export class ExamPlayerComponent implements OnInit {
 
   isQuestionFlagged(sectionIdx: number, questionInSectionIdx: number): boolean {
     const globalIndex = this.getGlobalIndex(sectionIdx, questionInSectionIdx);
+    return this.isQuestionFlaggedByIndex(globalIndex);
+  }
+
+  isQuestionFlaggedByIndex(globalIndex: number): boolean {
     const formCtrl = this.responses.at(globalIndex);
-    return formCtrl ? formCtrl.get('review')!.value : false;
+    return formCtrl ? formCtrl.get('flagged')?.value || false : false;
   }
 
   isFirstQuestionOverall(): boolean {
@@ -308,55 +389,89 @@ export class ExamPlayerComponent implements OnInit {
   isLastQuestionOverall(): boolean {
     if (!this.sections || this.sections.length === 0) return true;
     const lastSectionIdx = this.sections.length - 1;
+    if (!this.sections[lastSectionIdx].questions || this.sections[lastSectionIdx].questions.length === 0) return true; // Handle empty last section
     const lastQuestionInSectionIdx = this.sections[lastSectionIdx].questions.length - 1;
     return this.currentSectionIndex === lastSectionIdx && this.currentQuestionInSectionIndex === lastQuestionInSectionIdx;
   }
   
   private processSections(sectionsFromServer: any[] | undefined): PlayerSection[] {
     if (!sectionsFromServer) return [];
-    return sectionsFromServer.map(section => ({
-      title: section.title,
-      order: section.order,
-      questions: (section.questions || []).map((originalQuestion: any): PlayerQuestion => {
-        const translations = (originalQuestion.translations || []) as QuestionTranslation[];
-        if (translations.length === 0) {
-          translations.push({
-            lang: this.defaultLanguage,
-            questionText: originalQuestion.questionText || `Text for ${originalQuestion.question || originalQuestion._id} missing`,
-            options: (originalQuestion.options || []).map((opt: any) => ({ text: opt.text, isCorrect: opt.isCorrect }))
-          });
-        }
-        const initialDisplay = this.getTranslatedContentForQuestion(translations, this.currentLanguage);
-        return {
-          question: originalQuestion.question || originalQuestion._id,
-          translations: translations,
-          marks: originalQuestion.marks,
-          type: originalQuestion.type,
-          difficulty: originalQuestion.difficulty,
-          questionHistory: originalQuestion.questionHistory,
-          displayQuestionText: initialDisplay.questionText,
-          displayOptions: initialDisplay.options,
-          availableLanguages: translations.map(t => t.lang),
-          originalLanguageForDisplay: initialDisplay.langUsed
-        };
-      })
-    }));
+    
+    console.log('Processing sections from server:', sectionsFromServer);
+    
+    return sectionsFromServer.map((section, index) => {
+      console.log(`Processing section ${index}:`, section);
+      console.log(`Section questions (${section.questions?.length || 0}):`, section.questions);
+      
+      const processedSection = {
+        title: section.title,
+        order: section.order,
+        questions: (section.questions || []).map((originalQuestion: any): PlayerQuestion => {
+          console.log(`Processing question:`, originalQuestion);
+          
+          const backendTranslations: QuestionTranslation[] = originalQuestion.translations || [];
+          const availableLanguages = backendTranslations.length > 0 
+            ? backendTranslations.map((t: QuestionTranslation) => t.lang) 
+            : [this.defaultLanguage];
+
+          const { questionText: displayQuestionText, options: displayOptions, langUsed } = 
+              this.getTranslatedContentForQuestion(backendTranslations, this.currentLanguage, originalQuestion.questionText, originalQuestion.options);
+
+          return {
+            question: originalQuestion.question, // ID
+            translations: backendTranslations.map((bt: QuestionTranslation): QuestionTranslation => ({
+                lang: bt.lang,
+                questionText: bt.questionText,
+                images: bt.images,
+                options: (bt.options || []).map((o: QuestionOption): QuestionOption => ({
+                    text: o.text,
+                    img: o.img,
+                    isCorrect: o.isCorrect,
+                    _id: o._id
+                }))
+            })),
+            marks: originalQuestion.marks,
+            type: originalQuestion.type,
+            difficulty: originalQuestion.difficulty,
+            questionHistory: originalQuestion.questionHistory || [],
+            
+            displayQuestionText: displayQuestionText,
+            displayOptions: displayOptions,
+            availableLanguages: availableLanguages,
+            originalLanguageForDisplay: langUsed as 'en' | 'hi',
+          };
+        })
+      };
+      
+      console.log(`Processed section ${index} has ${processedSection.questions.length} questions`);
+      return processedSection;
+    });
   }
 
+  // Helper function to get translated content or fallbacks
   private getTranslatedContentForQuestion(
-    translations: QuestionTranslation[],
-    targetLang: 'en' | 'hi'
-  ): { questionText: string; options: QuestionOption[]; langUsed: 'en' | 'hi' } {
-    let selectedTranslation = translations.find(t => t.lang === targetLang);
-    let langUsed = targetLang;
-    if (!selectedTranslation) {
-      selectedTranslation = translations.find(t => t.lang === this.defaultLanguage) || translations[0];
-      langUsed = selectedTranslation!.lang; // Added non-null assertion as translations[0] will exist if not empty
+    translations: QuestionTranslation[], 
+    preferredLang: 'en' | 'hi', 
+    defaultQuestionText: string = 'Question text not available',
+    defaultOptions: QuestionOption[] = []
+  ): { questionText: string; options: QuestionOption[]; langUsed: string } {
+    let langToUse = preferredLang;
+    let translation = translations.find(t => t.lang === langToUse);
+
+    if (!translation) {
+      langToUse = this.defaultLanguage;
+      translation = translations.find(t => t.lang === langToUse);
     }
+
+    if (!translation && translations.length > 0) {
+      translation = translations[0];
+      langToUse = translation.lang;
+    }
+
     return {
-      questionText: selectedTranslation!.questionText, // Added non-null assertion
-      options: selectedTranslation!.options, // Added non-null assertion
-      langUsed: langUsed
+      questionText: translation?.questionText || defaultQuestionText,
+      options: (translation?.options || defaultOptions).map(opt => ({...opt})), // Ensure options are new objects
+      langUsed: langToUse
     };
   }
 
@@ -365,100 +480,120 @@ export class ExamPlayerComponent implements OnInit {
     this.currentLanguage = lang;
     this.sections.forEach(section => {
       section.questions.forEach(question => {
-        const newDisplayContent = this.getTranslatedContentForQuestion(question.translations, this.currentLanguage);
-        question.displayQuestionText = newDisplayContent.questionText;
-        question.displayOptions = newDisplayContent.options;
-        question.originalLanguageForDisplay = newDisplayContent.langUsed;
+        const { questionText, options, langUsed } = this.getTranslatedContentForQuestion(question.translations, lang, question.displayQuestionText, question.displayOptions);
+        question.displayQuestionText = questionText;
+        question.displayOptions = options;
+        question.originalLanguageForDisplay = langUsed;
       });
     });
     this.cd.detectChanges();
   }
 
   get currentQuestionDisplayData(): PlayerQuestion | undefined {
-    if (this.sections && 
-        this.sections[this.currentSectionIndex] &&
-        this.sections[this.currentSectionIndex].questions[this.currentQuestionInSectionIndex]) {
-      return this.sections[this.currentSectionIndex].questions[this.currentQuestionInSectionIndex]; // Corrected property name
+    const currentSection = this.sections[this.currentSectionIndex];
+    if (currentSection && currentSection.questions && currentSection.questions.length > this.currentQuestionInSectionIndex) {
+      const questionData = currentSection.questions[this.currentQuestionInSectionIndex]; // Corrected typo here
+      return questionData;
     }
     return undefined;
-  }
-
-  private buildFormAndTimer(): void {
-    const responsesFormArray = this.form.get('responses') as FormArray;
-    responsesFormArray.clear(); 
-    let globalQuestionCounter = 0;
-    this.sections.forEach((sec, sIdx) => {
-      sec.questions.forEach((q, qIdx) => {
-        const savedResponse = (this.savedResponses && globalQuestionCounter < this.savedResponses.length) 
-                              ? this.savedResponses[globalQuestionCounter] 
-                              : undefined;
-        let initialSelectedValue = '';
-        if (savedResponse && savedResponse.selected && Array.isArray(savedResponse.selected) && savedResponse.selected.length > 0) {
-          initialSelectedValue = savedResponse.selected[0]; 
-        } else if (savedResponse && savedResponse.selected && typeof savedResponse.selected === 'string') {
-            initialSelectedValue = savedResponse.selected;
-        }
-        const questionFormGroup = this.fb.group({
-          question:      [q.question],
-          selected:      [String(initialSelectedValue)], 
-          review:        [savedResponse ? savedResponse.review || false : false],
-          _sectionIndexDebug:  [sIdx],
-          _questionIndexDebug: [qIdx]
-        });
-        responsesFormArray.push(questionFormGroup);
-        globalQuestionCounter++;
-      });
-    });
-
-    this.currentSectionIndex = 0;
-    this.currentQuestionInSectionIndex = 0;
-    if (this.sections.length > 0 && this.sections[0].questions.length > 0) {
-         this.currentGlobalQuestionIndex = this.getGlobalIndex(0,0);
-    } else {
-        this.currentGlobalQuestionIndex = 0;
-    }
-   
-    clearInterval(this.timerHandle);
-    this.timerHandle = setInterval(() => {
-      if (this.timeLeft > 0) {
-        this.timeLeft--;
-      } else {
-        clearInterval(this.timerHandle);
-        alert('Time is up!');
-        this.submit();
-      }
-    }, 1000);
   }
 
   getQuestionStatus(sectionIdx: number, questionInSectionIdx: number): string {
     const globalIndex = this.getGlobalIndex(sectionIdx, questionInSectionIdx);
     const formCtrl = this.responses.at(globalIndex);
-    if (formCtrl) {
-      const isMarkedForReview = formCtrl.get('review')!.value;
-      const selectedValue = formCtrl.get('selected')!.value;
-      const isAnswered = selectedValue !== null && selectedValue !== undefined && String(selectedValue).trim() !== '';
-      if (isMarkedForReview) {
-        return this.QuestionStatus.MARKED_FOR_REVIEW;
-      }
-      if (isAnswered) {
-        return this.QuestionStatus.ANSWERED;
-      }
+    if (!formCtrl) return 'not-visited'; // Default to not-visited if no form control (should not happen in normal flow)
+
+    const visitedAt = formCtrl.get('visitedAt')?.value;
+    if (!visitedAt) {
+      return 'not-visited'; // If not visited, show as such
     }
-    return this.QuestionStatus.UNANSWERED;
+
+    const isFlagged = formCtrl.get('flagged')?.value;
+    if (isFlagged) return this.QuestionStatus.MARKED_FOR_REVIEW;
+
+    const selected = formCtrl.get('selected')?.value;
+    if (selected && selected.length > 0) return this.QuestionStatus.ANSWERED;
+    
+    return this.QuestionStatus.UNANSWERED; // Visited but not answered and not flagged
   }
 
   manualSave() {
-    if (this.attemptId) {
-      this.testSvc.saveProgress(this.attemptId, { responses: this.form.value.responses, timeLeft: this.timeLeft }).subscribe({
-        next: () => {
-          console.log('✔️ Manual save successful. TimeLeft:', this.timeLeft);
-          alert('Progress Saved!');
-        },
-        error: (e: any) => {
-          console.warn('Manual save failed', e);
-          alert('Failed to save progress.');
-        }
-      });
+    if (!this.attemptId) return;
+    this.updateQuestionTimeSpent(this.currentGlobalQuestionIndex);
+    this.trackQuestionVisit(this.currentGlobalQuestionIndex);
+
+    const payload = this.responses.controls.map(ctrl => ctrl.value);
+    this.testSvc.saveProgress(this.attemptId, { responses: payload, timeLeft: this.timeLeft }).subscribe({
+      next: () => console.log('Progress saved via manualSave/autoSave'),
+      error: (err) => console.error('Failed to save progress:', err)
+    });
+  }
+
+  private trackQuestionVisit(globalIndex: number): void {
+    this.questionStartTimes.set(globalIndex, new Date());
+
+    const formCtrl = this.responses.at(globalIndex) as FormGroup;
+    if (formCtrl) {
+      const currentAttempts = formCtrl.get('attempts')?.value || 0;
+      formCtrl.get('attempts')?.setValue(currentAttempts + 1);
+
+      if (!formCtrl.get('visitedAt')?.value) {
+        formCtrl.get('visitedAt')?.setValue(new Date().toISOString());
+      }
     }
+  }
+
+  private updateQuestionTimeSpent(globalIndex: number): void {
+    const formCtrl = this.responses.at(globalIndex) as FormGroup;
+    if (formCtrl) {
+      const startTimeOfThisVisit = this.questionStartTimes.get(globalIndex);
+      if (startTimeOfThisVisit) {
+        const endTimeOfThisVisit = new Date();
+        const durationOfThisVisitMs = endTimeOfThisVisit.getTime() - startTimeOfThisVisit.getTime();
+
+        if (durationOfThisVisitMs >= 500) {
+          const durationOfThisVisitSeconds = Math.round(durationOfThisVisitMs / 1000);
+          
+          if (durationOfThisVisitSeconds > 0) {
+            const previouslyAccumulatedTime = formCtrl.get('timeSpent')?.value || 0;
+            formCtrl.get('timeSpent')?.setValue(previouslyAccumulatedTime + durationOfThisVisitSeconds);
+            formCtrl.get('lastModifiedAt')?.setValue(new Date().toISOString());
+          }
+        }
+        this.questionStartTimes.delete(globalIndex);
+      }
+    }
+  }
+
+  private trackAnswerChange(globalIndex: number): void {
+    const formCtrl = this.responses.at(globalIndex) as FormGroup;
+    if (formCtrl) {
+      formCtrl.get('lastModifiedAt')?.setValue(new Date().toISOString());
+    }
+  }
+
+  toggleQuestionFlag(globalIndex: number): void {
+    const formCtrl = this.responses.at(globalIndex) as FormGroup;
+    if (formCtrl) {
+      const currentFlagged = formCtrl.get('flagged')?.value || false;
+      formCtrl.get('flagged')?.setValue(!currentFlagged);
+      formCtrl.get('lastModifiedAt')?.setValue(new Date().toISOString());
+      this.cd.detectChanges(); 
+    }
+  }
+  
+  private attachAnswerChangeTracking(): void {
+    this.responses.controls.forEach((control, index) => {
+      control.get('selected')?.valueChanges.pipe(distinctUntilChanged()).subscribe(() => {
+        this.trackAnswerChange(index);
+      });
+    });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+    clearInterval(this.timerHandle); // Also clear the timer interval
+    console.log('ExamPlayerComponent destroyed, auto-save and timer stopped.');
   }
 }

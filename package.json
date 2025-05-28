@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "html2pdf.js": "^0.10.3"
+  },
+  "devDependencies": {
+    "axios": "^1.9.0"
+  }
+}
