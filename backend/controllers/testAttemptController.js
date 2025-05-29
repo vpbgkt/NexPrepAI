@@ -20,7 +20,7 @@ exports.startTest = async (req, res) => {
   try {
     const { seriesId } = req.body;
     const userId = req.user.userId;
-    const series = await TestSeries.findById(seriesId).lean(); // Use .lean() for plain JS object
+    const series = await TestSeries.findById(seriesId).lean();
     if (!series) return res.status(404).json({ message: 'Test not found' });
 
     if (series.mode?.toLowerCase() === 'live') {
@@ -247,10 +247,19 @@ exports.startTest = async (req, res) => {
     // Additional debug: Log complete sections data
     console.log(`[${userId}] StartTest: Complete sections data being sent:`, JSON.stringify(detailedSectionsForAttempt, null, 2));
 
-    return res.status(201).json({
+    // Ensure newAttempt is defined and has _id
+    if (!attempt || !attempt._id) {
+      console.error(`[${userId}] Failed to create new attempt for series ${seriesId}`);
+      return res.status(500).json({ message: 'Failed to initialize test attempt.' });
+    }
+
+    // Respond with attempt details, including sections and questions
+    res.json({
       attemptId: attempt._id.toString(),
-      duration:  series.duration, // Send original duration in minutes
-      sections:  detailedSectionsForAttempt // Send detailed sections to frontend
+      sections: detailedSectionsForAttempt, // Ensure this variable holds the processed sections
+      duration: series.duration,   // Duration in minutes
+      seriesTitle: series.title, // Added seriesTitle
+      // Include any other necessary details like question content if not already in populatedSections
     });
   } catch (err) {
     console.error('❌ Error in startTest:', err);
@@ -590,6 +599,10 @@ exports.submitTest = async (req, res) => {
 // saveProgress: saves the student's progress in the TestAttempt model
 // ────────────────────────────────────────────────────────────────────────────────
 exports.saveProgress = async (req, res) => {
+  // ADD THIS LINE FOR DEBUGGING
+  console.log('Backend received saveProgress request. Body:', JSON.stringify(req.body, null, 2));
+  console.log('Backend received saveProgress responses:', JSON.stringify(req.body.responses, null, 2));
+
   try {
     const { attemptId: currentAttemptId } = req.params; // Renamed to avoid conflict
     const { responses, timeLeft } = req.body; 
@@ -602,10 +615,18 @@ exports.saveProgress = async (req, res) => {
     if (currentAttempt.status !== 'in-progress') {
       return res.status(400).json({ message: 'Test is not in-progress. Cannot save.' });
     }    const processedResponses = responses.map(resp => {
+      let currentSelected = []; // Default to empty array
+      if (Array.isArray(resp.selected)) {
+        currentSelected = resp.selected; // If it's already an array, use it
+      } else if (resp.selected !== undefined && resp.selected !== null && resp.selected !== '') {
+        // If it's a single value (string, number from radio/single-select), wrap it in an array
+        currentSelected = [resp.selected];
+      }
+
       const newResp = {
         question: resp.question,
-        questionInstanceKey: resp.questionInstanceKey, // Include composite key for proper matching
-        selected: resp.selectedAnswer, // Map 'selectedAnswer' from client to 'selected'
+        questionInstanceKey: resp.questionInstanceKey,
+        selected: currentSelected, // Use the processed currentSelected
         timeSpent: resp.timeSpent,
         attempts: resp.attempts,
         flagged: resp.flagged,
@@ -614,7 +635,8 @@ exports.saveProgress = async (req, res) => {
         visitedAt: resp.visitedAt,
         lastModifiedAt: resp.lastModifiedAt,
       };
-      // Remove undefined properties to allow schema defaults
+      // Remove other undefined properties to allow schema defaults
+      // 'selected' is already handled and will always be an array.
       Object.keys(newResp).forEach(key => {
         if (newResp[key] === undefined) {
           delete newResp[key];
@@ -883,60 +905,50 @@ exports.getLeaderboardForSeries = async (req, res) => {
 exports.getProgress = async (req, res) => {
   try {
     const seriesId = req.params.seriesId;
-    const userId   = req.user.userId;
+    const userId = req.user.userId;
 
-    const progressAttempt = await TestAttempt.findOne({
+    const attempt = await TestAttempt.findOne({
       student: userId,
-      series:  seriesId,
+      series: seriesId,
       status: 'in-progress'
     })
-    .populate('series', 'duration') // Populate only the duration field from TestSeries
-    .sort({ startedAt: -1 })
+    .populate('series', 'title duration') // Populate series title and duration
+    .select('+sections.questions.options +responses.selected')
     .lean();
 
-    if (!progressAttempt) {
-      return res.json({}); // Return empty object if no progress attempt
+    if (!attempt) {
+      return res.json({}); // No in-progress attempt found
     }
 
-    const remainingTime = progressAttempt.remainingDurationSeconds;
-    const seriesDuration = progressAttempt.series?.duration; // in minutes
-    const attemptExpiresAt = progressAttempt.expiresAt;
-    const currentTime = new Date();
+    // Ensure responses include the 'selected' field.
+    // The .lean() and .select() above should handle this, but as a safeguard:
+    const responsesWithSelected = attempt.responses.map(r => ({
+      question: r.question,
+      questionInstanceKey: r.questionInstanceKey,
+      selected: r.selected, // Ensure this is populated
+      timeSpent: r.timeSpent,
+      attempts: r.attempts,
+      flagged: r.flagged,
+      confidence: r.confidence,
+      visitedAt: r.visitedAt,
+      lastModifiedAt: r.lastModifiedAt
+    }));
 
-    // Check for expiration
-    if (remainingTime <= 0 || (attemptExpiresAt && currentTime > new Date(attemptExpiresAt))) {
-      
-      const expiredResponse = {
-        attemptId: progressAttempt._id.toString(),
-        sections: progressAttempt.sections, 
-        responses: progressAttempt.responses,
-        status: 'expired', // Explicitly set status
-        remainingDurationSeconds: 0, // Ensure 0 for expired
-        duration: seriesDuration,
-        startedAt: progressAttempt.startedAt,
-        expiresAt: attemptExpiresAt,
-        lastSavedAt: progressAttempt.lastSavedAt
-      };
-      return res.json(expiredResponse);
-    }
-
-    // If not expired, return the progress
-    const successResponse = {
-      attemptId: progressAttempt._id.toString(),
-      sections: progressAttempt.sections,
-      responses: progressAttempt.responses,
-      remainingDurationSeconds: remainingTime,
-      duration: seriesDuration, 
-      status: 'in-progress', // Explicitly add status
-      startedAt: progressAttempt.startedAt,
-      expiresAt: attemptExpiresAt,
-      lastSavedAt: progressAttempt.lastSavedAt
-    };
-    return res.json(successResponse);
-
+    return res.json({
+      attemptId: attempt._id.toString(),
+      sections: attempt.sections,
+      responses: responsesWithSelected,
+      remainingDurationSeconds: attempt.remainingDurationSeconds,
+      duration: attempt.series?.duration, // Duration from populated series (in minutes)
+      seriesTitle: attempt.series?.title, // seriesTitle from populated series
+      status: attempt.status,
+      startedAt: attempt.startedAt,
+      expiresAt: attempt.expiresAt,
+      lastSavedAt: attempt.lastSavedAt
+    });
   } catch (err) {
-    console.error('❌ Error in getProgress:', err);
-    return res.status(500).json({ message: 'Failed to get progress', error: err.message });
+    console.error('Error in getProgress:', err);
+    res.status(500).json({ message: 'Failed to get progress', error: err.message });
   }
 };
 

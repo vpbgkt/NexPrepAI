@@ -110,10 +110,9 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     this.seriesId = this.route.snapshot.paramMap.get('seriesId')!;
     console.log(`ExamPlayer: ngOnInit for seriesId: ${this.seriesId}`);
 
-    if (this.seriesId) {
-      // Optionally load series title here if needed immediately
-      // this.testSvc.getSeriesById(this.seriesId).subscribe(series => this.testSeriesTitle = series.title);
-    }
+    // Initialize title
+    this.testSeriesTitle = 'Loading Test...';
+
 
     this.attemptId = undefined;
     this.hasSavedProgress = false;
@@ -127,10 +126,11 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
         if (progress && progress.attemptId && progress.status !== 'expired') {
           console.log('Found in-progress test:', progress);
           this.pendingAttemptId = progress.attemptId;
-          this.pendingTimeLeft = progress.remainingDurationSeconds; // This is already in seconds
+          this.pendingTimeLeft = progress.remainingDurationSeconds;
           this.pendingSections = progress.sections || [];
           this.pendingSavedResponses = progress.responses || [];
           this.hasSavedProgress = true;
+          this.testSeriesTitle = progress.seriesTitle || 'Test'; // Update title on loading progress
         } else if (progress && progress.status === 'expired') {
           console.log('Found an expired test attempt. User will need to submit or restart.');
           this.hasSavedProgress = false;
@@ -174,9 +174,8 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
       next: (res: StartTestResponse) => {
         console.log('New test started successfully:', res);
         this.attemptId = res.attemptId;
-        // Assuming seriesTitle might not be on StartTestResponse, handle it gracefully
-        this.testSeriesTitle = (res as any).seriesTitle || 'Test'; 
-        this.buildFormAndTimer(res.duration * 60, res.sections || [], []);
+        this.testSeriesTitle = (res as any).seriesTitle || 'Test'; // Use seriesTitle from response
+        this.buildFormAndTimer((res as any).duration * 60, res.sections || [], []);
       },
       error: (err: any) => alert(err.error?.message || 'Failed to start test')
     });
@@ -191,7 +190,7 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
       )
       .subscribe(vals => {
         console.log('Form value changed, attempting auto-save:', vals);
-        this.manualSave();
+        this.saveProgressInternal(false); // Call internal save, indicating it's an auto-save
       });
   }
 
@@ -242,62 +241,101 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     return `${m}:${s}`;
   }
   private initializeQuestionControls(sections: PlayerSection[], savedResponses: any[]): void {
-    this.responses.clear(); 
-    let globalIdx = 0;
+    const responsesArray = this.form.get('responses') as FormArray;
+    responsesArray.clear(); // Clear existing controls
+
+    let globalIndex = 0;
     sections.forEach((section, sectionIdx) => {
-      section.questions.forEach((q, questionIdx) => {
-        // Create unique composite key for each question instance
-        const questionInstanceKey = `${q.question}_${sectionIdx}_${questionIdx}`;
-        
-        // Find existing response by matching global index instead of just question ID
-        const existingResponse = savedResponses.find((r, index) => index === globalIdx);
-        
-        const questionControl = this.fb.group({
-          question: [q.question],
-          questionInstanceKey: [questionInstanceKey], // Add unique identifier
-          selected: [existingResponse?.selected || []],
-          timeSpent: [existingResponse?.timeSpent || 0],
-          attempts: [existingResponse?.attempts || 0],
-          flagged: [existingResponse?.flagged || false],
-          visitedAt: [existingResponse?.visitedAt || null],
-          lastModifiedAt: [existingResponse?.lastModifiedAt || null],
-          review: [existingResponse?.review || ''], // Added review form control
-          confidence: [existingResponse?.confidence || null] // Added confidence form control
-        });
-        this.responses.push(questionControl);
-        globalIdx++;
+      section.questions.forEach((question, questionInSectionIdx) => {
+        const questionId = question.question; // This is the actual ID of the question
+        // Construct the key as it would be saved by the backend/autosave
+        const questionInstanceKey = `${questionId}_${sectionIdx}_${questionInSectionIdx}`;
+
+        const savedResponse = savedResponses.find(r => r.questionInstanceKey === questionInstanceKey);
+
+        // Log the selected value from savedResponse
+        if (savedResponse) {
+          console.log(`[initializeQuestionControls] For QIK ${questionInstanceKey}: savedResponse.selected is:`, savedResponse.selected);
+        } else {
+          console.log(`[initializeQuestionControls] For QIK ${questionInstanceKey}: No savedResponse found.`);
+        }
+
+        let selectedValueToSetInForm: any[] = [];
+        if (savedResponse && savedResponse.selected) {
+          // Ensure `selected` is an array, as expected by checkbox/radio groups or multi-select
+          selectedValueToSetInForm = Array.isArray(savedResponse.selected) ? savedResponse.selected : [savedResponse.selected];
+        }
+        // Log the value that will be set in the form
+        console.log(`[initializeQuestionControls] For QIK ${questionInstanceKey}: selectedValueToSetInForm for form is:`, selectedValueToSetInForm);
+
+        // For single-choice questions, the form control expects a single value, not an array.
+        // Extract the first item if the array is not empty, otherwise use null.
+        const finalValueForFormControl = selectedValueToSetInForm.length > 0 ? selectedValueToSetInForm[0] : null;
+        console.log(`[initializeQuestionControls] For QIK ${questionInstanceKey}: finalValueForFormControl (single choice) is:`, finalValueForFormControl);
+
+
+        responsesArray.push(this.fb.group({
+          question: [questionId], // Store the actual question ID
+          questionInstanceKey: [questionInstanceKey], // Store the unique key for this instance
+          selected: [finalValueForFormControl], // Use the extracted single value or null
+          timeSpent: [savedResponse?.timeSpent || 0],
+          attempts: [savedResponse?.attempts || 0],
+          flagged: [savedResponse?.flagged || false],
+          confidence: [savedResponse?.confidence || null],
+          visitedAt: [savedResponse?.visitedAt || null],
+          lastModifiedAt: [savedResponse?.lastModifiedAt || null],
+          review: [savedResponse?.review || null] // ADDED: To resolve console error
+        }));
+        globalIndex++;
       });
     });
+    this.cd.detectChanges(); // Notify Angular of changes
   }
   
-  private buildFormAndTimer(durationInSeconds: number, sectionsFromServer: any[], savedResponsesFromProgress?: any[]): void {
-    console.log('buildFormAndTimer called with sections:', sectionsFromServer);
-    
-    this.sections = this.processSections(sectionsFromServer);
-    console.log('Processed sections result:', this.sections);
-    
-    this.initializeQuestionControls(this.sections, savedResponsesFromProgress || this.savedResponses);
+  private buildFormAndTimer(durationInSeconds: number, sectionsFromServer: any[], savedResponses: any[]) {
+    this.timeLeft = durationInSeconds;
+    this.sections = this.transformSections(sectionsFromServer);
+    this.initializeQuestionControls(this.sections, savedResponses); // Pass savedResponses here
 
-    this.timeLeft = durationInSeconds > 0 ? durationInSeconds : 3600 * 3; 
-    clearInterval(this.timerHandle);
+    if (this.timerHandle) {
+      clearInterval(this.timerHandle);
+    }
     this.timerHandle = setInterval(() => {
-      this.timeLeft--;
-      if (this.timeLeft <= 0) {
+      if (this.timeLeft > 0) {
+        this.timeLeft--;
+      } else {
         clearInterval(this.timerHandle);
-        alert('Time is up!');
+        // Auto-submit or handle timeout
         this.submit(); 
       }
     }, 1000);
 
+    // this.attachAutoSave(); // Auto-save disabled for now
+    this.navigateToInitialQuestion();
+    this.cd.detectChanges(); 
+  }
+
+  private transformSections(sectionsFromServer: any[]): PlayerSection[] {
+    if (!sectionsFromServer) return [];
+    return sectionsFromServer.map(section => ({
+      ...section,
+      questions: section.questions.map((q: any) => ({
+        ...q,
+        displayQuestionText: q.questionText, // Or logic to get from translations
+        displayOptions: q.options, // Or logic to get from translations
+        availableLanguages: q.translations?.map((t:any) => t.lang) || [this.defaultLanguage],
+        originalLanguageForDisplay: this.defaultLanguage // Or determine based on content
+      }))
+    }));
+  }
+
+  private navigateToInitialQuestion() {
     this.currentSectionIndex = 0;
     this.currentQuestionInSectionIndex = 0;
     this.currentGlobalQuestionIndex = 0;
     if (this.sections.length > 0 && this.sections[0].questions.length > 0) {
       this.trackQuestionVisit(this.currentGlobalQuestionIndex); 
     }
-    this.attachAutoSave();
-    this.attachAnswerChangeTracking(); // Ensure this method exists or is implemented
-    this.cd.detectChanges();
   }
 
   goToQuestion(sectionIdx: number, questionInSectionIdx: number) {
@@ -501,7 +539,7 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
   getQuestionStatus(sectionIdx: number, questionInSectionIdx: number): string {
     const globalIndex = this.getGlobalIndex(sectionIdx, questionInSectionIdx);
     const formCtrl = this.responses.at(globalIndex);
-    if (!formCtrl) return 'not-visited'; // Default to not-visited if no form control (should not happen in normal flow)
+    if (!formCtrl) return 'not-visited'; // Should not happen in normal flow
 
     const visitedAt = formCtrl.get('visitedAt')?.value;
     if (!visitedAt) {
@@ -509,24 +547,61 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     }
 
     const isFlagged = formCtrl.get('flagged')?.value;
-    if (isFlagged) return this.QuestionStatus.MARKED_FOR_REVIEW;
+    const selectedValue = formCtrl.get('selected')?.value;
+    // An answer is present if selectedValue is not null (as null is used for unanswered)
+    const isAnswered = selectedValue !== null;
 
-    const selected = formCtrl.get('selected')?.value;
-    if (selected && selected.length > 0) return this.QuestionStatus.ANSWERED;
-    
-    return this.QuestionStatus.UNANSWERED; // Visited but not answered and not flagged
+    if (isFlagged) {
+      if (isAnswered) {
+        // Flagged AND Answered: Palette item should be green. Flag icon shown by template if condition met.
+        return this.QuestionStatus.ANSWERED;
+      } else {
+        // Flagged AND Unanswered: Palette item should be yellow. Flag icon not shown by template due to new condition.
+        return this.QuestionStatus.MARKED_FOR_REVIEW;
+      }
+    } else {
+      // Not Flagged
+      if (isAnswered) {
+        return this.QuestionStatus.ANSWERED; // Green
+      } else {
+        return this.QuestionStatus.UNANSWERED; // Default (e.g., grey/white)
+      }
+    }
   }
 
-  manualSave() {
+  // Renamed original manualSave to saveProgressInternal and added isManualTrigger parameter
+  private saveProgressInternal(isManualTrigger: boolean = false): void {
     if (!this.attemptId) return;
     this.updateQuestionTimeSpent(this.currentGlobalQuestionIndex);
-    this.trackQuestionVisit(this.currentGlobalQuestionIndex);
+    // It's important to track visit/lastModifiedAt on any save, not just manual.
+    // Let's ensure the current question's state is updated before saving.
+    const formCtrl = this.responses.at(this.currentGlobalQuestionIndex) as FormGroup;
+    if (formCtrl) {
+      if (!formCtrl.get('visitedAt')?.value) {
+        formCtrl.get('visitedAt')?.setValue(new Date().toISOString());
+      }
+      formCtrl.get('lastModifiedAt')?.setValue(new Date().toISOString());
+    }
 
     const payload = this.responses.controls.map(ctrl => ctrl.value);
+    
+    // Log the payload being sent to the backend, especially for debugging selected answers
+    console.log('[saveProgressInternal] Payload to be sent:', JSON.stringify(payload, null, 2));
+
     this.testSvc.saveProgress(this.attemptId, { responses: payload, timeLeft: this.timeLeft }).subscribe({
-      next: () => console.log('Progress saved via manualSave/autoSave'),
+      next: () => {
+        console.log(`Progress saved (Trigger: ${isManualTrigger ? 'Manual' : 'Auto'})`);
+        if (isManualTrigger) {
+          alert('Progress Saved!'); // Only show alert for manual trigger
+        }
+      },
       error: (err) => console.error('Failed to save progress:', err)
     });
+  }
+
+  // New public method for the manual save button in your HTML
+  public triggerManualSave(): void {
+    this.saveProgressInternal(true); // Call internal save, indicating it's a manual trigger
   }
 
   private trackQuestionVisit(globalIndex: number): void {

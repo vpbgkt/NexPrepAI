@@ -82,7 +82,7 @@
     </div>
 
     <div class="sidebar-footer">
-      <button class="btn btn-secondary btn-block mb-2" (click)="manualSave()" [disabled]="!attemptId">
+      <button class="btn btn-secondary btn-block mb-2" (click)="triggerManualSave()" [disabled]="!attemptId">
         <span class="material-icons-outlined">save</span>
         Save Progress
       </button>
@@ -136,10 +136,7 @@
               </div>
             </div>            <div class="question-actions">
               <div class="action-controls">
-                <label class="mark-for-review-label">
-                  <input type="checkbox" formControlName="review" />
-                  Mark for review
-                </label>
+                <!-- REMOVED Mark for review checkbox -->
                 
                 <!-- Flag Toggle Button -->
                 <button type="button" 
