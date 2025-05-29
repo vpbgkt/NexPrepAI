@@ -11,7 +11,9 @@
   <ng-container *ngFor="let section of displayedSections; let sectionIdx = index">
     <h3 class="mt-4 mb-3">{{ section.title }}</h3>
     <div *ngFor="let r of section.responses; let questionInSectionIdx = index">
-      <h4>Q{{ getGlobalQuestionNumberForReview(sectionIdx, questionInSectionIdx) }}: {{ r.questionData?.questionText || 'Question text not available' }}</h4>
+      <h4>Q{{ getGlobalQuestionNumberForReview(sectionIdx, questionInSectionIdx) }}: {{ r.questionData?.questionText || 'Question text not available' }}
+        <span *ngIf="r.review" class="material-icons-outlined flag-icon" title="Flagged for Review">flag</span> <!-- ADDED flag icon -->
+      </h4>
       <p>Your answer:   {{ getAnswerText(r) }}</p>
       <p>Correct answer: {{ getCorrectText(r) }}</p>
       <p>Marks Earned: {{ r.earned }} / {{r.questionData?.marks}}</p>

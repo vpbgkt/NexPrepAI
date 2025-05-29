@@ -255,9 +255,9 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
 
         // Log the selected value from savedResponse
         if (savedResponse) {
-          console.log(`[initializeQuestionControls] For QIK ${questionInstanceKey}: savedResponse.selected is:`, savedResponse.selected);
+          // console.log(`[initializeQuestionControls] For QIK ${questionInstanceKey}: savedResponse.selected is:`, savedResponse.selected);
         } else {
-          console.log(`[initializeQuestionControls] For QIK ${questionInstanceKey}: No savedResponse found.`);
+          // console.log(`[initializeQuestionControls] For QIK ${questionInstanceKey}: No savedResponse found.`);
         }
 
         let selectedValueToSetInForm: any[] = [];
@@ -266,12 +266,12 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
           selectedValueToSetInForm = Array.isArray(savedResponse.selected) ? savedResponse.selected : [savedResponse.selected];
         }
         // Log the value that will be set in the form
-        console.log(`[initializeQuestionControls] For QIK ${questionInstanceKey}: selectedValueToSetInForm for form is:`, selectedValueToSetInForm);
+        // console.log(`[initializeQuestionControls] For QIK ${questionInstanceKey}: selectedValueToSetInForm for form is:`, selectedValueToSetInForm);
 
         // For single-choice questions, the form control expects a single value, not an array.
         // Extract the first item if the array is not empty, otherwise use null.
         const finalValueForFormControl = selectedValueToSetInForm.length > 0 ? selectedValueToSetInForm[0] : null;
-        console.log(`[initializeQuestionControls] For QIK ${questionInstanceKey}: finalValueForFormControl (single choice) is:`, finalValueForFormControl);
+        // console.log(`[initializeQuestionControls] For QIK ${questionInstanceKey}: finalValueForFormControl (single choice) is:`, finalValueForFormControl);
 
 
         responsesArray.push(this.fb.group({
@@ -586,7 +586,7 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     const payload = this.responses.controls.map(ctrl => ctrl.value);
     
     // Log the payload being sent to the backend, especially for debugging selected answers
-    console.log('[saveProgressInternal] Payload to be sent:', JSON.stringify(payload, null, 2));
+    // console.log('[saveProgressInternal] Payload to be sent:', JSON.stringify(payload, null, 2));
 
     this.testSvc.saveProgress(this.attemptId, { responses: payload, timeLeft: this.timeLeft }).subscribe({
       next: () => {
