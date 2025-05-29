@@ -1,8 +1,45 @@
+/**
+ * Dashboard Controller
+ * 
+ * Provides dashboard analytics and summary data for student and admin interfaces.
+ * Handles student performance summaries, test history, and topic-wise analytics.
+ * Generates personalized insights for student progress tracking and performance monitoring.
+ * 
+ * Features:
+ * - Student dashboard with test performance summary
+ * - Topic-wise performance analytics for targeted learning
+ * - Test history and best performance tracking
+ * - Average score calculations and progress metrics
+ * 
+ * @requires ../models/TestAttempt
+ * @requires ../models/TestSeries
+ * @requires ../models/Question
+ * @requires ../models/Topic
+ */
+
 const TestAttempt = require('../models/TestAttempt');
 const TestSeries = require('../models/TestSeries');
 const Question = require('../models/Question');
 const Topic = require('../models/Topic');
 
+/**
+ * Get Student Dashboard Endpoint
+ * 
+ * Retrieves comprehensive dashboard data for authenticated student including performance metrics.
+ * Calculates total tests taken, average percentage, best performance, and detailed test history.
+ * Provides personalized performance insights for student progress tracking.
+ * 
+ * @route GET /api/dashboard/student
+ * @access Private (Student access)
+ * @param {Object} req.user - Authenticated user object
+ * @param {string} req.user.userId - Student ID for dashboard data retrieval
+ * @returns {Object} Student dashboard summary
+ * @returns {number} returns.totalTests - Total number of tests attempted
+ * @returns {number} returns.averagePercentage - Average score percentage across all tests
+ * @returns {Object} returns.bestPerformance - Best test performance with test name and score
+ * @returns {Array} returns.testHistory - Detailed history of all test attempts
+ * @throws {500} Server error during dashboard data calculation
+ */
 exports.getStudentDashboard = async (req, res) => {
   try {
     const studentId = req.user.userId;
@@ -51,6 +88,24 @@ exports.getStudentDashboard = async (req, res) => {
   }
 };
 
+/**
+ * Get Student Topic Analytics Endpoint
+ * 
+ * Provides detailed topic-wise performance analytics for the authenticated student.
+ * Analyzes student performance across different topics to identify strengths and weaknesses.
+ * Calculates accuracy rates and question counts per topic for targeted learning recommendations.
+ * 
+ * @route GET /api/dashboard/student/topics
+ * @access Private (Student access)
+ * @param {Object} req.user - Authenticated user object
+ * @param {string} req.user.userId - Student ID for topic analytics
+ * @returns {Array} Topic performance analytics
+ * @returns {string} returns[].topic - Topic name
+ * @returns {number} returns[].totalQuestions - Total questions attempted in this topic
+ * @returns {number} returns[].correctAnswers - Number of correct answers in this topic
+ * @returns {number} returns[].accuracy - Accuracy percentage for this topic
+ * @throws {500} Server error during topic analytics calculation
+ */
 exports.getStudentTopicAnalytics = async (req, res) => {
   try {
     const studentId = req.user.userId;

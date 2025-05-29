@@ -1,3 +1,22 @@
+/**
+ * @fileoverview Build Paper Component for NexPrep Admin Panel
+ * @description Advanced component for creating and managing test series with comprehensive
+ * question selection, section management, and exam configuration capabilities.
+ * @module BuildPaperComponent
+ * @requires @angular/core
+ * @requires @angular/forms
+ * @requires @angular/common
+ * @requires rxjs
+ * @requires TestSeriesService
+ * @requires QuestionService
+ * @requires ExamFamilyService
+ * @requires ExamStreamService
+ * @requires ExamPaperService
+ * @requires ExamShiftService
+ * @author NexPrep Development Team
+ * @since 1.0.0
+ */
+
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule, FormsModule, AbstractControl } from '@angular/forms'; // MODIFIED: Added AbstractControl
 import { CommonModule } from '@angular/common';
@@ -29,6 +48,33 @@ import {
 } from '../../services/exam-shift.service';
 import { HighlightPipe } from '../../pipes/highlight.pipe'; // Assuming pipe is in src/app/pipes
 
+/**
+ * @class BuildPaperComponent
+ * @description Advanced Angular component for creating and managing test series in the NexPrep admin panel.
+ * Provides comprehensive functionality for:
+ * - Creating multi-section test papers with configurable parameters
+ * - Advanced question selection with real-time search and filtering
+ * - Dynamic section management with independent question pools
+ * - Exam hierarchy navigation (Family → Stream → Paper → Shift)
+ * - Question preview and validation before test creation
+ * - Flexible test modes (practice, exam, mock) with custom settings
+ * 
+ * @implements {OnInit} Lifecycle hook for component initialization
+ * @implements {OnDestroy} Lifecycle hook for cleanup operations
+ * 
+ * @example
+ * ```typescript
+ * // Component usage in template
+ * <app-build-paper></app-build-paper>
+ * 
+ * // The component provides a complete interface for:
+ * // 1. Test series configuration
+ * // 2. Section management
+ * // 3. Question selection and search
+ * // 4. Preview and validation
+ * // 5. Test creation and publishing
+ * ```
+ */
 @Component({
   selector: 'app-build-paper',
   standalone: true,
@@ -42,21 +88,55 @@ import { HighlightPipe } from '../../pipes/highlight.pipe'; // Assuming pipe is 
   styleUrls: ['./build-paper.component.scss']
 })
 export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Implements OnDestroy
+  /** @property {FormGroup} Main reactive form for test series configuration */
   seriesForm!: FormGroup;
+  
+  /** @property {Question[]} Complete list of available questions */
   questionsList: Question[] = [];
+  
+  /** @property {ExamFamily[]} Available exam families (e.g., JEE, NEET, GATE) */
   families: ExamFamily[] = [];
+  
+  /** @property {ExamStream[]} Available streams for selected family */
   streams:  ExamStream[] = [];
+  
+  /** @property {ExamPaper[]} Available papers for selected stream */
   papers:   ExamPaper[] = [];
+  
+  /** @property {ExamShift[]} Available shifts for selected paper */
   shifts:   ExamShift[] = [];
+  
+  /** @property {number} Current year for default date selection */
   currentYear: number = new Date().getFullYear();
-  previewedQuestions: any[][] = [];
+  /** @property {any[][]} Array of previewed questions for each section */
+previewedQuestions: any[][] = [];
+
+  /** @property {string[]} Search terms for each section's question search */
   sectionSearchTerms: string[] = [];
+  
+  /** @property {Question[][]} Search results for each section's question search */
   sectionSearchResults: Question[][] = [];
 
+  /** @private {Subject<string>[]} RxJS subjects for debouncing search input per section */
   private searchDebouncers: Subject<string>[] = []; // MODIFIED: Changed Subject<number> to Subject<string>
+  
+  /** @private {Subscription[]} Subscriptions for search operations cleanup */
   private searchSubscriptions: Subscription[] = [];
+  
+  /** @private {Subscription[]} Subscriptions for section interaction cleanup */
   private sectionInteractionSubscriptions: Subscription[] = []; // ADDED
 
+  /**
+   * @constructor
+   * @description Initializes the BuildPaperComponent with required services
+   * @param {FormBuilder} fb - Angular FormBuilder for reactive forms
+   * @param {TestSeriesService} tsService - Service for test series operations
+   * @param {QuestionService} qService - Service for question management
+   * @param {ExamFamilyService} efService - Service for exam family operations
+   * @param {ExamStreamService} streamService - Service for exam stream operations
+   * @param {ExamPaperService} paperService - Service for exam paper operations
+   * @param {ExamShiftService} shiftService - Service for exam shift operations
+   */
   constructor(
     private fb: FormBuilder,
     private tsService: TestSeriesService,
@@ -67,6 +147,19 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     private shiftService: ExamShiftService
   ) {}
 
+  /**
+   * @method getQuestionIdString
+   * @description Helper method to extract string ID from Question object or its _id part
+   * @param {any} idValue - Question ID value that can be string or object with $oid
+   * @returns {string} String representation of the question ID
+   * 
+   * @example
+   * ```typescript
+   * // Handle different ID formats
+   * const stringId = this.getQuestionIdString(question._id);
+   * const objectId = this.getQuestionIdString({$oid: "507f1f77bcf86cd799439011"});
+   * ```
+   */
   // ADDED: Helper to get string ID from Question object or its _id part
   getQuestionIdString(idValue: any): string {
     if (typeof idValue === 'string') {
@@ -78,7 +171,23 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     // Fallback or error handling if needed
     console.warn('[getQuestionIdString] Unexpected ID format:', idValue);
     return String(idValue); 
-  }
+  }  /**
+   * @method ngOnInit
+   * @description Angular lifecycle hook for component initialization.
+   * Sets up the reactive form, loads initial data, and configures form change listeners
+   * for hierarchical dropdown dependencies (family → stream → paper → shift).
+   * 
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Component initialization flow:
+   * // 1. Build reactive form with validation
+   * // 2. Load exam families
+   * // 3. Set up cascade listeners for dropdowns
+   * // 4. Initialize search functionality
+   * ```
+   */
   ngOnInit(): void {
     // Rebuilt FormGroup to remove negativeMark and examBody
     this.seriesForm = this.fb.group({
@@ -234,6 +343,21 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     // this.sections.controls.forEach((_, index) => this.setupSearchDebouncer(index));
   }
 
+  /**
+   * @method ngOnDestroy
+   * @description Angular lifecycle hook for component cleanup.
+   * Unsubscribes from all RxJS subscriptions and completes subjects to prevent memory leaks.
+   * 
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Cleanup operations performed:
+   * // 1. Unsubscribe search subscriptions
+   * // 2. Complete search debouncer subjects
+   * // 3. Unsubscribe section interaction listeners
+   * ```
+   */
   ngOnDestroy(): void {
     this.searchSubscriptions.forEach(sub => {
       if (sub) sub.unsubscribe();
@@ -251,6 +375,24 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     this.sectionInteractionSubscriptions = [];
   }
 
+  /**
+   * @private
+   * @method setupSearchDebouncer
+   * @description Sets up debounced search functionality for a specific section.
+   * Cleans up existing subscriptions and creates new RxJS subject with debounce for real-time search.
+   * 
+   * @param {number} secIndex - Index of the section to set up search debouncing for
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Called when new section is added
+   * this.setupSearchDebouncer(2); // Set up search for section index 2
+   * 
+   * // Creates debounced search with 350ms delay
+   * // Triggers performSearch when user stops typing
+   * ```
+   */
   private setupSearchDebouncer(secIndex: number): void {
     // Clean up existing debouncer and subscription if any for this index
     if (this.searchSubscriptions[secIndex]) {
@@ -270,6 +412,26 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     });
   }
 
+  /**
+   * @private
+   * @method setupSectionInteractionLogic
+   * @description Sets up reactive form logic to handle mutual exclusivity between question pool mode
+   * and manual question selection within a section. Ensures only one method can be active at a time.
+   * 
+   * @param {number} secIndex - Index of the section to set up interaction logic for
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Called when new section is added
+   * this.setupSectionInteractionLogic(1);
+   * 
+   * // Behavior:
+   * // - When pool is active → disable manual questions
+   * // - When manual questions added → disable pool controls
+   * // - Prevents conflicts between selection methods
+   * ```
+   */
   private setupSectionInteractionLogic(secIndex: number): void {
     const sectionGroup = this.sections.at(secIndex) as FormGroup;
     const poolCtrl = sectionGroup.get('questionPool')!;
@@ -359,10 +521,47 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     }
   }
 
+  /**
+   * @getter sections
+   * @description Getter method to access the sections FormArray from the reactive form.
+   * Provides type-safe access to the form array containing all test sections.
+   * 
+   * @returns {FormArray} The sections FormArray containing all test paper sections
+   * 
+   * @example
+   * ```typescript
+   * // Access sections programmatically
+   * const sectionCount = this.sections.length;
+   * const firstSection = this.sections.at(0);
+   * 
+   * // Used in template
+   * *ngFor="let section of sections.controls; let i = index"
+   * ```
+   */
   get sections(): FormArray {
     return this.seriesForm.get('sections') as FormArray;
   }
 
+  /**
+   * @method addSection
+   * @description Adds a new test section to the form with default configuration.
+   * Creates reactive form controls for section properties, search functionality, and interaction logic.
+   * 
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Add new section to test paper
+   * this.addSection();
+   * 
+   * // Creates section with:
+   * // - Title and order fields
+   * // - Question array for manual selection
+   * // - Question pool for batch selection
+   * // - Marks configuration
+   * // - Search and interaction setup
+   * ```
+   */
   addSection() {
     const sectionForm = this.fb.group({
       title: ['', Validators.required],
@@ -384,6 +583,26 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     this.setupSectionInteractionLogic(newIndex); // ADDED: Call to setup interaction logic for the new section
   }
 
+  /**
+   * @method removeSection
+   * @description Removes a test section from the form and cleans up associated data structures.
+   * Properly unsubscribes from observables and removes related arrays to prevent memory leaks.
+   * 
+   * @param {number} i - Index of the section to remove
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Remove section at index 1
+   * this.removeSection(1);
+   * 
+   * // Cleanup operations:
+   * // - Remove from FormArray
+   * // - Clear search data
+   * // - Unsubscribe observables
+   * // - Clean up preview data
+   * ```
+   */
   removeSection(i: number) {
     this.sections.removeAt(i);
     this.sectionSearchTerms.splice(i, 1);
@@ -405,10 +624,48 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     this.sectionInteractionSubscriptions.splice(i, 1);
   }
 
+  /**
+   * @method getQuestions
+   * @description Retrieves the questions FormArray for a specific section.
+   * Provides type-safe access to the questions array within a section.
+   * 
+   * @param {number} secIndex - Index of the section to get questions from
+   * @returns {FormArray} The FormArray containing questions for the specified section
+   * 
+   * @example
+   * ```typescript
+   * // Get questions array for section 0
+   * const questionsArray = this.getQuestions(0);
+   * const questionCount = questionsArray.length;
+   * 
+   * // Add new question to the array
+   * questionsArray.push(this.fb.group({...}));
+   * ```
+   */
   getQuestions(secIndex: number): FormArray {
     return this.sections.at(secIndex).get('questions') as FormArray;
   }
 
+  /**
+   * @method addQuestion
+   * @description Adds a new question to a specific section with default marks configuration.
+   * Validates that manual question entry is enabled before adding.
+   * 
+   * @param {number} secIndex - Index of the section to add the question to
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Add new question to section 0
+   * this.addQuestion(0);
+   * 
+   * // Creates question form with:
+   * // - Question ID field
+   * // - Marks (default: 1)
+   * // - Negative marks (default: 0)
+   * // - Validation rules
+   * ```
+   */
   addQuestion(secIndex: number) {
     const sectionGroup = this.sections.at(secIndex) as FormGroup;
     if (sectionGroup.get('questions')?.disabled) {
@@ -427,6 +684,25 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     this.previewedQuestions[secIndex][newIndex] = null;
   }
 
+  /**
+   * @method removeQuestion
+   * @description Removes a question from a specific section and cleans up preview data.
+   * 
+   * @param {number} secIndex - Index of the section containing the question
+   * @param {number} qIndex - Index of the question to remove within the section
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Remove question at index 2 from section 1
+   * this.removeQuestion(1, 2);
+   * 
+   * // Operations:
+   * // - Remove from FormArray
+   * // - Clean up preview data
+   * // - Maintain array indices
+   * ```
+   */
   removeQuestion(secIndex: number, qIndex: number) {
     this.getQuestions(secIndex).removeAt(qIndex);
     if (this.previewedQuestions[secIndex]) {
@@ -434,6 +710,24 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     }
   }
 
+  /**
+   * @getter computedTotal
+   * @description Calculates the total marks for the entire test by summing marks from all sections.
+   * Dynamically computes the total based on current form values.
+   * 
+   * @returns {number} Total marks for the complete test paper
+   * 
+   * @example
+   * ```typescript
+   * // Get current total marks
+   * const totalMarks = this.computedTotal; // e.g., 150
+   * 
+   * // Used in template for display
+   * <span>Total Marks: {{ computedTotal }}</span>
+   * 
+   * // Automatically updates when questions change
+   * ```
+   */
   get computedTotal(): number {
     return this.sections.controls.reduce((secSum, secCtrl) => {
       const qArr = secCtrl.get('questions') as FormArray;
@@ -441,6 +735,26 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     }, 0);
   }
 
+  /**
+   * @method importCsv
+   * @description Imports question IDs from a CSV file and adds them to a specific section.
+   * Validates file format and ensures manual question entry is enabled.
+   * 
+   * @param {Event} event - File input change event containing the CSV file
+   * @param {number} secIndex - Index of the section to import questions into
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Handle CSV file import
+   * <input type="file" (change)="importCsv($event, 0)" accept=".csv">
+   * 
+   * // Expected CSV format:
+   * // 507f1f77bcf86cd799439011
+   * // 507f1f77bcf86cd799439012
+   * // (One question ID per line, 24 characters each)
+   * ```
+   */
   importCsv(event: Event, secIndex: number) {
     const sectionGroup = this.sections.at(secIndex) as FormGroup;
     if (sectionGroup.get('questions')?.disabled) {
@@ -467,6 +781,27 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     reader.readAsText(file);
   }
 
+  /**
+   * @method previewQuestion
+   * @description Fetches and displays question details for preview in the UI.
+   * Validates question ID format and handles API errors gracefully.
+   * 
+   * @param {number} secIndex - Index of the section containing the question
+   * @param {number} qIndex - Index of the question within the section
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Preview question at section 0, question 1
+   * this.previewQuestion(0, 1);
+   * 
+   * // Displays:
+   * // - Question text
+   * // - Answer options
+   * // - Subject/topic information
+   * // - Error message if not found
+   * ```
+   */
   previewQuestion(secIndex: number, qIndex: number) {
     const id = this.getQuestions(secIndex).at(qIndex).get('question')?.value;
     if (!id || String(id).length !== 24) {
@@ -486,6 +821,26 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
       }
     });
   }
+  /**
+   * @method onSubmit
+   * @description Handles form submission for test series creation.
+   * Validates form data, ensures minimum question requirements, processes question pools,
+   * and handles shift creation before submitting to the backend.
+   * 
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Called from template
+   * <form (ngSubmit)="onSubmit()">
+   * 
+   * // Validation checks:
+   * // - Form validity
+   * // - Minimum 2 questions
+   * // - Shift selection/creation
+   * // - Question pool processing
+   * ```
+   */
   onSubmit() {
     if (this.seriesForm.invalid) {
       console.error('Form is invalid!', this.seriesForm.errors);
@@ -538,7 +893,26 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
       this.submitTestSeries(formValues);
     }
   }
-
+  /**
+   * @private
+   * @method submitTestSeries
+   * @description Helper method to submit the processed test series data to the backend.
+   * Handles API response and provides user feedback.
+   * 
+   * @param {any} formValues - Processed form values ready for backend submission
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Internal usage after validation
+   * this.submitTestSeries(processedFormData);
+   * 
+   * // Handles:
+   * // - API call to create test series
+   * // - Success notification
+   * // - Error handling and user feedback
+   * ```
+   */
   // Helper method to submit the test series to the backend
   private submitTestSeries(formValues: any) {
     this.tsService.create(formValues as Partial<TestSeries>)
@@ -552,6 +926,25 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
       });
   }
 
+  /**
+   * @method onFamilyChange
+   * @description Handles exam family selection change event.
+   * Resets dependent dropdown values and manages UI state for cascade functionality.
+   * 
+   * @param {string} familyId - Selected exam family ID
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Called from template dropdown
+   * <select (change)="onFamilyChange($event.target.value)">
+   * 
+   * // Cascade behavior:
+   * // - Clear stream, paper, shift values
+   * // - Reset dependent data arrays
+   * // - Trigger stream loading
+   * ```
+   */
   onFamilyChange(familyId: string) {
     console.log(`Family changed to ${familyId}`);
     // The valueChanges subscription will handle loading streams
@@ -575,6 +968,25 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     }
   }
 
+  /**
+   * @method onStreamChange
+   * @description Handles exam stream selection change event.
+   * Resets paper and shift values as part of the hierarchical dropdown cascade.
+   * 
+   * @param {string} streamId - Selected exam stream ID
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Called from template dropdown
+   * <select (change)="onStreamChange($event.target.value)">
+   * 
+   * // Cascade behavior:
+   * // - Clear paper and shift values
+   * // - Reset dependent data arrays
+   * // - Trigger paper loading
+   * ```
+   */
   onStreamChange(streamId: string) {
     console.log(`Stream changed to ${streamId}`);
     // The valueChanges subscription will handle loading papers
@@ -589,6 +1001,25 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     }
   }
 
+  /**
+   * @method onPaperChange
+   * @description Handles exam paper selection change event.
+   * Resets shift value as part of the hierarchical dropdown cascade.
+   * 
+   * @param {string} paperId - Selected exam paper ID
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Called from template dropdown
+   * <select (change)="onPaperChange($event.target.value)">
+   * 
+   * // Cascade behavior:
+   * // - Clear shift value
+   * // - Reset shifts data array
+   * // - Trigger shift loading
+   * ```
+   */
   onPaperChange(paperId: string) {
     console.log(`Paper changed to ${paperId}`);
     // The valueChanges subscription will handle loading shifts
@@ -601,11 +1032,49 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     }
   }
 
+  /**
+   * @method onShiftChange
+   * @description Handles exam shift selection change event.
+   * Provides extension point for additional logic when shift selection changes.
+   * 
+   * @param {string} shiftId - Selected exam shift ID
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Called from template dropdown
+   * <select (change)="onShiftChange($event.target.value)">
+   * 
+   * // Currently used for:
+   * // - Logging shift selection
+   * // - Future extension point for shift-specific logic
+   * ```
+   */
   onShiftChange(shiftId: string) {
     console.log(`Shift changed to ${shiftId}`);
     // This method is for additional logic if needed when shift changes
   }
 
+  /**
+   * @method performSearch
+   * @description Performs real-time search through the question bank for a specific section.
+   * Filters questions based on search term matching in question text translations.
+   * 
+   * @param {number} secIndex - Index of the section performing the search
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Triggered by debounced search input
+   * this.performSearch(0); // Search for section 0
+   * 
+   * // Search criteria:
+   * // - Minimum 3 characters required
+   * // - Case-insensitive matching
+   * // - Searches in all translation texts
+   * // - Updates sectionSearchResults array
+   * ```
+   */
   performSearch(secIndex: number) {
     const currentSearchTerm = this.sectionSearchTerms[secIndex];
     // console.log(`[DEBUG] performSearch - Section: ${secIndex}, Term: "${currentSearchTerm}"`);
@@ -645,7 +1114,25 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
       this.sectionSearchResults[secIndex] = []; // Clear results if term is too short or empty
     }
   }
-
+  /**
+   * @method onSearchInputChanged
+   * @description Handles search input change events with debouncing.
+   * Validates that manual question entry is enabled before triggering search.
+   * 
+   * @param {number} secIndex - Index of the section where search input changed
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Called from template search input
+   * <input (input)="onSearchInputChanged(0)" [(ngModel)]="sectionSearchTerms[0]">
+   * 
+   * // Behavior:
+   * // - Checks if manual questions are enabled
+   * // - Triggers debounced search via subject
+   * // - Prevents search when pool mode is active
+   * ```
+   */
   // Called from the template on search input change
   onSearchInputChanged(secIndex: number): void {
     const sectionGroup = this.sections.at(secIndex) as FormGroup;
@@ -656,6 +1143,27 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
     this.searchDebouncers[secIndex].next(this.sectionSearchTerms[secIndex]);
   }
 
+  /**
+   * @method addQuestionFromSearchResults
+   * @description Adds a question from search results to a specific section.
+   * Validates permissions, creates form controls, and clears search state.
+   * 
+   * @param {number} secIndex - Index of the section to add the question to
+   * @param {Question} questionToAdd - Question object from search results to add
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Called from template search results
+   * <button (click)="addQuestionFromSearchResults(0, question)">Add</button>
+   * 
+   * // Operations:
+   * // - Validates manual entry is enabled
+   * // - Creates question form group
+   * // - Adds to preview data
+   * // - Clears search results
+   * ```
+   */
   addQuestionFromSearchResults(secIndex: number, questionToAdd: Question) {
     const sectionGroup = this.sections.at(secIndex) as FormGroup;
     if (sectionGroup.get('questions')?.disabled) {
@@ -684,7 +1192,30 @@ export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Imp
       this.searchDebouncers[secIndex].next('');
     }
   }
-
+  /**
+   * @private
+   * @method validateMinimumQuestions
+   * @description Validates that the test series meets minimum question requirements.
+   * Counts questions from both manual selection and question pools across all sections.
+   * 
+   * @param {number} minQuestions - Minimum number of questions required for the test
+   * @returns {boolean} True if minimum requirement is met, false otherwise
+   * 
+   * @example
+   * ```typescript
+   * // Validate before submission
+   * const isValid = this.validateMinimumQuestions(2);
+   * if (!isValid) {
+   *   alert('Test must have at least 2 questions');
+   *   return;
+   * }
+   * 
+   * // Counts from:
+   * // - Manual questions in each section
+   * // - Questions selected from pools
+   * // - Considers section interaction states
+   * ```
+   */
   /**
    * Validates that the test series has at least the minimum required number of questions
    * @param minQuestions Minimum number of questions required

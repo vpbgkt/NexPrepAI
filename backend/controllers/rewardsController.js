@@ -1,11 +1,39 @@
+/**
+ * Rewards Controller
+ * 
+ * Handles all rewards system operations including:
+ * - User reward dashboard and summary
+ * - Reward catalog browsing and availability checking
+ * - Reward redemption processing and validation
+ * - Transaction and redemption history tracking
+ * - Leaderboard generation for referral program
+ * - Admin reward management (CRUD operations)
+ * - Admin redemption processing and status updates
+ * - Points adjustment and analytics
+ * 
+ * @author NexPrep Team
+ * @version 2.0
+ */
+
 const RewardService = require('../services/rewardService');
 const Reward = require('../models/Reward');
 const RewardTransaction = require('../models/RewardTransaction');
 const RewardRedemption = require('../models/RewardRedemption');
 const User = require('../models/User');
 
-class RewardsController {
-  // Get user's reward summary and dashboard
+class RewardsController {  /**
+   * Get User Reward Dashboard Endpoint
+   * 
+   * Retrieves comprehensive reward summary for the authenticated user.
+   * Includes current points, total earned/spent, recent transactions, and redemptions.
+   * 
+   * @route GET /api/rewards/dashboard
+   * @access Private (Students only)
+   * @param {Object} req.user - Authenticated user object
+   * @param {string} req.user.userId - User ID to get reward summary for
+   * @returns {Object} Reward summary with points, transactions, and milestone progress
+   * @throws {500} Server error during reward summary calculation
+   */
   static async getUserRewardDashboard(req, res) {
     try {
       const userId = req.user.userId;
@@ -23,8 +51,20 @@ class RewardsController {
       });
     }
   }
-
-  // Get available rewards for user
+  /**
+   * Get Available Rewards Endpoint
+   * 
+   * Retrieves rewards that the user can redeem based on their points and level.
+   * Filters rewards by user eligibility, active status, and availability dates.
+   * 
+   * @route GET /api/rewards/available
+   * @access Private (Students only)
+   * @param {Object} req.user - Authenticated user object
+   * @param {string} req.user.userId - User ID to check reward eligibility
+   * @returns {Object} Available rewards list with user's current point balance
+   * @throws {404} User not found
+   * @throws {500} Server error during reward filtering
+   */
   static async getAvailableRewards(req, res) {
     try {
       const userId = req.user.userId;
@@ -54,8 +94,22 @@ class RewardsController {
       });
     }
   }
-
-  // Get all rewards (admin or for catalog display)
+  /**
+   * Get All Rewards Endpoint
+   * 
+   * Retrieves paginated list of rewards for catalog display or admin management.
+   * Supports filtering by category and active status with pagination.
+   * 
+   * @route GET /api/rewards/catalog
+   * @route GET /api/rewards/admin/rewards (admin access)
+   * @access Private (Students for catalog, Admin for management)
+   * @param {string} req.query.category - Optional category filter
+   * @param {boolean} req.query.isActive - Optional active status filter
+   * @param {number} req.query.page - Page number for pagination (default: 1)
+   * @param {number} req.query.limit - Items per page (default: 20)
+   * @returns {Object} Paginated rewards list with creator information (admin view)
+   * @throws {500} Server error during rewards retrieval
+   */
   static async getAllRewards(req, res) {
     try {
       const { category, isActive, page = 1, limit = 20 } = req.query;
@@ -95,8 +149,25 @@ class RewardsController {
       });
     }
   }
-
-  // Redeem a reward
+  /**
+   * Redeem Reward Endpoint
+   * 
+   * Processes reward redemption for authenticated user with full validation.
+   * Handles point deduction, eligibility checking, and redemption record creation.
+   * Supports different reward types (instant, voucher codes, manual processing).
+   * 
+   * @route POST /api/rewards/redeem
+   * @access Private (Students only)
+   * @param {Object} req.body - Request body containing reward information
+   * @param {string} req.body.rewardId - MongoDB ObjectId of the reward to redeem
+   * @param {Object} req.user - Authenticated user object
+   * @param {string} req.user.userId - User ID performing the redemption
+   * @returns {Object} Redemption details with status and delivery information
+   * @throws {400} Missing rewardId or validation errors
+   * @throws {404} Reward not found
+   * @throws {400} Insufficient points, not eligible, or out of stock
+   * @throws {500} Server error during redemption processing
+   */
   static async redeemReward(req, res) {
     try {
       const userId = req.user.userId;
@@ -137,8 +208,21 @@ class RewardsController {
       });
     }
   }
-
-  // Get user's redemption history
+  /**
+   * Get Redemption History Endpoint
+   * 
+   * Retrieves paginated history of user's reward redemptions.
+   * Shows redemption status, delivery details, and associated reward information.
+   * 
+   * @route GET /api/rewards/redemptions
+   * @access Private (Students only - own redemptions)
+   * @param {Object} req.user - Authenticated user object
+   * @param {string} req.user.userId - User ID to get redemption history for
+   * @param {number} req.query.page - Page number for pagination (default: 1)
+   * @param {number} req.query.limit - Items per page (default: 10)
+   * @returns {Object} Paginated redemption history with reward details and pagination metadata
+   * @throws {500} Server error during redemption history retrieval
+   */
   static async getRedemptionHistory(req, res) {
     try {
       const userId = req.user.userId;
@@ -174,8 +258,22 @@ class RewardsController {
       });
     }
   }
-
-  // Get user's transaction history
+  /**
+   * Get Transaction History Endpoint
+   * 
+   * Retrieves paginated history of user's reward point transactions.
+   * Includes earning transactions (referrals, milestones) and spending transactions (redemptions).
+   * 
+   * @route GET /api/rewards/transactions
+   * @access Private (Students only - own transactions)
+   * @param {Object} req.user - Authenticated user object
+   * @param {string} req.user.userId - User ID to get transaction history for
+   * @param {number} req.query.page - Page number for pagination (default: 1)
+   * @param {number} req.query.limit - Items per page (default: 20)
+   * @param {string} req.query.type - Optional transaction type filter
+   * @returns {Object} Paginated transaction history with referral details and pagination metadata
+   * @throws {500} Server error during transaction history retrieval
+   */
   static async getTransactionHistory(req, res) {
     try {
       const userId = req.user.userId;
@@ -214,8 +312,18 @@ class RewardsController {
       });
     }
   }
-
-  // Get referral leaderboard
+  /**
+   * Get Referral Leaderboard Endpoint
+   * 
+   * Retrieves ranked leaderboard of users based on successful referrals.
+   * Shows top referrers with their referral counts and earned points.
+   * 
+   * @route GET /api/rewards/leaderboard
+   * @access Private (Students can view)
+   * @param {number} req.query.limit - Maximum number of entries to return (default: 50)
+   * @returns {Object} Ranked leaderboard with user stats and referral achievements
+   * @throws {500} Server error during leaderboard generation
+   */
   static async getLeaderboard(req, res) {
     try {
       const { limit = 50 } = req.query;
@@ -233,8 +341,25 @@ class RewardsController {
       });
     }
   }
-
-  // Admin: Create a new reward
+  /**
+   * Create New Reward Endpoint (Admin)
+   * 
+   * Creates a new reward in the system with specified properties and constraints.
+   * Handles quantity management for limited rewards and sets creator tracking.
+   * 
+   * @route POST /api/rewards/admin/rewards
+   * @access Private (Admin only)
+   * @param {Object} req.body - Reward data object
+   * @param {string} req.body.title - Reward title
+   * @param {string} req.body.description - Reward description
+   * @param {number} req.body.pointsCost - Points required to redeem
+   * @param {string} req.body.category - Reward category
+   * @param {string} req.body.type - Reward type (INSTANT, VOUCHER_CODE, etc.)
+   * @param {Object} req.user - Authenticated admin user
+   * @param {string} req.user.userId - Admin user ID for creator tracking
+   * @returns {Object} Created reward object with auto-assigned properties
+   * @throws {500} Server error during reward creation or validation error
+   */
   static async createReward(req, res) {
     try {
       const adminId = req.user.userId;
@@ -266,8 +391,22 @@ class RewardsController {
       });
     }
   }
-
-  // Admin: Update a reward
+  /**
+   * Update Reward Endpoint (Admin)
+   * 
+   * Updates an existing reward with new properties and tracks modification history.
+   * Allows modification of all reward fields while preserving creator information.
+   * 
+   * @route PUT /api/rewards/admin/rewards/:rewardId
+   * @access Private (Admin only)
+   * @param {string} req.params.rewardId - MongoDB ObjectId of reward to update
+   * @param {Object} req.body - Updated reward data (partial update supported)
+   * @param {Object} req.user - Authenticated admin user
+   * @param {string} req.user.userId - Admin user ID for modification tracking
+   * @returns {Object} Updated reward object
+   * @throws {404} Reward not found
+   * @throws {500} Server error during reward update
+   */
   static async updateReward(req, res) {
     try {
       const { rewardId } = req.params;
@@ -301,8 +440,19 @@ class RewardsController {
       });
     }
   }
-
-  // Admin: Delete a reward
+  /**
+   * Delete Reward Endpoint (Admin)
+   * 
+   * Safely deletes a reward with redemption history consideration.
+   * Performs soft delete (marks inactive) if redemptions exist, hard delete otherwise.
+   * 
+   * @route DELETE /api/rewards/admin/rewards/:rewardId
+   * @access Private (Admin only)
+   * @param {string} req.params.rewardId - MongoDB ObjectId of reward to delete
+   * @returns {Object} Deletion result with action taken (soft/hard delete)
+   * @throws {404} Reward not found
+   * @throws {500} Server error during deletion process
+   */
   static async deleteReward(req, res) {
     try {
       const { rewardId } = req.params;
@@ -343,8 +493,17 @@ class RewardsController {
       });
     }
   }
-
-  // Admin: Get analytics
+  /**
+   * Get Admin Analytics Endpoint
+   * 
+   * Retrieves comprehensive analytics data for rewards system administration.
+   * Includes statistics on redemptions, popular rewards, user engagement, and revenue metrics.
+   * 
+   * @route GET /api/rewards/admin/analytics
+   * @access Private (Admin only)
+   * @returns {Object} Analytics data including redemption stats, popular rewards, user metrics
+   * @throws {500} Server error during analytics calculation
+   */
   static async getAdminAnalytics(req, res) {
     try {
       const analytics = await RewardService.getAdminAnalytics();
@@ -361,8 +520,24 @@ class RewardsController {
       });
     }
   }
-
-  // Admin: Manual point adjustment
+  /**
+   * Adjust User Points Endpoint (Admin)
+   * 
+   * Manually adjusts user points balance for administrative purposes.
+   * Supports both positive (award) and negative (deduct) adjustments with audit trail.
+   * 
+   * @route POST /api/rewards/admin/adjust-points
+   * @access Private (Admin only)
+   * @param {string} req.body.userId - Target user ID for point adjustment
+   * @param {number} req.body.amount - Point amount (positive for award, negative for deduction)
+   * @param {string} req.body.description - Reason for adjustment (required for audit)
+   * @param {string} req.body.type - Adjustment type (defaults to 'ADMIN_ADJUSTMENT')
+   * @param {Object} req.user - Authenticated admin user
+   * @param {string} req.user.userId - Admin user ID for audit trail
+   * @returns {Object} Adjustment result with updated point balance
+   * @throws {400} Missing required fields (userId, amount, description)
+   * @throws {500} Server error during point adjustment
+   */
   static async adjustUserPoints(req, res) {
     try {
       const { userId, amount, description, type = 'ADMIN_ADJUSTMENT' } = req.body;
@@ -407,8 +582,20 @@ class RewardsController {
       });
     }
   }
-
-  // Admin: Get all redemptions
+  /**
+   * Get All Redemptions Endpoint (Admin)
+   * 
+   * Retrieves paginated list of all reward redemptions across all users.
+   * Supports filtering by status and includes user and reward details for admin management.
+   * 
+   * @route GET /api/rewards/admin/redemptions
+   * @access Private (Admin only)
+   * @param {string} req.query.status - Optional filter by redemption status
+   * @param {number} req.query.page - Page number for pagination (default: 1)
+   * @param {number} req.query.limit - Items per page (default: 20)
+   * @returns {Object} Paginated redemptions with user and reward details
+   * @throws {500} Server error during redemption retrieval
+   */
   static async getAllRedemptions(req, res) {
     try {
       const { status, page = 1, limit = 20 } = req.query;
@@ -448,8 +635,24 @@ class RewardsController {
       });
     }
   }
-
-  // Admin: Update redemption status
+  /**
+   * Update Redemption Status Endpoint (Admin)
+   * 
+   * Updates the status of a reward redemption with admin notes and delivery tracking.
+   * Handles status transitions (PENDING -> PROCESSING -> COMPLETED/CANCELLED) with audit trail.
+   * 
+   * @route PUT /api/rewards/admin/redemptions/:redemptionId/status
+   * @access Private (Admin only)
+   * @param {string} req.params.redemptionId - MongoDB ObjectId of redemption to update
+   * @param {string} req.body.status - New redemption status (PENDING/PROCESSING/COMPLETED/CANCELLED)
+   * @param {string} req.body.adminNotes - Optional admin notes for status change
+   * @param {Object} req.body.deliveryDetails - Optional delivery tracking information
+   * @param {Object} req.user - Authenticated admin user
+   * @param {string} req.user.userId - Admin user ID for processing audit
+   * @returns {Object} Updated redemption with new status and timestamps
+   * @throws {404} Redemption not found
+   * @throws {500} Server error during status update
+   */
   static async updateRedemptionStatus(req, res) {
     try {
       const { redemptionId } = req.params;
@@ -492,4 +695,10 @@ class RewardsController {
   }
 }
 
+/**
+ * Export RewardsController class
+ * 
+ * Main controller module for rewards and gamification system.
+ * Provides both user-facing and admin endpoints for complete rewards management.
+ */
 module.exports = RewardsController;

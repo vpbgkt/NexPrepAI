@@ -1,3 +1,29 @@
+/**
+ * Question Controller
+ * 
+ * CRUD controller for Question documents with multilingual support.
+ * Handles question creation, retrieval, updating, deletion, and filtering operations.
+ * Supports translations (en/hi) content stored in `translations` array.
+ * Manages hierarchical relationships with Branch, Subject, Topic, and SubTopic.
+ * 
+ * Features:
+ * - Multilingual question content (English/Hindi with auto-detection)
+ * - Hierarchical categorization (Branch -> Subject -> Topic -> SubTopic)
+ * - Multiple question types (single, multiple, integer, matrix)
+ * - CSV import functionality
+ * - Advanced filtering and pagination
+ * - Question history and tagging system
+ * 
+ * NOTE: Audit middleware should put `req.user.userId` on the request object.
+ * 
+ * @requires mongoose
+ * @requires ../models/Question
+ * @requires ../models/Branch
+ * @requires ../models/Subject
+ * @requires ../models/Topic
+ * @requires ../models/SubTopic
+ */
+
 // backend/controllers/questionController.js
 // -----------------------------------------
 // CRUD controller for Question documents.
@@ -13,7 +39,17 @@ const Subject   = require('../models/Subject');
 const Topic     = require('../models/Topic');
 const SubTopic  = require('../models/SubTopic');
 
-/*──────────────── helper ────────────────*/
+/**
+ * Hierarchy ID Resolution Helper
+ * 
+ * Resolves hierarchy references (Branch, Subject, Topic, SubTopic) by ID or name.
+ * If value is a valid ObjectId, returns it if document exists.
+ * If value is a string name, finds existing document or creates new one.
+ * 
+ * @param {mongoose.Model} Model - Mongoose model to query (Branch, Subject, etc.)
+ * @param {string} value - ObjectId string or document name
+ * @returns {Promise<ObjectId|null>} Resolved ObjectId or null if no value provided
+ */
 const resolveId = async (Model, value) => {
   if (!value) return null;
 
@@ -29,7 +65,15 @@ const resolveId = async (Model, value) => {
   return doc._id;
 };
 
-/*──────────────── language detection helper ────────────────*/
+/**
+ * Language Detection Helper
+ * 
+ * Automatically detects language of text content based on Unicode ranges.
+ * Currently supports Hindi (Devanagari script) detection, defaults to English.
+ * 
+ * @param {string} text - Text content to analyze for language detection
+ * @returns {string} Language code ('hi' for Hindi, 'en' for English/default)
+ */
 const detectLanguage = (text) => {
   if (!text || typeof text !== 'string') return 'en';
   
@@ -44,7 +88,34 @@ const detectLanguage = (text) => {
   return 'en'; // Default to English
 };
 
-/*──────────────── addQuestion ────────────*/
+/**
+ * Add Question Endpoint
+ * 
+ * Creates a new question with multilingual support and hierarchical categorization.
+ * Handles both object-based and array-based translation formats with automatic language detection.
+ * Validates question types, options, and correct answers based on question type requirements.
+ * 
+ * @route POST /api/questions/add
+ * @access Private (Authenticated users)
+ * @param {Object} req.body - Question data
+ * @param {Object|Array} req.body.translations - Translation data ({ en:{...}, hi:{...} } or array format)
+ * @param {string} req.body.difficulty - Question difficulty (Easy/Medium/Hard/Not-mentioned)
+ * @param {string} req.body.type - Question type (single/multiple/integer/matrix)
+ * @param {string} req.body.branchId - Branch ID or name (auto-created if name)
+ * @param {string} req.body.subjectId - Subject ID or name (auto-created if name)
+ * @param {string} req.body.topicId - Topic ID or name (auto-created if name)
+ * @param {string} req.body.subtopicId - SubTopic ID or name (auto-created if name)
+ * @param {Array} req.body.questionHistory - Array of exam history entries
+ * @param {string} req.body.status - Question status (draft/active/inactive)
+ * @param {Array} req.body.tags - Question tags for categorization
+ * @param {number} req.body.recommendedTimeAllotment - Suggested time in minutes
+ * @param {string} req.body.internalNotes - Internal admin notes
+ * @param {Object} req.user - Authenticated user object
+ * @param {string} req.user.userId - User ID for audit trail
+ * @returns {Object} Created question object with populated hierarchy
+ * @throws {400} Invalid question type, insufficient options, or validation errors
+ * @throws {500} Server error during question creation
+ */
 exports.addQuestion = async (req, res) => {
   try {
     /* ---------- 1. pull & sanitise body ------------------------- */
@@ -206,7 +277,17 @@ exports.addQuestion = async (req, res) => {
   }
 };
 
-/*──────────── other CRUD (unchanged) ───────────*/
+/**
+ * Get All Questions Endpoint
+ * 
+ * Retrieves all questions from the database with populated hierarchy information.
+ * Returns complete question list with branch, subject, topic, and subtopic details.
+ * 
+ * @route GET /api/questions/all
+ * @access Private (Authenticated users)
+ * @returns {Array} Array of all questions with populated hierarchy fields
+ * @throws {500} Server error during question retrieval
+ */
 exports.getAllQuestions = async (_req, res) => {
   const list = await Question.find()
     .populate('branch',  'name')
@@ -217,6 +298,20 @@ exports.getAllQuestions = async (_req, res) => {
   res.json(list);
 };
 
+/**
+ * Get Question By ID Endpoint
+ * 
+ * Retrieves a specific question by its MongoDB ObjectId.
+ * Supports language-specific translation retrieval via query parameter.
+ * 
+ * @route GET /api/questions/:id
+ * @access Private (Authenticated users)
+ * @param {string} req.params.id - MongoDB ObjectId of the question
+ * @param {string} req.query.lang - Optional language code for specific translation (default: 'en')
+ * @returns {Object} Question object with requested translation or fallback
+ * @throws {404} Question not found
+ * @throws {500} Server error during question retrieval
+ */
 exports.getQuestionById = async (req, res) => {
   const q = await Question.findById(req.params.id).lean();
   if (!q) return res.status(404).json({ message: 'Not found' });
@@ -228,19 +323,68 @@ exports.getQuestionById = async (req, res) => {
   res.json({ ...q, translation: pack });
 };
 
+/**
+ * Update Question Endpoint
+ * 
+ * Updates an existing question with provided data.
+ * Performs complete document replacement with new values.
+ * 
+ * @route PUT /api/questions/:id
+ * @access Private (Authenticated users)
+ * @param {string} req.params.id - MongoDB ObjectId of question to update
+ * @param {Object} req.body - Updated question data (follows same structure as addQuestion)
+ * @returns {Object} Updated question object
+ * @throws {404} Question not found
+ * @throws {500} Server error during question update
+ */
 exports.updateQuestion = async (req,res)=>{
   const q = await Question.findByIdAndUpdate(req.params.id, req.body, {new:true});
   if(!q) return res.status(404).json({message:'Not found'});
   res.json(q);
 };
 
+/**
+ * Delete Question Endpoint
+ * 
+ * Permanently removes a question from the database.
+ * Performs hard delete with no recovery option.
+ * 
+ * @route DELETE /api/questions/:id
+ * @access Private (Authenticated users)
+ * @param {string} req.params.id - MongoDB ObjectId of question to delete
+ * @returns {Object} Success message confirming deletion
+ * @throws {404} Question not found
+ * @throws {500} Server error during question deletion
+ */
 exports.deleteQuestion = async (req,res)=>{
   const ok = await Question.findByIdAndDelete(req.params.id);
   if(!ok) return res.status(404).json({message:'Not found'});
   res.json({message:'Deleted'});
 };
 
-/*──────────────── filterQuestions ────────────────*/
+/**
+ * Filter Questions Endpoint
+ * 
+ * Advanced question filtering with pagination support.
+ * Supports filtering by hierarchy (branch/subject/topic/subtopic), difficulty, type, status.
+ * Includes text search across question content and translations.
+ * Returns paginated results with total count and page information.
+ * 
+ * @route GET /api/questions/filter
+ * @access Private (Authenticated users)
+ * @param {string} req.query.branch - Branch ObjectId filter
+ * @param {string} req.query.subject - Subject ObjectId filter
+ * @param {string} req.query.topic - Topic ObjectId filter
+ * @param {string} req.query.subtopic - SubTopic ObjectId filter
+ * @param {string} req.query.difficulty - Difficulty filter (Easy/Medium/Hard/Not-mentioned)
+ * @param {string} req.query.type - Question type filter (single/multiple/integer/matrix)
+ * @param {string} req.query.status - Status filter (draft/active/inactive)
+ * @param {string} req.query.searchTerm - Text search in questionText and translations
+ * @param {number} req.query.page - Page number for pagination (default: 1)
+ * @param {number} req.query.limit - Items per page (default: 10)
+ * @returns {Object} Paginated questions with populated hierarchy and pagination metadata
+ * @throws {500} Server error during question filtering
+ */
 exports.filterQuestions = async (req, res) => {
   try {
     const {

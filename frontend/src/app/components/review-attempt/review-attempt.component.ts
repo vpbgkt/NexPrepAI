@@ -1,3 +1,9 @@
+/**
+ * Review Attempt Component
+ * Displays detailed review of a completed test attempt with questions, answers, and scoring
+ * Input: attemptId from route parameters
+ * Output: Renders test review UI with PDF download functionality
+ */
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
@@ -6,12 +12,21 @@ import { saveAs } from 'file-saver';
 import { HttpClient } from '@angular/common/http';
 
 // Define interfaces based on the expected structure of 'data'
+
+/**
+ * Represents a multiple choice option in a question
+ * Contains text, correctness flag, and unique identifier
+ */
 interface Option {
   text: string;
   isCorrect: boolean;
   _id: string;
 }
 
+/**
+ * Complete question data structure with all metadata
+ * Includes question content, options, scoring, and difficulty level
+ */
 interface FullQuestion {
   question: string; // This is the ID
   marks: number;
@@ -23,12 +38,20 @@ interface FullQuestion {
   _id: string; // Internal ID for this question instance in sections
 }
 
+/**
+ * Test section containing grouped questions
+ * Represents organizational structure of the test
+ */
 interface Section {
   title: string;
   order: number;
   questions: FullQuestion[];
 }
 
+/**
+ * Student's response to a specific question
+ * Contains selected answers, scoring, and review status
+ */
 interface ResponseItem { // Renamed from Response to avoid conflict if Response is a global type
   question: string; // MODIFIED: This is the ID of the master question
   selected: string[];
@@ -40,6 +63,10 @@ interface ResponseItem { // Renamed from Response to avoid conflict if Response 
   populatedCorrectOptions?: string[]; // Added property
 }
 
+/**
+ * Complete test attempt record
+ * Contains all student responses, timing, and test metadata
+ */
 interface Attempt {
   _id: string;
   series: any; // or string if not populated
@@ -53,7 +80,10 @@ interface Attempt {
   sections: Section[];
 }
 
-// Added interface for display
+/**
+ * Interface for organizing responses by section for display
+ * Groups responses under their respective test sections
+ */
 interface DisplayedSectionReview {
   title: string;
   order: number;
@@ -76,18 +106,23 @@ export class ReviewAttemptComponent implements OnInit {
   
   // To map responses from the flat list to the structured sections by index
   private flatResponseIndex = 0; 
-
   constructor(
     private route: ActivatedRoute,
     private testSvc: TestService,
     private http: HttpClient // ← inject HttpClient
   ) {}
 
+  /**
+   * Component initialization
+   * Fetches attempt ID from route and loads review data from backend
+   * Input: attemptId from route parameters
+   * Output: Populates component with attempt data and organizes by sections
+   */
   ngOnInit() {
     this.attemptId = this.route.snapshot.paramMap.get('attemptId')!;
     this.loading = true; // Set loading to true before the call
     this.testSvc.reviewAttempt(this.attemptId).subscribe({
-      next: (data: any) => { 
+      next: (data: any) => {
         console.log('FE: ReviewAttemptComponent - Data received:', JSON.stringify(data, null, 2));
         this.attempt = data as Attempt; 
 
@@ -177,6 +212,11 @@ export class ReviewAttemptComponent implements OnInit {
     });
   }
 
+  /**
+   * Calculates global question number across all sections
+   * Input: sectionIdx (section index), questionInSectionIdx (question index within section)
+   * Output: Global question number for display (1-based indexing)
+   */
   getGlobalQuestionNumberForReview(sectionIdx: number, questionInSectionIdx: number): number {
     let globalIndex = 0;
     for (let i = 0; i < sectionIdx; i++) {
@@ -189,7 +229,11 @@ export class ReviewAttemptComponent implements OnInit {
     return globalIndex + 1;
   }
 
-  // Helper to render the student’s answer text
+  /**
+   * Renders student's selected answer as human-readable text
+   * Input: ResponseItem containing selected answer indices and question data
+   * Output: Formatted string of selected option texts or error message
+   */
   getAnswerText(r: ResponseItem): string {
     if (!r) return 'Response data missing';
 
@@ -213,6 +257,11 @@ export class ReviewAttemptComponent implements OnInit {
       .join(', ');
   }
 
+  /**
+   * Renders correct answer(s) as human-readable text
+   * Input: ResponseItem with populated correct options
+   * Output: Formatted string of correct option texts
+   */
   getCorrectText(r: ResponseItem): string {
     if (!r) return 'Response data missing';
 
@@ -222,6 +271,11 @@ export class ReviewAttemptComponent implements OnInit {
     return r.populatedCorrectOptions.join(', ');
   }
 
+  /**
+   * Downloads test attempt scorecard as PDF
+   * Input: None (uses component's attemptId)
+   * Output: Triggers PDF download or shows error alert
+   */
   downloadPdf(): void {
     const url = `http://localhost:5000/api/tests/${this.attemptId}/pdf`;
     this.http.get(url, {

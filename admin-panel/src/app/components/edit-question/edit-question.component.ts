@@ -1,3 +1,20 @@
+/**
+ * @fileoverview Edit Question Component for NexPrep Admin Panel
+ * @description Comprehensive multilingual question editing interface supporting dynamic content
+ * modification, hierarchical categorization updates, and advanced metadata management with
+ * real-time preview and validation capabilities.
+ * 
+ * @module EditQuestionComponent
+ * @requires @angular/core
+ * @requires @angular/common
+ * @requires @angular/forms
+ * @requires @angular/router
+ * @requires rxjs
+ * @requires QuestionService
+ * @author NexPrep Development Team
+ * @since 1.0.0
+ */
+
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
@@ -6,6 +23,52 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { QuestionService } from '../../services/question.service';
 import { Question, PopulatedHierarchyField, Translation, Option as QuestionOption, Explanation } from '../../models/question.model'; // IMPORT Question model AND Explanation model
 
+/**
+ * @interface QuestionEditForm
+ * @description Extended question interface for edit form operations
+ * @property {string} [branchId] - Educational branch identifier
+ * @property {string} [subjectId] - Subject identifier within branch
+ * @property {string} [topicId] - Topic identifier within subject
+ * @property {string} [subTopicId] - Subtopic identifier within topic
+ * @property {string} [questionText] - Current language question text
+ * @property {QuestionOption[]} options - Answer options for the question
+ */
+interface QuestionEditForm extends Partial<Question> {
+  branchId?: string;
+  subjectId?: string;
+  topicId?: string;
+  subTopicId?: string;
+  questionText?: string;
+  options: QuestionOption[];
+}
+
+/**
+ * @class EditQuestionComponent
+ * @description Angular component for editing existing questions with multilingual support.
+ * Provides comprehensive editing capabilities including content modification, hierarchy
+ * management, translation handling, and metadata updates.
+ * 
+ * Key Features:
+ * - Multilingual content editing (English/Hindi)
+ * - Dynamic option management with validation
+ * - Hierarchical categorization updates
+ * - Image and explanation management
+ * - Real-time form validation
+ * - Translation switching and management
+ * - Question metadata editing
+ * 
+ * @implements {OnInit}
+ * 
+ * @example
+ * ```typescript
+ * // Component handles complete question editing workflow:
+ * // 1. Load existing question data by ID
+ * // 2. Initialize multilingual translations
+ * // 3. Provide dynamic content editing interface
+ * // 4. Handle hierarchy cascade updates
+ * // 5. Validate and save modifications
+ * ```
+ */
 @Component({
   selector: 'app-edit-question',
   standalone: true,
@@ -13,21 +76,22 @@ import { Question, PopulatedHierarchyField, Translation, Option as QuestionOptio
   templateUrl: './edit-question.component.html',
   styleUrls: ['./edit-question.component.scss'],
 })
-export class EditQuestionComponent implements OnInit {
+export class EditQuestionComponent implements OnInit {  /** @private {QuestionService} Service for question CRUD operations */
   private questionService = inject(QuestionService);
+  /** @private {ActivatedRoute} Angular router service for accessing route parameters */
   private route = inject(ActivatedRoute);
+  /** @private {Router} Angular navigation service for programmatic routing */
   private router = inject(Router);
 
+  /** @property {string} Question ID extracted from route parameters */
   id!: string;
-  question: Partial<Question> & {
-    branchId?: string;
-    subjectId?: string;
-    topicId?: string;
-    subTopicId?: string;
-    questionText?: string;
-    options: QuestionOption[];
-    // type and status are already part of Question model
-  } = {
+  
+  /**
+   * @property {QuestionEditForm} Main question object for editing
+   * @description Extended question interface with additional UI-specific properties
+   * for form binding and hierarchy management
+   */
+  question: QuestionEditForm = {
     translations: [],
     difficulty: '',
     options: [{ text: '', isCorrect: false }, { text: '', isCorrect: false }],
@@ -38,21 +102,40 @@ export class EditQuestionComponent implements OnInit {
     internalNotes: '' // Initialize new field
   };
 
-  tagsInputString: string = ''; // ADDED for ngModel binding
+  /** @property {string} String representation of tags for form input binding */
+  tagsInputString: string = '';
 
+  /** @property {any[]} Available educational branches for selection */
   branches: any[] = [];
+  /** @property {any[]} Available subjects filtered by selected branch */
   subjects: any[] = [];
+  /** @property {any[]} Available topics filtered by selected subject */
   topics: any[] = [];
+  /** @property {any[]} Available subtopics filtered by selected topic */
   subtopics: any[] = [];
 
+  /** @property {boolean} Loading state indicator for async operations */
   isLoading = false;
 
+  /** @property {string} Current active language for translation editing */
   currentLang: string = 'en';
+  /** @property {number} Index of current translation being edited */
   currentTranslationIndex: number = 0;
+  /** @property {string[]} Available language codes for translation support */
   availableLangs: string[] = ['en', 'hi'];
-  currentTranslationExplanations: Explanation[] = []; // UPDATED type
-
-  // ADDED: Ensure question.translations[currentTranslationIndex] is defined before accessing images
+  /** @property {Explanation[]} Explanations for the current translation */
+  currentTranslationExplanations: Explanation[] = [];
+  /**
+   * @getter currentQuestionImages
+   * @description Retrieves images array for the current translation, initializing if undefined
+   * @returns {string[]} Array of image URLs for the current translation
+   * 
+   * @example
+   * ```typescript
+   * const images = this.currentQuestionImages;
+   * // Returns: ['image1.jpg', 'image2.png'] or []
+   * ```
+   */
   get currentQuestionImages(): string[] {
     if (this.question && this.question.translations && this.question.translations[this.currentTranslationIndex]) {
       if (!this.question.translations[this.currentTranslationIndex].images) {
@@ -63,12 +146,25 @@ export class EditQuestionComponent implements OnInit {
     return [];
   }
 
-  // ADDED: questionTypes and questionStatuses (extended with values from sample data)
-  questionTypes: string[] = ['MCQ', 'SA', 'LA', 'FITB', 'Matrix', 'single', 'multiple']; // Added 'single', 'multiple'
-  questionStatuses: string[] = ['Draft', 'Published', 'Archived', 'Pending Review', 'active', 'inactive']; // Added 'active', 'inactive'
+  /** @property {string[]} Available question types for selection */
+  questionTypes: string[] = ['MCQ', 'SA', 'LA', 'FITB', 'Matrix', 'single', 'multiple'];
+  /** @property {string[]} Available question status options for workflow management */
+  questionStatuses: string[] = ['Draft', 'Published', 'Archived', 'Pending Review', 'active', 'inactive'];
 
-
-  // ADDED: Helper to get ID from hierarchical fields
+  /**
+   * @private
+   * @method getHierarchicalId
+   * @description Extracts string ID from various hierarchical field formats (string, ObjectId, populated object)
+   * @param {string | { $oid: string } | PopulatedHierarchyField | undefined} field - Hierarchical field value
+   * @returns {string | undefined} Extracted string ID or undefined if not found
+   * 
+   * @example
+   * ```typescript
+   * const id1 = this.getHierarchicalId('507f1f77bcf86cd799439011'); // Returns: '507f1f77bcf86cd799439011'
+   * const id2 = this.getHierarchicalId({ $oid: '507f1f77bcf86cd799439011' }); // Returns: '507f1f77bcf86cd799439011'
+   * const id3 = this.getHierarchicalId({ _id: '507f1f77bcf86cd799439011', name: 'Branch Name' }); // Returns: '507f1f77bcf86cd799439011'
+   * ```
+   */
   private getHierarchicalId(field: string | { $oid: string } | PopulatedHierarchyField | undefined): string | undefined {
     if (!field) { return undefined; }
     if (typeof field === 'string') { return field; } // Already an ID
@@ -79,6 +175,25 @@ export class EditQuestionComponent implements OnInit {
     }
     return undefined;
   }
+
+  /**
+   * @method ngOnInit
+   * @description Angular lifecycle hook for component initialization.
+   * Extracts question ID from route parameters, loads question data, initializes
+   * form state, and sets up hierarchical dropdown dependencies.
+   * 
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Component initialization flow:
+   * // 1. Extract question ID from route parameters
+   * // 2. Load educational hierarchy (branches)
+   * // 3. Load existing question data if editing
+   * // 4. Initialize translation management
+   * // 5. Set up form validation and dependencies
+   * ```
+   */
 
   ngOnInit() {
     console.log('[EditQuestionComponent] ngOnInit: Component initializing.');
@@ -203,10 +318,20 @@ export class EditQuestionComponent implements OnInit {
       this.currentTranslationIndex = 0;
     }
   }
-
   // ... fetchBranches, fetchSubjects, fetchTopics, fetchSubtopics methods remain similar ...
   // Ensure they are correctly implemented
 
+  /**
+   * @method fetchBranches
+   * @description Loads available educational branches from the backend service
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * this.fetchBranches();
+   * // Populates this.branches with available educational branches
+   * ```
+   */
   fetchBranches() {
     this.questionService.getBranches().subscribe({
       next: data => this.branches = Array.isArray(data) ? data : data.branches || [],
@@ -214,6 +339,18 @@ export class EditQuestionComponent implements OnInit {
     });
   }
 
+  /**
+   * @method fetchSubjects
+   * @description Loads subjects for a specific branch from the backend service
+   * @param {string} branchId - The branch ID to fetch subjects for
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * this.fetchSubjects('507f1f77bcf86cd799439011');
+   * // Populates this.subjects with subjects for the specified branch
+   * ```
+   */
   fetchSubjects(branchId: string) {
     if (!branchId) return;
     this.questionService.getSubjects(branchId).subscribe({
@@ -222,6 +359,18 @@ export class EditQuestionComponent implements OnInit {
     });
   }
 
+  /**
+   * @method fetchTopics
+   * @description Loads topics for a specific subject from the backend service
+   * @param {string} subjectId - The subject ID to fetch topics for
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * this.fetchTopics('507f1f77bcf86cd799439012');
+   * // Populates this.topics with topics for the specified subject
+   * ```
+   */
   fetchTopics(subjectId: string) {
     if (!subjectId) return;
     this.questionService.getTopics(subjectId).subscribe({
@@ -229,7 +378,18 @@ export class EditQuestionComponent implements OnInit {
       error: err => console.error('Error fetching topics:', err)
     });
   }
-
+  /**
+   * @method fetchSubtopics
+   * @description Loads subtopics for a specific topic from the backend service
+   * @param {string} topicId - The topic ID to fetch subtopics for
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * this.fetchSubtopics('507f1f77bcf86cd799439013');
+   * // Populates this.subtopics with subtopics for the specified topic
+   * ```
+   */
   fetchSubtopics(topicId: string) {
     if(!topicId) return;
     this.questionService.getSubtopics(topicId).subscribe({
@@ -238,7 +398,18 @@ export class EditQuestionComponent implements OnInit {
     });
   }
   
-  // MODIFIED: Event handlers for dropdowns
+  /**
+   * @method onBranchChange
+   * @description Handles educational branch selection change, resets dependent dropdowns and loads subjects
+   * @param {string} branchIdValue - Selected branch ID
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * this.onBranchChange('507f1f77bcf86cd799439011');
+   * // Clears subjects, topics, subtopics and loads new subjects for branch
+   * ```
+   */
   onBranchChange(branchIdValue: string) {
     this.question.branchId = branchIdValue;
     this.question.subjectId = undefined;
@@ -252,6 +423,18 @@ export class EditQuestionComponent implements OnInit {
     }
   }
 
+  /**
+   * @method onSubjectChange
+   * @description Handles subject selection change, resets dependent dropdowns and loads topics
+   * @param {string} subjectIdValue - Selected subject ID
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * this.onSubjectChange('507f1f77bcf86cd799439012');
+   * // Clears topics, subtopics and loads new topics for subject
+   * ```
+   */
   onSubjectChange(subjectIdValue: string) {
     this.question.subjectId = subjectIdValue;
     this.question.topicId = undefined;
@@ -263,6 +446,18 @@ export class EditQuestionComponent implements OnInit {
     }
   }
 
+  /**
+   * @method onTopicChange
+   * @description Handles topic selection change, resets subtopic dropdown and loads subtopics
+   * @param {string} topicIdValue - Selected topic ID
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * this.onTopicChange('507f1f77bcf86cd799439013');
+   * // Clears subtopics and loads new subtopics for topic
+   * ```
+   */
   onTopicChange(topicIdValue: string) {
     this.question.topicId = topicIdValue;
     this.question.subTopicId = undefined;
@@ -271,22 +466,55 @@ export class EditQuestionComponent implements OnInit {
       this.fetchSubtopics(topicIdValue);
     }
   }
-
+  /**
+   * @method onSubtopicChange
+   * @description Handles subtopic selection change, updates question's subtopic ID
+   * @param {string} subtopicIdValue - Selected subtopic ID
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * this.onSubtopicChange('507f1f77bcf86cd799439014');
+   * // Sets question's subtopic ID to selected value
+   * ```
+   */
   onSubtopicChange(subtopicIdValue: string) { // Name from original file was onSubtopicChange
     this.question.subTopicId = subtopicIdValue;
   }
 
-  // ADDED: Method to handle changes to the tags input string
+  /**
+   * @method onTagsInputChange
+   * @description Handles changes to the tags input string, parsing comma-separated values into tags array
+   * @param {string} value - Comma-separated tags string from input field
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * this.onTagsInputChange('physics, mechanics, kinematics');
+   * // Updates question.tags to ['physics', 'mechanics', 'kinematics']
+   * ```
+   */
   onTagsInputChange(value: string): void {
     this.tagsInputString = value; // Keep the input field's value as is
     if (value && value.trim() !== '') {
       this.question.tags = value.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
     } else {
       this.question.tags = [];
-    }
-  }
+    }  }
 
-  // ADDED: Basic language switching logic
+  /**
+   * @method switchLanguage
+   * @description Switches the editing interface to a different language translation,
+   * saving current translation state and loading the target language content
+   * @param {string} lang - Language code to switch to (e.g., 'en', 'hi')
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * this.switchLanguage('hi');
+   * // Saves current English content and loads Hindi translation for editing
+   * ```
+   */
   switchLanguage(lang: string): void {
     const newIndex = this.question.translations?.findIndex(t => t.lang === lang);
     if (newIndex !== undefined && newIndex !== -1) {
@@ -330,9 +558,21 @@ export class EditQuestionComponent implements OnInit {
     } else {
       // If language doesn't exist, add it
       this.addTranslation(lang);
-    }
-  }
+    }  }
 
+  /**
+   * @method addTranslation
+   * @description Adds a new language translation to the question, saving current state
+   * and initializing empty content for the new language
+   * @param {string} lang - Language code for the new translation (e.g., 'hi', 'es')
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * this.addTranslation('hi');
+   * // Adds Hindi translation with empty content and switches to it
+   * ```
+   */
   addTranslation(lang: string): void {
     if (!this.question.translations) this.question.translations = [];
     if (!this.question.translations.find(t => t.lang === lang)) {
@@ -362,21 +602,52 @@ export class EditQuestionComponent implements OnInit {
       this.question.questionText = '';
       this.question.options = [{ text: '', isCorrect: false }, { text: '', isCorrect: false }];
       this.currentTranslationExplanations = [{ type: 'text', content: '' }]; // Initialize with default explanation structure
-    }
-  }
+    }  }
 
-  // UPDATED: Methods to manage explanations for the current translation
+  /**
+   * @method addExplanation
+   * @description Adds a new explanation entry to the current translation
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * this.addExplanation();
+   * // Adds a new explanation with default 'text' type and empty content
+   * ```
+   */
   addExplanation(): void {
     this.currentTranslationExplanations.push({ type: 'text', content: '' }); // Add new Explanation object
   }
 
+  /**
+   * @method removeExplanation
+   * @description Removes an explanation entry from the current translation
+   * @param {number} index - Index of the explanation to remove
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * this.removeExplanation(1);
+   * // Removes the explanation at index 1
+   * ```
+   */
   removeExplanation(index: number): void {
     if (this.currentTranslationExplanations.length > 0) {
       this.currentTranslationExplanations.splice(index, 1);
     }
   }
 
-  // ADDED: Methods to manage question images for the current translation
+  /**
+   * @method addQuestionImage
+   * @description Adds a new image URL placeholder to the current translation
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * this.addQuestionImage();
+   * // Adds an empty image URL to the current translation's images array
+   * ```
+   */
   addQuestionImage(): void {
     if (this.question && this.question.translations && this.question.translations[this.currentTranslationIndex]) {
       if (!this.question.translations[this.currentTranslationIndex].images) {
@@ -385,20 +656,62 @@ export class EditQuestionComponent implements OnInit {
       this.question.translations[this.currentTranslationIndex].images!.push('');
     }
   }
-
+  /**
+   * @method removeQuestionImage
+   * @description Removes an image URL from the current translation's images array
+   * @param {number} imgIndex - Index of the image to remove from the array
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * this.removeQuestionImage(0);
+   * // Removes the first image from the current translation
+   * ```
+   */
   removeQuestionImage(imgIndex: number): void {
     if (this.question && this.question.translations && this.question.translations[this.currentTranslationIndex] && this.question.translations[this.currentTranslationIndex].images) {
       this.question.translations[this.currentTranslationIndex].images!.splice(imgIndex, 1);
     }
   }
-
+  /**
+   * @method removeOptionImage
+   * @description Removes/clears the image from a specific option by setting it to empty string
+   * @param {number} optionIndex - Index of the option to remove the image from
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * this.removeOptionImage(1);
+   * // Clears the image from the second option (index 1)
+   * ```
+   */
   // ADDED: Method to manage option image (sets to empty string for now)
   removeOptionImage(optionIndex: number): void {
     if (this.question && this.question.options && this.question.options[optionIndex]) {
       this.question.options[optionIndex].img = '';
     }
   }
-
+  /**
+   * @method save
+   * @description Saves the question by validating form data and sending to backend service
+   * @param {NgForm} form - Angular form reference for validation
+   * @returns {void}
+   * 
+   * @description
+   * This method handles both creating new questions and updating existing ones:
+   * - Validates form data and marks all fields as touched if invalid
+   * - Updates the current translation with form-bound properties
+   * - Prepares payload with all question data including hierarchy, translations, and metadata
+   * - Calls appropriate service method based on whether editing (this.id exists) or creating
+   * - Handles success/error responses and navigates back to questions list
+   * 
+   * @example
+   * ```typescript
+   * // Called from template on form submission
+   * this.save(questionForm);
+   * // Validates and saves the question, then navigates to questions list
+   * ```
+   */
   save(form: NgForm) {
     if (form.invalid) {
       form.control.markAllAsTouched();
@@ -460,11 +773,39 @@ export class EditQuestionComponent implements OnInit {
         }
       });
   }
-
+  /**
+   * @method cancel
+   * @description Cancels the current edit operation and navigates back to questions list
+   * @returns {void}
+   * 
+   * @description
+   * This method provides a way to exit the edit form without saving changes.
+   * All unsaved changes will be lost when navigating away.
+   * 
+   * @example
+   * ```typescript
+   * this.cancel();
+   * // Navigates back to /questions route, discarding any unsaved changes
+   * ```
+   */
   cancel() {
     this.router.navigate(['/questions']);
   }
-
+  /**
+   * @method addOption
+   * @description Adds a new blank option to the current language's options array
+   * @returns {void}
+   * 
+   * @description
+   * Creates a new option with empty text and isCorrect set to false.
+   * Ensures the options array exists before adding the new option.
+   * 
+   * @example
+   * ```typescript
+   * this.addOption();
+   * // Adds a new option: { text: '', isCorrect: false }
+   * ```
+   */
   /** Add a new blank option to the current language's options */
   addOption() {
     // Ensure this.question.options is always an array before pushing
@@ -473,7 +814,22 @@ export class EditQuestionComponent implements OnInit {
     }
     this.question.options.push({ text: '', isCorrect: false });
   }
-
+  /**
+   * @method removeOption
+   * @description Removes an option from the current language's options array
+   * @param {number} index - Index of the option to remove
+   * @returns {void}
+   * 
+   * @description
+   * Removes an option at the specified index while maintaining a minimum of 2 options.
+   * This ensures that multiple choice questions always have at least 2 answer choices.
+   * 
+   * @example
+   * ```typescript
+   * this.removeOption(2);
+   * // Removes the option at index 2, if more than 2 options exist
+   * ```
+   */
   /** Remove an option, leave at least two */
   removeOption(index: number) {
     // Ensure this.question.options is defined and is an array

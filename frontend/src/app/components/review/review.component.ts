@@ -1,3 +1,22 @@
+/**
+ * @fileoverview Review Component for NexPrep Frontend Application
+ * @description Comprehensive Angular component for detailed post-exam review and analysis.
+ * Provides advanced features for result visualization, question-wise analytics,
+ * performance insights, progress tracking, and detailed answer explanations.
+ * @module ReviewComponent
+ * @requires @angular/core
+ * @requires @angular/common
+ * @requires @angular/forms
+ * @requires @angular/router
+ * @requires @angular/common/http
+ * @requires TestService
+ * @requires chart.js
+ * @requires file-saver
+ * @requires html2pdf.js
+ * @author NexPrep Development Team
+ * @since 1.0.0
+ */
+
 import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule }      from '@angular/common';
 import { FormsModule }       from '@angular/forms';
@@ -9,75 +28,143 @@ import { saveAs } from 'file-saver';
 import * as html2pdf from 'html2pdf.js/dist/html2pdf.bundle.js';
 import { Location } from '@angular/common'; // Import Location
 
+/**
+ * @interface EnhancedReviewData
+ * @description Complete review data structure with attempt details and analytics
+ */
 interface EnhancedReviewData {
+  /** Test attempt information */
   attempt: {
+    /** Attempt unique identifier */
     id: string;
+    /** Test series title */
     seriesTitle: string;
+    /** Score achieved */
     score: number;
+    /** Maximum possible score */
     maxScore: number;
+    /** Percentage score */
     percentage: number;
+    /** Submission timestamp */
     submittedAt: string;
+    /** Total time spent in exam */
     totalTimeSpent: number;
+    /** Time spent per section */
     timePerSection: any[];
+    /** Sequence of questions attempted */
     questionSequence: string[];
+    /** Questions marked for review */
     flaggedQuestions: string[];
   };
+  /** Question-wise review data */
   questions: QuestionReview[];
+  /** Performance analytics */
   analytics: PerformanceAnalytics;
 }
 
+/**
+ * @interface QuestionReview
+ * @description Detailed review data for individual questions
+ */
 interface QuestionReview {
+  /** Question unique identifier */
   questionId: string;
+  /** Question text content */
   questionText: string;
+  /** Available answer options */
   options: { _id?: string; id?: string; text: string; [key: string]: any }[];
+  /** Answer explanations */
   explanations: { content?: string; text?: string }[];
+  /** Question difficulty level */
   difficulty: string;
+  /** Estimated time to solve (in seconds) */
   estimatedTime: number;
+  /** Subject classification */
   topics: {
+    /** Subject name */
     subject: string;
+    /** Topic name */
     topic: string;
+    /** Subtopic name */
     subTopic: string;
   };
+  /** Associated tags */
   tags: string[];
-  selectedAnswer: string[]; // Should be array of option IDs
-  correctAnswer: string[]; // Should be array of correct option IDs
+  /** User's selected answer (array of option IDs) */
+  selectedAnswer: string[];
+  /** Correct answer (array of correct option IDs) */
+  correctAnswer: string[];
+  /** Marks earned for this question */
   earned: number;
+  /** Question status (correct, incorrect, unanswered) */
   status: string;
+  /** Time spent on this question (in seconds) */
   timeSpent: number;
+  /** Number of attempts on this question */
   attempts: number;
+  /** Whether question was flagged for review */
   flagged: boolean;
+  /** User's confidence level (1-5) */
   confidence: number;
+  /** Whether the answer was correct */
   isCorrect: boolean;
+  /** Total marks for this question */
   marks: number;
+  /** Historical performance on this question */
   questionHistory?: { date: string; outcome: string; timeTaken: number }[];
+  /** Feedback messages */
   feedback?: { type: string; text: string }[];
 
-  // Added for enhanced review display
+  // Enhanced review display properties
+  /** Text of user's selected options */
   userSelectedOptionTexts?: string[];
+  /** Text of correct options */
   correctOptionTexts?: string[];
-  actualCorrectOptionIds?: string[]; // Added to ensure we have the definitive correct option IDs
-  selectedAnswerIndices?: number[]; // Added for potential index-based operations if needed
+  /** Definitive correct option IDs */
+  actualCorrectOptionIds?: string[];
+  /** Indices of selected answers */
+  selectedAnswerIndices?: number[];
 }
 
+/**
+ * @interface PerformanceAnalytics
+ * @description Comprehensive performance analytics and insights
+ */
 interface PerformanceAnalytics {
+  /** Overall performance metrics */
   overall: {
+    /** Total number of questions */
     totalQuestions: number;
+    /** Number of correct answers */
     correctAnswers: number;
+    /** Number of incorrect answers */
     incorrectAnswers: number;
+    /** Number of unanswered questions */
     unanswered: number;
+    /** Accuracy percentage */
     accuracy: number;
+    /** Total time spent */
     timeSpent: number;
+    /** Average time per question */
     averageTimePerQuestion: number;
+    /** Number of flagged questions */
     flaggedCount: number;
   };
+  /** Total questions count */
   totalQuestions: number;
+  /** Performance breakdown by difficulty */
   difficultyBreakdown: any;
-  subjectBreakdown: any; // This might be the same as subjectPerformance or a different structure
-  subjectPerformance?: any[]; // For subject-wise performance data
+  /** Performance breakdown by subject */
+  subjectBreakdown: any;
+  /** Subject-wise performance data */
+  subjectPerformance?: any[];
+  /** Time analysis metrics */
   timeAnalysis: any;
-  // Add other properties based on template usage if they come from analytics
+  /** Performance insights and recommendations */
   performanceInsights?: any[];
+  /** Areas requiring priority attention */
   priorityAreas?: any[];
+  /** Time management suggestions */
   timeManagementTips?: any[];
   strengths?: any[];
   practiceRecommendations?: any[];
@@ -85,6 +172,40 @@ interface PerformanceAnalytics {
   nextSteps?: any[];
 }
 
+/**
+ * @class ReviewComponent
+ * @description Comprehensive post-examination review and analysis component providing detailed
+ * performance insights, question-by-question analysis, interactive charts, and personalized
+ * study recommendations. Features advanced analytics visualization and progress tracking.
+ * 
+ * @implements {OnInit} Angular lifecycle interface for component initialization
+ * @implements {AfterViewInit} Angular lifecycle interface for post-view initialization
+ * @implements {OnDestroy} Angular lifecycle interface for component cleanup
+ * 
+ * @example
+ * ```typescript
+ * // Component handles complete review workflow:
+ * // 1. Loads comprehensive review data from backend
+ * // 2. Processes performance analytics and recommendations
+ * // 3. Renders interactive charts and visualizations
+ * // 4. Provides question navigation and detailed explanations
+ * // 5. Generates personalized study recommendations
+ * 
+ * // Usage in routing:
+ * { path: 'review/:attemptId', component: ReviewComponent }
+ * 
+ * // Features:
+ * // - Multi-tab interface (Overview, Questions, Analytics, Recommendations)
+ * // - Interactive Chart.js visualizations
+ * // - Question filtering and navigation
+ * // - PDF export functionality
+ * // - Detailed answer explanations
+ * // - Performance insights and study recommendations
+ * ```
+ * 
+ * @since 1.0.0
+ * @author NexPrep Development Team
+ */
 @Component({
   selector: 'app-review',
   standalone: true,
@@ -92,31 +213,69 @@ interface PerformanceAnalytics {
   templateUrl: './review.component.html',
   styleUrls: ['./review.component.scss']
 })
-export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
+export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {  /** @property {ElementRef<HTMLCanvasElement>} Chart canvas reference for accuracy visualization */
   @ViewChild('accuracyChart', { static: false }) accuracyChartRef!: ElementRef<HTMLCanvasElement>;
+  
+  /** @property {ElementRef<HTMLCanvasElement>} Chart canvas reference for time analysis visualization */
   @ViewChild('timeChart', { static: false }) timeChartRef!: ElementRef<HTMLCanvasElement>;
+  
+  /** @property {ElementRef<HTMLCanvasElement>} Chart canvas reference for difficulty analysis visualization */
   @ViewChild('difficultyChart', { static: false }) difficultyChartRef!: ElementRef<HTMLCanvasElement>;
 
+  /** @property {string} Unique identifier for the test attempt being reviewed */
   attemptId!: string;
+  
+  /** @property {EnhancedReviewData | null} Comprehensive review data including questions and analytics */
   reviewData: EnhancedReviewData | null = null;
+  
+  /** @property {any} Performance analytics data for visualization and insights */
   performanceAnalytics: any = null;
+  
+  /** @property {any} Personalized study recommendations based on performance */
   studyRecommendations: any = null;
+  
+  /** @property {boolean} Loading state indicator for UI feedback */
   loading = true;
+  
+  /** @property {string | null} Error message for user feedback */
   error: string | null = null;
 
-  // Chart instances
+  /** @property {Chart} Chart.js instance for accuracy visualization */
   accuracyChart?: Chart;
+  
+  /** @property {Chart} Chart.js instance for time analysis visualization */
   timeChart?: Chart;
+  
+  /** @property {Chart} Chart.js instance for difficulty analysis visualization */
   difficultyChart?: Chart;
-  // UI State
+  
+  /** @property {number} Current question index for navigation */
   currentQuestionIndex = 0;
+  
+  /** @property {string} Active tab identifier for multi-tab interface */
   activeTab = 'overview'; // overview, questions, analytics, recommendations
+  
+  /** @property {boolean} Controls explanation visibility for current question */
   showExplanation = false;
+  
+  /** @property {string} Question filter criteria for advanced filtering */
   filterBy = 'all'; // all, correct, incorrect, flagged, unanswered
+  
+  /** @property {boolean} PDF download state indicator */
   downloadingPdf = false;
 
-  // Utility references for template
-  String = String;
+  /** @property {StringConstructor} Utility reference for template string operations */
+  String = String;  /**
+   * @constructor
+   * @description Initializes the ReviewComponent with required dependencies for routing,
+   * HTTP operations, and location services.
+   * 
+   * @param {ActivatedRoute} route - Angular ActivatedRoute for parameter extraction
+   * @param {Router} router - Angular Router for navigation operations
+   * @param {TestService} testSvc - Test service for review data API operations
+   * @param {HttpClient} http - Angular HttpClient for HTTP operations
+   * @param {Location} location - Angular Location service for browser navigation
+   */
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -124,6 +283,20 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
     private http: HttpClient,
     private location: Location // Inject Location
   ) {}
+  /**
+   * @method ngOnInit
+   * @description Component initialization lifecycle hook. Extracts attempt ID from route
+   * parameters and initiates comprehensive review data loading process.
+   * 
+   * @example
+   * ```typescript
+   * // Automatically called by Angular framework
+   * // 1. Extracts attemptId from route parameters
+   * // 2. Validates attempt ID presence
+   * // 3. Initiates review data loading workflow
+   * // 4. Sets up error handling for missing parameters
+   * ```
+   */
   ngOnInit() {
     this.attemptId = this.route.snapshot.paramMap.get('attemptId')!;
     if (this.attemptId) { // Ensure attemptId is valid before loading
@@ -133,10 +306,46 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
       this.loading = false;
     }
   }
-
+  /**
+   * @method ngAfterViewInit
+   * @description Post-view initialization lifecycle hook. Prepares chart canvas elements
+   * for Chart.js initialization after DOM elements are fully rendered.
+   * 
+   * @example
+   * ```typescript
+   * // Called after Angular completes view initialization
+   * // Charts are initialized conditionally based on:
+   * // - Data availability
+   * // - Active tab state
+   * // - Canvas element readiness
+   * ```
+   */
   ngAfterViewInit() {
     // Charts will be initialized after data is loaded
-  }  async loadReviewData() {
+  }  /**
+   * @async
+   * @method loadReviewData
+   * @description Primary data loading method that fetches comprehensive review data from backend.
+   * Handles data transformation, error recovery, and chart initialization coordination.
+   * 
+   * @throws {Error} When review data cannot be loaded or parsed
+   * 
+   * @example
+   * ```typescript
+   * await this.loadReviewData();
+   * // Loads and processes:
+   * // - Enhanced review data with question details
+   * // - User responses and correct answers
+   * // - Time tracking and performance metrics
+   * // - Answer explanations and feedback
+   * 
+   * // Data transformation includes:
+   * // - Array normalization for consistent processing
+   * // - Default value assignment for missing fields
+   * // - Type conversion for compatibility
+   * ```
+   */
+  async loadReviewData() {
     this.loading = true;
     this.error = null;
 
@@ -180,6 +389,26 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  /**
+   * @async
+   * @method loadAuxiliaryData
+   * @description Loads supplementary analytics and recommendation data in parallel.
+   * Designed for graceful degradation when primary review data is essential but
+   * analytics are enhancement features.
+   * 
+   * @example
+   * ```typescript
+   * await this.loadAuxiliaryData();
+   * // Parallel loading of:
+   * // - Performance analytics for chart visualization
+   * // - Personalized study recommendations
+   * // - Advanced insights and suggestions
+   * 
+   * // Graceful handling:
+   * // - Non-critical failures logged but don't break UI
+   * // - Charts initialize conditionally based on data availability
+   * ```
+   */
   async loadAuxiliaryData() {
     try {
       const [analyticsResponse, recommendationsResponse] = await Promise.all([
@@ -198,35 +427,113 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
       // Decide if these errors should be displayed to the user or just logged
     }
   }
-
-  // Navigation methods
+  /**
+   * @method setActiveTab
+   * @description Updates the active tab in the multi-tab interface and triggers
+   * conditional chart initialization for analytics visualization.
+   * 
+   * @param {string} tab - Target tab identifier ('overview', 'questions', 'analytics', 'recommendations')
+   * 
+   * @example
+   * ```typescript
+   * // Switch to analytics tab
+   * this.setActiveTab('analytics');
+   * // Triggers: chart initialization if data is available
+   * 
+   * // Switch to questions tab
+   * this.setActiveTab('questions');
+   * // Provides: question-by-question detailed review
+   * ```
+   */
   setActiveTab(tab: string) {
     this.activeTab = tab;
   }
 
+  /**
+   * @method nextQuestion
+   * @description Navigates to the next question in the review sequence with bounds checking.
+   * Provides safe navigation through the question collection.
+   * 
+   * @example
+   * ```typescript
+   * this.nextQuestion();
+   * // Safely increments currentQuestionIndex
+   * // Handles end-of-list boundary gracefully
+   * // Updates UI to show next question details
+   * ```
+   */
   nextQuestion() {
     if (this.reviewData && this.currentQuestionIndex < this.reviewData.questions.length - 1) {
       this.currentQuestionIndex++;
     }
   }
 
+  /**
+   * @method prevQuestion
+   * @description Navigates to the previous question in the review sequence with bounds checking.
+   * Provides safe backward navigation through the question collection.
+   * 
+   * @example
+   * ```typescript
+   * this.prevQuestion();
+   * // Safely decrements currentQuestionIndex
+   * // Handles beginning-of-list boundary gracefully
+   * // Updates UI to show previous question details
+   * ```
+   */
   prevQuestion() {
     if (this.currentQuestionIndex > 0) {
       this.currentQuestionIndex--;
     }
   }
 
+  /**
+   * @method goToQuestion
+   * @description Directly navigates to a specific question by index and switches to questions tab.
+   * Provides quick access to any question in the review collection.
+   * 
+   * @param {number} index - Target question index (0-based)
+   * 
+   * @example
+   * ```typescript
+   * // Jump to question 5
+   * this.goToQuestion(4);
+   * // Sets: currentQuestionIndex and activeTab to 'questions'
+   * ```
+   */
   goToQuestion(index: number) {
     this.currentQuestionIndex = index;
     this.activeTab = 'questions';
   }
-
-  // Method to go back
+  /**
+   * @method goBack
+   * @description Navigates back to the previous page using browser history.
+   * Provides convenient return navigation for users.
+   * 
+   * @example
+   * ```typescript
+   * // Return to previous page
+   * this.goBack();
+   * // Uses: Angular Location service for browser back navigation
+   * ```
+   */
   goBack(): void {
     this.location.back();
   }
-
-  // Chart initialization methods
+  /**
+   * @method initializeCharts
+   * @description Orchestrates the initialization of all Chart.js visualizations when conditions are met.
+   * Ensures charts are only created when data is available and analytics tab is active.
+   * 
+   * @example
+   * ```typescript
+   * this.initializeCharts();
+   * // Conditionally creates:
+   * // - Accuracy doughnut chart
+   * // - Time analysis bar/line chart
+   * // - Difficulty breakdown chart
+   * ```
+   */
   initializeCharts() {
     if (this.reviewData && this.activeTab === 'analytics') {
       this.createAccuracyChart();
@@ -235,6 +542,19 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  /**
+   * @method createAccuracyChart
+   * @description Creates an interactive doughnut chart visualizing answer accuracy distribution.
+   * Displays correct, incorrect, and unanswered question counts with percentage calculations.
+   * 
+   * @example
+   * ```typescript
+   * this.createAccuracyChart();
+   * // Creates: doughnut chart with segments for correct/incorrect/unanswered
+   * // Features: hover effects, percentage tooltips, responsive design
+   * // Colors: green (correct), red (incorrect), yellow (unanswered)
+   * ```
+   */
   createAccuracyChart() {
     if (!this.accuracyChartRef?.nativeElement || !this.reviewData) return;
 
@@ -292,6 +612,19 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  /**
+   * @method createTimeAnalysisChart
+   * @description Creates a combined bar and line chart comparing actual vs estimated time per question.
+   * Provides insights into time management patterns and question complexity.
+   * 
+   * @example
+   * ```typescript
+   * this.createTimeAnalysisChart();
+   * // Creates: bar chart (actual time) + line overlay (estimated time)
+   * // Analysis: time efficiency, question difficulty correlation
+   * // Insights: identifies time management strengths/weaknesses
+   * ```
+   */
   createTimeAnalysisChart() {
     if (!this.timeChartRef?.nativeElement || !this.reviewData) return;
 
@@ -358,6 +691,20 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  /**
+   * @method createDifficultyChart
+   * @description Creates a bar chart analyzing performance across different difficulty levels.
+   * Shows correct answers vs total questions for Easy, Medium, and Hard categories.
+   * 
+   * @example
+   * ```typescript
+   * this.createDifficultyChart();
+   * // Creates: grouped bar chart by difficulty level
+   * // Displays: correct vs total questions per difficulty
+   * // Calculates: accuracy percentage tooltips
+   * // Insights: strength/weakness identification by difficulty
+   * ```
+   */
   createDifficultyChart() {
     if (!this.difficultyChartRef?.nativeElement || !this.reviewData) return;
 
@@ -427,22 +774,60 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     });
   }
-
-  // Update chart visibility when switching tabs
+  /**
+   * @method onTabChange
+   * @description Handles tab switching with conditional chart initialization for analytics tab.
+   * Ensures charts are properly rendered when analytics tab becomes active.
+   * 
+   * @param {string} tab - Target tab identifier
+   * 
+   * @example
+   * ```typescript
+   * this.onTabChange('analytics');
+   * // Switches tab and initializes charts with slight delay for DOM readiness
+   * ```
+   */
   onTabChange(tab: string) {
     this.setActiveTab(tab);
     if (tab === 'analytics') {
       setTimeout(() => this.initializeCharts(), 100);
     }
   }
-
-  // Cleanup charts
+  /**
+   * @method ngOnDestroy
+   * @description Component cleanup lifecycle hook. Properly destroys Chart.js instances
+   * to prevent memory leaks and canvas context conflicts.
+   * 
+   * @example
+   * ```typescript
+   * // Automatically called by Angular framework
+   * // Cleanup includes:
+   * // - Chart.js instance destruction
+   * // - Canvas context cleanup
+   * // - Memory leak prevention
+   * ```
+   */
   ngOnDestroy() {
     this.accuracyChart?.destroy();
     this.timeChart?.destroy();
     this.difficultyChart?.destroy();
-  }
-  // Utility methods
+  }  /**
+   * @method formatTime
+   * @description Converts seconds to human-readable MM:SS format with input validation.
+   * Handles edge cases and provides consistent time display formatting.
+   * 
+   * @param {number} seconds - Time duration in seconds
+   * @returns {string} Formatted time string in MM:SS format
+   * 
+   * @example
+   * ```typescript
+   * const timeStr = this.formatTime(125);
+   * console.log(timeStr); // "2:05"
+   * 
+   * const invalidTime = this.formatTime(NaN);
+   * console.log(invalidTime); // "0:00"
+   * ```
+   */
   formatTime(seconds: number): string {
     if (!seconds || isNaN(seconds)) return '0:00';
     const mins = Math.floor(Math.abs(seconds) / 60);
@@ -450,15 +835,59 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
+  /**
+   * @method formatDate
+   * @description Converts ISO date string to localized human-readable format.
+   * 
+   * @param {string} dateString - ISO date string to format
+   * @returns {string} Localized date and time string
+   * 
+   * @example
+   * ```typescript
+   * const formatted = this.formatDate('2023-12-25T10:30:00Z');
+   * console.log(formatted); // "12/25/2023, 10:30:00 AM" (US locale)
+   * ```
+   */
   formatDate(dateString: string): string {
     return new Date(dateString).toLocaleString();
   }
 
+  /**
+   * @method getQuestionStatus
+   * @description Determines the status classification of a question for UI styling and filtering.
+   * 
+   * @param {QuestionReview} question - Question object to analyze
+   * @returns {string} Status string ('unanswered', 'correct', 'incorrect')
+   * 
+   * @example
+   * ```typescript
+   * const status = this.getQuestionStatus(question);
+   * // Used for CSS classes: class="status-{{getQuestionStatus(question)}}"
+   * ```
+   */
   getQuestionStatus(question: QuestionReview): string {
     if (question.status === 'unanswered') return 'unanswered';
     return question.isCorrect ? 'correct' : 'incorrect';
   }
 
+  /**
+   * @method getFilteredQuestions
+   * @description Filters questions based on current filter criteria for focused review.
+   * Supports multiple filter types for targeted analysis.
+   * 
+   * @returns {QuestionReview[]} Filtered array of questions matching current filter
+   * 
+   * @example
+   * ```typescript
+   * this.filterBy = 'incorrect';
+   * const wrongQuestions = this.getFilteredQuestions();
+   * // Returns only questions answered incorrectly
+   * 
+   * this.filterBy = 'flagged';
+   * const flaggedQuestions = this.getFilteredQuestions();
+   * // Returns only questions marked for review
+   * ```
+   */
   getFilteredQuestions(): QuestionReview[] {
     if (!this.reviewData) return [];
     
@@ -476,6 +905,20 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  /**
+   * @method getDifficultyColor
+   * @description Returns appropriate Tailwind CSS color class for difficulty level display.
+   * 
+   * @param {string} difficulty - Difficulty level ('Easy', 'Medium', 'Hard')
+   * @returns {string} Tailwind CSS color class
+   * 
+   * @example
+   * ```typescript
+   * const colorClass = this.getDifficultyColor('Hard');
+   * console.log(colorClass); // "text-red-600"
+   * // Used in template: [class]="getDifficultyColor(question.difficulty)"
+   * ```
+   */
   getDifficultyColor(difficulty: string): string {
     switch (difficulty) {
       case 'Easy': return 'text-green-600';
@@ -485,6 +928,21 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  /**
+   * @method getCurrentQuestion
+   * @description Safely retrieves the currently viewed question with bounds checking.
+   * 
+   * @returns {QuestionReview | null} Current question object or null if not available
+   * 
+   * @example
+   * ```typescript
+   * const currentQ = this.getCurrentQuestion();
+   * if (currentQ) {
+   *   console.log(`Question: ${currentQ.questionText}`);
+   *   console.log(`Correct: ${currentQ.isCorrect}`);
+   * }
+   * ```
+   */
   getCurrentQuestion(): QuestionReview | null {
     if (this.reviewData && this.reviewData.questions && this.reviewData.questions.length > this.currentQuestionIndex) {
       return this.reviewData.questions[this.currentQuestionIndex];
@@ -492,10 +950,42 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
     return null;
   }
 
+  /**
+   * @method toggleExplanation
+   * @description Toggles the visibility of detailed explanations for the current question.
+   * 
+   * @example
+   * ```typescript
+   * // Called from template button
+   * <button (click)="toggleExplanation()">
+   *   {{ showExplanation ? 'Hide' : 'Show' }} Explanation
+   * </button>
+   * ```
+   */
   toggleExplanation() {
     this.showExplanation = !this.showExplanation;
   }
 
+  /**
+   * @method getPerformanceLevel
+   * @description Calculates overall performance level based on accuracy percentage.
+   * Provides qualitative assessment of exam performance.
+   * 
+   * @returns {string} Performance level ('Excellent', 'Very Good', 'Good', 'Average', 'Needs Improvement', 'Unknown')
+   * 
+   * @example
+   * ```typescript
+   * const level = this.getPerformanceLevel();
+   * console.log(level); // "Very Good" (for 85% accuracy)
+   * 
+   * // Performance thresholds:
+   * // 100%: Excellent
+   * // 75-99%: Very Good
+   * // 50-74%: Good
+   * // 25-49%: Average
+   * // 0-24%: Needs Improvement
+   * ```
+   */
   getPerformanceLevel(): string {
     if (!this.performanceAnalytics || !this.performanceAnalytics.overall) return 'Unknown';
 
@@ -511,6 +1001,19 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
     return 'Needs Improvement';
   }
 
+  /**
+   * @method getPerformanceLevelDescription
+   * @description Provides detailed description and encouragement based on performance level.
+   * 
+   * @returns {string} Descriptive text with actionable feedback
+   * 
+   * @example
+   * ```typescript
+   * const description = this.getPerformanceLevelDescription();
+   * console.log(description); // "Great job! You're performing very well."
+   * // Used for motivational feedback in UI
+   * ```
+   */
   getPerformanceLevelDescription(): string {
     const level = this.getPerformanceLevel();
     switch (level) {
@@ -522,9 +1025,22 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
       default: return 'Performance level unknown.';
     }
   }
-
-  // PDF Download functionality
-
+  /**
+   * @async
+   * @method downloadReviewAsPdf
+   * @description Generates and downloads comprehensive review as PDF using html2pdf.js library.
+   * Handles dynamic import and provides user feedback during generation process.
+   * 
+   * @returns {Promise<void>} Promise that resolves when PDF generation completes
+   * 
+   * @example
+   * ```typescript
+   * await this.downloadReviewAsPdf();
+   * // Generates: complete review with charts, questions, analytics
+   * // Features: custom filename with attempt ID and date
+   * // Handling: loading state, error recovery, user feedback
+   * ```
+   */
   async downloadReviewAsPdf(): Promise<void> {
     if (this.downloadingPdf) return;
     this.downloadingPdf = true;
@@ -557,8 +1073,22 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
       this.downloadingPdf = false;
     }
   }
-
-  // Helper methods for template logic
+  /**
+   * @method isOptionSelected
+   * @description Determines if a specific option was selected by the user for a question.
+   * Handles both single and multiple selection scenarios with type safety.
+   * 
+   * @param {QuestionReview | null} question - Question to check
+   * @param {string | undefined} optionId - Option ID to check for selection
+   * @returns {boolean} True if option was selected by user
+   * 
+   * @example
+   * ```typescript
+   * const isSelected = this.isOptionSelected(question, 'option_a');
+   * // Used for: UI highlighting, answer review display
+   * // Handles: array normalization, type conversion, null safety
+   * ```
+   */
   isOptionSelected(question: QuestionReview | null, optionId: string | undefined): boolean {
     if (!question || typeof optionId === 'undefined') { // Check if optionId is undefined
       return false;
@@ -570,6 +1100,22 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
     return selectedAnswers.includes(optionId);
   }
 
+  /**
+   * @method isCorrectOption
+   * @description Determines if a specific option is the correct answer for a question.
+   * Essential for answer key display and correctness visualization.
+   * 
+   * @param {QuestionReview | null} question - Question to check
+   * @param {string | undefined} optionId - Option ID to check for correctness
+   * @returns {boolean} True if option is the correct answer
+   * 
+   * @example
+   * ```typescript
+   * const isCorrect = this.isCorrectOption(question, 'option_b');
+   * // Used for: correct answer highlighting, explanation display
+   * // Features: array normalization, string conversion, null safety
+   * ```
+   */
   isCorrectOption(question: QuestionReview | null, optionId: string | undefined): boolean {
     if (!question || typeof optionId === 'undefined') { // Check if optionId is undefined
       return false;
@@ -581,6 +1127,27 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
     return correctIds.includes(optionId);
   }
 
+  /**
+   * @method getOptionClass
+   * @description Generates appropriate CSS classes for option display based on selection and correctness.
+   * Implements visual feedback system for answer review.
+   * 
+   * @param {QuestionReview | null} question - Question context
+   * @param {string | undefined} optionId - Option ID for styling
+   * @param {number} optionIndex - Option index (for future use)
+   * @returns {string} Space-separated CSS class string
+   * 
+   * @example
+   * ```typescript
+   * const cssClass = this.getOptionClass(question, 'option_a', 0);
+   * // Returns: "cursor-pointer py-2 px-4 rounded-md bg-green-100 text-green-800"
+   * 
+   * // Color coding:
+   * // - Green: Selected and correct OR unselected but correct
+   * // - Red: Selected but incorrect
+   * // - Gray: Unselected and incorrect
+   * ```
+   */
   getOptionClass(question: QuestionReview | null, optionId: string | undefined, optionIndex: number): string {
     if (!question) return '';
 
@@ -602,18 +1169,44 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
 
     return `${baseClass} ${stateClass}`;
   }
-
-  // Explanation toggling
+  /**
+   * @method showFullExplanation
+   * @description Toggles detailed explanation visibility for all explanations of a question.
+   * Manages explanation content display state.
+   * 
+   * @param {QuestionReview} question - Question whose explanations to toggle
+   * 
+   * @example
+   * ```typescript
+   * this.showFullExplanation(currentQuestion);
+   * // Toggles all explanation content visibility for the question
+   * ```
+   */
   showFullExplanation(question: QuestionReview) {
     question.explanations.forEach((explanation) => {
       explanation.content = explanation.content === 'show' ? '' : 'show';
     });
   }
-
-  // Navigation with history
+  /** @property {number[]} Navigation history stack for back/forward functionality */
   private historyStack: number[] = [];
+  
+  /** @property {number} Current position in navigation history */
   private historyIndex = -1;
 
+  /**
+   * @method navigateToQuestion
+   * @description Advanced navigation with history tracking for back/forward functionality.
+   * Maintains navigation history for enhanced user experience.
+   * 
+   * @param {number} index - Target question index
+   * 
+   * @example
+   * ```typescript
+   * this.navigateToQuestion(5);
+   * // Navigates to question 6 and records in history
+   * // Enables: back/forward navigation through visited questions
+   * ```
+   */
   navigateToQuestion(index: number) {
     if (index < 0 || index >= (this.reviewData?.questions.length || 0)) return;
     this.historyStack = this.historyStack.slice(0, this.historyIndex + 1);
@@ -623,6 +1216,16 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
     this.activeTab = 'questions';
   }
 
+  /**
+   * @method navigateBack
+   * @description Navigates to previous question in navigation history.
+   * 
+   * @example
+   * ```typescript
+   * this.navigateBack();
+   * // Goes back to previously viewed question in history
+   * ```
+   */
   navigateBack() {
     if (this.historyIndex > 0) {
       this.historyIndex--;
@@ -631,6 +1234,16 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  /**
+   * @method navigateForward
+   * @description Navigates to next question in navigation history.
+   * 
+   * @example
+   * ```typescript
+   * this.navigateForward();
+   * // Goes forward to next question in history (after going back)
+   * ```
+   */
   navigateForward() {
     if (this.historyIndex < this.historyStack.length - 1) {
       this.historyIndex++;
@@ -638,33 +1251,105 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
       this.activeTab = 'questions';
     }
   }
-
-  // Performance analytics methods
+  /**
+   * @method calculateAccuracy
+   * @description Calculates accuracy percentage from performance analytics data.
+   * 
+   * @param {PerformanceAnalytics} analytics - Performance analytics object
+   * @returns {number} Accuracy percentage (0-100)
+   * 
+   * @example
+   * ```typescript
+   * const accuracy = this.calculateAccuracy(this.performanceAnalytics);
+   * console.log(`Accuracy: ${accuracy.toFixed(1)}%`);
+   * ```
+   */
   calculateAccuracy(analytics: PerformanceAnalytics) {
     if (!analytics || analytics.totalQuestions === 0) return 0;
     return (analytics.overall.correctAnswers / analytics.totalQuestions) * 100;
   }
-
-  // Study recommendation methods
+  /**
+   * @method hasStudyRecommendations
+   * @description Checks if study recommendations are available for display.
+   * 
+   * @returns {boolean} True if recommendations are available
+   * 
+   * @example
+   * ```typescript
+   * if (this.hasStudyRecommendations()) {
+   *   // Display recommendations tab
+   * }
+   * ```
+   */
   hasStudyRecommendations(): boolean {
     return this.studyRecommendations && this.studyRecommendations.length > 0;
   }
-
+  /**
+   * @method getStudyRecommendationTopics
+   * @description Extracts topic names from study recommendations for display.
+   * 
+   * @returns {string[]} Array of recommended study topics
+   * 
+   * @example
+   * ```typescript
+   * const topics = this.getStudyRecommendationTopics();
+   * console.log(topics); // ["Algebra", "Calculus", "Statistics"]
+   * ```
+   */
   getStudyRecommendationTopics(): string[] {
     if (!this.studyRecommendations) return [];
     return this.studyRecommendations.map((rec: any) => rec.topic);
   }
 
-  // Performance analytics and study recommendation getters
+  /**
+   * @method getSubjectPerformanceData
+   * @description Retrieves subject-wise performance analytics for detailed analysis.
+   * Falls back to review data if performance analytics not available.
+   * 
+   * @returns {any[]} Array of subject performance data
+   * 
+   * @example
+   * ```typescript
+   * const subjectData = this.getSubjectPerformanceData();
+   * // Used for: subject-wise charts, performance breakdown
+   * // Structure: [{subject: 'Math', correct: 8, total: 10, accuracy: 80}, ...]
+   * ```
+   */
   getSubjectPerformanceData(): any[] {
     return this.performanceAnalytics?.subjectPerformance || this.reviewData?.analytics?.subjectPerformance || [];
   }
 
+  /**
+   * @method getPerformanceInsights
+   * @description Retrieves AI-generated performance insights and analysis.
+   * Provides actionable feedback based on exam performance patterns.
+   * 
+   * @returns {any[]} Array of performance insights
+   * 
+   * @example
+   * ```typescript
+   * const insights = this.getPerformanceInsights();
+   * // Returns: analytical insights, improvement suggestions, pattern recognition
+   * ```
+   */
   getPerformanceInsights(): any[] {
     // Assuming insights come from studyRecommendations or a dedicated part of analytics
     return this.studyRecommendations?.performanceInsights || this.performanceAnalytics?.performanceInsights || [];
   }
-
+  /**
+   * @method getPerformanceLevelIcon
+   * @description Returns appropriate emoji icon for performance level visualization.
+   * Provides quick visual feedback for performance assessment.
+   * 
+   * @returns {string} Emoji icon representing performance level
+   * 
+   * @example
+   * ```typescript
+   * const icon = this.getPerformanceLevelIcon();
+   * console.log(icon); // "🏆" for Excellent, "👍" for Very Good, etc.
+   * // Used in: performance badges, quick visual indicators
+   * ```
+   */
   getPerformanceLevelIcon(): string {
     const level = this.getPerformanceLevel();
     switch (level) {
@@ -677,46 +1362,181 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  // getPerformanceLevelText() is not strictly needed if getPerformanceLevel() returns the text.
-  // The template can call getPerformanceLevel() directly.
-
+  /**
+   * @method getPriorityAreas
+   * @description Retrieves priority study areas that need focused attention.
+   * Based on performance analysis and weak topic identification.
+   * 
+   * @returns {any[]} Array of priority study areas
+   * 
+   * @example
+   * ```typescript
+   * const priorityAreas = this.getPriorityAreas();
+   * // Returns: areas requiring immediate attention based on poor performance
+   * // Structure: [{topic: 'Algebra', difficulty: 'High', urgency: 'Critical'}, ...]
+   * ```
+   */
   getPriorityAreas(): any[] {
     return this.studyRecommendations?.priorityAreas || this.performanceAnalytics?.priorityAreas || [];
   }
 
+  /**
+   * @method getTimeManagementTips
+   * @description Retrieves personalized time management recommendations.
+   * Based on time spent patterns and efficiency analysis.
+   * 
+   * @returns {any[]} Array of time management tips
+   * 
+   * @example
+   * ```typescript
+   * const timeTips = this.getTimeManagementTips();
+   * // Returns: strategies for better time allocation during exams
+   * // Examples: "Spend max 2 minutes per multiple choice", "Skip difficult questions initially"
+   * ```
+   */
   getTimeManagementTips(): any[] {
     return this.studyRecommendations?.timeManagementTips || this.performanceAnalytics?.timeManagementTips || [];
   }
 
+  /**
+   * @method getStrengths
+   * @description Retrieves identified strengths and strong subject areas.
+   * Provides positive reinforcement and confidence building data.
+   * 
+   * @returns {any[]} Array of identified strengths
+   * 
+   * @example
+   * ```typescript
+   * const strengths = this.getStrengths();
+   * // Returns: areas where student performed well
+   * // Used for: motivation, confidence building, strength-based learning
+   * ```
+   */
   getStrengths(): any[] {
     return this.studyRecommendations?.strengths || this.performanceAnalytics?.strengths || [];
   }
 
+  /**
+   * @method getPracticeRecommendations
+   * @description Retrieves specific practice recommendations for improvement.
+   * Tailored suggestions based on performance gaps and learning patterns.
+   * 
+   * @returns {any[]} Array of practice recommendations
+   * 
+   * @example
+   * ```typescript
+   * const practiceRecs = this.getPracticeRecommendations();
+   * // Returns: specific practice activities, mock tests, targeted exercises
+   * // Structure: [{type: 'Mock Test', subject: 'Math', difficulty: 'Medium'}, ...]
+   * ```
+   */
   getPracticeRecommendations(): any[] {
     return this.studyRecommendations?.practiceRecommendations || this.performanceAnalytics?.practiceRecommendations || [];
   }
 
+  /**
+   * @method getStudySchedule
+   * @description Retrieves personalized study schedule recommendations.
+   * Based on weak areas, time availability, and learning efficiency patterns.
+   * 
+   * @returns {any[]} Array of study schedule items
+   * 
+   * @example
+   * ```typescript
+   * const schedule = this.getStudySchedule();
+   * // Returns: day-by-day study plan with topics and time allocation
+   * // Structure: [{day: 'Monday', topics: ['Algebra'], duration: '2 hours'}, ...]
+   * ```
+   */
   getStudySchedule(): any[] {
     return this.studyRecommendations?.studySchedule || this.performanceAnalytics?.studySchedule || [];
   }
 
+  /**
+   * @method getNextSteps
+   * @description Retrieves immediate next steps for continued improvement.
+   * Actionable items prioritized by impact and feasibility.
+   * 
+   * @returns {any[]} Array of next step recommendations
+   * 
+   * @example
+   * ```typescript
+   * const nextSteps = this.getNextSteps();
+   * // Returns: immediate actionable items for improvement
+   * // Examples: "Review algebra basics", "Take practice test in calculus"
+   * ```
+   */
   getNextSteps(): any[] {
     return this.studyRecommendations?.nextSteps || this.performanceAnalytics?.nextSteps || [];
   }
-
-  // Miscellaneous methods
+  /**
+   * @method isLoading
+   * @description Checks if component is currently in loading state.
+   * Used for conditional rendering of loading indicators.
+   * 
+   * @returns {boolean} True if data is being loaded
+   * 
+   * @example
+   * ```typescript
+   * if (this.isLoading()) {
+   *   // Show loading spinner
+   * }
+   * ```
+   */
   isLoading(): boolean {
     return this.loading;
   }
 
+  /**
+   * @method hasError
+   * @description Checks if component has encountered an error state.
+   * Used for conditional error message display.
+   * 
+   * @returns {boolean} True if error state exists
+   * 
+   * @example
+   * ```typescript
+   * if (this.hasError()) {
+   *   // Show error message and retry option
+   * }
+   * ```
+   */
   hasError(): boolean {
     return this.error !== null;
   }
 
+  /**
+   * @method getErrorMessage
+   * @description Retrieves current error message for display.
+   * Provides user-friendly error information.
+   * 
+   * @returns {string | null} Error message or null if no error
+   * 
+   * @example
+   * ```typescript
+   * const errorMsg = this.getErrorMessage();
+   * if (errorMsg) {
+   *   console.error('Review error:', errorMsg);
+   * }
+   * ```
+   */
   getErrorMessage(): string | null {
     return this.error;
   }
 
+  /**
+   * @method retryLoadReviewData
+   * @description Initiates retry of review data loading after error.
+   * Resets error state and attempts fresh data load.
+   * 
+   * @example
+   * ```typescript
+   * // Called from error message retry button
+   * <button (click)="retryLoadReviewData()">
+   *   Try Again
+   * </button>
+   * ```
+   */
   retryLoadReviewData() {
     this.loadReviewData();
   }

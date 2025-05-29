@@ -1,16 +1,31 @@
 /**
- * Controller: authController.js
- * -------------------------------------
- * Handles user authentication and authorization logic.
- *
- * Functions:
- * - register(): Creates a new user account (student or admin)
- * - login(): Authenticates credentials and issues a JWT
- * - getUserProfile(): Returns profile info of logged-in user
- *
- * Works with:
- * - models/User.js
- * - middleware/authMiddleware.js
+ * @fileoverview Authentication Controller
+ * 
+ * This module handles user authentication, authorization, and referral system functionality 
+ * for the NexPrep backend. It provides comprehensive authentication services including 
+ * traditional email/password registration and login, Firebase-based social authentication,
+ * and a complete referral system with reward processing.
+ * 
+ * @module controllers/authController
+ * 
+ * @requires ../models/User - User data model
+ * @requires bcryptjs - Password hashing and comparison
+ * @requires jsonwebtoken - JWT token generation and verification
+ * @requires ../config/firebaseAdmin - Firebase Admin SDK configuration
+ * @requires ../utils/referralUtils - Referral code generation utilities
+ * @requires ../services/rewardService - Reward processing service
+ * 
+ * @description Features include:
+ * - User registration with optional referral codes
+ * - Traditional email/password authentication
+ * - Firebase social authentication (Google, Facebook, etc.)
+ * - Referral code generation and management
+ * - Referral bonus processing and reward distribution
+ * - JWT token generation for session management
+ * - User profile management and linking
+ * 
+ * @author NexPrep Development Team
+ * @version 2.0.0
  */
 
 const User = require('../models/User');
@@ -20,6 +35,47 @@ const admin = require('../config/firebaseAdmin'); // Import Firebase Admin SDK
 const { generateUniqueReferralCode } = require('../utils/referralUtils');
 const RewardService = require('../services/rewardService'); // Import reward service
 
+/**
+ * Register a new user with optional referral code processing
+ * 
+ * @route POST /api/auth/register
+ * @access Public
+ * 
+ * @description Creates a new user account with email/password authentication.
+ * Supports referral code input during registration which automatically processes
+ * referral bonuses for both the new user and the referrer. Generates a unique
+ * referral code for the new user and handles all reward processing.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body containing user registration data
+ * @param {string} req.body.username - Unique username for the user
+ * @param {string} req.body.name - Full name of the user (required)
+ * @param {string} req.body.email - Email address (must be unique)
+ * @param {string} req.body.password - Plain text password (will be hashed)
+ * @param {string} [req.body.role='student'] - User role (student/admin)
+ * @param {string} [req.body.referralCodeInput] - Optional referral code from existing user
+ * @param {Object} res - Express response object
+ * 
+ * @returns {Object} JSON response with registration status
+ * @returns {string} returns.message - Success/error message
+ * @returns {string} returns.referralCode - Generated referral code for new user
+ * @returns {boolean} returns.referredBy - Whether user was referred by someone
+ * 
+ * @throws {400} User already exists with provided email
+ * @throws {400} Name is required
+ * @throws {500} Server error during registration process
+ * 
+ * @example
+ * // Request body for new user registration
+ * {
+ *   "username": "john_doe",
+ *   "name": "John Doe",
+ *   "email": "john@example.com",
+ *   "password": "securePassword123",
+ *   "role": "student",
+ *   "referralCodeInput": "ABC123XYZ"
+ * }
+ */
 const registerUser = async (req, res) => {
   try {
     const { username, name, email, password, role, referralCodeInput } = req.body; // Added referralCodeInput
@@ -93,8 +149,52 @@ const registerUser = async (req, res) => {
   }
 };
 
+/**
+ * User registration function export
+ * 
+ * @description Exports the registerUser function as the register endpoint handler.
+ * This function handles new user account creation with comprehensive referral
+ * system integration and reward processing.
+ */
 exports.register = registerUser;
 
+/**
+ * Authenticate user with email and password
+ * 
+ * @route POST /api/auth/login
+ * @access Public
+ * 
+ * @description Authenticates a user using email and password credentials.
+ * Validates user existence, password correctness, and generates a JWT token
+ * for authenticated sessions. Handles both regular password users and 
+ * Firebase-created users appropriately.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body containing login credentials
+ * @param {string} req.body.email - User's email address
+ * @param {string} req.body.password - User's password
+ * @param {Object} res - Express response object
+ * 
+ * @returns {Object} JSON response with authentication result
+ * @returns {string} returns.token - JWT authentication token
+ * @returns {string} returns.role - User role (student/admin)
+ * @returns {string} returns.name - User's full name
+ * @returns {string} returns.userId - User's unique identifier
+ * @returns {string} returns.referralCode - User's referral code
+ * @returns {number} returns.successfulReferrals - Count of successful referrals
+ * 
+ * @throws {400} Invalid credentials (user not found)
+ * @throws {400} User created via social login attempting password login
+ * @throws {400} Invalid credentials (password mismatch)
+ * @throws {500} Server error during authentication
+ * 
+ * @example
+ * // Request body for user login
+ * {
+ *   "email": "john@example.com",
+ *   "password": "securePassword123"
+ * }
+ */
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -130,6 +230,47 @@ exports.login = async (req, res) => {
   }
 };
 
+/**
+ * Authenticate user with Firebase token (Social Login)
+ * 
+ * @route POST /api/auth/firebase-signin
+ * @access Public
+ * 
+ * @description Authenticates users via Firebase social authentication (Google, Facebook, etc.).
+ * Verifies Firebase ID tokens, creates new users if needed, links existing accounts,
+ * and processes referral codes during social sign-up. Supports both email and phone
+ * number based authentication through Firebase.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body containing Firebase authentication data
+ * @param {string} req.body.firebaseToken - Firebase ID token from client
+ * @param {string} [req.body.referralCodeInput] - Optional referral code for new users
+ * @param {Object} res - Express response object
+ * 
+ * @returns {Object} JSON response with authentication result
+ * @returns {string} returns.token - JWT application token
+ * @returns {string} returns.userId - User's unique identifier
+ * @returns {string} returns.name - User's full name
+ * @returns {string} returns.displayName - User's display name
+ * @returns {string} returns.email - User's email address
+ * @returns {string} returns.role - User role
+ * @returns {string} returns.photoURL - User's profile photo URL
+ * @returns {string} returns.firebaseUid - Firebase user identifier
+ * @returns {string} returns.referralCode - User's referral code
+ * @returns {boolean} returns.referredBy - Whether user was referred
+ * @returns {number} returns.successfulReferrals - Count of successful referrals
+ * 
+ * @throws {400} Firebase token is required
+ * @throws {401} Firebase token expired/invalid/malformed
+ * @throws {500} Server error during Firebase authentication
+ * 
+ * @example
+ * // Request body for Firebase authentication
+ * {
+ *   "firebaseToken": "eyJhbGciOiJSUzI1NiIs...",
+ *   "referralCodeInput": "ABC123XYZ"
+ * }
+ */
 exports.firebaseSignIn = async (req, res) => {
   const { firebaseToken, referralCodeInput } = req.body; // Added referralCodeInput
 
@@ -289,6 +430,34 @@ exports.firebaseSignIn = async (req, res) => {
   }
 };
 
+/**
+ * Generate referral codes for existing users
+ * 
+ * @route POST /api/auth/generate-referral-codes
+ * @access Admin
+ * 
+ * @description Administrative function to generate unique referral codes for 
+ * existing users who don't have them. This is useful for migrating existing
+ * users to the referral system or for batch processing of user accounts.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * 
+ * @returns {Object} JSON response with generation results
+ * @returns {string} returns.message - Summary of operation
+ * @returns {number} returns.totalUsersWithoutCodes - Total users found without codes
+ * @returns {number} returns.updatedCount - Number of users successfully updated
+ * 
+ * @throws {500} Server error during referral code generation
+ * 
+ * @example
+ * // Response for successful generation
+ * {
+ *   "message": "Generated referral codes for 150 users",
+ *   "totalUsersWithoutCodes": 150,
+ *   "updatedCount": 150
+ * }
+ */
 // Generate referral codes for existing users who don't have them
 exports.generateReferralCodes = async (req, res) => {
   try {
@@ -317,6 +486,43 @@ exports.generateReferralCodes = async (req, res) => {
   }
 };
 
+/**
+ * Get user's referral information and statistics
+ * 
+ * @route GET /api/auth/referral-info
+ * @access Private (Student/Admin)
+ * 
+ * @description Retrieves comprehensive referral information for the authenticated user
+ * including their personal referral code, successful referrals count, who referred them,
+ * and a shareable referral link. Automatically generates a referral code if the user
+ * doesn't have one.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user information from middleware
+ * @param {string} req.user.userId - User's unique identifier
+ * @param {Object} res - Express response object
+ * 
+ * @returns {Object} JSON response with referral information
+ * @returns {string} returns.referralCode - User's unique referral code
+ * @returns {number} returns.successfulReferrals - Count of successful referrals made
+ * @returns {Object|null} returns.referredBy - Information about who referred this user
+ * @returns {string} returns.referralLink - Complete shareable referral URL
+ * 
+ * @throws {404} User not found
+ * @throws {500} Server error during information retrieval
+ * 
+ * @example
+ * // Response for user referral information
+ * {
+ *   "referralCode": "ABC123XYZ",
+ *   "successfulReferrals": 5,
+ *   "referredBy": {
+ *     "name": "Jane Smith",
+ *     "email": "jane@example.com"
+ *   },
+ *   "referralLink": "http://localhost:4200/register?ref=ABC123XYZ"
+ * }
+ */
 // Get user's referral information
 exports.getReferralInfo = async (req, res) => {
   try {
@@ -347,6 +553,52 @@ exports.getReferralInfo = async (req, res) => {
   }
 };
 
+/**
+ * Apply referral code to existing user account
+ * 
+ * @route POST /api/auth/apply-referral-code
+ * @access Private (Student/Admin)
+ * 
+ * @description Allows existing users to apply a referral code after registration.
+ * This is useful for users who didn't use a referral code during initial signup
+ * but want to establish a referral relationship later. Processes referral bonuses
+ * for both users upon successful application.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user information from middleware
+ * @param {string} req.user.userId - User's unique identifier
+ * @param {Object} req.body - Request body containing referral code
+ * @param {string} req.body.referralCode - Referral code to apply
+ * @param {Object} res - Express response object
+ * 
+ * @returns {Object} JSON response with application result
+ * @returns {string} returns.message - Success message
+ * @returns {Object} returns.referredBy - Information about the referrer
+ * @returns {string} returns.referredBy.name - Referrer's name
+ * @returns {string} returns.referredBy.email - Referrer's email
+ * 
+ * @throws {400} Referral code is required
+ * @throws {400} User already has a referral relationship
+ * @throws {400} Invalid referral code
+ * @throws {400} Self-referral attempt
+ * @throws {404} User not found
+ * @throws {500} Server error during referral application
+ * 
+ * @example
+ * // Request body for applying referral code
+ * {
+ *   "referralCode": "ABC123XYZ"
+ * }
+ * 
+ * // Response for successful application
+ * {
+ *   "message": "Referral code applied successfully!",
+ *   "referredBy": {
+ *     "name": "Jane Smith",
+ *     "email": "jane@example.com"
+ *   }
+ * }
+ */
 // Apply referral code after registration (for users who didn't use one during signup)
 exports.applyReferralCode = async (req, res) => {
   try {

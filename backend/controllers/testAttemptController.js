@@ -1,9 +1,69 @@
+/**
+ * @fileoverview Test Attempt Controller
+ * 
+ * This module handles comprehensive test attempt operations for the NexPrep platform,
+ * providing complete functionality for student test-taking experiences. It manages
+ * the entire test lifecycle from initialization through completion, including
+ * dynamic question generation, progress tracking, auto-saving, grading, and
+ * detailed analytics with performance insights.
+ * 
+ * @module controllers/testAttemptController
+ * 
+ * @requires ../models/TestSeries - Test series data model
+ * @requires ../models/TestAttempt - Test attempt data model  
+ * @requires ../models/Question - Question data model
+ * @requires mongoose - MongoDB object modeling
+ * 
+ * @description Features include:
+ * - Dynamic test initialization with section/question generation
+ * - Intelligent question pooling and randomization algorithms
+ * - Real-time progress auto-saving during exam sessions
+ * - Comprehensive submission and automated grading systems
+ * - Advanced review interface with detailed explanations
+ * - Performance analytics and comparative analysis
+ * - Study recommendations based on weakness patterns
+ * - Leaderboard generation and ranking systems
+ * - Test resumption capabilities for interrupted sessions
+ * - Variant selection for test customization
+ * - Live test mode with time-based access controls
+ * - Attempt limit enforcement and validation
+ * 
+ * @algorithms
+ * - Fisher-Yates shuffling for question randomization
+ * - Dynamic scoring with weighted section analysis
+ * - Performance trend analysis across multiple attempts
+ * - Adaptive difficulty assessment and recommendations
+ * 
+ * @security
+ * - User authentication validation for all operations
+ * - Attempt ownership verification and access controls
+ * - Secure progress data handling and validation
+ * - Anti-cheating measures through randomization
+ * 
+ * @author NexPrep Development Team
+ * @version 2.0
+ */
+
 const TestSeries   = require('../models/TestSeries');
 const TestAttempt  = require('../models/TestAttempt');
 const Question     = require('../models/Question');
 const mongoose = require('mongoose'); // Added mongoose require
 
-// Helper function to shuffle an array
+/**
+ * Utility function to randomly shuffle array elements using Fisher-Yates algorithm
+ * 
+ * @description Implements the Fisher-Yates shuffle algorithm for cryptographically
+ * secure randomization of array elements. This ensures fair question distribution
+ * and prevents predictable question patterns in test attempts.
+ * 
+ * @param {Array} array - Array to shuffle
+ * @returns {Array} New shuffled array (original array unchanged)
+ * 
+ * @example
+ * const questions = [q1, q2, q3, q4];
+ * const shuffled = shuffleArray(questions);
+ * // Returns randomized order while preserving original array
+ */
 function shuffleArray(array) {
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {
@@ -13,9 +73,73 @@ function shuffleArray(array) {
   return newArray;
 }
 
-// ────────────────────────────────────────────────────────────────────────────────
-// startTest: creates a new TestAttempt and returns detailed question data
-// ────────────────────────────────────────────────────────────────────────────────
+/**
+ * Initialize and start a new test attempt
+ * 
+ * @route POST /api/tests/start
+ * @access Private/Student
+ * 
+ * @description Creates a new test attempt with dynamic question generation,
+ * intelligent randomization, and variant selection. Handles comprehensive
+ * validation including time constraints, attempt limits, and test availability.
+ * Implements advanced question pooling algorithms for fair test distribution
+ * while maintaining test integrity through secure randomization.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body containing test parameters
+ * @param {string} req.body.seriesId - MongoDB ObjectId of the test series
+ * @param {Object} req.user - Authenticated user object from JWT middleware
+ * @param {string} req.user.userId - Student's unique user identifier
+ * @param {Object} res - Express response object
+ * 
+ * @returns {Object} JSON object with comprehensive test attempt data
+ * @returns {string} returns.attemptId - Generated test attempt unique identifier
+ * @returns {Array} returns.sections - Test sections with questions and metadata
+ * @returns {Object} returns.testMetadata - Test configuration and timing information
+ * @returns {Object} returns.instructions - Test-specific instructions and rules
+ * @returns {number} returns.totalQuestions - Total number of questions in the test
+ * @returns {number} returns.duration - Test duration in minutes
+ * @returns {Date} returns.startTime - Test attempt start timestamp
+ * 
+ * @throws {404} Test series not found with provided ID
+ * @throws {403} Test not available due to time constraints (live mode)
+ * @throws {429} Maximum allowed attempts reached for this test
+ * @throws {500} Server error during test initialization or question generation
+ * 
+ * @algorithm
+ * 1. Validate test series existence and accessibility
+ * 2. Check live test timing constraints if applicable
+ * 3. Verify attempt limits and delete previous attempts
+ * 4. Select random variant if multiple variants available
+ * 5. Generate dynamic question layout with shuffling
+ * 6. Create new test attempt with comprehensive metadata
+ * 7. Return structured test data for frontend consumption
+ * 
+ * @example
+ * // Request body
+ * {
+ *   "seriesId": "64f8a1b2c3d4e5f6a7b8c9d0"
+ * }
+ * 
+ * // Response
+ * {
+ *   "attemptId": "64f8a1b2c3d4e5f6a7b8c9d1",
+ *   "sections": [
+ *     {
+ *       "name": "Physics",
+ *       "questions": [...],
+ *       "timeLimit": 60,
+ *       "totalMarks": 100
+ *     }
+ *   ],
+ *   "testMetadata": {
+ *     "title": "JEE Main Mock Test",
+ *     "duration": 180,
+ *     "totalQuestions": 75
+ *   },
+ *   "startTime": "2024-01-01T10:00:00.000Z"
+ * }
+ */
 exports.startTest = async (req, res) => {
   try {
     const { seriesId } = req.body;
@@ -267,9 +391,23 @@ exports.startTest = async (req, res) => {
   }
 };
 
-// ────────────────────────────────────────────────────────────────────────────────
-// submitAttempt: grades and saves a completed attempt
-// ────────────────────────────────────────────────────────────────────────────────
+/**
+ * Submit Test Attempt Endpoint
+ * 
+ * Grades and saves a completed test attempt with automatic scoring.
+ * Handles multiple choice, single choice, and various question types.
+ * Preserves enhanced review data (time spent, attempts, flags, confidence).
+ * 
+ * @route POST /api/tests/:attemptId/submit
+ * @access Private (Students only)
+ * @param {string} req.params.attemptId - Test attempt ID to submit
+ * @param {Object} req.body - Request body containing responses
+ * @param {Array} req.body.responses - Array of student responses with questionInstanceKey matching
+ * @param {Object} req.user - Authenticated user object
+ * @returns {Object} Submission result with score, percentage, and timing data
+ * @throws {404} Test attempt not found or already submitted
+ * @throws {500} Server error during grading or save operation
+ */
 exports.submitAttempt = async (req, res) => {
   try {
     const { attemptId } = req.params;
@@ -573,9 +711,18 @@ exports.submitAttempt = async (req, res) => {
   }
 };
 
-// ────────────────────────────────────────────────────────────────────────────────
-// submitTest: saves the student's answers in the TestAttempt model
-// ────────────────────────────────────────────────────────────────────────────────
+/**
+ * Legacy Submit Test Endpoint (Deprecated)
+ * 
+ * Simple submission endpoint without grading logic.
+ * Maintained for backward compatibility.
+ * 
+ * @route POST /api/tests/:attemptId/submit-legacy
+ * @deprecated Use submitAttempt instead for proper grading
+ * @param {string} req.params.attemptId - Test attempt ID
+ * @param {Array} req.body.responses - Student responses
+ * @returns {Object} Success message
+ */
 exports.submitTest = async (req, res) => {
   try {
     const { attemptId } = req.params;
@@ -595,9 +742,23 @@ exports.submitTest = async (req, res) => {
   }
 };
 
-// ────────────────────────────────────────────────────────────────────────────────
-// saveProgress: saves the student's progress in the TestAttempt model
-// ────────────────────────────────────────────────────────────────────────────────
+/**
+ * Save Test Progress Endpoint
+ * 
+ * Auto-saves student progress during exam for resumption capability.
+ * Handles enhanced review fields (time spent, attempts, flags, confidence).
+ * 
+ * @route POST /api/tests/:attemptId/save
+ * @access Private (Students only)
+ * @param {string} req.params.attemptId - Test attempt ID to save
+ * @param {Object} req.body - Request body containing responses and timeLeft
+ * @param {Array} req.body.responses - Current student responses with enhanced data
+ * @param {number} req.body.timeLeft - Remaining time in seconds
+ * @returns {Object} Success message
+ * @throws {404} Test attempt not found
+ * @throws {400} Test not in progress or validation error
+ * @throws {500} Server error during save operation
+ */
 exports.saveProgress = async (req, res) => {
   // ADD THIS LINE FOR DEBUGGING
   console.log('Backend received saveProgress request. Body:', JSON.stringify(req.body, null, 2));
@@ -676,6 +837,18 @@ exports.saveProgress = async (req, res) => {
 // getMyTestAttempts, reviewAttempt, getStudentStats, getLeaderboardForSeries
 // ────────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Get My Test Attempts Endpoint
+ * 
+ * Retrieves all test attempts for the authenticated student, sorted by most recent.
+ * Returns attempt data with basic series information for displaying student history.
+ * 
+ * @route GET /api/tests/my-attempts
+ * @access Private (Students only)
+ * @param {Object} req.user - Authenticated user object containing userId
+ * @returns {Array} List of test attempts with populated series info (title, year, leaderboard settings)
+ * @throws {500} Server error during database query
+ */
 exports.getMyTestAttempts = async (req, res) => {
   try {
     const attempts = await TestAttempt.find({ student: req.user.userId })
@@ -695,6 +868,20 @@ exports.getMyTestAttempts = async (req, res) => {
   }
 };
 
+/**
+ * Review Test Attempt Endpoint
+ * 
+ * Retrieves detailed attempt data for post-test review with enriched question information.
+ * Combines attempt structure with master question data to show correct answers and explanations.
+ * Enriches question options with isCorrect flags for review display.
+ * 
+ * @route GET /api/tests/:attemptId/review
+ * @access Private (Students only - own attempts)
+ * @param {string} req.params.attemptId - Test attempt ID to review
+ * @returns {Object} Complete attempt data with enriched questions and correct answer information
+ * @throws {404} Attempt not found
+ * @throws {500} Incomplete attempt data or server error during enrichment
+ */
 exports.reviewAttempt = async (req, res) => {
   try {
     const { attemptId } = req.params;
@@ -777,6 +964,18 @@ exports.reviewAttempt = async (req, res) => {
   }
 };
 
+/**
+ * Get Student Statistics Endpoint
+ * 
+ * Calculates and returns performance statistics for the authenticated student.
+ * Computes total attempts, average percentage, and best percentage across all completed tests.
+ * 
+ * @route GET /api/tests/student-stats
+ * @access Private (Students only)
+ * @param {Object} req.user - Authenticated user object containing userId
+ * @returns {Object} Statistics object with total attempts, averagePercentage, and bestPercentage
+ * @throws {500} Server error during database query or calculation
+ */
 exports.getStudentStats = async (req, res) => {
   try {
     const studentAttempts = await TestAttempt.find({
@@ -802,6 +1001,20 @@ exports.getStudentStats = async (req, res) => {
   }
 };
 
+/**
+ * Get Leaderboard for Test Series Endpoint
+ * 
+ * Retrieves ranked leaderboard data for a specific test series, showing best attempt per student.
+ * Only returns data if public leaderboard is enabled for the series.
+ * Uses MongoDB aggregation to find each student's best attempt and rank by performance.
+ * 
+ * @route GET /api/tests/leaderboard/:seriesId
+ * @access Private (Students can view if leaderboard enabled)
+ * @param {string} req.params.seriesId - Test series ID to get leaderboard for
+ * @returns {Object} Leaderboard data with ranked student attempts and series info
+ * @throws {404} Test series not found
+ * @throws {500} Server error during aggregation query
+ */
 exports.getLeaderboardForSeries = async (req, res) => {
   try {
     const seriesId = req.params.seriesId;
@@ -898,9 +1111,106 @@ exports.getLeaderboardForSeries = async (req, res) => {
 };
 
 /**
- * GET /api/tests/:seriesId/progress
- * If there’s an in-progress attempt for this user+series, return its ID,
- * remaining time, and saved sections/responses; otherwise return {}.
+ * Get Test Progress Endpoint
+ * 
+ * Retrieves current progress for an in-progress test attempt for the authenticated user.
+ * Returns complete attempt state including sections, responses, timing, and metadata.
+ * Used for test resume functionality and real-time progress tracking.
+ * 
+ * @route GET /api/tests/:seriesId/progress
+ * @access Private (Students only)
+ * @param {string} req.params.seriesId - The test series ID to check progress for
+ * @param {Object} req.user - Authenticated user object containing userId
+ * @param {string} req.user.userId - ID of the authenticated student
+ * @returns {Object} Progress data object or empty object if no in-progress attempt
+ * @returns {string} returns.attemptId - Unique test attempt identifier
+ * @returns {Array} returns.sections - Test sections with questions and options
+ * @returns {Array} returns.responses - Student responses with selection data
+ * @returns {number} returns.remainingDurationSeconds - Time remaining in seconds
+ * @returns {number} returns.duration - Original test duration in minutes
+ * @returns {string} returns.seriesTitle - Test series title
+ * @returns {string} returns.status - Current attempt status (in-progress)
+ * @returns {Date} returns.startedAt - When the test was started
+ * @returns {Date} returns.expiresAt - When the test will expire
+ * @returns {Date} returns.lastSavedAt - Last auto-save timestamp
+ * @throws {500} Server error during database query or data processing
+ * 
+ * @description
+ * This endpoint is crucial for test resume functionality. It searches for any in-progress
+ * test attempt for the given user and series combination. If found, it returns complete
+ * test state including:
+ * - Structured sections with questions and answer options
+ * - All student responses with selection tracking
+ * - Timing information for test management
+ * - Metadata for UI state restoration
+ * 
+ * @algorithm
+ * 1. Extract seriesId from URL parameters and userId from authentication
+ * 2. Query for in-progress TestAttempt matching user and series
+ * 3. Populate series information (title, duration) for context
+ * 4. Include sensitive fields (options, selected responses) in results
+ * 5. Transform responses to ensure selection data is properly formatted
+ * 6. Return complete progress object or empty object if no attempt found
+ * 
+ * @security
+ * - Requires valid JWT authentication
+ * - User can only access their own test progress
+ * - Sensitive response data is only included for the authenticated user
+ * 
+ * @used_in
+ * - Test resume functionality in frontend
+ * - Real-time progress synchronization
+ * - Session recovery after browser refresh
+ * - Auto-save progress validation
+ * 
+ * @example
+ * // Request
+ * GET /api/tests/64a7b8c9d0e1f2a3b4c5d6e7/progress
+ * Headers: { Authorization: "Bearer jwt_token" }
+ * 
+ * // Response - With in-progress attempt
+ * {
+ *   "attemptId": "64a7b8c9d0e1f2a3b4c5d6e8",
+ *   "sections": [
+ *     {
+ *       "_id": "64a7b8c9d0e1f2a3b4c5d6e9",
+ *       "title": "Quantitative Aptitude",
+ *       "questions": [
+ *         {
+ *           "_id": "64a7b8c9d0e1f2a3b4c5d6ea",
+ *           "questionText": "What is 15% of 240?",
+ *           "options": [
+ *             { "_id": "opt1", "text": "36", "correct": true },
+ *             { "_id": "opt2", "text": "35", "correct": false }
+ *           ]
+ *         }
+ *       ]
+ *     }
+ *   ],
+ *   "responses": [
+ *     {
+ *       "question": "64a7b8c9d0e1f2a3b4c5d6ea",
+ *       "questionInstanceKey": "Q1_64a7b8c9d0e1f2a3b4c5d6ea",
+ *       "selected": ["opt1"],
+ *       "timeSpent": 45,
+ *       "attempts": 1,
+ *       "flagged": false,
+ *       "confidence": "high",
+ *       "visitedAt": "2023-07-15T10:15:30.000Z",
+ *       "lastModifiedAt": "2023-07-15T10:16:15.000Z"
+ *     }
+ *   ],
+ *   "remainingDurationSeconds": 5400,
+ *   "duration": 120,
+ *   "seriesTitle": "Banking Exam Mock Test 1",
+ *   "status": "in-progress",
+ *   "startedAt": "2023-07-15T10:00:00.000Z",
+ *   "expiresAt": "2023-07-15T12:00:00.000Z",
+ *   "lastSavedAt": "2023-07-15T10:16:15.000Z"
+ * }
+ * 
+ * // Response - No in-progress attempt
+ * {}
  */
 exports.getProgress = async (req, res) => {
   try {
@@ -957,8 +1267,20 @@ exports.getProgress = async (req, res) => {
 // ────────────────────────────────────────────────────────────────────────────────
 
 /**
- * Get comprehensive review data with explanations and time analytics
- * Enhanced for the new review page implementation
+ * Get Enhanced Review Data Endpoint
+ * 
+ * Retrieves comprehensive review data with detailed question analytics and explanations.
+ * Combines attempt structure with master question data and response analytics.
+ * Provides enhanced review capabilities with time tracking, difficulty analysis, and performance insights.
+ * 
+ * @route GET /api/tests/:attemptId/enhanced-review
+ * @access Private (Students only - own attempts)
+ * @param {string} req.params.attemptId - Test attempt ID to get enhanced review for
+ * @param {Object} req.user - Authenticated user object
+ * @param {string} req.user.userId - Student's user ID
+ * @returns {Object} Enhanced review data with attempt details, detailed questions, and analytics
+ * @throws {404} Test attempt not found
+ * @throws {500} Server error during data enrichment or analytics calculation
  */
 exports.getEnhancedReview = async (req, res) => {
   try {
@@ -1133,7 +1455,20 @@ exports.getEnhancedReview = async (req, res) => {
 };
 
 /**
- * Get performance comparison and analytics data
+ * Get Performance Analytics Endpoint
+ * 
+ * Calculates and returns comparative performance analytics for a test attempt.
+ * Compares current attempt with student's historical performance to show trends and improvements.
+ * Provides insights on score progression, accuracy trends, and performance ranking.
+ * 
+ * @route GET /api/tests/:attemptId/analytics
+ * @access Private (Students only - own attempts)
+ * @param {string} req.params.attemptId - Test attempt ID to analyze
+ * @param {Object} req.user - Authenticated user object
+ * @param {string} req.user.userId - Student's user ID for historical data comparison
+ * @returns {Object} Comparative analytics data with current vs average scores, improvement metrics, and trends
+ * @throws {404} Test attempt not found
+ * @throws {500} Server error during analytics calculation
  */
 exports.getPerformanceAnalytics = async (req, res) => {
   try {
@@ -1167,7 +1502,20 @@ exports.getPerformanceAnalytics = async (req, res) => {
 };
 
 /**
- * Get weakness identification and study recommendations
+ * Get Study Recommendations Endpoint
+ * 
+ * Analyzes test attempt performance to identify weak areas and generate study recommendations.
+ * Provides personalized suggestions for improvement based on question analysis and historical patterns.
+ * Recommends focus areas, study time allocation, and next steps for better performance.
+ * 
+ * @route GET /api/tests/:attemptId/recommendations
+ * @access Private (Students only - own attempts)
+ * @param {string} req.params.attemptId - Test attempt ID to analyze for recommendations
+ * @param {Object} req.user - Authenticated user object
+ * @param {string} req.user.userId - Student's user ID for personalized analysis
+ * @returns {Object} Study recommendations with weak topics, recommended study time, focus areas, and next steps
+ * @throws {404} Test attempt not found
+ * @throws {500} Server error during weakness analysis
  */
 exports.getStudyRecommendations = async (req, res) => {
   try {
@@ -1195,8 +1543,23 @@ exports.getStudyRecommendations = async (req, res) => {
 };
 
 // ────────────────────────────────────────────────────────────────────────────────
-// Helper Functions
+// Helper Functions for Analytics and Performance Analysis
+// ────────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Calculate performance grade based on percentage score
+ * 
+ * @description Converts numerical percentage to letter grade using standard
+ * grading scale. Used for performance analytics and student progress tracking.
+ * 
+ * @param {number} percentage - Percentage score (0-100)
+ * @returns {string} Letter grade (A+, A, B, C, D, F)
+ * 
+ * @example
+ * getGrade(95); // Returns 'A+'
+ * getGrade(75); // Returns 'B'
+ * getGrade(45); // Returns 'F'
+ */
 function getGrade(percentage) {
   if (percentage >= 90) return 'A+';
   if (percentage >= 80) return 'A';
@@ -1206,6 +1569,23 @@ function getGrade(percentage) {
   return 'F';
 }
 
+/**
+ * Generate comprehensive performance summary for student feedback
+ * 
+ * @description Creates detailed narrative summary of student performance including
+ * accuracy analysis, improvement trends, and motivational feedback. Combines
+ * current attempt results with historical performance data for context.
+ * 
+ * @param {Object} attempt - Test attempt object with series information
+ * @param {Object} performanceAnalytics - Current attempt performance metrics
+ * @param {Object} comparativeAnalytics - Historical comparison data
+ * @returns {string} Formatted performance summary text
+ * 
+ * @example
+ * const summary = generatePerformanceSummary(attempt, analytics, comparison);
+ * // Returns: "Your overall performance on JEE Main Practice Test shows 75.5% accuracy 
+ * //          with significant improvement of 8.2% from your previous attempts..."
+ */
 function generatePerformanceSummary(attempt, performanceAnalytics, comparativeAnalytics) {
   const accuracy = performanceAnalytics.overall.accuracy;
   const improvement = comparativeAnalytics.improvement;
@@ -1235,6 +1615,25 @@ function generatePerformanceSummary(attempt, performanceAnalytics, comparativeAn
   return summary;
 }
 
+/**
+ * Generate personalized study recommendations based on performance analysis
+ * 
+ * @description Analyzes performance metrics and weakness patterns to provide
+ * targeted study recommendations. Considers accuracy levels, time management,
+ * difficulty progression, and subject-specific performance patterns.
+ * 
+ * @param {Object} performanceAnalytics - Detailed performance breakdown
+ * @param {Object} weaknessAnalysis - Identified weak areas and patterns
+ * @returns {Array<string>} Array of personalized study recommendations
+ * 
+ * @example
+ * const recommendations = generateStudyRecommendations(analytics, weaknesses);
+ * // Returns: [
+ * //   "Focus on fundamental concepts before attempting practice tests",
+ * //   "Practice time management with timed question sets",
+ * //   "Create a daily study schedule with regular practice sessions"
+ * // ]
+ */
 function generateStudyRecommendations(performanceAnalytics, weaknessAnalysis) {
   const recommendations = [];
   
@@ -1267,6 +1666,24 @@ function generateStudyRecommendations(performanceAnalytics, weaknessAnalysis) {
   return recommendations;
 }
 
+/**
+ * Generate actionable study plan for performance improvement
+ * 
+ * @description Creates specific, time-bound action items for students to improve
+ * their performance. Considers current performance level and provides graduated
+ * study intensity recommendations based on accuracy and weak areas.
+ * 
+ * @param {Object} performanceAnalytics - Performance analysis with accuracy and timing data
+ * @returns {Array<string>} Array of specific action items for improvement
+ * 
+ * @example
+ * const actionPlan = generateActionPlan(analytics);
+ * // Returns: [
+ * //   "Review all flagged and incorrect questions from this attempt",
+ * //   "Spend 2-3 hours daily on foundational concepts",
+ * //   "Take practice tests weekly to track improvement"
+ * // ]
+ */
 function generateActionPlan(performanceAnalytics) {
   const actionPlan = [];
   
@@ -1285,6 +1702,25 @@ function generateActionPlan(performanceAnalytics) {
   return actionPlan;
 }
 
+/**
+ * Identify primary focus areas for targeted study improvement
+ * 
+ * @description Analyzes performance data to identify the most critical areas
+ * requiring student attention. Prioritizes subjects, concepts, and skills based
+ * on performance gaps and improvement potential.
+ * 
+ * @param {Object} performanceAnalytics - Comprehensive performance breakdown including subject and difficulty analysis
+ * @returns {Array<string>} Prioritized list of focus areas with performance indicators
+ * 
+ * @example
+ * const focusAreas = identifyFocusAreas(analytics);
+ * // Returns: [
+ * //   "Physics (65.2% accuracy)",
+ * //   "Chemistry (58.7% accuracy)", 
+ * //   "Time Management Skills",
+ * //   "Basic Concept Mastery"
+ * // ]
+ */
 function identifyFocusAreas(performanceAnalytics) {
   const focusAreas = [];
   

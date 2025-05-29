@@ -1,5 +1,74 @@
+/**
+ * @fileoverview User Profile Controller
+ * 
+ * This module handles user profile management operations for the NexPrep platform,
+ * providing endpoints for users to view and update their personal profile information.
+ * Focuses on secure profile data access and modification with proper authentication
+ * and authorization controls.
+ * 
+ * @module controllers/userController
+ * 
+ * @requires ../models/User - User data model for profile operations
+ * 
+ * @description Features include:
+ * - Secure profile retrieval with password exclusion
+ * - Profile update with selective field modification
+ * - Error handling for missing users and duplicate values
+ * - Authentication-based access control
+ * - Comprehensive input validation and sanitization
+ * 
+ * @author NexPrep Development Team
+ * @version 1.0.0
+ */
+
 const User = require('../models/User');
 
+/**
+ * Get current user's profile information
+ * 
+ * @route GET /api/users/profile/me
+ * @access Private (Student/Admin)
+ * 
+ * @description Retrieves the complete profile information of the currently authenticated
+ * user. Excludes sensitive information like password from the response for security.
+ * Used in profile pages, user dashboards, and anywhere user information display is needed.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user information from middleware
+ * @param {string} req.user.userId - User's unique identifier
+ * @param {Object} res - Express response object
+ * 
+ * @returns {Object} JSON response with user profile data
+ * @returns {string} returns._id - User's unique identifier
+ * @returns {string} returns.username - User's username
+ * @returns {string} returns.name - User's full name
+ * @returns {string} returns.email - User's email address
+ * @returns {string} returns.displayName - User's display name
+ * @returns {string} returns.photoURL - User's profile photo URL
+ * @returns {string} returns.phoneNumber - User's phone number
+ * @returns {string} returns.role - User's role (student/admin)
+ * @returns {string} returns.referralCode - User's referral code
+ * @returns {number} returns.successfulReferrals - Count of successful referrals
+ * @returns {Date} returns.createdAt - Account creation timestamp
+ * @returns {Date} returns.updatedAt - Last update timestamp
+ * 
+ * @throws {404} User not found
+ * @throws {500} Server error while fetching profile
+ * 
+ * @example
+ * // Response with user profile data
+ * {
+ *   "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
+ *   "username": "john_doe",
+ *   "name": "John Doe",
+ *   "email": "john@example.com",
+ *   "displayName": "John D.",
+ *   "role": "student",
+ *   "referralCode": "ABC123XYZ",
+ *   "successfulReferrals": 5,
+ *   "createdAt": "2024-01-01T00:00:00.000Z"
+ * }
+ */
 // @desc    Get current user's profile
 // @route   GET /api/users/profile/me
 // @access  Private
@@ -16,6 +85,60 @@ exports.getMyProfile = async (req, res) => {
   }
 };
 
+/**
+ * Update current user's profile information
+ * 
+ * @route PUT /api/users/profile/me
+ * @access Private (Student/Admin)
+ * 
+ * @description Allows authenticated users to update specific fields of their profile
+ * information. Supports selective field updates, meaning only provided fields will
+ * be modified while preserving existing data for non-specified fields. Implements
+ * proper validation and error handling for profile modifications.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body containing profile update data
+ * @param {string} [req.body.name] - Updated full name
+ * @param {string} [req.body.displayName] - Updated display name
+ * @param {string} [req.body.photoURL] - Updated profile photo URL
+ * @param {string} [req.body.phoneNumber] - Updated phone number
+ * @param {Object} req.user - Authenticated user information from middleware
+ * @param {string} req.user.userId - User's unique identifier
+ * @param {Object} res - Express response object
+ * 
+ * @returns {Object} JSON response with updated user profile
+ * @returns {string} returns._id - User's unique identifier
+ * @returns {string} returns.name - Updated full name
+ * @returns {string} returns.displayName - Updated display name
+ * @returns {string} returns.photoURL - Updated profile photo URL
+ * @returns {string} returns.phoneNumber - Updated phone number
+ * @returns {Date} returns.updatedAt - Update timestamp
+ * 
+ * @throws {404} User not found
+ * @throws {400} Update failed due to duplicate values
+ * @throws {500} Server error while updating profile
+ * 
+ * @security Note: Username and email updates are intentionally excluded due to their
+ * sensitive nature and potential impact on authentication and uniqueness constraints.
+ * These fields require separate, more controlled update processes.
+ * 
+ * @example
+ * // Request body for profile update
+ * {
+ *   "name": "John Smith",
+ *   "displayName": "Johnny",
+ *   "phoneNumber": "+1-555-123-4567"
+ * }
+ * 
+ * // Response with updated profile
+ * {
+ *   "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
+ *   "name": "John Smith",
+ *   "displayName": "Johnny",
+ *   "phoneNumber": "+1-555-123-4567",
+ *   "updatedAt": "2024-01-15T10:30:00.000Z"
+ * }
+ */
 // @desc    Update current user's profile
 // @route   PUT /api/users/profile/me
 // @access  Private

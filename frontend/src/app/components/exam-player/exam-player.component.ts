@@ -1,3 +1,19 @@
+/**
+ * @fileoverview Exam Player Component for NexPrep Frontend Application
+ * @description Advanced Angular component responsible for delivering comprehensive online examination
+ * experience with real-time progress tracking, multi-language support, question navigation,
+ * auto-save functionality, and sophisticated timer management.
+ * @module ExamPlayerComponent
+ * @requires @angular/core
+ * @requires @angular/common
+ * @requires @angular/forms
+ * @requires @angular/router
+ * @requires TestService
+ * @requires rxjs
+ * @author NexPrep Development Team
+ * @since 1.0.0
+ */
+
 import { Component, OnInit, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -11,45 +27,124 @@ import { TestService, StartTestResponse } from '../../services/test.service'; //
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators'; // Import takeUntil
 import { Subject } from 'rxjs'; // Import Subject
 
+/**
+ * @interface QuestionOption
+ * @description Represents a single option for a multiple choice question
+ */
 interface QuestionOption {
+  /** Option text content */
   text: string;
+  /** Optional image URL for the option */
   img?: string;
+  /** Whether this option is correct */
   isCorrect?: boolean;
+  /** Unique identifier for the option */
   _id?: string;
 }
 
+/**
+ * @interface QuestionTranslation
+ * @description Multi-language translation data for questions
+ */
 interface QuestionTranslation {
+  /** Language code (English or Hindi) */
   lang: 'en' | 'hi';
+  /** Translated question text */
   questionText: string;
+  /** Associated images for the question */
   images?: string[];
+  /** Translated options */
   options: QuestionOption[];
 }
 
+/**
+ * @interface QuestionHistoryItem
+ * @description Historical performance data for a question
+ */
 interface QuestionHistoryItem {
+  /** Test or exam title where question appeared */
   title: string;
+  /** Date when question was attempted */
   askedAt: string | Date;
+  /** Unique identifier for the history entry */
   _id?: string;
 }
 
+/**
+ * @interface PlayerQuestion
+ * @description Complete question data structure for exam player
+ */
 interface PlayerQuestion {
+  /** Question unique identifier */
   question: string; 
+  /** Multi-language translations */
   translations: QuestionTranslation[];
+  /** Marks awarded for correct answer */
   marks?: number;
+  /** Question type (single-choice, multiple-choice, etc.) */
   type?: string;
+  /** Question difficulty level */
   difficulty?: string;
+  /** Historical performance data */
   questionHistory?: QuestionHistoryItem[];
+  /** Currently displayed question text */
   displayQuestionText: string;
+  /** Currently displayed options */
   displayOptions: QuestionOption[];
+  /** Languages available for this question */
   availableLanguages: string[];
+  /** Original language used for display */
   originalLanguageForDisplay: string;
 }
 
+/**
+ * @interface PlayerSection
+ * @description Section structure containing questions for the exam player
+ */
 interface PlayerSection {
+  /** Section title */
   title: string;
+  /** Section display order */
   order: number;
+  /** Questions in this section */
   questions: PlayerQuestion[];
 }
 
+/**
+ * @class ExamPlayerComponent
+ * @description Comprehensive exam delivery component providing full-featured online examination
+ * experience with advanced capabilities including:
+ * - Real-time exam timer with auto-submission
+ * - Multi-language question support (English/Hindi)
+ * - Sophisticated question navigation and status tracking
+ * - Auto-save progress functionality with resumption capability
+ * - Question flagging and review marking
+ * - Responsive section and question management
+ * - Time tracking per question and section
+ * - Confidence level recording for performance analytics
+ * - Comprehensive form validation and submission handling
+ * 
+ * @implements {OnInit}
+ * @implements {OnDestroy}
+ * @since 1.0.0
+ * 
+ * @example
+ * ```typescript
+ * // Component usage in template
+ * <app-exam-player></app-exam-player>
+ * 
+ * // Navigation to exam player
+ * this.router.navigate(['/exam', testSeriesId]);
+ * 
+ * // The component automatically:
+ * // 1. Loads test data from route parameters
+ * // 2. Checks for saved progress
+ * // 3. Initializes form controls for all questions
+ * // 4. Starts countdown timer
+ * // 5. Enables auto-save functionality
+ * // 6. Provides seamless question navigation
+ * ```
+ */
 @Component({
   selector: 'app-exam-player',
   standalone: true,
@@ -57,41 +152,83 @@ interface PlayerSection {
   templateUrl: './exam-player.component.html',
   styleUrls: ['./exam-player.component.scss']
 })
-export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnDestroy
+export class ExamPlayerComponent implements OnInit, OnDestroy {
+  /** @property {string} Test series unique identifier from route parameters */
   seriesId!: string;
+  
+  /** @property {string} Display title of the current test series */
   testSeriesTitle: string = 'Loading Test...';
+  
+  /** @property {string} Current test attempt unique identifier */
   attemptId: string | undefined;
+  
+  /** @property {PlayerSection[]} Array of test sections with questions */
   sections: PlayerSection[] = [];
+  
+  /** @property {FormGroup} Reactive form managing all question responses */
   form: FormGroup;
+  
+  /** @property {number} Remaining time in seconds */
   timeLeft = 0;
+  
+  /** @property {any} Timer interval handle for countdown */
   timerHandle!: any;
+  
+  /** @property {boolean} Whether user has saved progress to resume */
   hasSavedProgress: boolean = false;
+  
+  /** @property {any[]} Previously saved response data */
   private savedResponses: any[] = [];
 
+  /** @property {string} Pending attempt ID for progress resumption */
   private pendingAttemptId: string | undefined;
+  
+  /** @property {number} Pending time left for progress resumption */
   private pendingTimeLeft: number = 0;
+  
+  /** @property {any[]} Pending sections data for progress resumption */
   private pendingSections: any[] = [];
+  
+  /** @property {any[]} Pending saved responses for progress resumption */
   private pendingSavedResponses: any[] = [];
 
+  /** @property {('en'|'hi')} Current display language for questions */
   currentLanguage: 'en' | 'hi' = 'en';
+  
+  /** @property {('en'|'hi')} Default language fallback */
   readonly defaultLanguage: 'en' | 'hi' = 'en';
 
+  /** @property {number} Current section index being viewed */
   currentSectionIndex = 0;
+  
+  /** @property {number} Current question index within the section */
   currentQuestionInSectionIndex = 0;
+  
+  /** @property {number} Global question index across all sections */
   currentGlobalQuestionIndex = 0;
 
-  // Map to store the Date object when a question viewing session starts
+  /** @property {Map<number, Date>} Tracking when question viewing sessions start */
   private questionStartTimes: Map<number, Date> = new Map();
 
-  // Define QuestionStatus object for use in getQuestionStatus method
+  /** @property {Object} Question status constants for template usage */
   readonly QuestionStatus = {
     ANSWERED: 'answered',
     UNANSWERED: 'unanswered',
     MARKED_FOR_REVIEW: 'marked-for-review'
   };
 
-  private destroy$ = new Subject<void>(); // Subject to signal component destruction
+  /** @property {Subject<void>} RxJS subject for component destruction cleanup */
+  private destroy$ = new Subject<void>();
 
+  /**
+   * @constructor
+   * @description Initializes the ExamPlayerComponent with required dependencies and form setup
+   * @param {FormBuilder} fb - Angular FormBuilder for reactive forms
+   * @param {ActivatedRoute} route - Angular ActivatedRoute for parameter extraction
+   * @param {Router} router - Angular Router for navigation
+   * @param {TestService} testSvc - Test service for API operations
+   * @param {ChangeDetectorRef} cd - Angular ChangeDetectorRef for manual change detection
+   */
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
@@ -106,6 +243,20 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     });
   }
 
+  /**
+   * @method ngOnInit
+   * @description Component initialization lifecycle hook. Extracts route parameters,
+   * initializes component state, and checks for existing test progress.
+   * 
+   * @example
+   * ```typescript
+   * // Automatically called by Angular framework
+   * // 1. Extracts seriesId from route parameters
+   * // 2. Checks for saved progress via TestService
+   * // 3. Sets up component state based on progress data
+   * // 4. Prepares for test start or resume
+   * ```
+   */
   ngOnInit() {
     this.seriesId = this.route.snapshot.paramMap.get('seriesId')!;
     console.log(`ExamPlayer: ngOnInit for seriesId: ${this.seriesId}`);
@@ -146,6 +297,18 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     });
   }
 
+  /**
+   * @method start
+   * @description Initiates a new test session, clearing any previous progress
+   * and starting fresh with the configured test series.
+   * 
+   * @example
+   * ```typescript
+   * // Called when user clicks "Start New Test" button
+   * this.start();
+   * // Resets all progress and starts new attempt
+   * ```
+   */
   start(): void {
     console.log('Starting new test...');
     this.hasSavedProgress = false;
@@ -156,6 +319,18 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     this.startNewTest();
   }
 
+  /**
+   * @method resumeTest
+   * @description Resumes a previously saved test session with saved progress,
+   * restoring question responses, timer state, and navigation position.
+   * 
+   * @example
+   * ```typescript
+   * // Called when user clicks "Resume Test" button
+   * this.resumeTest();
+   * // Restores: timer, responses, current question position
+   * ```
+   */
   resumeTest(): void {
     if (this.pendingAttemptId && this.pendingSections.length > 0) {
       console.log('Resuming test with ID:', this.pendingAttemptId);
@@ -169,6 +344,21 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     }
   }
 
+  /**
+   * @private
+   * @method startNewTest
+   * @description Initiates a fresh test session by calling the backend API.
+   * Handles new test creation and initial setup of the examination environment.
+   * 
+   * @example
+   * ```typescript
+   * // Called internally when starting a new test
+   * this.startNewTest();
+   * // 1. Calls TestService.startTest() API
+   * // 2. Receives: attemptId, duration, sections
+   * // 3. Initializes: timer, form controls, navigation
+   * ```
+   */
   private startNewTest() {
     this.testSvc.startTest(this.seriesId).subscribe({
       next: (res: StartTestResponse) => {
@@ -181,6 +371,22 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     });
   }
 
+  /**
+   * @private
+   * @method attachAutoSave
+   * @description Sets up automatic progress saving with debouncing to prevent excessive API calls.
+   * Monitors form changes and triggers saves after a delay period of inactivity.
+   * 
+   * @example
+   * ```typescript
+   * // Called during test initialization
+   * this.attachAutoSave();
+   * // Configuration:
+   * // - 5-second debounce delay
+   * // - Change detection via JSON comparison
+   * // - Automatic cleanup on component destroy
+   * ```
+   */
   private attachAutoSave() {
     this.form.valueChanges
       .pipe(
@@ -194,10 +400,40 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
       });
   }
 
+  /**
+   * @getter responses
+   * @description Provides typed access to the reactive form array containing all question responses.
+   * Essential for form manipulation and response data access throughout the component.
+   * 
+   * @returns {FormArray} Reactive form array containing question response controls
+   * 
+   * @example
+   * ```typescript
+   * const responseControls = this.responses;
+   * const firstResponse = responseControls.at(0);
+   * const selectedAnswer = firstResponse.get('selected')?.value;
+   * ```
+   */
   get responses(): FormArray {
     return this.form.get('responses') as FormArray;
   }
-
+  /**
+   * @method submit
+   * @description Submits the completed test attempt to the backend for evaluation.
+   * Handles final time tracking, form cleanup, and navigation to review page.
+   * 
+   * @throws {Error} When no active attempt ID is available for submission
+   * 
+   * @example
+   * ```typescript
+   * // Called when user clicks "Submit Test" or time expires
+   * this.submit();
+   * // 1. Stops timer and auto-save
+   * // 2. Updates final question time spent
+   * // 3. Sends all responses to backend
+   * // 4. Navigates to review page on success
+   * ```
+   */
   submit() {
     clearInterval(this.timerHandle);
     this.destroy$.next(); 
@@ -235,11 +471,44 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     });
   }
 
+  /**
+   * @method formatTime
+   * @description Formats seconds into MM:SS time display format for the exam timer.
+   * 
+   * @param {number} sec - Total seconds to format
+   * @returns {string} Formatted time string in MM:SS format
+   * 
+   * @example
+   * ```typescript
+   * const timeStr = this.formatTime(125);
+   * console.log(timeStr); // "02:05"
+   * 
+   * const timeStr2 = this.formatTime(3661);
+   * console.log(timeStr2); // "61:01"
+   * ```
+   */
   formatTime(sec: number): string {
     const m = Math.floor(sec / 60).toString().padStart(2, '0');
     const s = (sec % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   }
+  /**
+   * @private
+   * @method initializeQuestionControls
+   * @description Creates reactive form controls for each question with saved progress restoration.
+   * Handles complex question instance keys and proper form state initialization.
+   * 
+   * @param {PlayerSection[]} sections - Array of test sections with questions
+   * @param {any[]} savedResponses - Previously saved user responses for progress restoration
+   * 
+   * @example
+   * ```typescript
+   * // Called during test initialization or resume
+   * this.initializeQuestionControls(this.sections, savedProgressData);
+   * // Creates FormArray with controls for each question
+   * // Restores: selected answers, time spent, flags, visit history
+   * ```
+   */
   private initializeQuestionControls(sections: PlayerSection[], savedResponses: any[]): void {
     const responsesArray = this.form.get('responses') as FormArray;
     responsesArray.clear(); // Clear existing controls
@@ -292,6 +561,23 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     this.cd.detectChanges(); // Notify Angular of changes
   }
   
+  /**
+   * @private
+   * @method buildFormAndTimer
+   * @description Core initialization method that sets up the exam environment including
+   * reactive forms, countdown timer, and question navigation state.
+   * 
+   * @param {number} durationInSeconds - Total exam duration in seconds
+   * @param {any[]} sectionsFromServer - Raw section data from backend API
+   * @param {any[]} savedResponses - Previously saved responses for progress restoration
+   * 
+   * @example
+   * ```typescript
+   * // Called during new test start or resume
+   * this.buildFormAndTimer(3600, sectionsData, []);
+   * // Sets up: 60-minute timer, form controls, initial navigation
+   * ```
+   */
   private buildFormAndTimer(durationInSeconds: number, sectionsFromServer: any[], savedResponses: any[]) {
     this.timeLeft = durationInSeconds;
     this.sections = this.transformSections(sectionsFromServer);
@@ -315,6 +601,22 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     this.cd.detectChanges(); 
   }
 
+  /**
+   * @private
+   * @method transformSections
+   * @description Transforms raw section data from server into client-side PlayerSection format
+   * with enhanced question display properties and language support.
+   * 
+   * @param {any[]} sectionsFromServer - Raw section data from backend API
+   * @returns {PlayerSection[]} Transformed sections with display-ready question data
+   * 
+   * @example
+   * ```typescript
+   * const playerSections = this.transformSections(serverData);
+   * // Transforms: raw questions → PlayerQuestion with display properties
+   * // Adds: language support, display text, option formatting
+   * ```
+   */
   private transformSections(sectionsFromServer: any[]): PlayerSection[] {
     if (!sectionsFromServer) return [];
     return sectionsFromServer.map(section => ({
@@ -329,6 +631,20 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     }));
   }
 
+  /**
+   * @private
+   * @method navigateToInitialQuestion
+   * @description Sets the exam player to the first question and initializes tracking.
+   * Called after form setup to begin the examination session.
+   * 
+   * @example
+   * ```typescript
+   * // Called after buildFormAndTimer completes
+   * this.navigateToInitialQuestion();
+   * // Sets: currentSectionIndex=0, currentQuestionInSectionIndex=0
+   * // Starts: question visit tracking and timing
+   * ```
+   */
   private navigateToInitialQuestion() {
     this.currentSectionIndex = 0;
     this.currentQuestionInSectionIndex = 0;
@@ -338,6 +654,22 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     }
   }
 
+  /**
+   * @method goToQuestion
+   * @description Navigates directly to a specific question by section and question indices.
+   * Updates time tracking and visit history for proper analytics.
+   * 
+   * @param {number} sectionIdx - Target section index (0-based)
+   * @param {number} questionInSectionIdx - Target question index within section (0-based)
+   * 
+   * @example
+   * ```typescript
+   * // Navigate to 3rd question in 2nd section
+   * this.goToQuestion(1, 2);
+   * // Updates: current indices, time tracking, visit history
+   * // Triggers: change detection for UI updates
+   * ```
+   */
   goToQuestion(sectionIdx: number, questionInSectionIdx: number) {
     if (this.sections[sectionIdx] && this.sections[sectionIdx].questions[questionInSectionIdx]) {
       this.updateQuestionTimeSpent(this.currentGlobalQuestionIndex);
@@ -351,6 +683,21 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     }
   }
 
+  /**
+   * @method next
+   * @description Navigates to the next question in sequence, handling section boundaries.
+   * Automatically moves to next section when reaching end of current section.
+   * 
+   * @example
+   * ```typescript
+   * // Navigate to next question
+   * this.next();
+   * // Behavior:
+   * // - Within section: moves to next question
+   * // - End of section: moves to first question of next section
+   * // - Last question: no movement (end of test)
+   * ```
+   */
   next() {
     this.updateQuestionTimeSpent(this.currentGlobalQuestionIndex);
 
@@ -370,6 +717,21 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     this.cd.detectChanges();
   }
 
+  /**
+   * @method prev
+   * @description Navigates to the previous question in sequence, handling section boundaries.
+   * Automatically moves to previous section when reaching beginning of current section.
+   * 
+   * @example
+   * ```typescript
+   * // Navigate to previous question
+   * this.prev();
+   * // Behavior:
+   * // - Within section: moves to previous question
+   * // - Start of section: moves to last question of previous section
+   * // - First question: no movement (start of test)
+   * ```
+   */
   prev() {
     this.updateQuestionTimeSpent(this.currentGlobalQuestionIndex); 
 
@@ -389,6 +751,22 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     this.cd.detectChanges();
   }
 
+  /**
+   * @method getGlobalIndex
+   * @description Calculates the global question index from section and local question indices.
+   * Essential for form control mapping and analytics tracking.
+   * 
+   * @param {number} sectionIdx - Section index (0-based)
+   * @param {number} questionInSectionIdx - Question index within section (0-based)
+   * @returns {number} Global question index across all sections
+   * 
+   * @example
+   * ```typescript
+   * // For question 2 in section 1 (assuming section 0 has 5 questions)
+   * const globalIdx = this.getGlobalIndex(1, 2);
+   * console.log(globalIdx); // 7 (5 from section 0 + 2 from section 1)
+   * ```
+   */
   getGlobalIndex(sectionIdx: number, questionInSectionIdx: number): number {
     let globalIndex = 0;
     for (let i = 0; i < sectionIdx; i++) {
@@ -398,32 +776,133 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     return globalIndex;
   }
 
+  /**
+   * @method getGlobalQuestionNumber
+   * @description Converts global index to human-readable question number (1-based).
+   * Used for display purposes in UI elements.
+   * 
+   * @param {number} sectionIdx - Section index (0-based)
+   * @param {number} questionInSectionIdx - Question index within section (0-based)
+   * @returns {number} Human-readable question number (1-based)
+   * 
+   * @example
+   * ```typescript
+   * const questionNum = this.getGlobalQuestionNumber(0, 0);
+   * console.log(questionNum); // 1 (first question)
+   * 
+   * const questionNum2 = this.getGlobalQuestionNumber(1, 2);
+   * console.log(questionNum2); // 8 (assuming previous section had 5 questions)
+   * ```
+   */
   getGlobalQuestionNumber(sectionIdx: number, questionInSectionIdx: number): number {
     return this.getGlobalIndex(sectionIdx, questionInSectionIdx) + 1;
   }
 
+  /**
+   * @method isCurrentQuestion
+   * @description Checks if the specified question is currently being viewed.
+   * Used for UI highlighting and navigation state management.
+   * 
+   * @param {number} sectionIdx - Section index to check
+   * @param {number} questionInSectionIdx - Question index to check
+   * @returns {boolean} True if this is the currently viewed question
+   * 
+   * @example
+   * ```typescript
+   * const isCurrent = this.isCurrentQuestion(1, 3);
+   * // Used in template: [class.active]="isCurrentQuestion(sectionIdx, questionIdx)"
+   * ```
+   */
   isCurrentQuestion(sectionIdx: number, questionInSectionIdx: number): boolean {
     return this.currentSectionIndex === sectionIdx && this.currentQuestionInSectionIndex === questionInSectionIdx;
   }
   
+  /**
+   * @method isCurrentQuestionByIndex
+   * @description Checks if the specified global index is currently being viewed.
+   * Alternative to isCurrentQuestion using global indexing.
+   * 
+   * @param {number} globalIdx - Global question index to check
+   * @returns {boolean} True if this is the currently viewed question
+   * 
+   * @example
+   * ```typescript
+   * const isCurrent = this.isCurrentQuestionByIndex(5);
+   * // Used for palette highlighting based on global index
+   * ```
+   */
   isCurrentQuestionByIndex(globalIdx: number): boolean {
     return this.currentGlobalQuestionIndex === globalIdx;
   }
 
+  /**
+   * @method isQuestionFlagged
+   * @description Checks if a question is flagged for review using section/question indices.
+   * 
+   * @param {number} sectionIdx - Section index of the question
+   * @param {number} questionInSectionIdx - Question index within the section
+   * @returns {boolean} True if the question is flagged for review
+   * 
+   * @example
+   * ```typescript
+   * const isFlagged = this.isQuestionFlagged(1, 2);
+   * // Used in template: [class.flagged]="isQuestionFlagged(sIdx, qIdx)"
+   * ```
+   */
   isQuestionFlagged(sectionIdx: number, questionInSectionIdx: number): boolean {
     const globalIndex = this.getGlobalIndex(sectionIdx, questionInSectionIdx);
     return this.isQuestionFlaggedByIndex(globalIndex);
   }
 
+  /**
+   * @method isQuestionFlaggedByIndex
+   * @description Checks if a question is flagged for review using global index.
+   * 
+   * @param {number} globalIndex - Global question index
+   * @returns {boolean} True if the question is flagged for review
+   * 
+   * @example
+   * ```typescript
+   * const isFlagged = this.isQuestionFlaggedByIndex(7);
+   * // Direct lookup by global index for performance
+   * ```
+   */
   isQuestionFlaggedByIndex(globalIndex: number): boolean {
     const formCtrl = this.responses.at(globalIndex);
     return formCtrl ? formCtrl.get('flagged')?.value || false : false;
   }
 
+  /**
+   * @method isFirstQuestionOverall
+   * @description Determines if currently viewing the very first question of the entire test.
+   * Used for navigation control and UI state management.
+   * 
+   * @returns {boolean} True if on the first question of the test
+   * 
+   * @example
+   * ```typescript
+   * const isFirst = this.isFirstQuestionOverall();
+   * // Used to disable "Previous" button: [disabled]="isFirstQuestionOverall()"
+   * ```
+   */
   isFirstQuestionOverall(): boolean {
     return this.currentSectionIndex === 0 && this.currentQuestionInSectionIndex === 0;
   }
 
+  /**
+   * @method isLastQuestionOverall
+   * @description Determines if currently viewing the very last question of the entire test.
+   * Used for navigation control and submit button display logic.
+   * 
+   * @returns {boolean} True if on the last question of the test
+   * 
+   * @example
+   * ```typescript
+   * const isLast = this.isLastQuestionOverall();
+   * // Used to show submit button: *ngIf="isLastQuestionOverall()"
+   * // Used to disable "Next" button: [disabled]="isLastQuestionOverall()"
+   * ```
+   */
   isLastQuestionOverall(): boolean {
     if (!this.sections || this.sections.length === 0) return true;
     const lastSectionIdx = this.sections.length - 1;
@@ -432,6 +911,22 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     return this.currentSectionIndex === lastSectionIdx && this.currentQuestionInSectionIndex === lastQuestionInSectionIdx;
   }
   
+  /**
+   * @private
+   * @method processSections
+   * @description Advanced section processing with comprehensive language translation support.
+   * Transforms server data into display-ready format with multi-language capabilities.
+   * 
+   * @param {any[] | undefined} sectionsFromServer - Raw section data from backend API
+   * @returns {PlayerSection[]} Processed sections with enhanced display properties
+   * 
+   * @example
+   * ```typescript
+   * const processedSections = this.processSections(serverSections);
+   * // Adds: translation support, display text, available languages
+   * // Handles: option formatting, language detection, fallbacks
+   * ```
+   */
   private processSections(sectionsFromServer: any[] | undefined): PlayerSection[] {
     if (!sectionsFromServer) return [];
     
@@ -485,8 +980,30 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
       return processedSection;
     });
   }
-
-  // Helper function to get translated content or fallbacks
+  /**
+   * @private
+   * @method getTranslatedContentForQuestion
+   * @description Retrieves translated question content with intelligent fallback logic.
+   * Handles missing translations gracefully and maintains content consistency.
+   * 
+   * @param {QuestionTranslation[]} translations - Available translations for the question
+   * @param {'en' | 'hi'} preferredLang - User's preferred language
+   * @param {string} defaultQuestionText - Fallback question text if no translation found
+   * @param {QuestionOption[]} defaultOptions - Fallback options if no translation found
+   * @returns {Object} Object containing translated content and language used
+   * @returns {string} returns.questionText - Translated or fallback question text
+   * @returns {QuestionOption[]} returns.options - Translated or fallback options
+   * @returns {string} returns.langUsed - Actual language used for content
+   * 
+   * @example
+   * ```typescript
+   * const content = this.getTranslatedContentForQuestion(
+   *   question.translations, 'hi', 'Default text', []
+   * );
+   * console.log(content.questionText); // Hindi text or fallback
+   * console.log(content.langUsed); // 'hi', 'en', or other available language
+   * ```
+   */
   private getTranslatedContentForQuestion(
     translations: QuestionTranslation[], 
     preferredLang: 'en' | 'hi', 
@@ -513,6 +1030,24 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     };
   }
 
+  /**
+   * @method changeLanguage
+   * @description Dynamically switches the examination interface language and updates all question content.
+   * Provides real-time language switching without losing user progress.
+   * 
+   * @param {'en' | 'hi'} lang - Target language code ('en' for English, 'hi' for Hindi)
+   * 
+   * @example
+   * ```typescript
+   * // Switch to Hindi
+   * this.changeLanguage('hi');
+   * // Updates: all question text, options, UI elements
+   * // Preserves: user answers, time tracking, navigation state
+   * 
+   * // Switch back to English
+   * this.changeLanguage('en');
+   * ```
+   */
   changeLanguage(lang: 'en' | 'hi'): void {
     if (this.currentLanguage === lang) return;
     this.currentLanguage = lang;
@@ -527,6 +1062,22 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     this.cd.detectChanges();
   }
 
+  /**
+   * @getter currentQuestionDisplayData
+   * @description Retrieves the currently viewed question's display data including translations.
+   * Essential for template rendering and question content display.
+   * 
+   * @returns {PlayerQuestion | undefined} Current question data or undefined if not available
+   * 
+   * @example
+   * ```typescript
+   * const currentQ = this.currentQuestionDisplayData;
+   * if (currentQ) {
+   *   console.log(currentQ.displayQuestionText); // Current question text
+   *   console.log(currentQ.displayOptions); // Current answer options
+   * }
+   * ```
+   */
   get currentQuestionDisplayData(): PlayerQuestion | undefined {
     const currentSection = this.sections[this.currentSectionIndex];
     if (currentSection && currentSection.questions && currentSection.questions.length > this.currentQuestionInSectionIndex) {
@@ -536,6 +1087,26 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     return undefined;
   }
 
+  /**
+   * @method getQuestionStatus
+   * @description Determines the visual status of a question for the question palette display.
+   * Implements sophisticated status logic based on visit history, answers, and flags.
+   * 
+   * @param {number} sectionIdx - Section index of the question
+   * @param {number} questionInSectionIdx - Question index within the section
+   * @returns {string} Status string for CSS class binding
+   * @returns {'answered'} Question has been answered (green in palette)
+   * @returns {'marked-for-review'} Question is flagged but unanswered (yellow in palette)
+   * @returns {'unanswered'} Question visited but not answered (gray in palette)
+   * @returns {'not-visited'} Question never visited (white in palette)
+   * 
+   * @example
+   * ```typescript
+   * const status = this.getQuestionStatus(1, 2);
+   * // Used in template: [class]="'status-' + getQuestionStatus(sIdx, qIdx)"
+   * // Possible classes: status-answered, status-marked-for-review, etc.
+   * ```
+   */
   getQuestionStatus(sectionIdx: number, questionInSectionIdx: number): string {
     const globalIndex = this.getGlobalIndex(sectionIdx, questionInSectionIdx);
     const formCtrl = this.responses.at(globalIndex);
@@ -568,8 +1139,25 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
       }
     }
   }
-
-  // Renamed original manualSave to saveProgressInternal and added isManualTrigger parameter
+  /**
+   * @private
+   * @method saveProgressInternal
+   * @description Internal progress saving mechanism with manual/automatic trigger distinction.
+   * Handles comprehensive state preservation including responses, timing, and metadata.
+   * 
+   * @param {boolean} isManualTrigger - Whether save was triggered manually by user (default: false)
+   * 
+   * @example
+   * ```typescript
+   * // Automatic save (no user notification)
+   * this.saveProgressInternal(false);
+   * 
+   * // Manual save (shows success alert)
+   * this.saveProgressInternal(true);
+   * 
+   * // Saves: all responses, current time left, visit timestamps
+   * ```
+   */
   private saveProgressInternal(isManualTrigger: boolean = false): void {
     if (!this.attemptId) return;
     this.updateQuestionTimeSpent(this.currentGlobalQuestionIndex);
@@ -598,12 +1186,38 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
       error: (err) => console.error('Failed to save progress:', err)
     });
   }
-
-  // New public method for the manual save button in your HTML
+  /**
+   * @method triggerManualSave
+   * @description Public method for manual progress saving triggered by user action.
+   * Provides user feedback through success notification.
+   * 
+   * @example
+   * ```typescript
+   * // Called from template button click
+   * <button (click)="triggerManualSave()">Save Progress</button>
+   * // Shows "Progress Saved!" alert on success
+   * ```
+   */
   public triggerManualSave(): void {
     this.saveProgressInternal(true); // Call internal save, indicating it's a manual trigger
   }
 
+  /**
+   * @private
+   * @method trackQuestionVisit
+   * @description Records question visit analytics including timestamps and attempt counts.
+   * Essential for detailed examination analytics and behavior tracking.
+   * 
+   * @param {number} globalIndex - Global index of the visited question
+   * 
+   * @example
+   * ```typescript
+   * // Called automatically during navigation
+   * this.trackQuestionVisit(5);
+   * // Records: visit start time, increments attempt count
+   * // Updates: visitedAt timestamp if first visit
+   * ```
+   */
   private trackQuestionVisit(globalIndex: number): void {
     this.questionStartTimes.set(globalIndex, new Date());
 
@@ -618,6 +1232,23 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     }
   }
 
+  /**
+   * @private
+   * @method updateQuestionTimeSpent
+   * @description Calculates and updates time spent on a specific question.
+   * Implements precise time tracking with minimum threshold to avoid noise.
+   * 
+   * @param {number} globalIndex - Global index of the question to update
+   * 
+   * @example
+   * ```typescript
+   * // Called when leaving a question
+   * this.updateQuestionTimeSpent(currentIndex);
+   * // Calculates: time since trackQuestionVisit was called
+   * // Updates: cumulative timeSpent, lastModifiedAt timestamp
+   * // Threshold: Only records time >= 500ms to filter out quick navigation
+   * ```
+   */
   private updateQuestionTimeSpent(globalIndex: number): void {
     const formCtrl = this.responses.at(globalIndex) as FormGroup;
     if (formCtrl) {
@@ -640,6 +1271,21 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     }
   }
 
+  /**
+   * @private
+   * @method trackAnswerChange
+   * @description Records timestamp when user modifies their answer to a question.
+   * Used for detailed analytics and audit trail of user interactions.
+   * 
+   * @param {number} globalIndex - Global index of the modified question
+   * 
+   * @example
+   * ```typescript
+   * // Called automatically when answer selection changes
+   * this.trackAnswerChange(3);
+   * // Updates: lastModifiedAt with current timestamp
+   * ```
+   */
   private trackAnswerChange(globalIndex: number): void {
     const formCtrl = this.responses.at(globalIndex) as FormGroup;
     if (formCtrl) {
@@ -647,6 +1293,23 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     }
   }
 
+  /**
+   * @method toggleQuestionFlag
+   * @description Toggles the review flag status for a specific question.
+   * Allows users to mark questions for later review during examination.
+   * 
+   * @param {number} globalIndex - Global index of the question to flag/unflag
+   * 
+   * @example
+   * ```typescript
+   * // Called from template flag button
+   * <button (click)="toggleQuestionFlag(currentGlobalQuestionIndex)">
+   *   Flag for Review
+   * </button>
+   * // Toggles: flagged status, updates lastModifiedAt
+   * // Triggers: change detection for UI updates
+   * ```
+   */
   toggleQuestionFlag(globalIndex: number): void {
     const formCtrl = this.responses.at(globalIndex) as FormGroup;
     if (formCtrl) {
@@ -657,6 +1320,20 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     }
   }
   
+  /**
+   * @private
+   * @method attachAnswerChangeTracking
+   * @description Sets up reactive tracking for answer changes across all questions.
+   * Enables automatic analytics recording when users modify their responses.
+   * 
+   * @example
+   * ```typescript
+   * // Called after form initialization
+   * this.attachAnswerChangeTracking();
+   * // Sets up: valueChanges subscriptions for all question controls
+   * // Triggers: trackAnswerChange when answers are modified
+   * ```
+   */
   private attachAnswerChangeTracking(): void {
     this.responses.controls.forEach((control, index) => {
       control.get('selected')?.valueChanges.pipe(distinctUntilChanged()).subscribe(() => {
@@ -665,6 +1342,20 @@ export class ExamPlayerComponent implements OnInit, OnDestroy { // Implement OnD
     });
   }
 
+  /**
+   * @method ngOnDestroy
+   * @description Component cleanup lifecycle hook. Ensures proper resource cleanup
+   * and prevents memory leaks by stopping timers and unsubscribing from observables.
+   * 
+   * @example
+   * ```typescript
+   * // Automatically called by Angular framework when component is destroyed
+   * // Cleanup includes:
+   * // - RxJS subscriptions via destroy$ subject
+   * // - Timer interval clearance
+   * // - Resource cleanup logging
+   * ```
+   */
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();

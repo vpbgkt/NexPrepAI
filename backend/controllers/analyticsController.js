@@ -1,9 +1,43 @@
+/**
+ * Analytics Controller
+ * 
+ * Provides comprehensive analytics and reporting functionality for the NexPrep platform.
+ * Handles question performance analytics, test series statistics, and data export capabilities.
+ * Generates insights for administrators to monitor question difficulty, time patterns, and user performance.
+ * 
+ * Features:
+ * - Question difficulty and timing analytics
+ * - Test series performance statistics (score distribution, average time)
+ * - Individual question accuracy and performance metrics
+ * - CSV export functionality for detailed attempt data
+ * - Aggregated analytics for decision-making support
+ * 
+ * @requires ../models/Question
+ * @requires ../models/TestAttempt
+ * @requires mongoose
+ * @requires json2csv - For CSV export functionality
+ */
+
 const Question = require('../models/Question');
 const TestAttempt = require('../models/TestAttempt');
 const mongoose = require('mongoose');
 const { Parser } = require('json2csv'); // npm i json2csv
 
-// GET /api/analytics/questions
+/**
+ * Get Question Analytics Endpoint
+ * 
+ * Retrieves analytics for questions focusing on difficulty and timing patterns.
+ * Identifies hardest questions (lowest accuracy) and slowest questions (highest average time).
+ * Useful for content creators to identify problematic questions and optimize question bank.
+ * 
+ * @route GET /api/analytics/questions
+ * @access Private (Admin/Analytics access)
+ * @param {number} req.query.limit - Maximum number of questions to return per category (default: 10)
+ * @returns {Object} Analytics object containing hardest and slowest questions
+ * @returns {Array} returns.hardest - Questions with lowest accuracy rates
+ * @returns {Array} returns.slowest - Questions with highest average completion times
+ * @throws {500} Server error during analytics calculation
+ */
 exports.getQuestionAnalytics = async (req, res) => {
   try {
     const { limit = 10 } = req.query;
@@ -26,7 +60,23 @@ exports.getQuestionAnalytics = async (req, res) => {
   }
 };
 
-// GET /api/analytics/series/:seriesId
+/**
+ * Get Series Analytics Endpoint
+ * 
+ * Provides comprehensive analytics for a specific test series including performance metrics.
+ * Generates score distribution, timing analysis, and user engagement statistics.
+ * Essential for administrators to evaluate test series effectiveness and user performance patterns.
+ * 
+ * @route GET /api/analytics/series/:seriesId
+ * @access Private (Admin/Analytics access)
+ * @param {string} req.params.seriesId - MongoDB ObjectId of the test series
+ * @returns {Object} Comprehensive series analytics
+ * @returns {Array} returns.scoreDistribution - Distribution of scores across all attempts
+ * @returns {number} returns.totalAttempts - Total number of submitted attempts
+ * @returns {number} returns.averageTime - Average completion time in minutes
+ * @returns {number} returns.averageScore - Mean score across all attempts
+ * @throws {500} Server error during analytics aggregation
+ */
 exports.getSeriesAnalytics = async (req, res) => {
   try {
     const { seriesId } = req.params;
@@ -84,7 +134,23 @@ exports.getSeriesAnalytics = async (req, res) => {
   }
 };
 
-// GET /api/analytics/question/:questionId
+/**
+ * Get Question Statistics Endpoint
+ * 
+ * Retrieves detailed performance statistics for a specific question.
+ * Provides accuracy percentage and average completion time for individual question analysis.
+ * Useful for question-level performance monitoring and content quality assessment.
+ * 
+ * @route GET /api/analytics/question/:questionId
+ * @access Private (Admin/Analytics access)
+ * @param {string} req.params.questionId - MongoDB ObjectId of the question
+ * @returns {Object} Question performance statistics
+ * @returns {string} returns.questionId - The question ID
+ * @returns {number} returns.accuracy - Accuracy percentage (0-100)
+ * @returns {number} returns.avgTime - Average completion time in seconds
+ * @throws {404} Question not found
+ * @throws {500} Server error during stats calculation
+ */
 exports.getQuestionStats = async (req, res) => {
   try {
     const { questionId } = req.params;
@@ -103,6 +169,20 @@ exports.getQuestionStats = async (req, res) => {
   }
 };
 
+/**
+ * Export Attempts CSV Endpoint
+ * 
+ * Exports test attempt data for a specific series in CSV format.
+ * Includes student information, scores, timing data, and other attempt metrics.
+ * Enables detailed analysis and reporting for administrators and content creators.
+ * 
+ * @route GET /api/analytics/series/:id/export-csv
+ * @access Private (Admin/Analytics access)  
+ * @param {string} req.params.id - MongoDB ObjectId of the test series
+ * @returns {File} CSV file download with attempt data
+ * @returns {Object} CSV contains: student info, scores, timing, attempt details
+ * @throws {500} Server error during CSV generation or database query
+ */
 exports.exportAttemptsCsv = async (req, res) => {
   try {
     const seriesId = req.params.id;
