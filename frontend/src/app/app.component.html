@@ -66,15 +66,14 @@
   .nav-links a:hover, .nav-auth a:hover, .nav-user a:hover {
     color: var(--electric-violet);
   }
-
   .nav-brand {
     font-size: 1.5rem;
     font-weight: bold;
-    color: white;
+    color: white !important;
     text-decoration: none;
   }
   .nav-brand:hover {
-    color: var(--bright-blue);
+    color: var(--bright-blue) !important;
   }
 
   .nav-left {
@@ -95,6 +94,22 @@
     display: flex;
     align-items: center;
     margin-left: 1rem;
+  }
+
+  .user-profile-link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: white;
+    margin-right: 1rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+
+  .user-profile-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--bright-blue);
   }
 
   .user-avatar {
@@ -261,9 +276,10 @@
   }
 </style>
 
-<nav class="top-nav">
-  <div class="nav-left">
-    <a routerLink="/" class="nav-brand">NexPrep</a>    <div class="nav-links" *ngIf="isAppLoggedIn"> <!-- Use component property -->
+<nav class="top-nav">  <div class="nav-left">
+    <a routerLink="/" class="nav-brand">NexPrep</a>
+    <div class="nav-links" *ngIf="isAppLoggedIn"> <!-- Use component property -->
+      <a routerLink="/home" routerLinkActive="active">Home</a>
       <a routerLink="/tests" routerLinkActive="active">Tests</a>
       <a routerLink="/student/dashboard" routerLinkActive="active">Dashboard</a>
       <a routerLink="/rewards" routerLinkActive="active">Rewards</a>
@@ -273,20 +289,23 @@
     </div>
   </div>
 
-  <div class="nav-right">
-    <ng-container *ngIf="isAppLoggedIn"> <!-- Use component property -->
+  <div class="nav-right">    <ng-container *ngIf="isAppLoggedIn"> <!-- Use component property -->
       <div class="nav-user">
         <ng-container *ngIf="(currentUser$ | async) as firebaseUser; else traditionalUserDisplay">
           <!-- Firebase User Logged In -->
-          <img *ngIf="firebaseUser.photoURL" [src]="firebaseUser.photoURL" alt="User Avatar" class="user-avatar">
-          <!-- Show default avatar if Firebase user exists but has no photoURL -->
-          <img *ngIf="!firebaseUser.photoURL && firebaseUser" src="assets/default-avatar.png" alt="User Avatar" class="user-avatar">
-          <span>{{ firebaseUser.displayName || firebaseUser.email }}</span>
+          <a routerLink="/profile" class="user-profile-link">
+            <img *ngIf="firebaseUser.photoURL" [src]="firebaseUser.photoURL" alt="User Avatar" class="user-avatar">
+            <!-- Show default avatar if Firebase user exists but has no photoURL -->
+            <img *ngIf="!firebaseUser.photoURL && firebaseUser" src="assets/default-avatar.png" alt="User Avatar" class="user-avatar">
+            <span>{{ firebaseUser.displayName || firebaseUser.email }}</span>
+          </a>
         </ng-container>
         <ng-template #traditionalUserDisplay>
           <!-- Traditional User Logged In (isAppLoggedIn is true, but no firebaseUser) -->
-          <img src="assets/default-avatar.png" alt="User Avatar" class="user-avatar"> <!-- Corrected path -->
-          <span>{{ appUserDisplayName }}</span> <!-- Use component property -->
+          <a routerLink="/profile" class="user-profile-link">
+            <img src="assets/default-avatar.png" alt="User Avatar" class="user-avatar"> <!-- Corrected path -->
+            <span>{{ appUserDisplayName }}</span> <!-- Use component property -->
+          </a>
         </ng-template>
         <a (click)="logout()" style="cursor: pointer;">Logout</a>
       </div>

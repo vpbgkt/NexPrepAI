@@ -1,21 +1,22 @@
-// Profile Page - Beautiful Modern Styling
+// Profile Page - Beautiful Modern Styling with Improved Visibility
 .profile-container {
   max-width: 900px;
   margin: 0 auto;
   padding: 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #f8fafc;
   min-height: 100vh;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .profile-content {
-  background: rgba(255, 255, 255, 0.95);
+  background: #ffffff;
   backdrop-filter: blur(10px);
   border-radius: 20px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   animation: slideUp 0.6s ease-out;
   transition: all 0.3s ease-in-out;
+  border: 1px solid #e2e8f0;
 }
 
 @keyframes slideUp {
@@ -39,6 +40,19 @@
     width: 3rem;
     height: 3rem;
     color: #667eea;
+    border-width: 0.3rem;
+  }
+  
+  .visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
   }
 }
 
@@ -80,7 +94,7 @@
   padding: 2.5rem;
   
   h2 {
-    color: #2d3748;
+    color: #1A202C; // Changed from #2d3748
     font-size: 1.8rem;
     font-weight: 600;
     margin-bottom: 2rem;
@@ -99,11 +113,10 @@
   
   .form-group {
     margin-bottom: 1.5rem;
-    
-    label {
+      label {
       display: block;
       font-weight: 600;
-      color: #4a5568;
+      color: #1A202C; // Changed from #2d3748
       margin-bottom: 0.5rem;
       font-size: 0.95rem;
       text-transform: uppercase;
@@ -118,6 +131,7 @@
       font-size: 1rem;
       transition: all 0.3s ease;
       background: #ffffff;
+      color: #1A202C; // Changed from #2d3748
       
       &:focus {
         outline: none;
@@ -132,8 +146,9 @@
       
       &[readonly] {
         background: #f7fafc;
-        color: #718096;
+        color: #4a5568;
         cursor: not-allowed;
+        border-color: #e2e8f0;
         
         &:focus {
           border-color: #e2e8f0;
@@ -145,8 +160,14 @@
     
     .form-text {
       font-size: 0.875rem;
-      color: #718096;
+      color: #4a5568;
       margin-top: 0.25rem;
+      font-weight: 500;
+    }
+
+    .text-muted {
+      color: #4a5568 !important;
+      font-weight: 500;
     }
   }
   
@@ -194,10 +215,10 @@
           transform: translateY(0);
         }
       }
-      
-      &.btn-secondary {
+        &.btn-secondary {
         background: #e2e8f0;
-        color: #4a5568;
+        color: #1A202C; // Changed from #2d3748
+        border: 2px solid #e2e8f0;
         
         &:hover {
           background: #cbd5e0;
@@ -220,15 +241,15 @@
   }
 }
 
-// Referral Section - Enhanced Styling
+// Referral Section - Enhanced Styling with Better Contrast
 .referral-section {
-  background: #f8fafc;
+  background: #ffffff;
   margin-top: 0;
   padding: 2.5rem;
   border-top: 1px solid #e2e8f0;
   
   h3 {
-    color: #2d3748;
+    color: #1a202c;
     margin-bottom: 2rem;
     font-weight: 700;
     font-size: 1.8rem;
@@ -452,102 +473,50 @@
   }
 }
 
-// Enhanced Alert Styling
+// Improved Alert and Validation Styling
 .alert {
-  border-radius: 12px;
-  font-size: 0.95rem;
   padding: 1rem 1.5rem;
-  border: none;
-  font-weight: 500;
+  border-radius: 12px;
   margin-bottom: 1.5rem;
-  position: relative;
-  overflow: hidden;
+  font-weight: 500;
+  border: 2px solid transparent;
   
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 4px;
-    height: 100%;
+  &.alert-danger {
+    background-color: #fed7d7;
+    color: #742a2a;
+    border-color: #fc8181;
   }
   
   &.alert-success {
-    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-    color: #155724;
-    
-    &::before {
-      background: #28a745;
-    }
-    
-    &::after {
-      content: '✓';
-      position: absolute;
-      right: 1rem;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 1.2rem;
-      color: #28a745;
-    }
+    background-color: #c6f6d5;
+    color: #22543d;
+    border-color: #68d391;
   }
   
-  &.alert-danger {
-    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-    color: #721c24;
-    
-    &::before {
-      background: #dc3545;
-    }
-    
-    &::after {
-      content: '⚠';
-      position: absolute;
-      right: 1rem;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 1.2rem;
-      color: #dc3545;
-    }
-  }
-  
-  &.alert-info {
-    background: linear-gradient(135deg, #cce7ff 0%, #b6d7ff 100%);
-    color: #0c5460;
-    
-    &::before {
-      background: #17a2b8;
-    }
-    
-    &::after {
-      content: 'ℹ';
-      position: absolute;
-      right: 1rem;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 1.2rem;
-      color: #17a2b8;
-    }
+  &.fade-in {
+    animation: fadeIn 0.3s ease-in;
   }
 }
 
-// Form Validation States & Final Polish
-.form-control {
-  &.ng-valid.ng-touched {
-    border-color: #28a745;
-    
-    &:focus {
-      border-color: #28a745;
-      box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
-    }
-  }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+// Form validation feedback
+.invalid-feedback {
+  color: #e53e3e;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
+}
+
+.is-invalid {
+  border-color: #e53e3e !important;
   
-  &.ng-invalid.ng-touched {
-    border-color: #dc3545;
-    
-    &:focus {
-      border-color: #dc3545;
-      box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
-    }
+  &:focus {
+    border-color: #e53e3e !important;
+    box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1) !important;
   }
 }
 
@@ -633,6 +602,23 @@
     &:focus {
       background: #1a202c;
       border-color: #667eea;
+    }
+  }
+
+  // Added styles for better text visibility in dark mode
+  .profile-form {
+    h2,
+    .form-group label {
+      color: #e2e8f0; // Light color for titles and labels
+    }
+
+    .form-group {
+      .form-text {
+        color: #a0aec0; // Lighter gray for helper text
+      }
+      .text-muted {
+        color: #a0aec0 !important; // Override light theme's !important
+      }
     }
   }
 }
