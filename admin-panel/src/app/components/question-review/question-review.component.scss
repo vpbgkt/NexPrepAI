@@ -1,0 +1,154 @@
+/* Styles for question-review.component.scss */
+
+:host ::ng-deep .table {
+  margin-bottom: 1rem;
+  color: #212529;
+  border-collapse: collapse; /* Ensures borders are neat */
+}
+
+:host ::ng-deep .table th,
+:host ::ng-deep .table td {
+  padding: 0.95rem 0.75rem; /* Increased padding for more space */
+  vertical-align: middle; /* Align content vertically */
+  border-top: 1px solid #dee2e6;
+  font-size: 0.9rem; /* Slightly adjusted font size */
+}
+
+:host ::ng-deep .table thead th {
+  vertical-align: bottom;
+  border-bottom: 2px solid #dee2e6;
+  background-color: #f8f9fa; /* Light background for header */
+  color: #495057; /* Darker text for header */
+  font-weight: 600; /* Bolder header text */
+}
+
+:host ::ng-deep .table-striped tbody tr:nth-of-type(odd) {
+  background-color: rgba(0, 0, 0, 0.03); /* Softer stripe */
+}
+
+:host ::ng-deep .table-hover tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.06); /* Softer hover */
+}
+
+/* Action Buttons Styling */
+:host ::ng-deep .btn {
+  margin-left: 0.3rem; /* Spacing between buttons */
+  font-size: 0.85rem; /* Consistent button font size */
+  padding: 0.3rem 0.6rem; /* Adjust padding for sm buttons */
+}
+
+:host ::ng-deep .btn i {
+  margin-right: 0.4rem; /* Space between icon and text */
+}
+
+/* Expanded Details Row Styling */
+.question-details-row td {
+  background-color: #e9ecef; /* Slightly darker background for details section */
+  border-top: 2px solid #007bff;
+  padding: 0; /* Remove padding as container will have it */
+}
+
+.question-details-container {
+  background-color: #fff; /* White background for the content itself */
+  padding: 1.5rem; /* More padding inside the details container */
+  border: 1px solid #ced4da; /* Border around the content */
+  border-top: none; /* No top border as the <tr> has one */
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); /* Subtle shadow */
+  margin: 0.5rem; /* Margin around the container */
+  border-radius: 0.25rem; /* Rounded corners */
+  text-align: left; /* Ensure all content within this container is left-aligned */
+}
+
+.details-header {
+  color: #0056b3;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #dee2e6;
+  text-align: left; /* Ensure header is left-aligned */
+}
+
+.question-details-container h6 {
+  color: #343a40; /* Darker heading for sections */
+  margin-top: 1.25rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  text-align: left; /* Ensure sub-headers are left-aligned */
+}
+
+.question-details-container p,
+.question-details-container ul li {
+  font-size: 0.9rem;
+  color: #495057;
+  line-height: 1.6;
+  text-align: left; /* Ensure paragraphs and list items are left-aligned */
+}
+
+.question-details-container strong {
+  color: #212529;
+}
+
+.question-details-container ul {
+  padding-left: 20px;
+  list-style: disc;
+  margin-bottom: 1rem;
+}
+
+.correct-option {
+  font-weight: bold;
+  color: #198754; /* Bootstrap success green */
+}
+
+.explanation-item {
+  background-color: #f8f9fa;
+  margin-bottom: 0.75rem;
+  padding: 1rem;
+  border-radius: 0.25rem;
+  border: 1px solid #e9ecef;
+}
+
+.explanation-item img,
+.question-details-container .d-flex.flex-wrap img {
+  max-width: 200px; /* Limit image sizes */
+  max-height: 150px;
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+/* Ensure action buttons in the main row are nicely aligned */
+:host ::ng-deep .table td:last-child {
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* General container styling for the page */
+.container.mt-4 {
+  padding: 1.5rem; /* Add padding to the main page container */
+  background-color: #f4f6f8; /* Light background for the whole page */
+  border-radius: 0.3rem;
+}
+
+h2 {
+  color: #333;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+}
+
+/* Responsive adjustments if needed */
+@media (max-width: 768px) {
+  :host ::ng-deep .table th,
+  :host ::ng-deep .table td {
+    font-size: 0.85rem; /* Smaller font on small screens */
+    padding: 0.6rem 0.4rem;
+  }
+
+  :host ::ng-deep .btn {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .question-details-container {
+    padding: 1rem;
+    margin: 0.25rem;
+  }
+}

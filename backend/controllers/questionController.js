@@ -446,3 +446,71 @@ exports.filterQuestions = async (req, res) => {
     res.status(500).json({ message: 'Server error while filtering questions', error: err.message });
   }
 };
+
+/**
+ * Update Question Status Endpoint
+ *
+ * Updates the status of a specific question.
+ * Only 'superadmin' users can perform this action.
+ * Allowed statuses: 'Published', 'draft'.
+ *
+ * @route PUT /api/questions/:id/status
+ * @access Private (Superadmin only)
+ * @param {string} req.params.id - MongoDB ObjectId of the question
+ * @param {string} req.body.status - New status for the question ('Published' or 'draft')
+ * @param {Object} req.user - Authenticated user object (from verifyToken middleware)
+ * @param {string} req.user.role - Role of the authenticated user
+ * @returns {Object} Updated question object
+ * @throws {400} Invalid status value
+ * @throws {401} Unauthorized if user is not superadmin
+ * @throws {404} Question not found
+ * @throws {500} Server error during question status update
+ */
+exports.updateQuestionStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const { role } = req.user; // Assuming role is available in req.user
+
+    // 1. Authorization: Check if user is superadmin
+    if (role !== 'superadmin') {
+      return res.status(403).json({ message: 'Forbidden: Only superadmins can update question status.' });
+    }
+
+    // 2. Validate status
+    const allowedStatuses = ['Published', 'draft'];
+    if (!status || !allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: `Invalid status. Must be one of: ${allowedStatuses.join(', ')}` });
+    }
+
+    // 3. Find and update question
+    const question = await Question.findById(id);
+    if (!question) {
+      return res.status(404).json({ message: 'Question not found' });
+    }
+
+    question.status = status;
+    // If you have an 'updatedBy' field or similar, update it here
+    // question.updatedBy = req.user.userId; 
+    // question.updatedAt = Date.now();
+
+    await question.save();
+
+    // Populate hierarchy fields for the response, similar to other GET endpoints
+    const populatedQuestion = await Question.findById(question._id)
+      .populate('branch', 'name')
+      .populate('subject', 'name')
+      .populate('topic', 'name')
+      .populate('subTopic', 'name')
+      .lean();
+
+    return res.json(populatedQuestion);
+
+  } catch (err) {
+    console.error('❌ updateQuestionStatus error:', err);
+    if (err.name === 'CastError') { // Handle invalid ObjectId format
+        return res.status(400).json({ message: 'Invalid question ID format' });
+    }
+    return res.status(500).json({ message: 'Server error while updating question status', error: err.message });
+  }
+};

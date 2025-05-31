@@ -95,7 +95,7 @@ const questionSchema = new Schema(
     internalNotes: { type: String, trim: true },                      // NEW
 
     // Lifecycle & audit
-    status:   { type: String, enum: ['active', 'inactive', 'draft', 'Published', 'Pending Review'], default: 'draft' }, // UPDATED enum and default
+    status:   { type: String, enum: ['draft', 'Published', 'Pending Review'], default: 'draft' }, // UPDATED enum and default
     version:  { type: Number, default: 1 },                           // NEW
     createdBy:{ type: Schema.Types.ObjectId, ref: 'User' },           // NEW
     updatedBy:{ type: Schema.Types.ObjectId, ref: 'User' }            // NEW

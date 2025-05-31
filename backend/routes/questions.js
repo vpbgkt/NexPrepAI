@@ -22,6 +22,10 @@ router.post('/add',   verifyToken, auditFields, questionCtrl.addQuestion);
 router.put('/:id',    verifyToken, auditFields, questionCtrl.updateQuestion);
 router.delete('/:id', verifyToken,              questionCtrl.deleteQuestion);
 
+// Route to update question status (superadmin only)
+router.put('/:id/status', verifyToken, questionCtrl.updateQuestionStatus);
+
+
 /* ──────────────── CSV IMPORT (kept unchanged) ─── */
 const Question  = require('../models/Question');
 const Branch    = require('../models/Branch');

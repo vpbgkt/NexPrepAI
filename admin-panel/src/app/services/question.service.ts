@@ -589,4 +589,43 @@ export class QuestionService {
     const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
     return this.http.get<{ _id: string; code: string; name: string }[]>(`${this.apiUrl}/examTypes`, { headers });
   }
+
+  /**
+   * @method getQuestionsByStatus
+   * @description Retrieves questions filtered by a specific status, with pagination.
+   * @param {string} status - The status to filter questions by (e.g., 'Pending Review').
+   * @param {number} [page] - Page number for pagination (1-based).
+   * @param {number} [limit] - Number of questions per page.
+   * @returns {Observable<PaginatedQuestionsResponse>} Observable containing paginated questions response.
+   * @throws {HttpErrorResponse} When authentication fails or server error occurs.
+   */
+  getQuestionsByStatus(status: string, page?: number, limit?: number): Observable<PaginatedQuestionsResponse> {
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    let params = new HttpParams().set('status', status);
+    if (page) {
+      params = params.set('page', page.toString());
+    }
+    if (limit) {
+      params = params.set('limit', limit.toString());
+    }
+    // Assuming the backend endpoint /questions/filter can also be used by just passing status, page, and limit
+    // Or, if there's a dedicated endpoint like /questions/status/:status, adjust accordingly.
+    // For now, using the existing filter endpoint seems plausible if it supports status-only filtering.
+    return this.http.get<PaginatedQuestionsResponse>(`${this.apiUrl}/questions/filter`, { headers, params });
+  }
+
+  /**
+   * @method updateQuestionStatus
+   * @description Updates the status of a specific question.
+   * @param {string} questionId - The ID of the question to update.
+   * @param {string} status - The new status to set for the question.
+   * @returns {Observable<any>} Observable containing the backend's response.
+   * @throws {HttpErrorResponse} When authentication fails, question not found, or update is not permitted.
+   */
+  updateQuestionStatus(questionId: string, status: string): Observable<any> {
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    return this.http.put(`${this.apiUrl}/questions/${questionId}/status`, { status }, { headers });
+  }
 }

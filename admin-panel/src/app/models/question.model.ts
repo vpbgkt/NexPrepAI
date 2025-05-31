@@ -31,6 +31,7 @@ export interface PopulatedHierarchyField {
 
 export interface Question {
   _id: { $oid: string } | string;
+  expanded?: boolean; // Added for UI state
 
   // Allow for string ID, $oid object, or a fully populated object for hierarchical data
   branch?: string | { $oid: string } | PopulatedHierarchyField;

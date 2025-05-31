@@ -30,6 +30,7 @@
               <a routerLink="/questions" routerLinkActive="active" (click)="closeMobileMenu()">View Questions</a>
               <a routerLink="/add-question" routerLinkActive="active" (click)="closeMobileMenu()">Add Question</a>
               <a routerLink="/csv-import" routerLinkActive="active" (click)="closeMobileMenu()">CSV Import</a>
+              <a *ngIf="isSuperAdmin()" routerLink="/questions/review" routerLinkActive="active" (click)="closeMobileMenu()">Review Questions</a>
             </div>
           </li>
           

@@ -49,6 +49,10 @@ export class AppComponent implements OnInit {
     this.activeDropdown = null;
   }
 
+  isSuperAdmin(): boolean {
+    return this.authService.getUserRole() === 'superadmin';
+  }
+
   toggleDropdown(dropdown: string) {
     this.activeDropdown = this.activeDropdown === dropdown ? null : dropdown;
   }

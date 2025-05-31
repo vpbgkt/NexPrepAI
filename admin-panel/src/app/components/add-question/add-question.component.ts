@@ -29,6 +29,7 @@ import { TopicService }    from '../../services/topic.service';
 import { SubtopicService } from '../../services/subtopic.service';
 import { QuestionService } from '../../services/question.service';
 import { Router }          from '@angular/router';
+import { AuthService }     from '../../services/auth.service'; // Added AuthService
 
 /**
  * @typedef {('en'|'hi')} LangCode
@@ -115,6 +116,8 @@ export class AddQuestionComponent implements OnInit {
   private questionSrv = inject(QuestionService);     // 👈 use this alias everywhere
   /** @private {Router} Angular router for navigation between components */
   private router      = inject(Router);
+  /** @private {AuthService} Service for authentication and user role management */ // Added
+  private authService = inject(AuthService); // Added
 
   /* ───────── component state ───────── */
   /** @property {LangCode} currentLang - Currently active language for question editing */
@@ -530,10 +533,22 @@ export class AddQuestionComponent implements OnInit {
     // Create a deep copy of the question object to avoid modifying the original state directly
     const questionCopy = JSON.parse(JSON.stringify(this.question));
 
+    // Determine status based on user role
+    const currentUserRole = this.authService.getUserRole();
+    if (currentUserRole === 'admin') {
+      questionCopy.status = 'Pending Review';
+    } else if (currentUserRole === 'superadmin') {
+      // Superadmins can keep it as 'Draft' or whatever was set in the form.
+      // For now, we'll let the form's initial 'Draft' value persist for superadmin's own creations.
+      // If they want to publish directly, they could change it in the form if we add that UI feature,
+      // or use a separate review panel to change status of any question.
+    }
+    // If role is neither, it will use the initialized 'Draft' or what's in questionCopy.status
+
     const payload: any = {
       difficulty: questionCopy.difficulty,
       type: questionCopy.type,
-      status: questionCopy.status, // Add status
+      status: questionCopy.status, // Status is now dynamically set or from form
       branchId: questionCopy.branchId, // Use branchId for branch
       subjectId: questionCopy.subjectId, // Use subjectId for subject
       topicId: questionCopy.topicId, // Use topicId for topic

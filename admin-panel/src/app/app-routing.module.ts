@@ -15,6 +15,7 @@ import { QuestionListComponent }      from './components/question-list/question-
 import { AddQuestionComponent }       from './components/add-question/add-question.component';
 import { EditQuestionComponent }      from './components/edit-question/edit-question.component';
 import { QuestionDetailComponent }    from './components/question-detail/question-detail.component'; // ADDED
+import { QuestionReviewComponent }    from './components/question-review/question-review.component'; // Import the review component
 
 import { AddBranchComponent }     from './components/add-branch/add-branch.component';
 import { AddSubjectComponent }    from './components/add-subject.component';
@@ -38,6 +39,7 @@ import { UserManagementComponent } from './components/user-management/user-manag
 
 import { AdminGuard }   from './guards/admin.guard';
 import { StudentGuard } from './guards/student.guard';
+import { superadminGuard } from './guards/superadmin.guard'; // Import the superadmin guard
 
 export const routes: Routes = [
   // Public
@@ -75,7 +77,9 @@ export const routes: Routes = [
       { path: 'questions',            component: QuestionListComponent },
       { path: 'add-question',         component: AddQuestionComponent },
       { path: 'questions/edit/:id',   component: EditQuestionComponent },
-      { path: 'questions/:id/view',   component: QuestionDetailComponent, canActivate: [AdminGuard] }, // ADDED      // Hierarchy CRUD
+      { path: 'questions/:id/view',   component: QuestionDetailComponent, canActivate: [AdminGuard] }, // ADDED
+      { path: 'questions/review',     component: QuestionReviewComponent, canActivate: [superadminGuard] }, // Protected by superadminGuard
+      // Hierarchy CRUD
       { path: 'branches/new',   component: AddBranchComponent },
       { path: 'subjects',       component: HomeComponent, data: { hierarchySection: 'subjects' } },
       { path: 'subjects/new',   component: AddSubjectComponent },
