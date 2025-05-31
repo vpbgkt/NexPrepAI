@@ -107,6 +107,7 @@ export const routes: Routes = [
 
       // User Management (Superadmin only)
       { path: 'user-management', component: UserManagementComponent, canActivate: [AdminGuard] }, // Added route for UserManagement
+      { path: 'leaderboard', loadComponent: () => import('./components/leaderboard/leaderboard.component').then(m => m.LeaderboardComponent), canActivate: [AdminGuard] }, // Route for Leaderboard
     ]
   },
 

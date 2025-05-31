@@ -1,0 +1,398 @@
+<!-- Leaderboard Component Template -->
+<div class="leaderboard-container">
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="header-content">
+      <h1 class="page-title">
+        <i class="fas fa-trophy"></i>
+        Admin Leaderboard
+      </h1>
+      <p class="page-description">
+        Track admin contributions including question additions and exam paper creations
+      </p>
+    </div>
+    
+    <!-- Period Filter -->
+    <div class="period-filter" *ngIf="activeTab !== 'stats'">
+      <label for="period-select">Time Period:</label>
+      <select 
+        id="period-select" 
+        [(ngModel)]="selectedPeriod" 
+        (change)="onPeriodChange(selectedPeriod)"
+        class="period-select">
+        <option *ngFor="let period of availablePeriods" [value]="period.value">
+          {{ period.label }}
+        </option>
+      </select>
+    </div>
+    
+    <!-- Refresh Button -->
+    <button 
+      class="refresh-btn" 
+      (click)="refreshData()" 
+      [disabled]="loading[activeTab]"
+      title="Refresh Data">
+      <i class="fas fa-sync-alt" [class.fa-spin]="loading[activeTab]"></i>
+    </button>
+  </div>
+
+  <!-- Error Message -->
+  <div class="error-message" *ngIf="error">
+    <i class="fas fa-exclamation-triangle"></i>
+    {{ error }}
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tab-navigation">
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'combined'"
+      (click)="onTabChange('combined')">
+      <i class="fas fa-chart-bar"></i>
+      Combined Leaderboard
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'questions'"
+      (click)="onTabChange('questions')">
+      <i class="fas fa-question-circle"></i>
+      Questions Added
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'examPapers'"
+      (click)="onTabChange('examPapers')">
+      <i class="fas fa-file-alt"></i>
+      Exam Papers Created
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'stats'"
+      (click)="onTabChange('stats')">
+      <i class="fas fa-chart-line"></i>
+      Statistics Overview
+    </button>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content">
+    
+    <!-- Combined Leaderboard Tab -->
+    <div class="tab-pane" *ngIf="activeTab === 'combined'">
+      <div class="leaderboard-section">
+        <div class="section-header">
+          <h2>Combined Leaderboard - {{ getPeriodDisplayName(selectedPeriod) }}</h2>
+          <div class="stats-summary" *ngIf="!loading.combined">
+            <div class="stat-item">
+              <span class="stat-value">{{ combinedMetadata.totalQuestions }}</span>
+              <span class="stat-label">Total Questions</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ combinedMetadata.totalExamPapers }}</span>
+              <span class="stat-label">Total Exam Papers</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ combinedMetadata.totalContributions }}</span>
+              <span class="stat-label">Total Contributions</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="loading-spinner" *ngIf="loading.combined">
+          <i class="fas fa-spinner fa-spin"></i>
+          Loading combined leaderboard...
+        </div>
+        
+        <div class="leaderboard-table" *ngIf="!loading.combined && combinedLeaderboard.length > 0">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Admin</th>
+                <th>Questions</th>
+                <th>Exam Papers</th>
+                <th>Total</th>
+                <th>Performance</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let entry of combinedLeaderboard" [class]="getRankBadgeClass(entry.rank)">
+                <td>
+                  <div class="rank-badge" [class]="getRankBadgeClass(entry.rank)">
+                    <span *ngIf="entry.rank <= 3" class="rank-icon">
+                      <i class="fas fa-trophy" *ngIf="entry.rank === 1"></i>
+                      <i class="fas fa-medal" *ngIf="entry.rank === 2"></i>
+                      <i class="fas fa-award" *ngIf="entry.rank === 3"></i>
+                    </span>
+                    {{ entry.rank }}
+                  </div>
+                </td>
+                <td>
+                  <div class="admin-info">
+                    <div class="admin-name">{{ entry.adminName }}</div>
+                    <div class="admin-email">{{ entry.email }}</div>
+                  </div>
+                </td>
+                <td class="metric-cell">
+                  <span class="metric-value">{{ entry.questionsCount }}</span>
+                  <span class="metric-percentage" *ngIf="entry.questionsPercentage">
+                    ({{ entry.questionsPercentage }}%)
+                  </span>
+                </td>
+                <td class="metric-cell">
+                  <span class="metric-value">{{ entry.examPapersCount }}</span>
+                  <span class="metric-percentage" *ngIf="entry.examPapersPercentage">
+                    ({{ entry.examPapersPercentage }}%)
+                  </span>
+                </td>
+                <td class="metric-cell total">
+                  <span class="metric-value">{{ entry.totalContributions }}</span>
+                </td>
+                <td>
+                  <div class="progress-bar">
+                    <div class="progress-fill" 
+                         [style.width.%]="(entry.totalContributions / combinedMetadata.totalContributions) * 100">
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="no-data" *ngIf="!loading.combined && combinedLeaderboard.length === 0">
+          <i class="fas fa-chart-bar"></i>
+          <p>No data available for the selected period.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Questions Leaderboard Tab -->
+    <div class="tab-pane" *ngIf="activeTab === 'questions'">
+      <div class="leaderboard-section">
+        <div class="section-header">
+          <h2>Question Addition Leaderboard - {{ getPeriodDisplayName(selectedPeriod) }}</h2>
+          <div class="stats-summary" *ngIf="!loading.questions">
+            <div class="stat-item">
+              <span class="stat-value">{{ questionMetadata.totalCount }}</span>
+              <span class="stat-label">Total Questions Added</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="loading-spinner" *ngIf="loading.questions">
+          <i class="fas fa-spinner fa-spin"></i>
+          Loading question leaderboard...
+        </div>
+        
+        <div class="leaderboard-table" *ngIf="!loading.questions && questionLeaderboard.length > 0">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Admin</th>
+                <th>Questions Added</th>
+                <th>Percentage</th>
+                <th>Performance</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let entry of questionLeaderboard" [class]="getRankBadgeClass(entry.rank)">
+                <td>
+                  <div class="rank-badge" [class]="getRankBadgeClass(entry.rank)">
+                    <span *ngIf="entry.rank <= 3" class="rank-icon">
+                      <i class="fas fa-trophy" *ngIf="entry.rank === 1"></i>
+                      <i class="fas fa-medal" *ngIf="entry.rank === 2"></i>
+                      <i class="fas fa-award" *ngIf="entry.rank === 3"></i>
+                    </span>
+                    {{ entry.rank }}
+                  </div>
+                </td>
+                <td>
+                  <div class="admin-info">
+                    <div class="admin-name">{{ entry.adminName }}</div>
+                    <div class="admin-email">{{ entry.email }}</div>
+                  </div>
+                </td>
+                <td class="metric-cell">
+                  <span class="metric-value">{{ entry.count }}</span>
+                </td>
+                <td class="metric-cell">
+                  <span class="metric-percentage" *ngIf="entry.percentage">
+                    {{ entry.percentage }}%
+                  </span>
+                </td>
+                <td>
+                  <div class="progress-bar">
+                    <div class="progress-fill" 
+                         [style.width.%]="entry.percentage || 0">
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="no-data" *ngIf="!loading.questions && questionLeaderboard.length === 0">
+          <i class="fas fa-question-circle"></i>
+          <p>No questions added in the selected period.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Exam Papers Leaderboard Tab -->
+    <div class="tab-pane" *ngIf="activeTab === 'examPapers'">
+      <div class="leaderboard-section">
+        <div class="section-header">
+          <h2>Exam Paper Creation Leaderboard - {{ getPeriodDisplayName(selectedPeriod) }}</h2>
+          <div class="stats-summary" *ngIf="!loading.examPapers">
+            <div class="stat-item">
+              <span class="stat-value">{{ examPaperMetadata.totalCount }}</span>
+              <span class="stat-label">Total Exam Papers Created</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="loading-spinner" *ngIf="loading.examPapers">
+          <i class="fas fa-spinner fa-spin"></i>
+          Loading exam paper leaderboard...
+        </div>
+        
+        <div class="leaderboard-table" *ngIf="!loading.examPapers && examPaperLeaderboard.length > 0">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Admin</th>
+                <th>Exam Papers Created</th>
+                <th>Percentage</th>
+                <th>Performance</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let entry of examPaperLeaderboard" [class]="getRankBadgeClass(entry.rank)">
+                <td>
+                  <div class="rank-badge" [class]="getRankBadgeClass(entry.rank)">
+                    <span *ngIf="entry.rank <= 3" class="rank-icon">
+                      <i class="fas fa-trophy" *ngIf="entry.rank === 1"></i>
+                      <i class="fas fa-medal" *ngIf="entry.rank === 2"></i>
+                      <i class="fas fa-award" *ngIf="entry.rank === 3"></i>
+                    </span>
+                    {{ entry.rank }}
+                  </div>
+                </td>
+                <td>
+                  <div class="admin-info">
+                    <div class="admin-name">{{ entry.adminName }}</div>
+                    <div class="admin-email">{{ entry.email }}</div>
+                  </div>
+                </td>
+                <td class="metric-cell">
+                  <span class="metric-value">{{ entry.count }}</span>
+                </td>
+                <td class="metric-cell">
+                  <span class="metric-percentage" *ngIf="entry.percentage">
+                    {{ entry.percentage }}%
+                  </span>
+                </td>
+                <td>
+                  <div class="progress-bar">
+                    <div class="progress-fill" 
+                         [style.width.%]="entry.percentage || 0">
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="no-data" *ngIf="!loading.examPapers && examPaperLeaderboard.length === 0">
+          <i class="fas fa-file-alt"></i>
+          <p>No exam papers created in the selected period.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Statistics Overview Tab -->
+    <div class="tab-pane" *ngIf="activeTab === 'stats'">
+      <div class="stats-overview">
+        <div class="section-header">
+          <h2>Admin Statistics Overview</h2>
+          <div class="global-stats" *ngIf="!loading.stats">
+            <div class="global-stat">
+              <span class="stat-value">{{ statsMetadata.totalAdmins }}</span>
+              <span class="stat-label">Total Admins</span>
+            </div>
+            <div class="global-stat">
+              <span class="stat-value">{{ statsMetadata.totalQuestions }}</span>
+              <span class="stat-label">Total Questions</span>
+            </div>
+            <div class="global-stat">
+              <span class="stat-value">{{ statsMetadata.totalExamPapers }}</span>
+              <span class="stat-label">Total Exam Papers</span>
+            </div>
+            <div class="global-stat">
+              <span class="stat-value">{{ statsMetadata.totalContributions }}</span>
+              <span class="stat-label">Total Contributions</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="loading-spinner" *ngIf="loading.stats">
+          <i class="fas fa-spinner fa-spin"></i>
+          Loading statistics...
+        </div>
+        
+        <div class="admin-stats-grid" *ngIf="!loading.stats && adminStats.length > 0">
+          <div class="admin-stat-card" *ngFor="let admin of adminStats">
+            <div class="admin-card-header">
+              <h3>{{ admin.adminName }}</h3>
+              <p>{{ admin.email }}</p>
+            </div>
+            <div class="admin-periods">
+              <div class="period-stat">
+                <h4>Today</h4>
+                <div class="period-metrics">
+                  <span>Questions: {{ admin.periods.today.questions }}</span>
+                  <span>Exam Papers: {{ admin.periods.today.examPapers }}</span>
+                  <span class="total">Total: {{ admin.periods.today.total }}</span>
+                </div>
+              </div>
+              <div class="period-stat">
+                <h4>Last 7 Days</h4>
+                <div class="period-metrics">
+                  <span>Questions: {{ admin.periods.last7Days.questions }}</span>
+                  <span>Exam Papers: {{ admin.periods.last7Days.examPapers }}</span>
+                  <span class="total">Total: {{ admin.periods.last7Days.total }}</span>
+                </div>
+              </div>
+              <div class="period-stat">
+                <h4>Last 30 Days</h4>
+                <div class="period-metrics">
+                  <span>Questions: {{ admin.periods.last30Days.questions }}</span>
+                  <span>Exam Papers: {{ admin.periods.last30Days.examPapers }}</span>
+                  <span class="total">Total: {{ admin.periods.last30Days.total }}</span>
+                </div>
+              </div>
+              <div class="period-stat">
+                <h4>All Time</h4>
+                <div class="period-metrics">
+                  <span>Questions: {{ admin.periods.allTime.questions }}</span>
+                  <span>Exam Papers: {{ admin.periods.allTime.examPapers }}</span>
+                  <span class="total">Total: {{ admin.periods.allTime.total }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="no-data" *ngIf="!loading.stats && adminStats.length === 0">
+          <i class="fas fa-chart-line"></i>
+          <p>No admin statistics available.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
