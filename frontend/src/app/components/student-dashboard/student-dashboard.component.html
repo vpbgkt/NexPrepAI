@@ -4,10 +4,25 @@
     <p class="dashboard-subtitle">Track your progress and performance across all tests</p>
   </div>
 
-  <div *ngIf="loading" class="loading">Loading your attempts…</div>
-  <div *ngIf="error" class="error">{{ error }}</div>
+  <!-- Loading Account Status -->
+  <div *ngIf="isLoadingAccountStatus" class="loading-spinner-container text-center my-3">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading account status...</span>
+    </div>
+    <p>Checking account status...</p>
+  </div>
 
-  <table *ngIf="!loading && !error && attempts && attempts.length > 0">
+  <!-- Account Expired Message -->
+  <div *ngIf="!isLoadingAccountStatus && authService.getRole() === 'student' && isAccountExpired" class="alert alert-warning account-status-alert my-3">
+    <h4>Account Status</h4>
+    <p>Your account has expired. While you can view your past attempts, you may not be able to start new tests. 
+       Please <a [routerLink]="['/profile']">visit your profile</a> to check your subscription details.</p>
+  </div>
+
+  <div *ngIf="loading && !isLoadingAccountStatus" class="loading">Loading your attempts…</div>
+  <div *ngIf="error && !isLoadingAccountStatus" class="error">{{ error }}</div>
+
+  <table *ngIf="!loading && !error && attempts && attempts.length > 0 && !isLoadingAccountStatus">
     <thead>
       <tr>
         <th>Mock</th>
@@ -36,7 +51,7 @@
   </table>
 
   <!-- Empty state when there are no attempts -->
-  <div *ngIf="!loading && !error && (!attempts || attempts.length === 0)" class="empty-state">
+  <div *ngIf="!loading && !error && (!attempts || attempts.length === 0) && !isLoadingAccountStatus" class="empty-state">
     <div class="empty-icon">📝</div>
     <h3 class="empty-title">No Test Attempts Yet</h3>
     <p class="empty-message">Take your first test to see your results here.</p>

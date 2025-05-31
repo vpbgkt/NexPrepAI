@@ -48,13 +48,23 @@ interface AuthResponse {
  * @property {string} name - User's display name
  * @property {string} role - User role in the system
  * @property {string} [photoURL] - User's profile picture URL (optional)
+ * @property {string} [accountExpiresAt] - Date when the account expires
+ * @property {string} [freeTrialEndsAt] - Date when the free trial ends
+ * @property {string} [displayName] - User-chosen public display name
+ * @property {string} [phoneNumber] - User's phone number
+ * @property {string} [username] - User's username
  */
-interface BackendUser { // Define a more specific type for the user object from backend
+export interface BackendUser { // Define a more specific type for the user object from backend
   _id: string;
   email: string;
   name: string;
   role: string;
   photoURL?: string;
+  accountExpiresAt?: string; // Or Date, if you parse it
+  freeTrialEndsAt?: string; // Or Date, if you parse it
+  displayName?: string; 
+  phoneNumber?: string;
+  username?: string;
   // Add other fields your backend user object might have
 }
 
@@ -241,6 +251,8 @@ export class AuthService {
     localStorage.removeItem('role');
     localStorage.removeItem('appUserName'); // Clear name
     localStorage.removeItem('appUserEmail'); // Clear email
+    localStorage.removeItem('accountExpiresAt'); // Clear account expiry
+    localStorage.removeItem('freeTrialEndsAt'); // Clear free trial expiry
     this.router.navigate(['/login']);
   }
 
@@ -288,7 +300,27 @@ export class AuthService {
    */
   getRole() {
     return localStorage.getItem('role');
-  }  /**
+  }
+
+  /**
+   * @method getToken
+   * @description Retrieves the JWT token from local storage.
+   * 
+   * @returns {string | null} The JWT token or null if not found.
+   * 
+   * @example
+   * ```typescript
+   * const token = this.authService.getToken();
+   * if (token) {
+   *   // Use the token for API requests
+   * }
+   * ```
+   */
+  getToken(): string | null {
+    return localStorage.getItem('token');
+  }
+
+  /**
    * @method getAppUserName
    * @description Retrieves current user's display name from local storage.
    * 
@@ -371,5 +403,56 @@ export class AuthService {
   // Apply referral code after registration
   applyReferralCode(referralCode: string) {
     return this.http.post(`${this.base}/apply-referral-code`, { referralCode });
+  }
+
+  /**
+   * @method getUserProfile
+   * @description Retrieves the complete user profile including account status and expiry dates.
+   * 
+   * @returns {Observable<BackendUser>} Observable containing user profile data
+   * 
+   * @example
+   * ```typescript
+   * this.authService.getUserProfile().subscribe({
+   *   next: (profile) => {
+   *     console.log('User profile:', profile);
+   *     // Update local storage or state management with fresh profile data
+   *     this.authService.storeUserProfile(profile);
+   *   },
+   *   error: (error) => console.error('Failed to load user profile:', error)
+   * });
+   * ```
+   */
+  getUserProfile(): Observable<BackendUser> {
+    return this.http.get<BackendUser>(`${this.base}/profile`);
+  }
+
+  // Method to get specific fields from localStorage, with type safety
+  public getAccountExpiresAt(): string | null {
+    return localStorage.getItem('accountExpiresAt');
+  }
+
+  public getFreeTrialEndsAt(): string | null {
+    return localStorage.getItem('freeTrialEndsAt');
+  }
+
+  public storeUserProfile(user: BackendUser): void {
+    if (user.accountExpiresAt) {
+      localStorage.setItem('accountExpiresAt', user.accountExpiresAt);
+    }
+    if (user.freeTrialEndsAt) {
+      localStorage.setItem('freeTrialEndsAt', user.freeTrialEndsAt);
+    }
+    // Store other relevant user info if needed, e.g., for display
+    // localStorage.setItem('userName', user.name);
+  }
+
+  // Consider a method to refresh profile data and update localStorage
+  public refreshUserProfile(): Observable<BackendUser> {
+    return this.getUserProfile().pipe(
+      tap(user => {
+        this.storeUserProfile(user);
+      })
+    );
   }
 }

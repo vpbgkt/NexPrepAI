@@ -69,6 +69,13 @@
               <a routerLink="/exam-shifts" routerLinkActive="active" (click)="closeMobileMenu()">Exam Shifts</a>
             </div>
           </li>
+
+          <li class="nav-item" *ngIf="authService.getRole() === 'superadmin' || authService.getRole() === 'admin'">
+            <a routerLink="/user-management" routerLinkActive="active" (click)="closeMobileMenu()">
+              <i class="nav-icon users-icon"></i> <!-- Add an appropriate icon class -->
+              User Management
+            </a>
+          </li>
           
           <li class="nav-item">
             <a routerLink="/analytics" routerLinkActive="active" (click)="closeMobileMenu()">

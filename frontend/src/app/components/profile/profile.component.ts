@@ -2,12 +2,13 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { UserService, UserProfile, ReferralInfo } from '../../services/user.service'; // Adjust path as needed
+import { AuthService, BackendUser } from '../../services/auth.service'; // Import AuthService and BackendUser
 import { ReferralModalComponent } from '../referral-modal/referral-modal.component';
 
 @Component({
   selector: 'app-profile',
-  standalone: true, // Assuming standalone component based on ng generate output
-  imports: [CommonModule, ReactiveFormsModule, ReferralModalComponent], // Import CommonModule and ReactiveFormsModule
+  standalone: true, 
+  imports: [CommonModule, ReactiveFormsModule, ReferralModalComponent],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.scss'
 })
@@ -15,26 +16,34 @@ export class ProfileComponent implements OnInit {
   profileForm: FormGroup;
   isLoading = false;
   errorMessage: string | null = null;
-  successMessage: string | null = null;  currentUser: UserProfile | null = null;
+  successMessage: string | null = null;  
+  currentUser: BackendUser | null = null; // Use BackendUser type
   referralInfo: ReferralInfo | null = null;
   isLoadingReferral = false;
   referralMessage: string | null = null;
   showReferralModal = false;
 
+  // Properties to store and display expiry dates
+  accountExpiresAt: string | null = null;
+  freeTrialEndsAt: string | null = null;
+  isAccountExpired = false;
+  isFreeTrialActive = false;
+  daysToAccountExpiry: number | null = null;
+  daysToFreeTrialExpiry: number | null = null;
+
   constructor(
     private fb: FormBuilder,
-    private userService: UserService
+    private userService: UserService,
+    private authService: AuthService // Inject AuthService
   ) {
     this.profileForm = this.fb.group({
       name: ['', Validators.required],
       displayName: [''],
       photoURL: [''],
       phoneNumber: ['']
-      // Add email and username as read-only if you want to display them
-      // email: [{ value: '', disabled: true }],
-      // username: [{ value: '', disabled: true }]
     });
   }
+
   ngOnInit(): void {
     this.loadUserProfile();
     this.loadReferralInfo();
@@ -44,17 +53,20 @@ export class ProfileComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = null;
     this.successMessage = null;
-    this.userService.getMyProfile().subscribe({
-      next: (profile) => {
-        this.currentUser = profile;
+    this.authService.refreshUserProfile().subscribe({
+      next: (profile: BackendUser) => {
+        this.currentUser = profile; 
         this.profileForm.patchValue({
           name: profile.name,
           displayName: profile.displayName || '',
           photoURL: profile.photoURL || '',
           phoneNumber: profile.phoneNumber || ''
-          // email: profile.email,
-          // username: profile.username
         });
+
+        this.accountExpiresAt = profile.accountExpiresAt || null;
+        this.freeTrialEndsAt = profile.freeTrialEndsAt || null;
+        this.updateExpiryStatus();
+
         this.isLoading = false;
       },
       error: (err) => {
@@ -64,10 +76,33 @@ export class ProfileComponent implements OnInit {
     });
   }
 
+  updateExpiryStatus(): void {
+    const now = new Date();
+
+    if (this.accountExpiresAt) {
+      const expiryDate = new Date(this.accountExpiresAt);
+      this.isAccountExpired = expiryDate < now;
+      this.daysToAccountExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 3600 * 24));
+    } else {
+      this.isAccountExpired = false; 
+      this.daysToAccountExpiry = null;
+    }
+
+    if (this.freeTrialEndsAt) {
+      const trialEndDate = new Date(this.freeTrialEndsAt);
+      this.isFreeTrialActive = trialEndDate >= now;
+      this.daysToFreeTrialExpiry = Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 3600 * 24));
+      if (this.daysToFreeTrialExpiry < 0) this.isFreeTrialActive = false; 
+    } else {
+      this.isFreeTrialActive = false;
+      this.daysToFreeTrialExpiry = null;
+    }
+  }
+
   onSubmit(): void {
     if (this.profileForm.invalid) {
       this.errorMessage = "Please correct the errors in the form.";
-      this.profileForm.markAllAsTouched(); // Mark all fields as touched to show validation errors
+      this.profileForm.markAllAsTouched();
       return;
     }
 
@@ -75,21 +110,34 @@ export class ProfileComponent implements OnInit {
     this.errorMessage = null;
     this.successMessage = null;
 
-    const profileData: UserProfile = {
-      // id and email are usually not sent for update, or handled differently
+    const profileData: Partial<BackendUser> = { 
       name: this.profileForm.value.name,
       displayName: this.profileForm.value.displayName,
       photoURL: this.profileForm.value.photoURL,
       phoneNumber: this.profileForm.value.phoneNumber
     };
 
-    this.userService.updateMyProfile(profileData).subscribe({
-      next: (updatedProfile) => {
+    this.userService.updateMyProfile(profileData as UserProfile).subscribe({ // Cast to UserProfile for the service call if its signature expects that
+      next: (updatedProfileResponse) => {
+        // Assuming updateMyProfile returns the updated BackendUser or similar structure
+        const updatedProfile = updatedProfileResponse as BackendUser;
+
         this.currentUser = updatedProfile;
-        this.profileForm.patchValue(updatedProfile); // Update form with potentially sanitized/modified data from backend
+        this.profileForm.patchValue({
+            name: updatedProfile.name,
+            displayName: updatedProfile.displayName || '',
+            photoURL: updatedProfile.photoURL || '',
+            phoneNumber: updatedProfile.phoneNumber || ''
+        });
         this.successMessage = 'Profile updated successfully!';
         this.isLoading = false;
-        // Optionally, clear the success message after a few seconds
+
+        if (updatedProfile.accountExpiresAt || updatedProfile.freeTrialEndsAt) {
+            this.accountExpiresAt = updatedProfile.accountExpiresAt || null;
+            this.freeTrialEndsAt = updatedProfile.freeTrialEndsAt || null;
+            this.authService.storeUserProfile(updatedProfile); 
+            this.updateExpiryStatus();
+        }
         setTimeout(() => {
           this.successMessage = null;
         }, 5000);

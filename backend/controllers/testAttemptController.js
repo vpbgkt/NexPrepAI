@@ -48,6 +48,7 @@ const TestSeries   = require('../models/TestSeries');
 const TestAttempt  = require('../models/TestAttempt');
 const Question     = require('../models/Question');
 const mongoose = require('mongoose'); // Added mongoose require
+const User = require('../models/User'); // Import User model
 
 /**
  * Utility function to randomly shuffle array elements using Fisher-Yates algorithm
@@ -144,6 +145,22 @@ exports.startTest = async (req, res) => {
   try {
     const { seriesId } = req.body;
     const userId = req.user.userId;
+
+    // Check account expiration
+    const student = await User.findById(userId).select('accountExpiresAt role').lean();
+    if (!student) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // Skip expiration check for admin/superadmin roles
+    if (student.role === 'student') {
+      if (student.accountExpiresAt && new Date(student.accountExpiresAt) < new Date()) {
+        return res.status(403).json({ 
+          message: 'Your account has expired. Please renew your subscription to continue taking tests.' 
+        });
+      }
+    }
+
     const series = await TestSeries.findById(seriesId).lean();
     if (!series) return res.status(404).json({ message: 'Test not found' });
 
@@ -1506,7 +1523,6 @@ exports.getPerformanceAnalytics = async (req, res) => {
  * 
  * Analyzes test attempt performance to identify weak areas and generate study recommendations.
  * Provides personalized suggestions for improvement based on question analysis and historical patterns.
- * Recommends focus areas, study time allocation, and next steps for better performance.
  * 
  * @route GET /api/tests/:attemptId/recommendations
  * @access Private (Students only - own attempts)
@@ -1655,6 +1671,7 @@ function generateStudyRecommendations(performanceAnalytics, weaknessAnalysis) {
     recommendations.push("Strengthen foundation by focusing on easy-level questions first");
   }
   
+ 
   if (diffBreakdown.Hard.total > 0 && (diffBreakdown.Hard.correct / diffBreakdown.Hard.total) < 0.4) {
     recommendations.push("Build up to harder questions gradually after mastering medium-level topics");
   }

@@ -9,6 +9,9 @@ import { provideMessaging, getMessaging } from '@angular/fire/messaging';
 import { providePerformance, getPerformance } from '@angular/fire/performance';
 import { provideRemoteConfig, getRemoteConfig } from '@angular/fire/remote-config';
 import { provideStorage, getStorage } from '@angular/fire/storage';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+
+import { authHttpInterceptorInterceptor } from './services/auth-http-interceptor.interceptor';
 
 import { routes } from './app.routes';
 import { environment } from '../environments/environment';
@@ -17,6 +20,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
+    provideHttpClient(withInterceptors([authHttpInterceptorInterceptor])),
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideAuth(() => getAuth()),
     provideAnalytics(() => getAnalytics()),

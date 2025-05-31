@@ -23,6 +23,34 @@
         {{ successMessage }}
       </div>
 
+      <!-- Account Status Section -->
+      <div class="account-status-section mb-4" *ngIf="currentUser">
+        <h3>Account Status</h3>
+        <div *ngIf="accountExpiresAt" class="alert"
+             [ngClass]="isAccountExpired ? 'alert-danger' : (daysToAccountExpiry !== null && daysToAccountExpiry <= 7 ? 'alert-warning' : 'alert-info')">
+          <strong *ngIf="isAccountExpired">Your account has expired.</strong>
+          <span *ngIf="!isAccountExpired && daysToAccountExpiry !== null">
+            Your account expires on: {{ accountExpiresAt | date: 'mediumDate' }}.
+            <span *ngIf="daysToAccountExpiry > 0"> ({{ daysToAccountExpiry }} day<span *ngIf="daysToAccountExpiry !== 1">s</span> remaining)</span>
+            <span *ngIf="daysToAccountExpiry === 0"> (Expires today)</span>
+          </span>
+          <span *ngIf="!isAccountExpired && daysToAccountExpiry === null">Account expiry date is not set.</span>
+        </div>
+        <div *ngIf="!accountExpiresAt && currentUser?.role === 'student'" class="alert alert-secondary">
+          Account expiry date not set.
+        </div>
+
+        <div *ngIf="freeTrialEndsAt && isFreeTrialActive" class="alert alert-info">
+          Your free trial is active until: {{ freeTrialEndsAt | date: 'mediumDate' }}.
+          <span *ngIf="daysToFreeTrialExpiry !== null && daysToFreeTrialExpiry >= 0">
+            ({{ daysToFreeTrialExpiry }} day<span *ngIf="daysToFreeTrialExpiry !== 1">s</span> remaining)
+          </span>
+        </div>
+        <div *ngIf="freeTrialEndsAt && !isFreeTrialActive && !isAccountExpired" class="alert alert-warning">
+            Your free trial has ended.
+        </div>
+      </div>
+
       <!-- Profile Form -->
       <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" *ngIf="currentUser || !isLoading">
         <h2>Personal Information</h2>

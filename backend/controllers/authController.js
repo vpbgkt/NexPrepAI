@@ -36,6 +36,13 @@ const { generateUniqueReferralCode } = require('../utils/referralUtils');
 const RewardService = require('../services/rewardService'); // Import reward service
 
 /**
+ * @constant {number} DEFAULT_FREE_TRIAL_DAYS
+ * @description Default number of days for the free trial period for new users.
+ * This value can be adjusted by a superadmin through a dedicated interface or configuration setting in the future.
+ */
+const DEFAULT_FREE_TRIAL_DAYS = 30;
+
+/**
  * Register a new user with optional referral code processing
  * 
  * @route POST /api/auth/register
@@ -100,7 +107,22 @@ const registerUser = async (req, res) => {
       password: hashedPassword,
       role: role || 'student',
       referralCode: referralCode, // Assign generated referral code
-    });    // Handle referral code input if provided
+    });
+
+    // Set free trial and account expiration ONLY for students
+    if (newUser.role === 'student') {
+      const now = new Date();
+      // Create a new date object for freeTrialEndsAt to avoid modifying the same date instance
+      newUser.freeTrialEndsAt = new Date(new Date().setDate(now.getDate() + DEFAULT_FREE_TRIAL_DAYS));
+      // Create another new date object for accountExpiresAt
+      newUser.accountExpiresAt = new Date(new Date().setDate(now.getDate() + DEFAULT_FREE_TRIAL_DAYS)); // Initially, account expires when trial ends
+    } else {
+      // For non-students, explicitly set to null or leave as default (if schema default is null)
+      newUser.freeTrialEndsAt = null;
+      newUser.accountExpiresAt = null;
+    }
+
+    // Handle referral code input if provided
     if (referralCodeInput) {
       const referralCodeNormalized = referralCodeInput.trim().toUpperCase();
       const referrer = await User.findOne({ referralCode: referralCodeNormalized });
@@ -223,6 +245,8 @@ exports.login = async (req, res) => {
       userId: user._id,
       referralCode: user.referralCode,
       successfulReferrals: user.successfulReferrals || 0
+      // accountExpiresAt and freeTrialEndsAt are not typically returned on login for security/privacy.
+      // They should be fetched via a dedicated profile endpoint.
     });
   } catch (error) {
     console.error("❌ Error in login:", error);
@@ -282,7 +306,8 @@ exports.firebaseSignIn = async (req, res) => {
     console.log('Received Firebase token for verification:', firebaseToken.substring(0, 20) + '...');
     const decodedToken = await admin.auth().verifyIdToken(firebaseToken);
     console.log('Token decoded successfully. Auth type:', decodedToken.firebase?.sign_in_provider);
-    const { uid, email, name, picture, phone_number } = decodedToken;    let user = await User.findOne({ firebaseUid: uid });
+    const { uid, email, name, picture, phone_number } = decodedToken;
+    let user = await User.findOne({ firebaseUid: uid });
 
     if (user) {
       // User exists with this Firebase UID, update details if necessary
@@ -300,94 +325,71 @@ exports.firebaseSignIn = async (req, res) => {
       }
       await user.save();
     } else {
-      // No user with this Firebase UID, try to find by email or phone
-      if (email) {
-        user = await User.findOne({ email: email });
-      } else if (phone_number) {
-        user = await User.findOne({ phoneNumber: phone_number });
-      }      if (user) {
-        // User exists with this email or phone, link Firebase account
-        console.log(`User found with ${email ? 'email' : 'phone'}. Linking Firebase UID.`);
-        user.firebaseUid = uid;
-        user.name = name || user.name; // Update name if provided by Firebase
-        user.photoURL = picture || user.photoURL;
-        // Update phone number if provided and not already set
-        if (phone_number && !user.phoneNumber) {
-          user.phoneNumber = phone_number;
-        }
-        if (!user.displayName && name) {
-          user.displayName = name;
-        }
-        // If user was created with a password, it remains.
-      } else {        // No user with this email or phone, create a new user
-        console.log(`Creating new user with Firebase UID: ${uid}`);
-        let username = '';
-        if (email) {
-          username = email.split('@')[0]; // Basic username generation from email
-        } else if (phone_number) {
-          // Create username from phone number (strip non-alphanumeric chars)
-          username = `user_${phone_number.replace(/\D/g, '').substring(0, 8)}`;
-        } else {
-          username = `user_${uid.substring(0, 8)}`;
-        }        const existingUsername = await User.findOne({ username: username });
-        if (existingUsername) {
-          username = `${username}_${uid.substring(0, 5)}`; // Make it more unique
-        }
-
-        // Generate unique referral code for the new user
-        const referralCode = await generateUniqueReferralCode(User);
-
-        user = new User({
-          firebaseUid: uid,
-          email: email || '', // Email might be null for phone auth
-          phoneNumber: phone_number || '', // Add phone number if available
-          name: name || (email ? email.split('@')[0] : phone_number || uid.substring(0, 8)), // Default name
-          username: username,
-          displayName: name || '',
-          photoURL: picture || '',
-          role: 'student', // Default role
-          referralCode: referralCode, // Assign generated referral code
-          // Password not set for Firebase-created users
-        });        // Handle referral code input if provided
-        if (referralCodeInput) {
-          const referralCodeNormalized = referralCodeInput.trim().toUpperCase();
-          const referrer = await User.findOne({ referralCode: referralCodeNormalized });
-          
-          if (referrer && referrer._id.toString() !== user._id.toString()) {
-            // Valid referrer found and not self-referral
-            user.referredBy = referrer._id;
-            
-            // Increment referrer's successful referrals count
-            referrer.successfulReferrals = (referrer.successfulReferrals || 0) + 1;
-            await referrer.save();
-            
-            // Save the new user first to get their ID
-            await user.save();
-            
-            // Process reward bonuses for both users
-            try {
-              const rewardResult = await RewardService.processReferralBonus(
-                referrer._id,
-                user._id,
-                referralCodeNormalized
-              );
-              console.log(`✅ Firebase referral rewards processed for ${user.email || user.phoneNumber} referred by ${referrer.email || referrer.phoneNumber}`);
-            } catch (rewardError) {
-              console.error('❌ Error processing Firebase referral rewards:', rewardError);
-              // Continue with sign-in even if reward processing fails
-            }
-            
-            console.log(`New Firebase user ${user.email || user.phoneNumber} referred by ${referrer.email || referrer.phoneNumber} using code ${referralCodeNormalized}`);
-          } else if (referrer && referrer._id.toString() === user._id.toString()) {
-            console.log(`Self-referral attempt prevented for Firebase user ${user.email || user.phoneNumber}`);
-          } else {
-            console.log(`Invalid referral code provided for Firebase user: ${referralCodeInput}`);
-          }
-        } else {
-          await user.save();
-        }
+      // New user via Firebase
+      console.log(`New user signing in with Firebase UID: ${uid}. Creating account.`);
+      const referralCode = await generateUniqueReferralCode(User); // Generate referral code for new Firebase user
+      
+      // Determine user's name, trying displayName, then name, then a default
+      let newUserName = decodedToken.name || decodedToken.email?.split('@')[0] || 'User';
+      if (decodedToken.phone_number && !decodedToken.name && !decodedToken.email) {
+        newUserName = `User_${decodedToken.phone_number.slice(-4)}`; // e.g., User_1234
       }
-      await user.save();
+
+
+      user = new User({
+        firebaseUid: uid,
+        email: email, // Firebase email is usually verified
+        name: newUserName, // Use determined name
+        displayName: name || newUserName, // Set displayName
+        photoURL: picture,
+        phoneNumber: phone_number, // Add phone number if available
+        role: 'student', // Default role for new Firebase users
+        referralCode: referralCode, // Assign generated referral code
+      });
+
+      // Set free trial expiration date for new Firebase users
+      const now = new Date();
+      user.freeTrialEndsAt = new Date(now.setDate(now.getDate() + DEFAULT_FREE_TRIAL_DAYS));
+      user.accountExpiresAt = user.freeTrialEndsAt; // Initially, account expires when trial ends
+
+      // Handle referral code input if provided for new Firebase user
+      if (referralCodeInput) {
+        const referralCodeNormalized = referralCodeInput.trim().toUpperCase();
+        const referrer = await User.findOne({ referralCode: referralCodeNormalized });
+        
+        if (referrer && referrer._id.toString() !== user._id.toString()) {
+          // Valid referrer found and not self-referral
+          user.referredBy = referrer._id;
+          
+          // Increment referrer's successful referrals count
+          referrer.successfulReferrals = (referrer.successfulReferrals || 0) + 1;
+          await referrer.save();
+          
+          // Save the new user first to get their ID
+          await user.save();
+          
+          // Process reward bonuses for both users
+          try {
+            const rewardResult = await RewardService.processReferralBonus(
+              referrer._id,
+              user._id,
+              referralCodeNormalized
+            );
+            console.log(`✅ Firebase referral rewards processed for ${user.email || user.phoneNumber} referred by ${referrer.email || referrer.phoneNumber}`);
+          } catch (rewardError) {
+            console.error('❌ Error processing Firebase referral rewards:', rewardError);
+            // Continue with sign-in even if reward processing fails
+          }
+          
+          console.log(`New Firebase user ${user.email || user.phoneNumber} referred by ${referrer.email || referrer.phoneNumber} using code ${referralCodeNormalized}`);
+        } else if (referrer && referrer._id.toString() === user._id.toString()) {
+          console.log(`Self-referral attempt prevented for Firebase user ${user.email || user.phoneNumber}`);
+        } else {
+          console.log(`Invalid referral code provided for Firebase user: ${referralCodeInput}`);
+        }
+      } else {
+        await user.save();
+      }
     }
 
     // Generate your application's JWT
@@ -407,6 +409,8 @@ exports.firebaseSignIn = async (req, res) => {
       referralCode: user.referralCode,
       referredBy: user.referredBy ? true : false,
       successfulReferrals: user.successfulReferrals || 0
+      // accountExpiresAt and freeTrialEndsAt are not typically returned on login for security/privacy.
+      // They should be fetched via a dedicated profile endpoint.
     });
   } catch (error) {
     console.error('Error during Firebase sign-in:', error);
@@ -664,5 +668,38 @@ exports.applyReferralCode = async (req, res) => {
   } catch (error) {
     console.error("❌ Error in applyReferralCode:", error);
     res.status(500).json({ message: "Server Error" });
+  }
+};
+
+/**
+ * Get current logged-in user's profile
+ * 
+ * @route GET /api/auth/profile
+ * @access Private
+ * 
+ * @description Fetches the complete profile for the authenticated user,
+ * including account status information like accountExpiresAt and freeTrialEndsAt.
+ * 
+ * @param {Object} req - Express request object, req.user populated by auth middleware
+ * @param {Object} res - Express response object
+ * 
+ * @returns {Object} JSON response with user profile data
+ * @throws {404} User not found
+ * @throws {500} Server error
+ */
+exports.getUserProfile = async (req, res) => {
+  try {
+    // req.user.userId is populated by the authenticateUser middleware
+    const user = await User.findById(req.user.userId).select('-password'); // Exclude password
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user); // Send the full user object
+
+  } catch (err) {
+    console.error('Error fetching user profile:', err);
+    res.status(500).json({ message: 'Server Error' });
   }
 };

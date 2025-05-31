@@ -78,6 +78,14 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0,
     min: 0
+  },
+  accountExpiresAt: {
+    type: Date,
+    default: null
+  },
+  freeTrialEndsAt: {
+    type: Date,
+    default: null
   }
 }, { timestamps: true });
 

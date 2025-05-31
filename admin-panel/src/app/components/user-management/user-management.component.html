@@ -1,0 +1,57 @@
+<div class="user-management-container">
+  <h2>User Management</h2>
+
+  <div *ngIf="isLoading" class="loading-indicator">
+    <p>Loading users...</p>
+    <!-- You can add a spinner or any loading animation here -->
+  </div>
+
+  <div *ngIf="errorMessage && !isLoading" class="error-message">
+    <p>{{ errorMessage }}</p>
+  </div>
+
+  <div *ngIf="!isLoading && !errorMessage && (currentUserRole === 'superadmin' || currentUserRole === 'admin')">
+    <table class="users-table">
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Account Expires At</th>
+          <th>Days Left</th>
+          <th>Free Trial Ends At</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let user of users">
+          <td>{{ user.username }}</td>
+          <td>{{ user.name }}</td>
+          <td>{{ user.email || 'N/A' }}</td>
+          <td>{{ user.role }}</td>
+          <td>
+            <input type="date" [(ngModel)]="userEditModels[user._id].formAccountExpiresAt" [readonly]="!isSuperAdmin" />
+          </td>
+          <td>{{ getDaysLeft(userEditModels[user._id].formAccountExpiresAt) }}</td>
+          <td>
+            <input type="date" [(ngModel)]="userEditModels[user._id].formFreeTrialEndsAt" [readonly]="!isSuperAdmin" />
+          </td>
+          <td>
+            <button (click)="saveUserSettings(user)" class="action-button save-button">Save</button>
+            <div class="expiry-buttons">
+              <button (click)="addExpiryDays(user, 30)" class="action-button expiry-button">+30d</button>
+              <button (click)="addExpiryDays(user, 180)" class="action-button expiry-button">+180d</button>
+              <button (click)="addExpiryDays(user, 360)" class="action-button expiry-button">+360d</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="!isLoading && !errorMessage && currentUserRole !== 'superadmin' && currentUserRole !== 'admin'">
+    <p>You do not have permission to view this page.</p>
+  </div>
+
+</div>

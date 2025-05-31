@@ -1,5 +1,19 @@
 <h2>Your Tests</h2>
 
+<!-- Loading Account Status -->
+<div *ngIf="isLoadingAccountStatus" class="loading-spinner-container text-center my-3">
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Loading account status...</span>
+  </div>
+  <p>Loading account status...</p>
+</div>
+
+<!-- Account Expired Message -->
+<div *ngIf="!isLoadingAccountStatus && authService.getRole() === 'student' && isAccountExpired" class="alert alert-danger account-expired-alert">
+  <h4>Account Expired</h4>
+  <p>Your account has expired. You will not be able to start new tests. Please <a routerLink="/profile">visit your profile</a> to check your subscription status or contact support.</p>
+</div>
+
 <!-- Family Navigation Shortcuts -->
 <div class="family-navigation">
   <ng-container *ngIf="groupedSeries.length > 0">
@@ -50,8 +64,8 @@
         <td>
           <button
             (click)="startSeries(s)"
-            [disabled]="isDisabled(s)"
-            [title]="disabledReason(s)">
+            [disabled]="isSeriesDisabled(s)" 
+            [title]="getDisabledReason(s)">
             Start
           </button>
         </td>

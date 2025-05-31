@@ -38,17 +38,18 @@ export class LoginComponent implements OnInit {
   }
   onSubmit() {
     if (this.form.invalid) return;
-    const { email, password } = this.form.value as { email: string; password: string };    this.auth.login(email, password).subscribe({
+    const { email, password } = this.form.value as { email: string; password: string };
+    this.auth.login(email, password).subscribe({
       next: (res: any) => {
-        // Check if the user has admin role
-        if (res.role !== 'admin') {
-          // If not admin, log them out and show error
+        // Check if the user has admin or superadmin role
+        if (res.role !== 'admin' && res.role !== 'superadmin') {
+          // If not admin or superadmin, log them out and show error
           this.auth.logout();
-          alert('Access denied: Only administrators can access this panel. Please login with admin credentials.');
+          alert('Access denied: Only administrators or super administrators can access this panel. Please login with appropriate credentials.');
           return;
         }
         
-        // If admin, proceed with login
+        // If admin or superadmin, proceed with login
         this.router.navigate(['/home']);
       },
       error: err => {

@@ -2,6 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { TestService, TestSeries } from '../../services/test.service';
+import { AuthService } from '../../services/auth.service'; // Import AuthService
+import { Observable, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 
 interface GroupedTests {
   familyId: string;
@@ -22,25 +25,60 @@ export class TestListComponent implements OnInit {
   groupedSeries: GroupedTests[] = [];
   now = new Date();
   activeFamily: string | null = null;
+  isAccountExpired: boolean = false;
+  isLoadingAccountStatus: boolean = true;
 
-  constructor(private svc: TestService, private router: Router) {}
+  constructor(private svc: TestService, private router: Router, public authService: AuthService) {} // Inject AuthService and make it public
+
   ngOnInit() {
-    this.svc.getSeries().subscribe(data => {
-      this.series = data;
-      this.groupTestsByFamily();
-      
-      // Check if there's a hash in the URL and navigate to that family
-      setTimeout(() => {
-        const hash = window.location.hash;
-        if (hash && hash.startsWith('#family-')) {
-          const familyId = hash.replace('#family-', '');
-          this.setActiveFamily(familyId);
-        } else if (this.groupedSeries.length > 0) {
-          // Set the first family as active by default
-          this.activeFamily = this.groupedSeries[0].familyId;
-        }
-      }, 100);
+    this.checkAccountStatus().subscribe(() => {
+      this.isLoadingAccountStatus = false;
+      // Proceed to load test series after account status is known
+      this.svc.getSeries().subscribe(data => {
+        this.series = data;
+        this.groupTestsByFamily();
+        
+        // Check if there's a hash in the URL and navigate to that family
+        setTimeout(() => {
+          const hash = window.location.hash;
+          if (hash && hash.startsWith('#family-')) {
+            const familyId = hash.replace('#family-', '');
+            this.setActiveFamily(familyId);
+          } else if (this.groupedSeries.length > 0) {
+            // Set the first family as active by default
+            this.activeFamily = this.groupedSeries[0].familyId;
+          }
+        }, 100);
+      });
     });
+  }
+
+  checkAccountStatus(): Observable<void> {
+    if (this.authService.getRole() === 'student') {
+      const accountExpiresAt = this.authService.getAccountExpiresAt();
+      if (accountExpiresAt) {
+        this.isAccountExpired = new Date(accountExpiresAt) < new Date();
+        return of(undefined);
+      } else {
+        // If not in local storage, refresh profile
+        return this.authService.refreshUserProfile().pipe(
+          map(user => {
+            if (user.accountExpiresAt) {
+              this.isAccountExpired = new Date(user.accountExpiresAt) < new Date();
+            }
+          }),
+          catchError(err => {
+            console.error('Failed to refresh user profile for account status', err);
+            // Decide on default behavior if profile refresh fails, e.g., assume not expired or show error
+            this.isAccountExpired = false; // Default to not expired on error to avoid blocking unnecessarily
+            return of(undefined);
+          })
+        );
+      }
+    } else {
+      this.isAccountExpired = false; // Not a student, so account expiry doesn't apply in this context
+      return of(undefined);
+    }
   }
 
   // Group tests by exam family
@@ -88,13 +126,21 @@ export class TestListComponent implements OnInit {
 
   // Navigate to the player
   startSeries(s: TestSeries) {
+    if (this.authService.getRole() === 'student' && this.isAccountExpired) {
+      // Optionally, navigate to profile or show a more prominent message
+      this.router.navigate(['/profile'], { queryParams: { accountExpired: 'true' } });
+      return;
+    }
     this.router.navigate(['/exam', s._id]);
   }
 
-  // Disable only for 'live' tests outside their window
-  isDisabled(s: TestSeries): boolean {
+  // Disable only for 'live' tests outside their window OR if student account is expired
+  isSeriesDisabled(s: TestSeries): boolean {
+    if (this.authService.getRole() === 'student' && this.isAccountExpired) {
+      return true;
+    }
     if (s.mode !== 'live') {
-      // practice & official always enabled
+      // practice & official always enabled (unless account expired)
       return false;
     }
     const start = new Date(s.startAt);
@@ -102,8 +148,11 @@ export class TestListComponent implements OnInit {
     return this.now < start || this.now > end;
   }
 
-  // Only 'live' tests have reasons to disable
-  disabledReason(s: TestSeries): string {
+  // Only 'live' tests have reasons to disable, or account expiry
+  getDisabledReason(s: TestSeries): string {
+    if (this.authService.getRole() === 'student' && this.isAccountExpired) {
+      return 'Your account has expired. Please renew your subscription.';
+    }
     if (s.mode !== 'live') {
       return '';
     }

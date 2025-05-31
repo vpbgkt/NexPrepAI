@@ -1,0 +1,107 @@
+.user-management-container {
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+h2 {
+  color: #333;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.loading-indicator,
+.error-message,
+.no-users-message {
+  text-align: center;
+  padding: 20px;
+  border-radius: 5px;
+}
+
+.loading-indicator p {
+  font-style: italic;
+  color: #555;
+}
+
+.error-message {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.no-users-message {
+  background-color: #e2e3e5;
+  color: #383d41;
+  border: 1px solid #d6d8db;
+}
+
+.users-table-container {
+  overflow-x: auto; /* For responsiveness on smaller screens */
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.users-table th,
+.users-table td {
+  border: 1px solid #ddd;
+  padding: 12px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.users-table th {
+  background-color: #f2f2f2;
+  color: #333;
+  font-weight: bold;
+}
+
+.users-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.users-table tbody tr:hover {
+  background-color: #f1f1f1;
+}
+
+.date-input {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box; /* Ensures padding doesn't affect width */
+  width: 150px; /* Adjust as needed */
+}
+
+.save-button {
+  padding: 8px 15px;
+  background-color: #4CAF50; /* Green */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.save-button:hover {
+  background-color: #45a049;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+  .users-table th,
+  .users-table td {
+    padding: 8px;
+    font-size: 14px;
+  }
+  .date-input {
+    width: 100%; /* Make date inputs take full width of cell on smaller screens */
+    margin-bottom: 5px; /* Add some space if they stack */
+  }
+  .save-button {
+    width: 100%;
+    padding: 10px;
+  }
+}

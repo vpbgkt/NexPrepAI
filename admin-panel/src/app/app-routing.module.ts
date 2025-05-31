@@ -34,6 +34,8 @@ import { AddExamPaperComponent }  from './components/exam-paper/add-exam-paper/a
 import { ExamShiftListComponent } from './components/exam-shift/exam-shift-list/exam-shift-list.component';
 import { AddExamShiftComponent }  from './components/exam-shift/add-exam-shift/add-exam-shift.component';
 
+import { UserManagementComponent } from './components/user-management/user-management.component'; // Import the new UserManagementComponent
+
 import { AdminGuard }   from './guards/admin.guard';
 import { StudentGuard } from './guards/student.guard';
 
@@ -98,6 +100,9 @@ export const routes: Routes = [
       // Exam Shifts
       { path: 'exam-shifts',     component: ExamShiftListComponent },
       { path: 'exam-shifts/new', component: AddExamShiftComponent },
+
+      // User Management (Superadmin only)
+      { path: 'user-management', component: UserManagementComponent, canActivate: [AdminGuard] }, // Added route for UserManagement
     ]
   },
 

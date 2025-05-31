@@ -177,3 +177,217 @@ exports.updateMyProfile = async (req, res) => {
     res.status(500).json({ message: 'Server error while updating profile' });
   }
 };
+
+/**
+ * @desc    Update user account settings (expiration, free trial) by Superadmin
+ * @route   PUT /api/users/:userId/account-settings
+ * @access  Private (Superadmin only)
+ */
+exports.updateUserAccountSettingsBySuperadmin = async (req, res) => {
+  const { accountExpiresAt, freeTrialEndsAt } = req.body;
+  const { userId } = req.params;
+  const requesterRole = req.user.role; // Assuming auth middleware sets req.user.role
+
+  // 1. Authorize: Only superadmin can perform this action
+  if (requesterRole !== 'superadmin') {
+    return res.status(403).json({ message: 'Forbidden: Insufficient privileges. Superadmin access required.' });
+  }
+
+  // 2. Validate input (basic validation)
+  if (!userId) {
+    return res.status(400).json({ message: 'User ID is required.' });
+  }
+  if (accountExpiresAt && isNaN(new Date(accountExpiresAt).getTime())) {
+    return res.status(400).json({ message: 'Invalid accountExpiresAt date format.' });
+  }
+  if (freeTrialEndsAt && isNaN(new Date(freeTrialEndsAt).getTime())) {
+    return res.status(400).json({ message: 'Invalid freeTrialEndsAt date format.' });
+  }
+
+  try {
+    const userToUpdate = await User.findById(userId);
+
+    if (!userToUpdate) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // 3. Update fields if provided
+    if (accountExpiresAt !== undefined) {
+      userToUpdate.accountExpiresAt = accountExpiresAt ? new Date(accountExpiresAt) : null;
+    }
+    if (freeTrialEndsAt !== undefined) {
+      userToUpdate.freeTrialEndsAt = freeTrialEndsAt ? new Date(freeTrialEndsAt) : null;
+    }
+
+    const updatedUser = await userToUpdate.save();
+
+    // 4. Respond with relevant fields (excluding sensitive data like password)
+    const userResponse = {
+      _id: updatedUser._id,
+      username: updatedUser.username,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      accountExpiresAt: updatedUser.accountExpiresAt,
+      freeTrialEndsAt: updatedUser.freeTrialEndsAt,
+      updatedAt: updatedUser.updatedAt
+    };
+
+    res.json({ message: 'User account settings updated successfully.', user: userResponse });
+
+  } catch (err) {
+    console.error('Error in updateUserAccountSettingsBySuperadmin:', err.message);
+    res.status(500).json({ message: 'Server error while updating user account settings.' });
+  }
+};
+
+/**
+ * @desc    Get all users (for Superadmin)
+ * @route   GET /api/users
+ * @access  Private (Superadmin only)
+ */
+exports.getAllUsers = async (req, res) => {
+  console.log('[getAllUsers] Controller reached. Requester role:', req.user.role); // Added log
+  const requesterRole = req.user.role;
+
+  // 1. Authorize: Allow 'superadmin' OR 'admin'
+  if (requesterRole !== 'superadmin' && requesterRole !== 'admin') { // Modified condition
+    console.log('[getAllUsers] Authorization failed. Role:', requesterRole); // Added log
+    return res.status(403).json({ message: 'Forbidden: Insufficient privileges. Superadmin or Admin access required.' });
+  }
+
+  try {
+    console.log('[getAllUsers] Authorization successful. Fetching users...'); // Added log
+    const users = await User.find({})
+      .select('-password')
+      .sort({ createdAt: -1 });
+
+    console.log(`[getAllUsers] Found ${users.length} users. Preparing response.`); // Added log
+    res.json(users);
+
+  } catch (err) {
+    console.error('[getAllUsers] Error fetching users:', err.message, err.stack); // Enhanced log
+    res.status(500).json({ message: 'Server error while fetching users.' });
+  }
+};
+
+/**
+ * @desc    Process and identify users for account/trial expiry notifications
+ * @route   POST (conceptually, will be called by a route)
+ * @access  Private (Superadmin via a dedicated route)
+ */
+exports.processExpiryNotifications = async (req, res) => {
+  const requesterRole = req.user.role;
+  if (requesterRole !== 'superadmin') {
+    return res.status(403).json({ message: 'Forbidden: Insufficient privileges. Superadmin access required.' });
+  }
+
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize to start of day for consistent date comparisons
+
+    const notificationsToSend = [];
+
+    // Define notification windows (in days from today)
+    const accountExpiryWindows = [7, 3, 0]; // 7 days before, 3 days before, on the day of expiry
+    const trialExpiryWindows = [3, 0];    // 3 days before, on the day of expiry
+
+    // Helper function to calculate target date
+    const getTargetDate = (daysFromToday) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() + daysFromToday);
+      return date;
+    };
+
+    // 1. Process Account Expiry Notifications
+    for (const days of accountExpiryWindows) {
+      const targetExpiryDate = getTargetDate(days);
+      
+      // Find users whose accountExpiresAt is on the targetExpiryDate
+      // We need to query for a date range for `accountExpiresAt` to cover the entire day
+      const startOfTargetDay = new Date(targetExpiryDate); // Already at 00:00:00.000
+      const endOfTargetDay = new Date(targetExpiryDate);
+      endOfTargetDay.setHours(23, 59, 59, 999);
+
+      const usersForAccountExpiry = await User.find({
+        role: 'student', // Only notify students
+        accountExpiresAt: {
+          $gte: startOfTargetDay,
+          $lte: endOfTargetDay
+        }
+      }).select('name email username accountExpiresAt freeTrialEndsAt');
+
+      usersForAccountExpiry.forEach(user => {
+        notificationsToSend.push({
+          userId: user._id,
+          name: user.name,
+          email: user.email,
+          username: user.username,
+          notificationType: 'ACCOUNT_EXPIRY',
+          daysUntilExpiry: days,
+          expiryDate: user.accountExpiresAt,
+          message: `Account for ${user.name} (${user.username}) is ${days === 0 ? 'expiring today' : 'expiring in ' + days + ' days'} (${user.accountExpiresAt?.toDateString()}).`
+        });
+      });
+    }
+
+    // 2. Process Free Trial Expiry Notifications
+    for (const days of trialExpiryWindows) {
+      const targetTrialEndDate = getTargetDate(days);
+
+      const startOfTargetTrialDay = new Date(targetTrialEndDate);
+      const endOfTargetTrialDay = new Date(targetTrialEndDate);
+      endOfTargetTrialDay.setHours(23, 59, 59, 999);
+
+      const usersForTrialExpiry = await User.find({
+        role: 'student',
+        freeTrialEndsAt: {
+          $gte: startOfTargetTrialDay,
+          $lte: endOfTargetTrialDay
+        },
+        // Crucially, ensure their account isn't already extended beyond the trial
+        // This means accountExpiresAt should be the same as freeTrialEndsAt or very close
+        $expr: { $eq: ["$accountExpiresAt", "$freeTrialEndsAt"] }
+      }).select('name email username accountExpiresAt freeTrialEndsAt');
+
+      usersForTrialExpiry.forEach(user => {
+        // Avoid duplicate notifications if account expiry and trial expiry are the same day and already handled
+        const alreadyNotifiedForAccountExpiry = notificationsToSend.find(
+          f => f.userId.toString() === user._id.toString() && 
+               f.notificationType === 'ACCOUNT_EXPIRY' && 
+               new Date(f.expiryDate).toDateString() === new Date(user.freeTrialEndsAt).toDateString()
+        );
+
+        if (!alreadyNotifiedForAccountExpiry) {
+          notificationsToSend.push({
+            userId: user._id,
+            name: user.name,
+            email: user.email,
+            username: user.username,
+            notificationType: 'TRIAL_EXPIRY',
+            daysUntilExpiry: days,
+            expiryDate: user.freeTrialEndsAt,
+            message: `Free trial for ${user.name} (${user.username}) is ${days === 0 ? 'ending today' : 'ending in ' + days + ' days'} (${user.freeTrialEndsAt?.toDateString()}).`
+          });
+        }
+      });
+    }
+
+    if (notificationsToSend.length > 0) {
+      // In a real scenario, you would trigger emails/in-app notifications here.
+      // For now, we just return the list.
+      console.log(`[NotificationProcess] Found ${notificationsToSend.length} notifications to send.`);
+      // console.log(JSON.stringify(notificationsToSend, null, 2));
+      res.json({ 
+        message: `Processed potential notifications. Found ${notificationsToSend.length} items.`, 
+        notifications: notificationsToSend 
+      });
+    } else {
+      res.json({ message: 'No users require expiry notifications at this time.', notifications: [] });
+    }
+
+  } catch (err) {
+    console.error('Error in processExpiryNotifications:', err.message);
+    res.status(500).json({ message: 'Server error while processing expiry notifications.', error: err.message });
+  }
+};

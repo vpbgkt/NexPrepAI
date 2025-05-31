@@ -15,7 +15,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { register, login, firebaseSignIn, generateReferralCodes, getReferralInfo, applyReferralCode } = require('../controllers/authController'); // Added referral functions
+const { register, login, firebaseSignIn, generateReferralCodes, getReferralInfo, applyReferralCode, getUserProfile } = require('../controllers/authController'); // Added getUserProfile
 const authenticateUser = require('../middleware/auth'); // ✅ NEW
 
 router.post('/register', register);
@@ -23,16 +23,8 @@ router.post('/login', login);
 router.post('/firebase-signin', firebaseSignIn); // New route for Firebase Sign-In
 
 // ✅ NEW protected route
-router.get('/profile', authenticateUser, async (req, res) => {
-  try {
-    res.json({
-      message: "This is a protected profile route",
-      user: req.user
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Server Error" });
-  }
-});
+router.get('/profile', authenticateUser, getUserProfile);
+
 
 // Referral system routes
 router.get('/referral-info', authenticateUser, getReferralInfo);
