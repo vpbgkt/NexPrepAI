@@ -3,12 +3,11 @@ import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from './services/auth.service';
 import { Router } from '@angular/router';
-import { ClickOutsideDirective } from './directives/click-outside.directive';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterModule, CommonModule, ClickOutsideDirective],
+  imports: [RouterModule, CommonModule],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
@@ -31,8 +30,9 @@ export class AppComponent implements OnInit {
 
     // Close mobile menu when window is resized to desktop size
     window.addEventListener('resize', () => {
-      if (window.innerWidth > 992 && this.mobileMenuOpen) {
+      if (window.innerWidth > 1024 && this.mobileMenuOpen) {
         this.mobileMenuOpen = false;
+        this.activeDropdown = null;
       }
     });
   }
@@ -54,7 +54,11 @@ export class AppComponent implements OnInit {
   }
 
   toggleDropdown(dropdown: string) {
-    this.activeDropdown = this.activeDropdown === dropdown ? null : dropdown;
+    if (this.activeDropdown === dropdown) {
+      this.activeDropdown = null;
+    } else {
+      this.activeDropdown = dropdown;
+    }
   }
 
   closeDropdown() {
@@ -66,9 +70,30 @@ export class AppComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
-  // Close mobile menu when clicking on a link
-  @HostListener('window:click', ['$event'])
-  onClick(event: MouseEvent) {
-    // Implement any additional click handling if needed
+  // Close dropdowns when clicking outside
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    
+    // Check if click is outside dropdown areas
+    if (!target.closest('.dropdown') && !target.closest('.user-dropdown')) {
+      this.activeDropdown = null;
+    }
+  }
+
+  // Close mobile menu on escape key
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscapeKey(event: KeyboardEvent) {
+    if (this.mobileMenuOpen) {
+      this.closeMobileMenu();
+    } else if (this.activeDropdown) {
+      this.closeDropdown();
+    }
+  }
+
+  // Handle keyboard navigation for accessibility
+  @HostListener('document:keydown.tab', ['$event'])
+  onTabKey(event: KeyboardEvent) {
+    // Additional tab handling can be added here for better accessibility
   }
 }
