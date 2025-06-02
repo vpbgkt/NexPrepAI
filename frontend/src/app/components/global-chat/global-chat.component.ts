@@ -28,9 +28,9 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
   private lastReadMessageCount: number = 0;
 
   constructor(private chatService: ChatService, public authService: AuthService) {}
-
   ngOnInit(): void {
     console.log('GlobalChatComponent initialized');
+    console.log('Initial state - messages array length:', this.messages.length);
     
     // Subscribe to username changes
     this.subscriptions.add(
@@ -49,45 +49,72 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
           this.messages = [];
         }
       })
-    );
-
-    // Subscribe to initial messages
+    );    // Subscribe to initial messages
     this.subscriptions.add(
       this.chatService.onInitChat().subscribe(initialMessages => {
         console.log('Initial chat messages received:', initialMessages.length);
         this.messages = initialMessages;
         this.shouldScrollToBottom = true;
+        // Force scroll for initial messages
+        setTimeout(() => {
+          this.performScrollToBottom();
+        }, 300);
       })
-    );    // Subscribe to new messages
-    this.subscriptions.add(
-      this.chatService.onNewMessage().subscribe(message => {
+    );// Subscribe to new messages
+    this.subscriptions.add(      this.chatService.onNewMessage().subscribe(message => {
         console.log('New message received:', message);
+        console.log('Current messages array length:', this.messages.length);
         
-        // Check if message already exists (to prevent duplicates)
-        const existingMessage = this.messages.find(m => 
-          m.username === message.username && 
-          m.text === message.text && 
-          Math.abs(new Date(m.timestamp).getTime() - new Date(message.timestamp).getTime()) < 1000        );
-          if (!existingMessage) {
+        // More efficient duplicate check - check last 10 messages only
+        const recentMessages = this.messages.slice(-10);
+        const existingMessage = recentMessages.find(m => {
+          const usernameMatch = m.username === message.username;
+          const textMatch = m.text === message.text;
+          const timeDiff = Math.abs(new Date(m.timestamp).getTime() - new Date(message.timestamp).getTime());
+          const timeMatch = timeDiff < 1000;
+          
+          return usernameMatch && textMatch && timeMatch;
+        });
+        
+        if (!existingMessage) {
+          console.log('Adding new message to array - no duplicate found');
           this.messages.push(message);
           if (this.messages.length > 100) {
             this.messages.shift();
           }
+        } else {
+          console.log('Message already exists in recent messages, skipping addition but triggering scroll');
+        }
+        
+        // ALWAYS trigger scroll for ANY message received when chat is open (even duplicates)
+        // This handles cases where messages are re-broadcast due to WebSocket reconnections
+        if (!this.isMinimized) {
+          console.log('Chat is open, forcing scroll to bottom for message from:', message.username);
           
-          // Always scroll to bottom for new messages when chat is open
-          if (!this.isMinimized) {
-            this.shouldScrollToBottom = true;
-            console.log('New message received, triggering scroll. Message from:', message.username);
-          }
+          // Immediate scroll trigger
+          this.shouldScrollToBottom = true;
           
-          // Handle unread messages
-          if (this.isMinimized && message.username !== this.username) {
-            this.hasUnreadMessages = true;
-            this.unreadCount++;
-          }
+          // Force scroll using multiple methods to ensure it works
+          setTimeout(() => {
+            this.performScrollToBottom();
+          }, 10);
+          
+          setTimeout(() => {
+            this.performScrollToBottom();
+          }, 100);
+          
+          setTimeout(() => {
+            this.performScrollToBottom();
+          }, 200);
+        }
+        
+        // Handle unread messages (only for truly new messages)
+        if (!existingMessage && this.isMinimized && message.username !== this.username) {
+          this.hasUnreadMessages = true;
+          this.unreadCount++;
         }
       })
-    );    // Subscribe to auth errors
+    );// Subscribe to auth errors
     this.subscriptions.add(
       this.chatService.onAuthError().subscribe(err => {
         console.error('Auth error in chat:', err.message);
@@ -103,39 +130,118 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
           }, 2000);
         }
       })
-    );
-
-    // If there are cached messages, use them
+    );    // If there are cached messages, use them
     const existingMessages = this.chatService.getMessages();
     if (existingMessages.length > 0) {
       console.log('Using cached messages:', existingMessages.length);
       this.messages = existingMessages;
       this.shouldScrollToBottom = true;
+      // Force scroll after component is fully initialized
+      setTimeout(() => {
+        this.performScrollToBottom();
+      }, 500);
     }
-  }  ngAfterViewChecked(): void {
+  }ngAfterViewChecked(): void {
     // Scroll to bottom after view is updated if needed
-    if (this.shouldScrollToBottom && this.messagesArea) {
-      // Use requestAnimationFrame for better timing
-      requestAnimationFrame(() => {
-        this.scrollToBottom();
-        this.shouldScrollToBottom = false;
-      });
+    if (this.shouldScrollToBottom) {
+      console.log('ngAfterViewChecked: shouldScrollToBottom is true, attempting scroll');
+      // Multiple fallback methods to ensure scroll works
+      this.performScrollToBottom();
+      this.shouldScrollToBottom = false;
     }
   }
 
-  private scrollToBottom(): void {
+  private performScrollToBottom(): void {
+    // Method 1: Try immediate scroll
+    this.scrollToBottom();
+    
+    // Method 2: Try with requestAnimationFrame
+    requestAnimationFrame(() => {
+      this.scrollToBottom();
+    });
+    
+    // Method 3: Try with setTimeout
+    setTimeout(() => {
+      this.scrollToBottom();
+    }, 0);
+    
+    // Method 4: Try with longer delay
+    setTimeout(() => {
+      this.scrollToBottom();
+    }, 50);
+    
+    // Method 5: Try direct DOM manipulation
+    setTimeout(() => {
+      this.forceScrollWithDOMQuery();
+    }, 100);
+  }  private scrollToBottom(): void {
     try {
-      if (this.messagesArea) {
+      if (this.messagesArea && this.messagesArea.nativeElement) {
         const element = this.messagesArea.nativeElement;
-        // Force scroll to absolute bottom
-        element.scrollTop = element.scrollHeight + 1000;
-        console.log('Scrolled to bottom:', element.scrollTop, 'of', element.scrollHeight);
+        console.log('Before scroll - scrollTop:', element.scrollTop, 'scrollHeight:', element.scrollHeight, 'clientHeight:', element.clientHeight);
+        
+        // Calculate perfect bottom position
+        const perfectBottom = element.scrollHeight - element.clientHeight;
+        console.log('Perfect bottom position should be:', perfectBottom);
+        
+        // Set scroll to exact bottom position
+        element.scrollTop = perfectBottom;
+        
+        // Force exact position with multiple attempts
+        setTimeout(() => {
+          if (element) {
+            element.scrollTop = perfectBottom;
+            console.log('After first correction - scrollTop:', element.scrollTop);
+          }
+        }, 1);
+        
+        // Final verification and correction
+        setTimeout(() => {
+          if (element) {
+            const currentBottom = element.scrollHeight - element.clientHeight;
+            element.scrollTop = currentBottom;
+            console.log('Final scroll - scrollTop:', element.scrollTop, 'target:', currentBottom);
+          }
+        }, 10);
+        
+        console.log('Scroll attempted to perfect bottom position');
+      } else {
+        console.log('messagesArea not available, trying DOM query method');
+        this.forceScrollWithDOMQuery();
       }
     } catch (err) {
       console.error('Error scrolling to bottom:', err);
+      // Fallback to DOM query method
+      this.forceScrollWithDOMQuery();
     }
   }
-
+  private forceScrollWithDOMQuery(): void {
+    try {
+      // Try to find the messages area by class name as fallback
+      const messagesContainer = document.querySelector('.messages-area') as HTMLElement;
+      if (messagesContainer) {
+        console.log('Found messages container via DOM query, scrolling...');
+        
+        // Calculate perfect bottom position
+        const perfectBottom = messagesContainer.scrollHeight - messagesContainer.clientHeight;
+        console.log('DOM Query - Perfect bottom position:', perfectBottom);
+        
+        // Set to exact bottom position
+        messagesContainer.scrollTop = perfectBottom;
+        
+        // Double-check scroll after brief delay
+        setTimeout(() => {
+          const currentBottom = messagesContainer.scrollHeight - messagesContainer.clientHeight;
+          messagesContainer.scrollTop = currentBottom;
+          console.log('DOM Query - Final scroll position:', messagesContainer.scrollTop);
+        }, 10);
+      } else {
+        console.log('Could not find messages container via DOM query');
+      }
+    } catch (err) {
+      console.error('Error in forceScrollWithDOMQuery:', err);
+    }
+  }
   private isScrolledToBottom(): boolean {
     if (!this.messagesArea) return true;
     
@@ -145,24 +251,46 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
     console.log('Scroll check:', element.scrollTop, '>=', (element.scrollHeight - element.clientHeight - threshold), '=', isAtBottom);
     return isAtBottom;
   }
-
+  // Public method to force scroll - can be called from template if needed
+  public forceScrollToBottom(): void {
+    console.log('forceScrollToBottom called');
+    this.shouldScrollToBottom = true;
+    this.performScrollToBottom();
+  }
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
-    // Don't disconnect on destroy since this is a global chat
+    // Don't disconnect on destroy since this is a live discussion chat
     // The ChatService will manage the connection across component lifecycles
-  }  sendMessage(): void {
+  }sendMessage(): void {
     if (this.newMessage.trim() !== '') {
       console.log('Sending chat message:', this.newMessage);
       this.chatService.sendMessage(this.newMessage);
       this.newMessage = '';
       this.error = null;
-      // Force scroll to bottom for user's own messages
+      
+      // FORCE scroll to bottom for user's own messages with multiple methods
+      console.log('User sent message, triggering comprehensive scroll');
       this.shouldScrollToBottom = true;
-      console.log('User sent message, forcing scroll to bottom');
+      
+      // Immediate scroll attempts
+      this.performScrollToBottom();
+      
+      // Additional scroll attempts at intervals
+      setTimeout(() => {
+        this.performScrollToBottom();
+      }, 50);
+      
+      setTimeout(() => {
+        this.performScrollToBottom();
+      }, 150);
+      
+      setTimeout(() => {
+        this.performScrollToBottom();
+      }, 300);
     } else {
       this.error = "Message cannot be empty";
     }
-  }  // Chat bubble methods
+  }// Chat bubble methods
   toggleChat(): void {
     this.isMinimized = !this.isMinimized;
     if (!this.isMinimized) {

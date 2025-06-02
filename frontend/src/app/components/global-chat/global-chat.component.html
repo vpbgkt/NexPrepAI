@@ -17,12 +17,11 @@
   <div class="chat-window" *ngIf="!isMinimized">
     
     <!-- Chat header -->
-    <div class="chat-header">
-      <div class="chat-title">
+    <div class="chat-header">      <div class="chat-title">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="currentColor"/>
         </svg>
-        <span>Global Chat</span>
+        <span>NexPrep Live Discussion</span>
         <div class="online-indicator" *ngIf="username"></div>
       </div>
       <button class="minimize-button" (click)="toggleChat()" aria-label="Minimize chat">
@@ -72,11 +71,10 @@
 
     <!-- Input area -->
     <div class="input-area" *ngIf="username">
-      <div class="input-container">
-        <input type="text" 
+      <div class="input-container">        <input type="text" 
                [(ngModel)]="newMessage" 
                (keyup.enter)="sendMessage()"
-               (focus)="markMessagesAsRead()"
+               (focus)="markMessagesAsRead(); forceScrollToBottom()"
                placeholder="Type your message..."
                maxlength="500"
                class="message-input">
