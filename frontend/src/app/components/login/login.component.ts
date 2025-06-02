@@ -26,7 +26,6 @@ export class LoginComponent implements OnInit {
     private router: Router,
     public firebaseAuthService: FirebaseAuthService // Make FirebaseAuthService public
   ) {}
-
   ngOnInit() {
     this.form = this.fb.group({
       email:    ['', [Validators.required, Validators.email]],
@@ -36,12 +35,8 @@ export class LoginComponent implements OnInit {
       if (user && localStorage.getItem('token') && this.router.url === '/login') { 
         // Only redirect if we're on the login page
         // This prevents unwanted redirects when refreshing other pages like /tests
-        const role = this.authService.getRole();
-        if (role === 'admin') {
-            this.router.navigate(['/admin/dashboard']);
-        } else {
-            this.router.navigate(['/student/dashboard']);
-        }
+        // Redirect all users to home page instead of role-based dashboards
+        this.router.navigate(['/home']);
       }
     });
   }
@@ -49,16 +44,11 @@ export class LoginComponent implements OnInit {
   onSubmit() {
     if (this.form.invalid) return;
     const { email, password } = this.form.value;
-    this.authService.login(email!, password!).subscribe({
-      next: (res) => {
+    this.authService.login(email!, password!).subscribe({      next: (res) => {
         alert('Login successful!');
         // AuthService's login method already stores token and role.
-        // Navigation can be centralized or handled here based on role.
-        if (res.role === 'admin') {
-            this.router.navigate(['/admin/dashboard']);
-        } else {
-            this.router.navigate(['/student/dashboard']);
-        }
+        // Redirect all users to home page instead of role-based dashboards
+        this.router.navigate(['/home']);
       },
       error: err => {
         const msg = err.error?.message || 'Login failed';

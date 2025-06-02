@@ -26,6 +26,7 @@ export class AppComponent implements OnInit {
   isAppLoggedIn: boolean = false;
   appUserDisplayName: string | null = null;
   userRole: string | null = null; // Add userRole property
+  currentRoute: string = ''; // Add property to track current route
   constructor(
     public authService: AuthService, 
     private firebaseAuthService: FirebaseAuthService,
@@ -62,25 +63,23 @@ export class AppComponent implements OnInit {
         console.log('AppComponent: currentUser$ emitted. Firebase User:', fbUser ? fbUser.uid : 'null');
         this.updateAuthStates('currentUser$ event');
       });
-    });
-
-    // Subscribe to router navigation end events
+    });    // Subscribe to router navigation end events
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd)
     ).subscribe((event: NavigationEnd) => {
       this.ngZone.run(() => {
         console.log('AppComponent: NavigationEnd event. URL:', event.urlAfterRedirects);
+        this.currentRoute = event.urlAfterRedirects; // Update current route
         this.updateAuthStates('NavigationEnd event');
       });
-    });
-
-    // Initial state check
+    });    // Initial state check
     // This will run once when the component is initialized.
     // If there's an immediate redirect (e.g. from '/' to '/login'),
     // NavigationEnd might fire very soon after/before this, leading to multiple calls.
     // The updateAuthStates logic should be idempotent.
     this.ngZone.run(() => {
         console.log('AppComponent: ngOnInit initial direct call to updateAuthStates.');
+        this.currentRoute = this.router.url; // Initialize current route
         this.updateAuthStates('ngOnInit initial');
     });
     console.log('AppComponent: ngOnInit finished setting up subscriptions and initial call.');
@@ -141,8 +140,26 @@ export class AppComponent implements OnInit {
     } else {
       console.log('AppComponent: Logout called but no Firebase user and not logged into app. Forcing state update.');
        this.ngZone.run(() => {
-            this.updateAuthStates('logout no_active_session');
-        });
+            this.updateAuthStates('logout no_active_session');        });
     }
+  }
+
+  // Method to determine if chat should be displayed
+  shouldDisplayChat(): boolean {
+    // Hide chat on login page and during exam attempts
+    const hideChatRoutes = ['/login', '/register'];
+    
+    // Check if current route is login or register
+    if (hideChatRoutes.includes(this.currentRoute)) {
+      return false;
+    }
+    
+    // Check if current route is an exam (starts with /exam/)
+    if (this.currentRoute.startsWith('/exam/')) {
+      return false;
+    }
+    
+    // Show chat on all other pages
+    return true;
   }
 }

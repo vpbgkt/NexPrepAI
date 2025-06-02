@@ -319,4 +319,4 @@
 </nav>
 
 <router-outlet></router-outlet>
-<app-global-chat></app-global-chat>
+<app-global-chat *ngIf="shouldDisplayChat()"></app-global-chat>
