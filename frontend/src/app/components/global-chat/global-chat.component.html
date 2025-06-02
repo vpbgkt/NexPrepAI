@@ -1,0 +1,24 @@
+<div class="chat-container">
+  <div class="chat-header">
+    <h3>Global Chat</h3>
+  </div>
+  <div class="messages-area" #messagesArea>
+    <div *ngFor="let msg of messages" class="message" [ngClass]="{'my-message': msg.username === username, 'other-message': msg.username !== username}">
+      <div class="message-header">
+        <span class="username">{{ msg.username }}:</span>
+        <span class="timestamp">{{ msg.timestamp | date:'shortTime' }}</span>
+      </div>
+      <div class="message-text">{{ msg.text }}</div>
+    </div>
+    <div *ngIf="messages.length === 0" class="no-messages">
+      No messages yet. Be the first to say something!
+    </div>
+  </div>
+  <div class="input-area">
+    <input type="text" [(ngModel)]="newMessage" (keyup.enter)="sendMessage()" placeholder="Type your message...">
+    <button (click)="sendMessage()">Send</button>
+  </div>
+  <div *ngIf="error" class="error-message">
+    {{ error }}
+  </div>
+</div>

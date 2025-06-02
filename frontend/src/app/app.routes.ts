@@ -13,7 +13,7 @@ import { LeaderboardComponent } from './components/leaderboard/leaderboard.compo
 import { HomeComponent } from './components/home/home.component'; // Import HomeComponent
 import { RewardsDashboardComponent } from './components/rewards-dashboard/rewards-dashboard.component'; // Import RewardsDashboardComponent
 import { AdminRewardsComponent } from './components/admin-rewards/admin-rewards.component'; // Import AdminRewardsComponent
-import { accountActiveGuard } from './guards/account-active.guard'; // Import the new guard
+import { AccountActiveGuard } from './guards/account-active.guard'; // Corrected import: AccountActiveGuard
 
 export const routes: Routes = [
   // Public student routes
@@ -23,12 +23,12 @@ export const routes: Routes = [
   
   // Student‐only pages
   { path: 'home', component: HomeComponent, canActivate: [studentGuard] }, // Added home route
-  { path: 'exam/:seriesId', component: ExamPlayerComponent, canActivate: [studentGuard, accountActiveGuard] }, // Added accountActiveGuard
+  { path: 'exam/:seriesId', component: ExamPlayerComponent, canActivate: [studentGuard, AccountActiveGuard] }, // Corrected usage: AccountActiveGuard
   { path: 'review/:attemptId', component: ReviewComponent, canActivate: [studentGuard] }, // Assuming review doesn't need active account, or add guard if it does
-  { path: 'student/dashboard', component: StudentDashboardComponent, canActivate: [studentGuard, accountActiveGuard] }, // Added accountActiveGuard
-  { path: 'tests', component: TestListComponent, canActivate: [studentGuard, accountActiveGuard] }, // Added accountActiveGuard
+  { path: 'student/dashboard', component: StudentDashboardComponent, canActivate: [studentGuard, AccountActiveGuard] }, // Corrected usage: AccountActiveGuard
+  { path: 'tests', component: TestListComponent, canActivate: [studentGuard, AccountActiveGuard] }, // Corrected usage: AccountActiveGuard
   { path: 'profile', component: ProfileComponent, canActivate: [studentGuard] }, // Profile page should be accessible to see status
-  { path: 'rewards', component: RewardsDashboardComponent, canActivate: [studentGuard, accountActiveGuard] }, // Added accountActiveGuard
+  { path: 'rewards', component: RewardsDashboardComponent, canActivate: [studentGuard, AccountActiveGuard] }, // Corrected usage: AccountActiveGuard
 
   // Admin-only pages
   { path: 'admin/rewards', component: AdminRewardsComponent, canActivate: [adminGuard] }, // Admin rewards management

@@ -21,7 +21,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, BehaviorSubject } from 'rxjs';
 
 /**
  * @interface AuthResponse
@@ -118,6 +118,10 @@ interface FirebaseSignInResponse {
 export class AuthService {
   /** @property {string} Base URL for authentication API endpoints */
   private base = 'http://localhost:5000/api/auth';
+  private tokenExpirationTimer: any;
+
+  private appUserNameSubject = new BehaviorSubject<string | null>(this.getAppUserName());
+  public appUserName$ = this.appUserNameSubject.asObservable();
 
   /**
    * @constructor
@@ -153,10 +157,7 @@ export class AuthService {
   login(email: string, password: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.base}/login`, { email, password })
       .pipe(tap(res => {
-        localStorage.setItem('token', res.token);
-        localStorage.setItem('role',  res.role);
-        if (res.name) localStorage.setItem('appUserName', res.name); // Store name
-        if (res.email) localStorage.setItem('appUserEmail', res.email); // Store email
+        this.setSession(res);
         // Navigate after successful traditional login
         // this.router.navigate([this.getRedirectUrl(res.role)]); // Consider centralizing navigation
       }));
@@ -178,27 +179,46 @@ export class AuthService {
    * // Sets up session for authenticated user
    * ```
    */
-  // New method to handle successful Firebase sign-in & backend token exchange
   handleFirebaseLogin(token: string, user: BackendUser) {
     if (!user) {
       console.error("User object is undefined in handleFirebaseLogin");
       return;
     }
     
-    localStorage.setItem('token', token);
-    localStorage.setItem('role', user.role || 'student'); // Provide a default role if undefined
-    if (user.name) localStorage.setItem('appUserName', user.name); // Also store for consistency
-    if (user.email) localStorage.setItem('appUserEmail', user.email); // Also store for consistency
-    // User object from backend might contain more details like name, photoURL, etc.
-    // localStorage.setItem('userName', user.name); // Example
-    // localStorage.setItem('userPhoto', user.photoURL || ''); // Example
+    // Construct a partial AuthResponse-like object to reuse setSession
+    const authResponse: Partial<AuthResponse> = {
+        token: token,
+        role: user.role || 'student',
+        name: user.name,
+        email: user.email
+    };
+    this.setSession(authResponse as AuthResponse); // Cast as AuthResponse
+  }
 
-    // Navigation should ideally happen here or be triggered from here
-    // to ensure consistency after any successful login (Firebase or traditional).
-    // For now, FirebaseAuthService handles navigation after Firebase login.
-    // If you want to centralize it, FirebaseAuthService would call this method,
-    // and this method would then navigate.
-  }  /**
+  private setSession(authRes: AuthResponse) {
+    localStorage.setItem('token', authRes.token);
+    localStorage.setItem('role',  authRes.role);
+    if (authRes.name) {
+      localStorage.setItem('appUserName', authRes.name);
+      this.appUserNameSubject.next(authRes.name);
+    } else {
+      localStorage.removeItem('appUserName');
+      this.appUserNameSubject.next(null);
+    }
+    if (authRes.email) {
+      localStorage.setItem('appUserEmail', authRes.email);
+    } else {
+      localStorage.removeItem('appUserEmail');
+    }
+
+    // Potentially decode token to set a session timeout
+    // For example, if your JWT has an 'exp' claim:
+    // const decodedToken = JSON.parse(atob(authRes.token.split('.')[1]));
+    // const expiresAt = moment.unix(decodedToken.exp);
+    // this.setLogoutTimer(expiresAt.valueOf() - moment().valueOf());
+  }
+
+  /**
    * @method register
    * @description Registers new user account with optional referral code support.
    * Creates student account by default with provided credentials.
@@ -249,10 +269,13 @@ export class AuthService {
   logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
-    localStorage.removeItem('appUserName'); // Clear name
-    localStorage.removeItem('appUserEmail'); // Clear email
-    localStorage.removeItem('accountExpiresAt'); // Clear account expiry
-    localStorage.removeItem('freeTrialEndsAt'); // Clear free trial expiry
+    localStorage.removeItem('appUserName');
+    localStorage.removeItem('appUserEmail');
+    localStorage.removeItem('firebaseUser'); // Also clear Firebase user info if stored
+    this.appUserNameSubject.next(null);
+    // if (this.tokenExpirationTimer) {
+    //   clearTimeout(this.tokenExpirationTimer);
+    // }
     this.router.navigate(['/login']);
   }
 
@@ -273,7 +296,7 @@ export class AuthService {
    * }
    * ```
    */
-  isLoggedIn() {
+  isLoggedIn(): boolean {
     return !!localStorage.getItem('token');
   }
 
@@ -334,25 +357,15 @@ export class AuthService {
    * }
    * ```
    */
-  // New getter methods
   getAppUserName(): string | null {
     return localStorage.getItem('appUserName');
   }
 
-  /**
-   * @method getAppUserEmail
-   * @description Retrieves current user's email address from local storage.
-   * 
-   * @returns {string | null} User's email or null if not available
-   * 
-   * @example
-   * ```typescript
-   * const userEmail = this.authService.getAppUserEmail();
-   * console.log(`User email: ${userEmail}`);
-   * // Used for profile display, account settings
-   * ```
-   */
-  getAppUserEmail(): string | null {
+  getAppUserNameObservable(): Observable<string | null> {
+    return this.appUserName$;
+  }
+
+  getEmail(): string | null {
     return localStorage.getItem('appUserEmail');
   }
 
@@ -427,6 +440,14 @@ export class AuthService {
     return this.http.get<BackendUser>(`${this.base}/profile`);
   }
 
+  refreshUserProfile(): Observable<BackendUser> {
+    return this.getUserProfile().pipe(
+      tap(user => {
+        this.storeUserProfile(user);
+      })
+    );
+  }
+
   // Method to get specific fields from localStorage, with type safety
   public getAccountExpiresAt(): string | null {
     return localStorage.getItem('accountExpiresAt');
@@ -437,22 +458,20 @@ export class AuthService {
   }
 
   public storeUserProfile(user: BackendUser): void {
-    if (user.accountExpiresAt) {
+    if (user && user._id) {
+      localStorage.setItem('userId', user._id);
+    } else {
+      localStorage.removeItem('userId');
+    }
+    if (user && user.accountExpiresAt) {
       localStorage.setItem('accountExpiresAt', user.accountExpiresAt);
+    } else {
+      localStorage.removeItem('accountExpiresAt');
     }
-    if (user.freeTrialEndsAt) {
+    if (user && user.freeTrialEndsAt) {
       localStorage.setItem('freeTrialEndsAt', user.freeTrialEndsAt);
+    } else {
+      localStorage.removeItem('freeTrialEndsAt');
     }
-    // Store other relevant user info if needed, e.g., for display
-    // localStorage.setItem('userName', user.name);
-  }
-
-  // Consider a method to refresh profile data and update localStorage
-  public refreshUserProfile(): Observable<BackendUser> {
-    return this.getUserProfile().pipe(
-      tap(user => {
-        this.storeUserProfile(user);
-      })
-    );
   }
 }

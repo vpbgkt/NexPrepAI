@@ -1,0 +1,121 @@
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 400px; // Or any height you prefer
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  background-color: #f9f9f9;
+}
+
+.chat-header {
+  background-color: #007bff;
+  color: white;
+  padding: 10px;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+}
+
+.chat-header h3 {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.messages-area {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: #fff;
+}
+
+.message {
+  padding: 8px 12px;
+  border-radius: 15px;
+  max-width: 70%;
+  word-wrap: break-word;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 0.8em;
+  color: #555;
+}
+
+.username {
+  font-weight: bold;
+  margin-right: 5px;
+}
+
+.timestamp {
+  font-size: 0.75em;
+  color: #888;
+}
+
+.my-message {
+  background-color: #dcf8c6;
+  align-self: flex-end;
+  border-bottom-right-radius: 5px;
+}
+
+.other-message {
+  background-color: #e9e9eb;
+  align-self: flex-start;
+  border-bottom-left-radius: 5px;
+}
+
+.no-messages {
+  text-align: center;
+  color: #aaa;
+  margin-top: 20px;
+  font-style: italic;
+}
+
+.input-area {
+  display: flex;
+  padding: 10px;
+  border-top: 1px solid #ddd;
+  background-color: #f1f1f1;
+}
+
+.input-area input {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  margin-right: 10px;
+  outline: none;
+}
+
+.input-area input:focus {
+  border-color: #007bff;
+}
+
+.input-area button {
+  padding: 10px 15px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.input-area button:hover {
+  background-color: #0056b3;
+}
+
+.error-message {
+  color: red;
+  padding: 5px 10px;
+  font-size: 0.9em;
+  text-align: center;
+  background-color: #ffebee;
+  border-top: 1px solid #ddd;
+}

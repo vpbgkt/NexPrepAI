@@ -7,11 +7,17 @@ import { Observable } from 'rxjs';
 import { filter } from 'rxjs/operators'; // Import filter operator
 import { User as FirebaseUser } from '@angular/fire/auth';
 import { CommonModule } from '@angular/common';
+import { GlobalChatComponent } from './components/global-chat/global-chat.component'; // Import GlobalChatComponent
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterModule, CommonModule],
+  imports: [
+    RouterOutlet, 
+    RouterModule, 
+    CommonModule, 
+    GlobalChatComponent // Add GlobalChatComponent to imports
+  ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
@@ -94,7 +100,7 @@ export class AppComponent implements OnInit {
         this.appUserDisplayName = fbUser.displayName || fbUser.email;
       } else {
         // No Firebase user, but app is logged in (traditional)
-        this.appUserDisplayName = this.authService.getAppUserName() || this.authService.getAppUserEmail() || 'User';
+        this.appUserDisplayName = this.authService.getAppUserName() || this.authService.getEmail() || 'User';
       }
     } else {
       this.appUserDisplayName = null;

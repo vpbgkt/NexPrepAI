@@ -2,9 +2,11 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { TestService, TestSeries } from '../../services/test.service';
-import { AuthService } from '../../services/auth.service'; // Import AuthService
+import { AuthService } from '../../services/auth.service';
+import { NotificationService } from '../../services/notification.service'; // Import NotificationService
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
+import { BackendUser } from '../../models/user.model'; // Import BackendUser
 
 interface GroupedTests {
   familyId: string;
@@ -28,7 +30,12 @@ export class TestListComponent implements OnInit {
   isAccountExpired: boolean = false;
   isLoadingAccountStatus: boolean = true;
 
-  constructor(private svc: TestService, private router: Router, public authService: AuthService) {} // Inject AuthService and make it public
+  constructor(
+    private svc: TestService, 
+    private router: Router, 
+    public authService: AuthService, 
+    private notificationService: NotificationService // Inject NotificationService
+  ) {}
 
   ngOnInit() {
     this.checkAccountStatus().subscribe(() => {
@@ -67,9 +74,9 @@ export class TestListComponent implements OnInit {
               this.isAccountExpired = new Date(user.accountExpiresAt) < new Date();
             }
           }),
-          catchError(err => {
+          catchError((err: any) => { // Add type for err
             console.error('Failed to refresh user profile for account status', err);
-            // Decide on default behavior if profile refresh fails, e.g., assume not expired or show error
+            this.notificationService.showError('Failed to load account status. Please try again later.'); // Use NotificationService
             this.isAccountExpired = false; // Default to not expired on error to avoid blocking unnecessarily
             return of(undefined);
           })

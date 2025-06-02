@@ -1,50 +1,80 @@
-import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { Injectable } from '@angular/core';
+import { ActivatedRouteSnapshot, RouterStateSnapshot, UrlTree, Router } from '@angular/router';
+import { Observable, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
-import { map, of } from 'rxjs';
+import { NotificationService } from '../services/notification.service';
+import { BackendUser } from '../models/user.model';
 
-export const accountActiveGuard: CanActivateFn = (route, state) => {
-  const authService = inject(AuthService);
-  const router = inject(Router);
+@Injectable({
+  providedIn: 'root'
+})
+export class AccountActiveGuard {
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+    private notificationService: NotificationService
+  ) {}
 
-  if (authService.getRole() !== 'student') {
-    return true; // Guard only applies to students
-  }
-
-  // Ensure profile is loaded, especially accountExpiresAt
-  // This might involve an async call if data isn't readily available
-  // For simplicity, assuming AuthService has a synchronous way or has pre-loaded data
-  
-  // First, try to get data from localStorage
-  const accountExpiresAt = authService.getAccountExpiresAt();
-
-  if (accountExpiresAt) {
-    const expiryDate = new Date(accountExpiresAt);
-    if (expiryDate < new Date()) {
-      console.log('AccountActiveGuard: Account expired. Redirecting to profile.');
-      router.navigate(['/profile'], { queryParams: { accountExpired: 'true' } });
-      return false;
+  canActivate(
+    route: ActivatedRouteSnapshot,
+    state: RouterStateSnapshot
+  ): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree {
+    if (!this.authService.isLoggedIn()) {
+      this.notificationService.showWarning('You must be logged in to access this page.');
+      return this.router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
     }
-    return true; // Account is active
-  } else {
-    // If expiry date is not in local storage, try to fetch it.
-    // This makes the guard asynchronous.
-    return authService.refreshUserProfile().pipe(
-      map(user => {
-        if (user.accountExpiresAt) {
-          const expiryDate = new Date(user.accountExpiresAt);
-          if (expiryDate < new Date()) {
-            console.log('AccountActiveGuard: Account expired after profile refresh. Redirecting to profile.');
-            router.navigate(['/profile'], { queryParams: { accountExpired: 'true' } });
-            return false;
-          }
-          return true; // Account is active
+
+    return this.authService.getUserProfile().pipe(
+      map((user: BackendUser) => {
+        if (!user) {
+          this.notificationService.showError('Failed to load user profile. Please try logging in again.');
+          return this.router.createUrlTree(['/login']);
         }
-        // If still no expiry date after refresh (e.g., new user, data issue), allow access.
-        // Or, you might decide to block access if an expiry date is strictly required.
-        console.log('AccountActiveGuard: No expiry date found even after refresh. Allowing access by default.');
-        return true; 
+
+        const now = new Date();
+        let isAccountActive = false;
+
+        // Check for active subscription
+        if (user.accountExpiresAt) {
+          const expires = new Date(user.accountExpiresAt);
+          if (expires >= now) {
+            isAccountActive = true;
+          }
+        }
+
+        // Check for active free trial if no active subscription
+        if (!isAccountActive && user.freeTrialEndsAt) {
+          const trialExpires = new Date(user.freeTrialEndsAt);
+          if (trialExpires >= now) {
+            isAccountActive = true;
+          }
+        }
+
+        if (isAccountActive) {
+          return true;
+        } else {
+          // Determine appropriate message and redirect
+          if (user.accountExpiresAt && new Date(user.accountExpiresAt) < now) {
+            this.notificationService.showWarning('Your account has expired. Please renew your subscription.');
+            return this.router.createUrlTree(['/profile']); // Or a dedicated subscription page
+          }
+          
+          if (user.freeTrialEndsAt && new Date(user.freeTrialEndsAt) < now) { 
+            this.notificationService.showWarning('Your free trial has expired. Please subscribe to continue.');
+            return this.router.createUrlTree(['/pricing']); // Or a subscription page
+          }
+          
+          // Default message if no specific expiry found but account is not active
+          this.notificationService.showWarning('Your account is not active. Please contact support or check your subscription.');
+          return this.router.createUrlTree(['/profile']); 
+        }
+      }),
+      catchError((error: any) => {
+        console.error('Error in AccountActiveGuard:', error);
+        this.notificationService.showError('An error occurred while checking your account status. Please try again.');
+        return of(this.router.createUrlTree(['/login']));
       })
     );
   }
-};
+}

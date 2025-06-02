@@ -69,7 +69,7 @@ export class ProfileComponent implements OnInit {
 
         this.isLoading = false;
       },
-      error: (err) => {
+      error: (err: any) => {
         this.errorMessage = 'Failed to load profile. ' + (err.error?.message || err.message);
         this.isLoading = false;
       }
@@ -142,7 +142,7 @@ export class ProfileComponent implements OnInit {
           this.successMessage = null;
         }, 5000);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.errorMessage = 'Failed to update profile. ' + (err.error?.message || err.message);
         this.isLoading = false;
       }
@@ -158,7 +158,7 @@ export class ProfileComponent implements OnInit {
         this.referralInfo = referralInfo;
         this.isLoadingReferral = false;
       },
-      error: (err) => {
+      error: (err: any) => {
         this.referralMessage = 'Failed to load referral information. ' + (err.error?.message || err.message);
         this.isLoadingReferral = false;
       }
