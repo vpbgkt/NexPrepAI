@@ -21,6 +21,11 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
   private subscriptions = new Subscription();
   username: string | null = null;
   shouldScrollToBottom = true;
+    // Chat bubble state
+  isMinimized: boolean = false;
+  hasUnreadMessages: boolean = false;
+  unreadCount: number = 0;
+  private lastReadMessageCount: number = 0;
 
   constructor(private chatService: ChatService, public authService: AuthService) {}
 
@@ -62,15 +67,24 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
         const existingMessage = this.messages.find(m => 
           m.username === message.username && 
           m.text === message.text && 
-          Math.abs(new Date(m.timestamp).getTime() - new Date(message.timestamp).getTime()) < 1000
-        );
-        
-        if (!existingMessage) {
+          Math.abs(new Date(m.timestamp).getTime() - new Date(message.timestamp).getTime()) < 1000        );
+          if (!existingMessage) {
           this.messages.push(message);
           if (this.messages.length > 100) {
             this.messages.shift();
           }
-          this.shouldScrollToBottom = true;
+          
+          // Always scroll to bottom for new messages when chat is open
+          if (!this.isMinimized) {
+            this.shouldScrollToBottom = true;
+            console.log('New message received, triggering scroll. Message from:', message.username);
+          }
+          
+          // Handle unread messages
+          if (this.isMinimized && message.username !== this.username) {
+            this.hasUnreadMessages = true;
+            this.unreadCount++;
+          }
         }
       })
     );    // Subscribe to auth errors
@@ -98,41 +112,76 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
       this.messages = existingMessages;
       this.shouldScrollToBottom = true;
     }
-  }
-
-  ngAfterViewChecked(): void {
+  }  ngAfterViewChecked(): void {
     // Scroll to bottom after view is updated if needed
     if (this.shouldScrollToBottom && this.messagesArea) {
-      this.scrollToBottom();
-      this.shouldScrollToBottom = false;
+      // Use requestAnimationFrame for better timing
+      requestAnimationFrame(() => {
+        this.scrollToBottom();
+        this.shouldScrollToBottom = false;
+      });
     }
   }
 
   private scrollToBottom(): void {
     try {
       if (this.messagesArea) {
-        this.messagesArea.nativeElement.scrollTop = this.messagesArea.nativeElement.scrollHeight;
+        const element = this.messagesArea.nativeElement;
+        // Force scroll to absolute bottom
+        element.scrollTop = element.scrollHeight + 1000;
+        console.log('Scrolled to bottom:', element.scrollTop, 'of', element.scrollHeight);
       }
     } catch (err) {
       console.error('Error scrolling to bottom:', err);
     }
   }
 
+  private isScrolledToBottom(): boolean {
+    if (!this.messagesArea) return true;
+    
+    const element = this.messagesArea.nativeElement;
+    const threshold = 100; // Increased threshold for better detection
+    const isAtBottom = element.scrollTop >= (element.scrollHeight - element.clientHeight - threshold);
+    console.log('Scroll check:', element.scrollTop, '>=', (element.scrollHeight - element.clientHeight - threshold), '=', isAtBottom);
+    return isAtBottom;
+  }
+
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
     // Don't disconnect on destroy since this is a global chat
     // The ChatService will manage the connection across component lifecycles
-  }
-  sendMessage(): void {
+  }  sendMessage(): void {
     if (this.newMessage.trim() !== '') {
       console.log('Sending chat message:', this.newMessage);
       this.chatService.sendMessage(this.newMessage);
       this.newMessage = '';
       this.error = null;
-      // Force scroll to bottom for better UX
+      // Force scroll to bottom for user's own messages
       this.shouldScrollToBottom = true;
+      console.log('User sent message, forcing scroll to bottom');
     } else {
       this.error = "Message cannot be empty";
     }
+  }  // Chat bubble methods
+  toggleChat(): void {
+    this.isMinimized = !this.isMinimized;
+    if (!this.isMinimized) {
+      this.markMessagesAsRead();
+      // Force scroll to bottom when opening chat with delay for animation
+      setTimeout(() => {
+        this.shouldScrollToBottom = true;
+        console.log('Chat opened, forcing scroll to bottom');
+      }, 300);
+    }
+  }
+
+  markMessagesAsRead(): void {
+    this.hasUnreadMessages = false;
+    this.unreadCount = 0;
+    this.lastReadMessageCount = this.messages.length;
+  }
+
+  trackByMessage(index: number, message: ChatMessage): string {
+    return `${message.username}-${message.timestamp}-${message.text}`;
   }
 }
