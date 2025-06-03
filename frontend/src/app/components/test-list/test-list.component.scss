@@ -1,5 +1,7 @@
 @use 'sass:color';
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+// Import responsive mixins from global styles
+@import '../../../styles.scss';
 
 // Variables - consistent with other components
 $primary-color: #6200ea;
@@ -28,39 +30,69 @@ $official-hover: color.adjust($official-color, $lightness: -10%);
 $practice-hover: color.adjust($practice-color, $lightness: -10%);
 $live-hover: color.adjust($live-color, $lightness: -10%);
 
-// Container styles
+// Container styles - Responsive
 :host {
   display: block;
   font-family: 'Poppins', sans-serif;
-  padding: 24px;
+  padding: clamp(1rem, 4vw, 1.5rem);
   color: $text-primary;
+  
+  @include respond-to(mobile) {
+    padding: 1rem;
+  }
+  
+  @include respond-to(tablet) {
+    padding: 1.5rem;
+  }
 }
 
-// Family navigation styles
+// Family navigation styles - Responsive
 .family-navigation {
-  margin-bottom: 2rem;
-  padding: 1rem;
+  margin-bottom: clamp(1rem, 3vw, 2rem);
+  padding: clamp(0.75rem, 2.5vw, 1rem);
   background-color: $white;
   border-radius: 12px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   
-  .navigation-label {
+  @include respond-to(mobile) {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+  }
+    .navigation-label {
     font-weight: 600;
     color: $text-secondary;
     margin-right: 1rem;
     display: block;
-    margin-bottom: 0.5rem;
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
+    margin-bottom: clamp(0.5rem, 1.5vw, 0.75rem);
+    
+    @include respond-to(mobile) {
+      font-size: 0.95rem;
+      margin-bottom: 0.75rem;
+      margin-right: 0;
+      text-align: center;
+    }
   }
   
   .family-buttons {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.75rem;
+    gap: clamp(0.5rem, 2vw, 0.75rem);
+    justify-content: center;
+    
+    @include respond-to(mobile) {
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    
+    @include respond-to(tablet) {
+      justify-content: flex-start;
+    }
   }
   
   .family-nav-button {
     display: inline-block;
-    padding: 0.6rem 1.2rem;
+    padding: clamp(0.5rem, 2vw, 0.6rem) clamp(1rem, 3vw, 1.2rem);
     border-radius: 30px;
     background-color: $neutral-light;
     color: $text-primary;
@@ -68,14 +100,23 @@ $live-hover: color.adjust($live-color, $lightness: -10%);
     text-decoration: none;
     transition: all 0.2s ease;
     border: 2px solid transparent;
+    font-size: clamp(0.85rem, 2.5vw, 0.95rem);
+    min-height: 44px; // Touch-friendly minimum
+    display: flex;
+    align-items: center;
+    
+    @include respond-to(mobile) {
+      padding: 0.6rem 1rem;
+      font-size: 0.9rem;
+      min-width: 80px;
+    }
     
     &:hover {
       background-color: $neutral-medium;
       transform: translateY(-2px);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
-    
-    &.active {
+      &.active {
       background-color: color.adjust($primary-color, $lightness: 38%);
       color: $primary-dark;
       border-color: $primary-color;
@@ -84,51 +125,171 @@ $live-hover: color.adjust($live-color, $lightness: -10%);
   }
 }
 
+// Page heading - Responsive
 h2 {
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 4vw, 2rem);
   font-weight: 600;
-  margin-bottom: 1.5rem;
+  margin-bottom: clamp(1rem, 3vw, 1.5rem);
   color: $primary-color;
   position: relative;
-  padding-bottom: 0.5rem;
+  padding-bottom: clamp(0.4rem, 1.5vw, 0.5rem);
+  text-align: center;
+  
+  @include respond-to(tablet) {
+    text-align: left;
+  }
+  
+  @include respond-to(mobile) {
+    font-size: 1.75rem;
+    text-align: center;
+    margin-bottom: 1.25rem;
+  }
   
   &::after {
     content: '';
     position: absolute;
     bottom: 0;
-    left: 0;
+    left: 50%;
+    transform: translateX(-50%);
     height: 3px;
-    width: 80px;
+    width: clamp(60px, 15vw, 80px);
     background: linear-gradient(to right, $primary-color, $primary-light);
     border-radius: 3px;
+    
+    @include respond-to(tablet) {
+      left: 0;
+      transform: none;
+    }
+    
+    @include respond-to(mobile) {
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+    }
   }
 }
 
-// Modern table styling
+// Modern table styling - Responsive
 table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  margin-bottom: 2rem;
-  background-color: $white;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  background-color: $white;
+  margin: clamp(1rem, 3vw, 1.5rem) 0;
+  
+  @include respond-to(mobile) {
+    display: none; // Hide table on mobile, show cards instead
+  }
 }
 
-// Family group styling
-.test-family-group {
-  margin-bottom: 2.5rem;
+// Mobile card layout (alternative to table)
+.mobile-test-cards {
+  display: none;
   
-  .family-title {
-    font-size: 1.3rem;
+  @include respond-to(mobile) {
+    display: block;
+    margin: 1rem 0;
+  }
+}
+
+.test-card {
+  background-color: $white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  margin-bottom: 1rem;
+  padding: 1.25rem;
+  border-left: 4px solid $primary-color;
+  
+  .test-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    
+    .test-name {
+      font-weight: 600;
+      color: $text-primary;
+      font-size: 1.1rem;
+      line-height: 1.3;
+      flex: 1;
+      margin-right: 0.75rem;
+    }
+    
+    .test-badge {
+      flex-shrink: 0;
+    }
+  }
+  
+  .test-card-body {
+    .test-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      
+      .info-item {
+        display: flex;
+        flex-direction: column;
+        
+        .label {
+          font-size: 0.8rem;
+          color: $text-secondary;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 0.25rem;
+        }
+        
+        .value {
+          font-weight: 600;
+          color: $text-primary;
+        }
+      }
+    }
+    
+    .test-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1rem;
+      
+      .action-button {
+        flex: 1;
+        padding: 0.75rem;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+  }
+}
+
+// Family group styling - Responsive
+.test-family-group {
+  margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+    .family-title {
+    font-size: clamp(1.1rem, 3vw, 1.3rem);
     font-weight: 600;
     margin: 0;
-    padding: 1rem 1.25rem;
+    padding: clamp(0.75rem, 2.5vw, 1rem) clamp(1rem, 3vw, 1.25rem);
     background-color: color.adjust($primary-color, $lightness: 38%);
     color: $primary-dark;
     border-radius: 12px 12px 0 0;
     border-bottom: 2px solid $primary-light;
+    
+    @include respond-to(mobile) {
+      font-size: 1.15rem;
+      padding: 1rem;
+      text-align: center;
+    }
   }
   
   table {
@@ -138,42 +299,59 @@ table {
   }
 }
 
-// Test hierarchy display
+// Test hierarchy display - Responsive
 .test-hierarchy {
   display: flex;
   flex-direction: column;
+  gap: clamp(0.2rem, 0.5vw, 0.3rem);
   
   .stream {
     font-weight: 500;
     color: $primary-dark;
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
   }
   
   .paper {
-    font-size: 0.9em;
+    font-size: clamp(0.8rem, 2vw, 0.9rem);
     color: $text-secondary;
   }
 }
 
-// Empty state
+// Empty state - Responsive
 .no-tests {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 3rem;
+  padding: clamp(2rem, 6vw, 3rem);
   background-color: $neutral-light;
-  border-radius: 8px;
+  border-radius: 12px;
+  margin: clamp(1rem, 3vw, 1.5rem) 0;
+  
+  @include respond-to(mobile) {
+    padding: 2.5rem 1rem;
+  }
   
   p {
     color: $text-secondary;
-    font-size: 1.1rem;
+    font-size: clamp(1rem, 2.8vw, 1.1rem);
     font-weight: 500;
+    text-align: center;
+    
+    @include respond-to(mobile) {
+      font-size: 1rem;
+    }
   }
 }
 
+// Table cell styling - Responsive
 th, td {
-  padding: 1rem 1.25rem;
+  padding: clamp(0.75rem, 2.5vw, 1rem) clamp(1rem, 3vw, 1.25rem);
   text-align: left;
   vertical-align: middle;
+  
+  @include respond-to(tablet) {
+    padding: 0.9rem 1.1rem;
+  }
 }
 
 th {
@@ -181,9 +359,13 @@ th {
   color: $primary-dark;
   font-weight: 600;
   text-transform: uppercase;
-  font-size: 0.8rem;
+  font-size: clamp(0.7rem, 2vw, 0.8rem);
   letter-spacing: 0.5px;
   border-bottom: 1px solid color.adjust($primary-light, $lightness: 15%);
+  
+  @include respond-to(tablet) {
+    font-size: 0.75rem;
+  }
 }
 
 tr {
@@ -208,16 +390,21 @@ tr:last-child td {
   border-bottom: none;
 }
 
-// Badge styles with hover effects
+// Badge styles with hover effects - Responsive
 .badge {
   display: inline-block;
-  padding: 0.35em 0.75em;
-  font-size: 0.75rem;
+  padding: clamp(0.25em, 0.8vw, 0.35em) clamp(0.6em, 1.5vw, 0.75em);
+  font-size: clamp(0.65rem, 2vw, 0.75rem);
   font-weight: 600;
   border-radius: 20px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   transition: all 0.2s ease;
+  
+  @include respond-to(mobile) {
+    padding: 0.3em 0.65em;
+    font-size: 0.7rem;
+  }
 }
 
 .badge-official {
@@ -259,18 +446,33 @@ tr:last-child td {
   }
 }
 
-// Button styling
+// Button styling - Responsive
 button {
   background-color: $primary-color;
   color: $white;
   border: none;
   border-radius: 6px;
-  padding: 0.5rem 1.25rem;
-  font-size: 0.9rem;
+  padding: clamp(0.4rem, 1.5vw, 0.5rem) clamp(1rem, 3vw, 1.25rem);
+  font-size: clamp(0.8rem, 2.5vw, 0.9rem);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 2px 5px rgba(98, 0, 234, 0.2);
+  min-height: 44px; // Touch-friendly minimum
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  @include respond-to(mobile) {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+    width: 100%;
+  }
+  
+  @include respond-to(tablet) {
+    padding: 0.5rem 1.1rem;
+    font-size: 0.9rem;
+  }
   
   &:hover:not([disabled]) {
     background-color: $primary-hover;
@@ -291,13 +493,18 @@ button {
   }
 }
 
-// Leaderboard link styling
+// Leaderboard link styling - Responsive
 a {
   color: $primary-color;
   text-decoration: none;
   font-weight: 500;
   transition: all 0.2s ease;
   position: relative;
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
+  
+  @include respond-to(mobile) {
+    font-size: 0.95rem;
+  }
   
   &::after {
     content: '';
@@ -323,39 +530,7 @@ a {
 td span:not([class]) {
   color: $neutral-dark;
   font-style: italic;
-}
-
-// Responsive styles for smaller screens
-@media (max-width: 992px) {
-  table {
-    display: block;
-    overflow-x: auto;
-  }
-  
-  th, td {
-    padding: 0.75rem 1rem;
-    min-width: 120px;
-  }
-  
-  button {
-    padding: 0.4rem 1rem;
-  }
-}
-
-@media (max-width: 768px) {
-  h2 {
-    font-size: 1.75rem;
-  }
-  
-  th, td {
-    padding: 0.75rem 0.75rem;
-    font-size: 0.85rem;
-  }
-  
-  .badge {
-    padding: 0.25em 0.6em;
-    font-size: 0.7rem;
-  }
+  font-size: clamp(0.8rem, 2vw, 0.9rem);
 }
 
 // Animation for hovering over rows

@@ -1,3 +1,5 @@
+@use 'sass:color'; // Ensure this is included for the color namespace
+
 // Variables
 $primary-dark: #2d3748; // A deep, cool gray
 $secondary-dark: #1a202c; // Even darker for accents or dropdowns
@@ -37,16 +39,6 @@ $border-color: #4a5568; // For subtle borders
       justify-content: space-between; // Ensure content spreads out
       width: 100%;
     }
-  }
-}
-
-// Logo
-.navbar-brand {
-  .logo h1 {
-    margin: 0;
-    font-size: 1.5rem;
-    color: $primary-light;
-    font-weight: bold;
   }
 }
 
@@ -180,7 +172,7 @@ $border-color: #4a5568; // For subtle borders
         }
         .user-role {
           font-size: 0.8rem;
-          color: darken($primary-light, 20%);
+          color: color.adjust($primary-light, $lightness: -20%); // Updated from darken($primary-light, 20%)
         }
       }
     }
@@ -291,7 +283,7 @@ $border-color: #4a5568; // For subtle borders
           width: 100%;
           border: none;
           box-shadow: none;
-          background-color: darken($primary-dark, 5%); // Slightly darker for nested feel
+          background-color: color.adjust($primary-dark, $lightness: -5%); // Updated from darken($primary-dark, 5%)
           padding-left: 1rem; // Indent dropdown items
         }
       }
@@ -311,7 +303,7 @@ $border-color: #4a5568; // For subtle borders
 
 .main-footer {
   background-color: $secondary-dark;
-  color: darken($primary-light, 30%);
+  color: color.adjust($primary-light, $lightness: -30%); // Updated from darken($primary-light, 30%)
   padding: 1rem;
   text-align: center;
   font-size: 0.9rem;

@@ -15,9 +15,9 @@
 
   <!-- Expanded chat window -->
   <div class="chat-window" *ngIf="!isMinimized">
-    
-    <!-- Chat header -->
-    <div class="chat-header">      <div class="chat-title">
+      <!-- Chat header -->
+    <div class="chat-header">
+      <div class="chat-title">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="currentColor"/>
         </svg>
@@ -40,6 +40,30 @@
         </svg>
         Please log in to join the chat
       </div>
+    </div>
+
+    <!-- Connection status for logged-in users -->
+    <div class="connection-status" *ngIf="username && (!isConnected() || isReconnecting())">
+      <div class="status-message reconnecting" *ngIf="isReconnecting()">
+        <div class="loading-spinner"></div>
+        Reconnecting... (Attempt {{getReconnectAttempts()}}/5)
+      </div>
+      <div class="status-message error" *ngIf="!isConnected() && !isReconnecting()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 8v4m0 4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Connection lost. Checking connection...
+      </div>
+    </div>
+
+    <!-- Error display -->
+    <div class="error-message" *ngIf="error">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+        <path d="M15 9l-6 6m0-6l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      {{error}}
     </div>
 
     <!-- Messages area -->
@@ -67,24 +91,20 @@
         <p>No messages yet</p>
         <span>Be the first to say something!</span>
       </div>
-    </div>
-
-    <!-- Input area -->
+    </div>    <!-- Input area -->
     <div class="input-area" *ngIf="username">
-      <div class="input-container">        <input type="text" 
+      <div class="input-container">
+        <input type="text" 
                [(ngModel)]="newMessage" 
                (keyup.enter)="sendMessage()"
                (focus)="markMessagesAsRead(); forceScrollToBottom()"
                placeholder="Type your message..."
                maxlength="500"
-               class="message-input">
-        <button class="send-button" 
+               class="message-input">        <button class="send-button" 
                 (click)="sendMessage()" 
                 [disabled]="!newMessage.trim()"
                 aria-label="Send message">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <i class="fas fa-paper-plane"></i>
         </button>
       </div>
       <div class="character-count" *ngIf="newMessage.length > 400">

@@ -703,3 +703,76 @@ exports.getUserProfile = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
+/**
+ * Refresh JWT token
+ * 
+ * @route POST /api/auth/refresh-token
+ * @access Private
+ * 
+ * @description Refreshes an expired or soon-to-expire JWT token for authenticated users.
+ * This endpoint helps prevent connection loops in socket connections when tokens expire.
+ * It validates the existing token (even if expired) and issues a new one if the user is valid.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - User information from token (may be from expired token)
+ * @param {string} req.user.userId - User's unique identifier
+ * @param {Object} res - Express response object
+ * 
+ * @returns {Object} JSON response with new token
+ * @returns {string} returns.token - New JWT authentication token
+ * @returns {string} returns.message - Success message
+ * @returns {string} returns.userId - User's unique identifier
+ * @returns {string} returns.role - User role
+ * @returns {string} returns.name - User's name
+ * 
+ * @throws {404} User not found or account deleted
+ * @throws {500} Server error during token refresh
+ * 
+ * @example
+ * // Response for successful token refresh
+ * {
+ *   "token": "eyJhbGciOiJIUzI1NiIs...",
+ *   "message": "Token refreshed successfully",
+ *   "userId": "60d5ecb54b24a1234567890a",
+ *   "role": "student",
+ *   "name": "John Doe"
+ * }
+ */
+exports.refreshToken = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    // Verify user still exists and account is active
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ 
+        message: 'User not found or account has been deleted' 
+      });
+    }
+
+    // Generate new token with fresh expiration
+    const newToken = jwt.sign(
+      { userId: user._id, role: user.role, name: user.name },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    console.log(`✅ Token refreshed for user: ${user.email || user.phoneNumber} (${user._id})`);
+
+    res.json({
+      token: newToken,
+      message: 'Token refreshed successfully',
+      userId: user._id,
+      role: user.role,
+      name: user.name
+    });
+
+  } catch (error) {
+    console.error('❌ Error refreshing token:', error);
+    res.status(500).json({ 
+      message: 'Server error during token refresh',
+      error: error.message 
+    });
+  }
+};

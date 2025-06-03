@@ -1,8 +1,11 @@
+// Import responsive mixins from global styles
+@import '../../../styles.scss';
+
 // Enhanced Review Page Styles
 .review-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
+  padding: clamp(1rem, 3vw, 1.25rem);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
@@ -15,30 +18,49 @@
   min-height: 50vh;
   color: white;
   text-align: center;
+  padding: clamp(1rem, 4vw, 2rem);
 
   .loading-spinner {
-    width: 40px;
-    height: 40px;
+    width: clamp(32px, 8vw, 40px);
+    height: clamp(32px, 8vw, 40px);
     border: 4px solid rgba(255, 255, 255, 0.3);
     border-top: 4px solid white;
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin-bottom: 20px;
+    margin-bottom: clamp(16px, 4vw, 20px);
   }
 
   .error-icon {
-    font-size: 48px;
-    margin-bottom: 20px;
+    font-size: clamp(2.5rem, 8vw, 3rem);
+    margin-bottom: clamp(16px, 4vw, 20px);
+  }
+
+  h2 {
+    font-size: clamp(1.25rem, 4vw, 1.5rem);
+    margin: 0 0 clamp(8px, 2vw, 12px) 0;
+    font-weight: 600;
+  }
+
+  p {
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
+    margin: 0 0 clamp(16px, 4vw, 20px) 0;
+    line-height: 1.4;
   }
 
   .retry-btn {
     background: rgba(255, 255, 255, 0.2);
     border: 2px solid white;
     color: white;
-    padding: 12px 24px;
-    border-radius: 8px;
+    padding: clamp(10px, 2.5vw, 12px) clamp(20px, 4vw, 24px);
+    border-radius: clamp(6px, 1.5vw, 8px);
     cursor: pointer;
     transition: all 0.3s ease;
+    font-size: clamp(0.85rem, 2vw, 0.95rem);
+    font-weight: 500;
+    min-height: 44px; // Touch-friendly
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
       background: rgba(255, 255, 255, 0.3);
@@ -54,10 +76,10 @@
 
 // Main Content
 .review-content {
-  max-width: 1400px;
+  max-width: clamp(350px, 95vw, 1400px);
   margin: 0 auto;
   background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
+  border-radius: clamp(12px, 3vw, 20px);
   backdrop-filter: blur(20px);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -67,12 +89,18 @@
 .review-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 30px;
+  padding: clamp(1rem, 4vw, 1.5rem);
   position: relative;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 20px;
+  gap: clamp(1rem, 3vw, 1.25rem);
+
+  @include respond-to(tablet) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
 
   .header-left {
     flex-shrink: 0;
@@ -82,13 +110,15 @@
     background: rgba(255, 255, 255, 0.2);
     border: none;
     color: white;
-    padding: 12px 20px;
-    border-radius: 8px;
+    padding: clamp(8px, 2vw, 12px) clamp(16px, 3vw, 20px);
+    border-radius: clamp(6px, 1.5vw, 8px);
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: clamp(6px, 1.5vw, 8px);
     transition: all 0.3s ease;
+    font-size: clamp(0.85rem, 2vw, 0.95rem);
+    min-height: 44px; // Touch-friendly
 
     &:hover {
       background: rgba(255, 255, 255, 0.3);
@@ -96,7 +126,7 @@
     }
 
     .back-icon {
-      font-size: 18px;
+      font-size: clamp(1rem, 2.5vw, 1.125rem);
     }
   }
 
@@ -104,69 +134,99 @@
     flex: 1;
 
     h1 {
-      margin: 0 0 20px 0;
-      font-size: 2.5em;
+      margin: 0 0 clamp(1rem, 3vw, 1.25rem) 0;
+      font-size: clamp(1.5rem, 5vw, 2.5rem);
       font-weight: 700;
+      line-height: 1.2;
     }
 
     .score-summary {
       display: flex;
       align-items: center;
-      gap: 30px;
+      gap: clamp(1rem, 4vw, 2rem);
       flex-wrap: wrap;
+
+      @include respond-to(mobile) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+      }
 
       .score-card {
         background: rgba(255, 255, 255, 0.2);
-        padding: 20px;
-        border-radius: 12px;
+        padding: clamp(1rem, 3vw, 1.25rem);
+        border-radius: clamp(8px, 2vw, 12px);
         text-align: center;
         backdrop-filter: blur(10px);
+        flex: 1;
+        min-width: clamp(120px, 25vw, 150px);
 
         .score {
           display: block;
-          font-size: 2em;
+          font-size: clamp(1.5rem, 4vw, 2rem);
           font-weight: 700;
           margin-bottom: 5px;
+          line-height: 1.2;
         }
 
         .percentage {
           display: block;
-          font-size: 1.2em;
+          font-size: clamp(1rem, 2.5vw, 1.2rem);
           opacity: 0.9;
+          line-height: 1.2;
         }
       }
 
       .test-meta {
+        flex: 1;
+
         p {
-          margin: 8px 0;
-          font-size: 1.1em;
+          margin: clamp(6px, 1.5vw, 8px) 0;
+          font-size: clamp(0.9rem, 2.2vw, 1.1rem);
           opacity: 0.9;
+          line-height: 1.4;
         }
       }
     }
   }
-
   .header-actions {
     flex-shrink: 0;
     display: flex;
     align-items: flex-start;
-    margin-top: 10px;
-    gap: 15px;
+    margin-top: clamp(8px, 2vw, 10px);
+    gap: clamp(12px, 3vw, 15px);
+
+    @include respond-to(tablet) {
+      margin-top: 0;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    @include respond-to(mobile) {
+      flex-direction: column;
+      gap: 12px;
+    }
 
     .download-btn {
       background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
       border: none;
       color: white;
-      padding: 15px 25px;
-      border-radius: 12px;
+      padding: clamp(12px, 2.5vw, 15px) clamp(20px, 4vw, 25px);
+      border-radius: clamp(8px, 2vw, 12px);
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: clamp(8px, 2vw, 10px);
       font-weight: 600;
-      font-size: 14px;
+      font-size: clamp(0.8rem, 2vw, 0.875rem);
       transition: all 0.3s ease;
       box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+      min-height: 44px; // Touch-friendly
+
+      @include respond-to(mobile) {
+        width: 100%;
+        justify-content: center;
+      }
 
       &:hover:not(:disabled) {
         transform: translateY(-2px);
@@ -180,7 +240,7 @@
       }
 
       .download-icon {
-        font-size: 16px;
+        font-size: clamp(0.9rem, 2.2vw, 1rem);
       }
 
       &.simple {
@@ -202,22 +262,6 @@
       }
     }
   }
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 15px;
-
-    .header-actions {
-      margin-top: 0;
-      justify-content: center;
-    }
-
-    .download-btn {
-      width: 100%;
-      justify-content: center;
-    }
-  }
 }
 
 // Tab Navigation
@@ -225,18 +269,30 @@
   display: flex;
   background: #f8f9fa;
   border-bottom: 1px solid #e9ecef;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  @include respond-to(mobile) {
+    flex-wrap: nowrap;
+  }
 
   .tab-btn {
     flex: 1;
-    padding: 20px;
+    padding: clamp(1rem, 3vw, 1.25rem);
     border: none;
     background: transparent;
-    font-size: 1.1em;
+    font-size: clamp(0.9rem, 2.5vw, 1.1rem);
     font-weight: 600;
     color: #6c757d;
     cursor: pointer;
     transition: all 0.3s ease;
     border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    min-height: 48px; // Touch-friendly
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: clamp(100px, 20vw, 120px);
 
     &:hover {
       background: rgba(102, 126, 234, 0.1);
@@ -248,43 +304,67 @@
       background: white;
       border-bottom-color: #667eea;
     }
+
+    @include respond-to(mobile) {
+      font-size: 0.85rem;
+      padding: 1rem 0.75rem;
+      min-width: 90px;
+    }
   }
 }
 
 // Tab Content
 .tab-content {
-  padding: 30px;
-  min-height: 600px;
+  padding: clamp(1rem, 4vw, 1.5rem);
+  min-height: clamp(400px, 60vh, 600px);
 }
 
 // Overview Tab
 .overview-tab {
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 30px;
-    margin-bottom: 40px;
+    grid-template-columns: repeat(auto-fit, minmax(clamp(280px, 40vw, 350px), 1fr));
+    gap: clamp(1rem, 4vw, 2rem);
+    margin-bottom: clamp(2rem, 5vw, 2.5rem);
+
+    @include respond-to(tablet) {
+      grid-template-columns: 1fr;
+    }
 
     .stat-card {
       background: white;
-      padding: 25px;
-      border-radius: 12px;
+      padding: clamp(1rem, 3vw, 1.5rem);
+      border-radius: clamp(8px, 2vw, 12px);
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
       border: 1px solid #e9ecef;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+      }
 
       h3 {
-        margin: 0 0 20px 0;
+        margin: 0 0 clamp(1rem, 3vw, 1.25rem) 0;
         color: #495057;
-        font-size: 1.3em;
+        font-size: clamp(1.1rem, 3vw, 1.3rem);
         font-weight: 600;
+        line-height: 1.3;
       }
 
       .stat-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 12px 0;
+        padding: clamp(8px, 2vw, 12px) 0;
         border-bottom: 1px solid #f8f9fa;
+        gap: clamp(8px, 2vw, 12px);
+
+        @include respond-to(mobile) {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 4px;
+        }
 
         &:last-child {
           border-bottom: none;
@@ -293,11 +373,14 @@
         .label {
           color: #6c757d;
           font-weight: 500;
+          font-size: clamp(0.85rem, 2vw, 0.95rem);
+          line-height: 1.4;
         }
 
         .value {
           font-weight: 700;
-          font-size: 1.1em;
+          font-size: clamp(0.95rem, 2.5vw, 1.1rem);
+          line-height: 1.3;
 
           &.correct { color: #28a745; }
           &.incorrect { color: #dc3545; }

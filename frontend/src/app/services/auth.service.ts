@@ -474,4 +474,91 @@ export class AuthService {
       localStorage.removeItem('freeTrialEndsAt');
     }
   }
+
+  /**
+   * @method refreshToken
+   * @description Refreshes the current JWT token to prevent expiration.
+   * This method is crucial for preventing the JWT expired error loop in socket connections.
+   * 
+   * @returns {Observable<any>} Observable containing the new token and user information
+   * 
+   * @example
+   * ```typescript
+   * // Refresh token when needed
+   * this.authService.refreshToken().subscribe({
+   *   next: (response) => {
+   *     console.log('Token refreshed successfully');
+   *     // Token is automatically stored by setSession
+   *   },
+   *   error: (error) => {
+   *     console.error('Token refresh failed:', error);
+   *     // Handle refresh failure (usually logout user)
+   *   }
+   * });
+   * ```
+   */
+  refreshToken(): Observable<any> {
+    return this.http.post<any>(`${this.base}/refresh-token`, {})
+      .pipe(tap(res => {
+        if (res.token) {
+          // Store the new token
+          localStorage.setItem('token', res.token);
+          console.log('✅ Token refreshed successfully');
+        }
+      }));
+  }
+
+  /**
+   * @method isTokenExpired
+   * @description Checks if the current JWT token is expired or about to expire.
+   * Used to determine when to refresh the token proactively.
+   * 
+   * @param {number} offsetSeconds - Number of seconds before expiration to consider as "expired" (default: 300 = 5 minutes)
+   * @returns {boolean} True if token is expired or about to expire
+   * 
+   * @example
+   * ```typescript
+   * // Check if token needs refresh
+   * if (this.authService.isTokenExpired(300)) {
+   *   // Token expires within 5 minutes, refresh it
+   *   this.authService.refreshToken().subscribe();
+   * }
+   * ```
+   */
+  isTokenExpired(offsetSeconds: number = 300): boolean {
+    const token = this.getToken();
+    if (!token) return true;
+
+    try {
+      const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+      const expirationTime = tokenPayload.exp * 1000; // Convert to milliseconds
+      const currentTime = Date.now();
+      const offset = offsetSeconds * 1000; // Convert to milliseconds
+
+      return (expirationTime - offset) < currentTime;
+    } catch (error) {
+      console.error('Error parsing token:', error);
+      return true; // Treat invalid tokens as expired
+    }
+  }
+
+  /**
+   * @method getTokenExpirationTime
+   * @description Gets the expiration time of the current JWT token.
+   * Useful for debugging and monitoring token lifecycle.
+   * 
+   * @returns {Date | null} Token expiration date or null if no valid token
+   */
+  getTokenExpirationTime(): Date | null {
+    const token = this.getToken();
+    if (!token) return null;
+
+    try {
+      const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+      return new Date(tokenPayload.exp * 1000);
+    } catch (error) {
+      console.error('Error parsing token expiration:', error);
+      return null;
+    }
+  }
 }

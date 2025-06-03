@@ -114,23 +114,37 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
           this.unreadCount++;
         }
       })
-    );// Subscribe to auth errors
+    );    // Subscribe to auth errors
     this.subscriptions.add(
       this.chatService.onAuthError().subscribe(err => {
-        console.error('Auth error in chat:', err.message);
+        console.error('🔒 Auth error in chat:', err.message);
         this.error = err.message;
-        // If token expired, try to refresh
-        if (err.message.includes('expired') || err.message.includes('session')) {
+        
+        // Check if this is a session expired message
+        if (err.message.includes('expired') || err.message.includes('Session expired')) {
+          // Show user-friendly error message
+          this.error = 'Your session has expired. Please log in again.';
+          
+          // Optional: Auto-logout after a delay to allow user to see the message
           setTimeout(() => {
-            if (this.authService.getToken()) {
-              console.log('Attempting to reconnect with refreshed token...');
-              this.chatService.reconnectWithNewToken();
+            this.authService.logout();
+          }, 3000);
+        } else if (err.message.includes('connection') || err.message.includes('Connection failed')) {
+          // Connection-related errors
+          this.error = 'Connection issues detected. Please check your internet connection.';
+          
+          // Clear error after some time as connection might recover
+          setTimeout(() => {
+            if (this.chatService.isConnected()) {
               this.error = null;
             }
-          }, 2000);
+          }, 10000);
+        } else {
+          // Other auth errors - don't attempt automatic reconnection
+          console.log('Non-recoverable auth error, user intervention required');
         }
       })
-    );    // If there are cached messages, use them
+    );// If there are cached messages, use them
     const existingMessages = this.chatService.getMessages();
     if (existingMessages.length > 0) {
       console.log('Using cached messages:', existingMessages.length);
@@ -301,6 +315,27 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
         console.log('Chat opened, forcing scroll to bottom');
       }, 300);
     }
+  }
+
+  /**
+   * Check if chat service is currently attempting to reconnect
+   */
+  isReconnecting(): boolean {
+    return this.chatService.getConnectionStatus().reconnecting;
+  }
+
+  /**
+   * Check if chat service is connected
+   */
+  isConnected(): boolean {
+    return this.chatService.isConnected();
+  }
+
+  /**
+   * Get current reconnection attempt count
+   */
+  getReconnectAttempts(): number {
+    return this.chatService.getConnectionStatus().attempts;
   }
 
   markMessagesAsRead(): void {

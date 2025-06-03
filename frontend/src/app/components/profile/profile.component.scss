@@ -1,22 +1,38 @@
-// Profile Page - Beautiful Modern Styling with Improved Visibility
+// Profile Page - Beautiful Modern Responsive Styling
+// Import responsive mixins from global styles
+@import '../../../styles.scss';
+
 .profile-container {
   max-width: 900px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: clamp(1rem, 4vw, 2rem);
   background: #f8fafc;
   min-height: 100vh;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  
+  @include respond-to(mobile) {
+    padding: 1rem;
+  }
+  
+  @include respond-to(tablet) {
+    padding: 1.5rem;
+  }
 }
 
 .profile-content {
   background: #ffffff;
   backdrop-filter: blur(10px);
-  border-radius: 20px;
+  border-radius: clamp(12px, 3vw, 20px);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   animation: slideUp 0.6s ease-out;
   transition: all 0.3s ease-in-out;
   border: 1px solid #e2e8f0;
+  
+  @include respond-to(mobile) {
+    border-radius: 16px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  }
 }
 
 @keyframes slideUp {
@@ -56,13 +72,17 @@
   }
 }
 
-// Profile Header Section
+/* Profile Header Section - Responsive */
 .profile-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 2rem;
+  padding: clamp(1.5rem, 4vw, 2rem);
   text-align: center;
   position: relative;
+  
+  @include respond-to(mobile) {
+    padding: 1.5rem;
+  }
   
   &::before {
     content: '';
@@ -76,68 +96,110 @@
   }
   
   h1 {
-    font-size: 2.5rem;
+    font-size: clamp(1.8rem, 5vw, 2.5rem);
     font-weight: 700;
-    margin-bottom: 0.5rem;
+    margin-bottom: clamp(0.4rem, 1.5vw, 0.5rem);
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    
+    @include respond-to(mobile) {
+      font-size: 2rem;
+    }
   }
   
   p {
-    font-size: 1.1rem;
+    font-size: clamp(1rem, 2.8vw, 1.1rem);
     opacity: 0.9;
     margin-bottom: 0;
+    
+    @include respond-to(mobile) {
+      font-size: 1rem;
+    }
   }
 }
 
-// Profile Form Styling
+/* Profile Form Styling - Responsive */
 .profile-form {
-  padding: 2.5rem;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  
+  @include respond-to(mobile) {
+    padding: 1.5rem;
+  }
   
   h2 {
-    color: #1A202C; // Changed from #2d3748
-    font-size: 1.8rem;
+    color: #1A202C;
+    font-size: clamp(1.4rem, 3.5vw, 1.8rem);
     font-weight: 600;
-    margin-bottom: 2rem;
+    margin-bottom: clamp(1.5rem, 3vw, 2rem);
     display: flex;
     align-items: center;
+    
+    @include respond-to(mobile) {
+      font-size: 1.5rem;
+      flex-direction: column;
+      text-align: center;
+      gap: 0.5rem;
+    }
     
     &::before {
       content: '';
       width: 4px;
-      height: 2rem;
+      height: clamp(1.5rem, 4vw, 2rem);
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      margin-right: 1rem;
+      margin-right: clamp(0.75rem, 2.5vw, 1rem);
       border-radius: 2px;
+      
+      @include respond-to(mobile) {
+        width: 100%;
+        height: 3px;
+        margin-right: 0;
+        margin-bottom: 0.5rem;
+      }
     }
   }
   
   .form-group {
-    margin-bottom: 1.5rem;
-      label {
+    margin-bottom: clamp(1.2rem, 3vw, 1.5rem);
+    
+    label {
       display: block;
       font-weight: 600;
-      color: #1A202C; // Changed from #2d3748
-      margin-bottom: 0.5rem;
-      font-size: 0.95rem;
+      color: #1A202C;
+      margin-bottom: clamp(0.4rem, 1.5vw, 0.5rem);
+      font-size: clamp(0.85rem, 2.2vw, 0.95rem);
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      
+      @include respond-to(mobile) {
+        font-size: 0.9rem;
+      }
     }
     
     .form-control {
       width: 100%;
-      padding: 0.875rem 1rem;
+      padding: clamp(0.75rem, 2.2vw, 0.875rem) clamp(0.875rem, 2.5vw, 1rem);
       border: 2px solid #e2e8f0;
-      border-radius: 12px;
-      font-size: 1rem;
+      border-radius: clamp(8px, 2vw, 12px);
+      font-size: clamp(0.9rem, 2.5vw, 1rem);
       transition: all 0.3s ease;
       background: #ffffff;
-      color: #1A202C; // Changed from #2d3748
+      color: #1A202C;
+      min-height: 44px; // Touch-friendly
+      
+      @include respond-to(mobile) {
+        padding: 0.8rem 1rem;
+        font-size: 0.95rem;
+        border-radius: 10px;
+      }
       
       &:focus {
         outline: none;
         border-color: #667eea;
         box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         transform: translateY(-1px);
+        
+        @include respond-to(mobile) {
+          transform: none;
+        }
       }
       
       &:hover {
@@ -159,10 +221,14 @@
     }
     
     .form-text {
-      font-size: 0.875rem;
+      font-size: clamp(0.8rem, 2.2vw, 0.875rem);
       color: #4a5568;
-      margin-top: 0.25rem;
+      margin-top: clamp(0.2rem, 1vw, 0.25rem);
       font-weight: 500;
+      
+      @include respond-to(mobile) {
+        font-size: 0.85rem;
+      }
     }
 
     .text-muted {
@@ -173,19 +239,32 @@
   
   .btn-group {
     display: flex;
-    gap: 1rem;
-    margin-top: 2rem;
+    gap: clamp(0.75rem, 2.5vw, 1rem);
+    margin-top: clamp(1.5rem, 3vw, 2rem);
+    
+    @include respond-to(mobile) {
+      flex-direction: column;
+      gap: 1rem;
+    }
     
     .btn {
-      padding: 0.875rem 2rem;
-      border-radius: 12px;
+      padding: clamp(0.75rem, 2.2vw, 0.875rem) clamp(1.5rem, 4vw, 2rem);
+      border-radius: clamp(8px, 2vw, 12px);
       font-weight: 600;
-      font-size: 1rem;
+      font-size: clamp(0.9rem, 2.5vw, 1rem);
       transition: all 0.3s ease;
       border: none;
       cursor: pointer;
       position: relative;
       overflow: hidden;
+      min-height: 48px; // Touch-friendly
+      
+      @include respond-to(mobile) {
+        padding: 0.9rem 1.5rem;
+        font-size: 0.95rem;
+        border-radius: 10px;
+        width: 100%;
+      }
       
       &::before {
         content: '';
@@ -209,21 +288,32 @@
         &:hover {
           transform: translateY(-2px);
           box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+          
+          @include respond-to(mobile) {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+          }
         }
         
         &:active {
           transform: translateY(0);
         }
       }
-        &.btn-secondary {
+      
+      &.btn-secondary {
         background: #e2e8f0;
-        color: #1A202C; // Changed from #2d3748
+        color: #1A202C;
         border: 2px solid #e2e8f0;
         
         &:hover {
           background: #cbd5e0;
           transform: translateY(-2px);
           box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+          
+          @include respond-to(mobile) {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+          }
         }
       }
       
@@ -241,85 +331,151 @@
   }
 }
 
-// Referral Section - Enhanced Styling with Better Contrast
+/* Referral Section - Enhanced Styling with Better Contrast - Responsive */
 .referral-section {
   background: #ffffff;
   margin-top: 0;
-  padding: 2.5rem;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
   border-top: 1px solid #e2e8f0;
+  
+  @include respond-to(mobile) {
+    padding: 1.5rem;
+  }
   
   h3 {
     color: #1a202c;
-    margin-bottom: 2rem;
+    margin-bottom: clamp(1.5rem, 3vw, 2rem);
     font-weight: 700;
-    font-size: 1.8rem;
+    font-size: clamp(1.4rem, 3.5vw, 1.8rem);
     display: flex;
     align-items: center;
     
+    @include respond-to(mobile) {
+      font-size: 1.5rem;
+      flex-direction: column;
+      text-align: center;
+      gap: 0.5rem;
+    }
+    
     &::before {
       content: '🎁';
-      margin-right: 0.75rem;
-      font-size: 1.5rem;
+      margin-right: clamp(0.5rem, 2vw, 0.75rem);
+      font-size: clamp(1.3rem, 3vw, 1.5rem);
+      
+      @include respond-to(mobile) {
+        margin-right: 0;
+      }
     }
   }
 
   .card {
     border: none;
-    border-radius: 16px;
+    border-radius: clamp(12px, 3vw, 16px);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
     transition: all 0.3s ease;
     background: white;
     overflow: hidden;
     
+    @include respond-to(mobile) {
+      border-radius: 12px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    }
+    
     &:hover {
       transform: translateY(-5px);
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+      
+      @include respond-to(mobile) {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+      }
     }
     
     .card-header {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       border-bottom: none;
-      padding: 1.5rem;
+      padding: clamp(1.2rem, 3vw, 1.5rem);
       color: white;
+      
+      @include respond-to(mobile) {
+        padding: 1.2rem;
+      }
       
       .card-title {
         color: white;
-        font-size: 1.2rem;
+        font-size: clamp(1.1rem, 2.8vw, 1.2rem);
         font-weight: 700;
         margin: 0;
         display: flex;
         align-items: center;
+        justify-content: center;
+        
+        @include respond-to(mobile) {
+          font-size: 1.15rem;
+          flex-direction: column;
+          gap: 0.3rem;
+        }
         
         &::before {
           content: '🔗';
-          margin-right: 0.5rem;
+          margin-right: clamp(0.4rem, 1.5vw, 0.5rem);
+          
+          @include respond-to(mobile) {
+            margin-right: 0;
+          }
         }
       }
     }
 
     .card-body {
-      padding: 2rem;
+      padding: clamp(1.5rem, 4vw, 2rem);
+      
+      @include respond-to(mobile) {
+        padding: 1.5rem;
+      }
       
       .row {
-        margin: 0 -0.75rem;
+        margin: 0 clamp(-0.5rem, -1.5vw, -0.75rem);
+        
+        @include respond-to(mobile) {
+          margin: 0;
+          flex-direction: column;
+          gap: 1.5rem;
+        }
         
         .col-md-8, .col-md-4 {
-          padding: 0 0.75rem;
+          padding: 0 clamp(0.5rem, 1.5vw, 0.75rem);
+          
+          @include respond-to(mobile) {
+            padding: 0;
+            width: 100%;
+          }
         }
       }
     }
   }
-
   .input-group {
-    margin-bottom: 1rem;
+    margin-bottom: clamp(1rem, 2.5vw, 1.5rem);
+    
+    @include respond-to(mobile) {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
     
     .form-control {
       background: #f8fafc;
       border: 2px solid #e2e8f0;
-      border-radius: 12px 0 0 12px;
-      padding: 0.875rem 1rem;
-      font-size: 0.95rem;
+      border-radius: clamp(10px, 2.5vw, 12px) 0 0 clamp(10px, 2.5vw, 12px);
+      padding: clamp(0.75rem, 2.2vw, 0.875rem) clamp(0.875rem, 2.5vw, 1rem);
+      font-size: clamp(0.9rem, 2.5vw, 0.95rem);
       color: #4a5568;
+      min-height: 44px; // Touch-friendly
+      
+      @include respond-to(mobile) {
+        border-radius: 12px;
+        padding: 0.8rem 1rem;
+        font-size: 0.95rem;
+      }
       
       &:focus {
         background: #ffffff;
@@ -337,12 +493,21 @@
       border: 2px solid #667eea;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
-      border-radius: 0 12px 12px 0;
-      padding: 0.875rem 1.5rem;
+      border-radius: 0 clamp(10px, 2.5vw, 12px) clamp(10px, 2.5vw, 12px) 0;
+      padding: clamp(0.75rem, 2.2vw, 0.875rem) clamp(1.25rem, 3.5vw, 1.5rem);
       font-weight: 600;
+      font-size: clamp(0.85rem, 2.2vw, 0.9rem);
       transition: all 0.3s ease;
       position: relative;
       overflow: hidden;
+      min-height: 44px; // Touch-friendly
+      
+      @include respond-to(mobile) {
+        border-radius: 12px;
+        padding: 0.8rem 1.5rem;
+        font-size: 0.9rem;
+        width: 100%;
+      }
       
       &::before {
         content: '';
@@ -359,6 +524,11 @@
         transform: translateX(-2px);
         box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
         
+        @include respond-to(mobile) {
+          transform: none;
+          box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+        }
+        
         &::before {
           left: 100%;
         }
@@ -369,27 +539,44 @@
       }
       
       i {
-        margin-right: 0.5rem;
+        margin-right: clamp(0.25rem, 1vw, 0.5rem);
+        
+        @include respond-to(mobile) {
+          margin-right: 0.4rem;
+        }
       }
     }
   }
-
-  // Referral Statistics Cards
+  // Referral Statistics Cards - Responsive
   .stats-container {
+    margin-top: clamp(1.5rem, 3vw, 2rem);
+    
     .row {
-      margin: 0 -0.5rem;
+      margin: 0 clamp(-0.375rem, -1vw, -0.5rem);
+      
+      @include respond-to(mobile) {
+        margin: 0;
+        flex-direction: column;
+        gap: 1rem;
+      }
       
       .col-md-4 {
-        padding: 0 0.5rem;
-        margin-bottom: 1rem;
+        padding: 0 clamp(0.375rem, 1vw, 0.5rem);
+        margin-bottom: clamp(0.75rem, 2vw, 1rem);
+        
+        @include respond-to(mobile) {
+          padding: 0;
+          margin-bottom: 0;
+          width: 100%;
+        }
       }
     }
   }
 
   .stat-item {
     background: white;
-    border-radius: 16px;
-    padding: 2rem 1.5rem;
+    border-radius: clamp(12px, 3vw, 16px);
+    padding: clamp(1.5rem, 4vw, 2rem) clamp(1rem, 3vw, 1.5rem);
     text-align: center;
     border: 2px solid #e2e8f0;
     transition: all 0.3s ease;
@@ -397,49 +584,79 @@
     position: relative;
     overflow: hidden;
     
+    @include respond-to(mobile) {
+      padding: 1.5rem 1rem;
+      border-radius: 12px;
+    }
+    
     &::before {
       content: '';
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
-      height: 4px;
+      height: clamp(3px, 1vw, 4px);
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      
+      @include respond-to(mobile) {
+        height: 3px;
+      }
     }
     
     &:hover {
       transform: translateY(-5px);
       box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
       border-color: #667eea;
+      
+      @include respond-to(mobile) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      }
     }
     
     h6 {
       color: #718096;
-      font-size: 0.8rem;
+      font-size: clamp(0.75rem, 2vw, 0.8rem);
       text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 1rem;
+      letter-spacing: clamp(0.5px, 0.2vw, 1px);
+      margin-bottom: clamp(0.75rem, 2.5vw, 1rem);
       font-weight: 700;
+      
+      @include respond-to(mobile) {
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.75rem;
+      }
     }
 
     .display-6 {
-      font-size: 2.5rem;
+      font-size: clamp(2rem, 6vw, 2.5rem);
       font-weight: 800;
-      margin-bottom: 0.5rem;
+      margin-bottom: clamp(0.25rem, 1vw, 0.5rem);
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
+      line-height: 1.2;
+      
+      @include respond-to(mobile) {
+        font-size: 2rem;
+        margin-bottom: 0.25rem;
+      }
     }
 
     .text-info {
-      font-size: 1rem;
+      font-size: clamp(0.9rem, 2.5vw, 1rem);
       font-weight: 600;
       color: #4a5568;
       margin-bottom: 0;
+      
+      @include respond-to(mobile) {
+        font-size: 0.9rem;
+      }
     }
     
-    // Icon styling for different stats
+    // Icon styling for different stats with responsive colors
     &.total-referrals::before {
       background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
     }
@@ -452,16 +669,25 @@
       background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);
     }
   }
-  
-  // Special styling for referral modal button
+    // Special styling for referral modal button - Responsive
   .btn-outline-info {
     border: 2px solid #667eea;
     color: #667eea;
     background: transparent;
-    border-radius: 12px;
-    padding: 0.75rem 2rem;
+    border-radius: clamp(10px, 2.5vw, 12px);
+    padding: clamp(0.6rem, 2vw, 0.75rem) clamp(1.5rem, 4vw, 2rem);
     font-weight: 600;
+    font-size: clamp(0.85rem, 2.2vw, 0.9rem);
     transition: all 0.3s ease;
+    min-height: 44px; // Touch-friendly
+    
+    @include respond-to(mobile) {
+      padding: 0.75rem 1.5rem;
+      font-size: 0.9rem;
+      border-radius: 10px;
+      width: 100%;
+      margin-top: 1rem;
+    }
     
     &:hover {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -469,6 +695,20 @@
       color: white;
       transform: translateY(-2px);
       box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+      
+      @include respond-to(mobile) {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+      }
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+    
+    &:focus {
+      outline: 2px solid #667eea;
+      outline-offset: 2px;
     }
   }
 }

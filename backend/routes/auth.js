@@ -15,8 +15,8 @@
 
 const express = require('express');
 const router = express.Router();
-const { register, login, firebaseSignIn, generateReferralCodes, getReferralInfo, applyReferralCode, getUserProfile } = require('../controllers/authController'); // Added getUserProfile
-const authenticateUser = require('../middleware/auth'); // ✅ NEW
+const { register, login, firebaseSignIn, generateReferralCodes, getReferralInfo, applyReferralCode, getUserProfile, refreshToken } = require('../controllers/authController'); // Added getUserProfile and refreshToken
+const { authenticateUser, authenticateForRefresh } = require('../middleware/auth'); // ✅ Updated to use both middleware functions
 
 router.post('/register', register);
 router.post('/login', login);
@@ -24,6 +24,9 @@ router.post('/firebase-signin', firebaseSignIn); // New route for Firebase Sign-
 
 // ✅ NEW protected route
 router.get('/profile', authenticateUser, getUserProfile);
+
+// ✅ NEW token refresh route - uses special middleware for expired tokens
+router.post('/refresh-token', authenticateForRefresh, refreshToken);
 
 
 // Referral system routes

@@ -1,5 +1,7 @@
 @use 'sass:color';  // Add this import for color module functions
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+// Import responsive mixins from global styles
+@import '../../../styles.scss';
 
 // Variables - using the same color scheme as the exam player for consistency
 $primary-color: #6200ea;
@@ -32,28 +34,48 @@ $neutral-light-darker: color.adjust($neutral-light, $lightness: -5%);
 :host {
   display: block;
   font-family: 'Poppins', sans-serif;
-  padding: 24px;
+  padding: clamp(1rem, 4vw, 1.5rem);
   background-color: $neutral-light;
   min-height: 100vh;
+  
+  @include respond-to(mobile) {
+    padding: 1rem;
+  }
+  
+  @include respond-to(tablet) {
+    padding: 1.5rem;
+  }
 }
 
-// Dashboard container
+// Dashboard container - Responsive
 .dashboard-container {
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
 }
 
-// Dashboard header
+// Dashboard header - Responsive
 .dashboard-header {
-  margin-bottom: 32px;
+  margin-bottom: clamp(1.5rem, 4vw, 2rem);
+  
+  @include respond-to(mobile) {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
   
   .dashboard-title {
-    font-size: 1.8rem;
+    font-size: clamp(1.5rem, 4vw, 1.8rem);
     font-weight: 700;
     color: $primary-color;
-    margin-bottom: 8px;
+    margin-bottom: clamp(0.5rem, 1.5vw, 0.75rem);
     position: relative;
     display: inline-block;
+    
+    @include respond-to(mobile) {
+      font-size: 1.75rem;
+      display: block;
+      margin-bottom: 0.75rem;
+    }
     
     &::after {
       content: '';
@@ -64,23 +86,39 @@ $neutral-light-darker: color.adjust($neutral-light, $lightness: -5%);
       height: 4px;
       background: linear-gradient(to right, $primary-color, $primary-light);
       border-radius: 2px;
+      
+      @include respond-to(mobile) {
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+      }
     }
   }
   
   .dashboard-subtitle {
-    font-size: 1.1rem;
+    font-size: clamp(1rem, 2.5vw, 1.1rem);
     color: $text-secondary;
     font-weight: 400;
+    
+    @include respond-to(mobile) {
+      font-size: 1rem;
+    }
   }
 }
 
-// Loading and error states
+// Loading and error states - Responsive
 .loading, .error {
-  padding: 24px;
+  padding: clamp(1rem, 3vw, 1.5rem);
   border-radius: $border-radius;
   text-align: center;
-  margin: 24px 0;
-  font-size: 1.1rem;
+  margin: clamp(1rem, 3vw, 1.5rem) 0;
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
+  
+  @include respond-to(mobile) {
+    padding: 1.25rem;
+    margin: 1.25rem 0;
+    font-size: 1rem;
+  }
 }
 
 .loading {
@@ -91,24 +129,30 @@ $neutral-light-darker: color.adjust($neutral-light, $lightness: -5%);
   &::before {
     content: '';
     display: inline-block;
-    width: 20px;
-    height: 20px;
+    width: clamp(16px, 4vw, 20px);
+    height: clamp(16px, 4vw, 20px);
     border: 3px solid rgba($primary-color, 0.3);
     border-radius: 50%;
     border-top-color: $primary-color;
     animation: spin 1s ease-in-out infinite;
-    margin-right: 12px;
+    margin-right: clamp(8px, 2vw, 12px);
     vertical-align: middle;
-  }
-  
-  @keyframes spin {
-    to { transform: rotate(360deg); }
+    
+    @include respond-to(mobile) {
+      width: 18px;
+      height: 18px;
+      margin-right: 10px;
+    }
   }
 }
 
 .error {
   background-color: $danger-color-light;
   color: $danger-color-dark;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 // Table styling
