@@ -1,5 +1,3 @@
-@use 'sass:color'; // Ensure this is included for the color namespace
-
 // Variables
 $primary-dark: #2d3748; // A deep, cool gray
 $secondary-dark: #1a202c; // Even darker for accents or dropdowns
@@ -42,6 +40,16 @@ $border-color: #4a5568; // For subtle borders
   }
 }
 
+// Logo
+.navbar-brand {
+  .logo h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: $primary-light;
+    font-weight: bold;
+  }
+}
+
 // Navigation Menu (Desktop: inline, Mobile: stacked)
 .navbar-menu {
   display: flex; // For desktop: items in a row
@@ -59,7 +67,8 @@ $border-color: #4a5568; // For subtle borders
       .nav-link {
         display: flex;
         align-items: center;
-        padding: 0.75rem 1rem;
+        // padding: 0.75rem 1rem;
+        padding: 0.75rem 0; // Top and bottom padding is 0.75rem, left and right is 0
         color: $primary-light;
         text-decoration: none;
         transition: background-color 0.3s, color 0.3s;
@@ -169,10 +178,9 @@ $border-color: #4a5568; // For subtle borders
         .user-name {
           display: block;
           font-weight: bold;
-        }
-        .user-role {
+        }        .user-role {
           font-size: 0.8rem;
-          color: color.adjust($primary-light, $lightness: -20%); // Updated from darken($primary-light, 20%)
+          color: rgba($primary-light, 0.8);
         }
       }
     }
@@ -257,7 +265,9 @@ $border-color: #4a5568; // For subtle borders
     background-color: $primary-dark;
     flex-direction: column;
     align-items: flex-start;
-    padding: 1rem;
+    //padding: 1rem 0;
+    padding-top: 0.75rem;
+padding-bottom: 0.75rem;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     z-index: 1000;
 
@@ -274,7 +284,7 @@ $border-color: #4a5568; // For subtle borders
         width: 100%;
 
         .nav-link {
-          padding: 0.75rem 1rem; // Adjust padding for vertical layout
+          // padding: 0.75rem 1rem; // Adjust padding for vertical layout
           justify-content: flex-start; // Align text to the left
         }
 
@@ -283,7 +293,7 @@ $border-color: #4a5568; // For subtle borders
           width: 100%;
           border: none;
           box-shadow: none;
-          background-color: color.adjust($primary-dark, $lightness: -5%); // Updated from darken($primary-dark, 5%)
+          background-color: rgba($primary-dark, 0.9); // Slightly darker for nested feel
           padding-left: 1rem; // Indent dropdown items
         }
       }
@@ -292,6 +302,33 @@ $border-color: #4a5568; // For subtle borders
 
   .navbar-toggle {
     display: block; // Show toggle button
+    /* Use absolute positioning */
+    top: 0.5rem; /* Position from the top */
+    left: 0.5rem; /* Position from the left */
+    background: none;
+    border: none;
+    color: $primary-light;
+    font-size: 1.2rem; /* Reduced toggle button size */
+    cursor: pointer;
+    padding: 0.25rem; /* Reduced padding */
+    width: auto;
+    max-width: calc(100% - 1rem); /* Prevent overflow */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+    z-index: 10; /* Ensure it's above other elements */
+    position: absolute;
+  }
+
+  // Add/Modify styles for navbar-user within this media query
+  .navbar-user {
+    .user-dropdown {
+      .user-toggle {
+        padding: 0.25rem; // Reduced padding for mobile
+      }
+    }
+
+    .logout-button {
+      padding: 0.25rem 0.5rem; // Reduced padding for mobile
+    }
   }
 }
 
@@ -302,8 +339,7 @@ $border-color: #4a5568; // For subtle borders
 }
 
 .main-footer {
-  background-color: $secondary-dark;
-  color: color.adjust($primary-light, $lightness: -30%); // Updated from darken($primary-light, 30%)
+  background-color: $secondary-dark;  color: rgba($primary-light, 0.7);
   padding: 1rem;
   text-align: center;
   font-size: 0.9rem;
