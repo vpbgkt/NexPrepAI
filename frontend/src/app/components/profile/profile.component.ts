@@ -9,8 +9,7 @@ import { ReferralModalComponent } from '../referral-modal/referral-modal.compone
   selector: 'app-profile',
   standalone: true, 
   imports: [CommonModule, ReactiveFormsModule, ReferralModalComponent],
-  templateUrl: './profile.component.html',
-  styleUrl: './profile.component.scss'
+  templateUrl: './profile.component.html'
 })
 export class ProfileComponent implements OnInit {
   profileForm: FormGroup;

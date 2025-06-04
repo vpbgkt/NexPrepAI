@@ -1,103 +1,153 @@
-<div class="profile-container">
-  <div class="profile-content">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 min-h-screen bg-gray-50 font-inter">
+  <div class="bg-white rounded-lg shadow-lg overflow-hidden animate-slide-up">
     <!-- Profile Header -->
-    <div class="profile-header">
-      <h1>My Profile</h1>
-      <p>Manage your account settings and referral information</p>
+    <div class="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-8 text-center relative">
+      <div class="absolute inset-0 bg-black opacity-10"></div>
+      <div class="relative z-10">
+        <h1 class="text-2xl md:text-3xl font-bold mb-2">My Profile</h1>
+        <p class="text-primary-100 text-sm md:text-base">Manage your account settings and referral information</p>
+      </div>
     </div>
 
     <!-- Loading Spinner -->
-    <div *ngIf="isLoading && !profileForm.dirty" class="loading-spinner">
-      <div class="spinner-border" role="status">
-        <span class="visually-hidden">Loading profile...</span>
+    <div *ngIf="isLoading && !profileForm.dirty" class="flex justify-center items-center py-12">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 border-3 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+        <span class="text-primary-700 font-medium">Loading profile...</span>
       </div>
     </div>
 
-    <!-- Alert Messages -->
-    <div class="profile-form" *ngIf="!isLoading || profileForm.dirty">
-      <div *ngIf="errorMessage" class="alert alert-danger fade-in">
-        {{ errorMessage }}
+    <!-- Profile Content -->
+    <div class="p-6 md:p-8" *ngIf="!isLoading || profileForm.dirty">
+      <!-- Alert Messages -->
+      <div *ngIf="errorMessage" class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 animate-fade-in">
+        <p class="text-red-700 font-medium">{{ errorMessage }}</p>
       </div>
 
-      <div *ngIf="successMessage" class="alert alert-success fade-in">
-        {{ successMessage }}
+      <div *ngIf="successMessage" class="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 animate-fade-in">
+        <p class="text-green-700 font-medium">{{ successMessage }}</p>
       </div>
 
       <!-- Account Status Section -->
-      <div class="account-status-section mb-4" *ngIf="currentUser">
-        <h3>Account Status</h3>
-        <div *ngIf="accountExpiresAt" class="alert"
-             [ngClass]="isAccountExpired ? 'alert-danger' : (daysToAccountExpiry !== null && daysToAccountExpiry <= 7 ? 'alert-warning' : 'alert-info')">
-          <strong *ngIf="isAccountExpired">Your account has expired.</strong>
-          <span *ngIf="!isAccountExpired && daysToAccountExpiry !== null">
-            Your account expires on: {{ accountExpiresAt | date: 'mediumDate' }}.
+      <div class="mb-8" *ngIf="currentUser">
+        <h3 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+          <div class="w-1 h-6 bg-primary-600 rounded mr-3"></div>
+          Account Status
+        </h3>
+        
+        <div *ngIf="accountExpiresAt" class="p-4 rounded-lg border mb-4"
+             [ngClass]="{
+               'bg-red-50 border-red-200': isAccountExpired,
+               'bg-amber-50 border-amber-200': !isAccountExpired && daysToAccountExpiry !== null && daysToAccountExpiry <= 7,
+               'bg-blue-50 border-blue-200': !isAccountExpired && (daysToAccountExpiry === null || daysToAccountExpiry > 7)
+             }">
+          <div *ngIf="isAccountExpired" class="text-red-700">
+            <strong>Your account has expired.</strong>
+          </div>
+          <div *ngIf="!isAccountExpired && daysToAccountExpiry !== null" 
+               [ngClass]="{
+                 'text-amber-700': daysToAccountExpiry <= 7,
+                 'text-blue-700': daysToAccountExpiry > 7
+               }">
+            Your account expires on: <strong>{{ accountExpiresAt | date: 'mediumDate' }}</strong>.
             <span *ngIf="daysToAccountExpiry > 0"> ({{ daysToAccountExpiry }} day<span *ngIf="daysToAccountExpiry !== 1">s</span> remaining)</span>
             <span *ngIf="daysToAccountExpiry === 0"> (Expires today)</span>
-          </span>
-          <span *ngIf="!isAccountExpired && daysToAccountExpiry === null">Account expiry date is not set.</span>
-        </div>
-        <div *ngIf="!accountExpiresAt && currentUser?.role === 'student'" class="alert alert-secondary">
-          Account expiry date not set.
+          </div>
+          <div *ngIf="!isAccountExpired && daysToAccountExpiry === null" class="text-blue-700">
+            Account expiry date is not set.
+          </div>
         </div>
 
-        <div *ngIf="freeTrialEndsAt && isFreeTrialActive" class="alert alert-info">
-          Your free trial is active until: {{ freeTrialEndsAt | date: 'mediumDate' }}.
-          <span *ngIf="daysToFreeTrialExpiry !== null && daysToFreeTrialExpiry >= 0">
-            ({{ daysToFreeTrialExpiry }} day<span *ngIf="daysToFreeTrialExpiry !== 1">s</span> remaining)
-          </span>
+        <div *ngIf="!accountExpiresAt && currentUser?.role === 'student'" class="p-4 bg-gray-50 border border-gray-200 rounded-lg mb-4">
+          <p class="text-gray-700">Account expiry date not set.</p>
         </div>
-        <div *ngIf="freeTrialEndsAt && !isFreeTrialActive && !isAccountExpired" class="alert alert-warning">
-            Your free trial has ended.
+
+        <div *ngIf="freeTrialEndsAt && isFreeTrialActive" class="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+          <p class="text-blue-700">
+            Your free trial is active until: <strong>{{ freeTrialEndsAt | date: 'mediumDate' }}</strong>.
+            <span *ngIf="daysToFreeTrialExpiry !== null && daysToFreeTrialExpiry >= 0">
+              ({{ daysToFreeTrialExpiry }} day<span *ngIf="daysToFreeTrialExpiry !== 1">s</span> remaining)
+            </span>
+          </p>
+        </div>
+
+        <div *ngIf="freeTrialEndsAt && !isFreeTrialActive && !isAccountExpired" class="p-4 bg-amber-50 border border-amber-200 rounded-lg mb-4">
+          <p class="text-amber-700">Your free trial has ended.</p>
         </div>
       </div>
 
       <!-- Profile Form -->
       <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" *ngIf="currentUser || !isLoading">
-        <h2>Personal Information</h2>
-        <div class="form-group mb-3">
-          <label for="name" class="form-label">Name:</label>
-          <input id="name" type="text" formControlName="name" class="form-control"
-                 [ngClass]="{ 'is-invalid': profileForm.get('name')?.invalid && (profileForm.get('name')?.dirty || profileForm.get('name')?.touched) }">
-          <div *ngIf="profileForm.get('name')?.invalid && (profileForm.get('name')?.dirty || profileForm.get('name')?.touched)" class="invalid-feedback">
-            <small *ngIf="profileForm.get('name')?.errors?.['required']">Name is required.</small>
+        <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+          <div class="w-1 h-6 bg-primary-600 rounded mr-3"></div>
+          Personal Information
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <!-- Name Field -->
+          <div>
+            <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Name *</label>
+            <input id="name" type="text" formControlName="name" 
+                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+                   [class.border-red-500]="profileForm.get('name')?.invalid && (profileForm.get('name')?.dirty || profileForm.get('name')?.touched)"
+                   [class.focus:ring-red-500]="profileForm.get('name')?.invalid && (profileForm.get('name')?.dirty || profileForm.get('name')?.touched)">
+            <div *ngIf="profileForm.get('name')?.invalid && (profileForm.get('name')?.dirty || profileForm.get('name')?.touched)" 
+                 class="mt-1 text-sm text-red-600">
+              <span *ngIf="profileForm.get('name')?.errors?.['required']">Name is required.</span>
+            </div>
+          </div>
+
+          <!-- Display Name Field -->
+          <div>
+            <label for="displayName" class="block text-sm font-medium text-gray-700 mb-2">Display Name</label>
+            <input id="displayName" type="text" formControlName="displayName" 
+                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200">
+            <p class="mt-1 text-xs text-gray-500">This name will be shown on public leaderboards (if enabled for a test series).</p>
+          </div>
+
+          <!-- Photo URL Field -->
+          <div>
+            <label for="photoURL" class="block text-sm font-medium text-gray-700 mb-2">Photo URL</label>
+            <input id="photoURL" type="url" formControlName="photoURL" 
+                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200">
+            <p class="mt-1 text-xs text-gray-500">Link to your profile picture.</p>
+          </div>
+
+          <!-- Phone Number Field -->
+          <div>
+            <label for="phoneNumber" class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+            <input id="phoneNumber" type="tel" formControlName="phoneNumber" 
+                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200">
+          </div>
+
+          <!-- Email Field (Readonly) -->
+          <div *ngIf="currentUser?.email">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+            <input type="email" [value]="currentUser?.email" readonly 
+                   class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed">
+            <p class="mt-1 text-xs text-gray-500">Your email address cannot be changed</p>
+          </div>
+
+          <!-- Username Field (Readonly) -->
+          <div *ngIf="currentUser?.username">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+            <input type="text" [value]="currentUser?.username" readonly 
+                   class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed">
+            <p class="mt-1 text-xs text-gray-500">Your username cannot be changed</p>
           </div>
         </div>
 
-        <div class="form-group mb-3">
-          <label for="displayName" class="form-label">Display Name:</label>
-          <input id="displayName" type="text" formControlName="displayName" class="form-control">
-          <small class="form-text text-muted">This name will be shown on public leaderboards (if enabled for a test series).</small>
-        </div>
-
-        <div class="form-group mb-3">
-          <label for="photoURL" class="form-label">Photo URL:</label>
-          <input id="photoURL" type="url" formControlName="photoURL" class="form-control">
-          <small class="form-text text-muted">Link to your profile picture.</small>
-        </div>
-
-        <div class="form-group mb-3">
-          <label for="phoneNumber" class="form-label">Phone Number:</label>
-          <input id="phoneNumber" type="tel" formControlName="phoneNumber" class="form-control">
-        </div>
-
-        <div class="form-group mb-3" *ngIf="currentUser?.email">
-          <label class="form-label">Email:</label>
-          <input type="email" class="form-control" [value]="currentUser?.email" readonly>
-          <div class="form-text">Your email address cannot be changed</div>
-        </div>
-
-        <div class="form-group mb-3" *ngIf="currentUser?.username">
-          <label class="form-label">Username:</label>
-          <input type="text" class="form-control" [value]="currentUser?.username" readonly>
-          <div class="form-text">Your username cannot be changed</div>
-        </div>
-
-        <div class="btn-group">
-          <button type="submit" class="btn btn-primary" [disabled]="profileForm.invalid || isLoading">
-            <span *ngIf="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            {{ isLoading ? ' Saving...' : 'Save Changes' }}
+        <!-- Form Buttons -->
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button type="submit" 
+                  class="px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  [disabled]="profileForm.invalid || isLoading">
+            <div *ngIf="isLoading" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+            {{ isLoading ? 'Saving...' : 'Save Changes' }}
           </button>
-          <button type="button" class="btn btn-secondary" (click)="resetForm()" [disabled]="isLoading">
+          <button type="button" 
+                  class="px-6 py-3 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  (click)="resetForm()" [disabled]="isLoading">
             Reset
           </button>
         </div>
@@ -105,119 +155,114 @@
     </div>
 
     <!-- Referral Information Section -->
-    <div class="referral-section" *ngIf="currentUser || !isLoading">
-      <h3>Referral Program</h3>
+    <div class="bg-gray-50 p-6 md:p-8" *ngIf="currentUser || !isLoading">
+      <h3 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+        <div class="w-1 h-6 bg-secondary-500 rounded mr-3"></div>
+        Referral Program
+      </h3>
       
-      <div *ngIf="isLoadingReferral && !referralInfo" class="loading-spinner">
-        <div class="spinner-border" role="status">
-          <span class="visually-hidden">Loading referral information...</span>
+      <!-- Loading Referral Info -->
+      <div *ngIf="isLoadingReferral && !referralInfo" class="flex justify-center items-center py-8">
+        <div class="flex items-center gap-3">
+          <div class="w-6 h-6 border-2 border-secondary-500 border-t-transparent rounded-full animate-spin"></div>
+          <span class="text-secondary-700 font-medium">Loading referral information...</span>
         </div>
       </div>
 
-      <div *ngIf="referralMessage" class="alert fade-in" 
-           [ngClass]="referralMessage.includes('Failed') ? 'alert-danger' : 'alert-success'">
-        {{ referralMessage }}
+      <!-- Referral Message -->
+      <div *ngIf="referralMessage" class="mb-6 p-4 rounded-lg animate-fade-in"
+           [ngClass]="referralMessage.includes('Failed') ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'">
+        <p [ngClass]="referralMessage.includes('Failed') ? 'text-red-700' : 'text-green-700'" class="font-medium">
+          {{ referralMessage }}
+        </p>
       </div>
 
-      <div *ngIf="referralInfo" class="referral-info">
-        <!-- Referral Code Section -->
-        <div class="card mb-4 hover-lift">
-          <div class="card-header">
-            <h5 class="card-title mb-0">Your Referral Code</h5>
-          </div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-8">
-                <div class="input-group">
-                  <input type="text" class="form-control" [value]="referralInfo.referralCode" readonly>
-                  <button class="btn" type="button" 
-                          (click)="copyToClipboard(referralInfo.referralCode, 'Referral code')">
-                    <i class="fas fa-copy"></i> Copy
-                  </button>
-                </div>
-                <small class="form-text text-muted mt-2">Share this code with friends to refer them to NexPrep!</small>
+      <div *ngIf="referralInfo" class="space-y-6">
+        <!-- Referral Code Card -->
+        <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
+          <h5 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <i class="fas fa-gift text-primary-600 mr-2"></i>
+            Your Referral Code
+          </h5>
+          <div class="flex flex-col md:flex-row gap-4">
+            <div class="flex-1">
+              <div class="flex">
+                <input type="text" [value]="referralInfo.referralCode" readonly 
+                       class="flex-1 px-4 py-3 border border-gray-300 rounded-l-lg bg-gray-50 text-gray-700">
+                <button type="button" 
+                        class="px-4 py-3 bg-primary-600 text-white border border-primary-600 rounded-r-lg hover:bg-primary-700 transition-colors duration-200 flex items-center"
+                        (click)="copyToClipboard(referralInfo.referralCode, 'Referral code')">
+                  <i class="fas fa-copy mr-2"></i>Copy
+                </button>
               </div>
-              <div class="col-md-4 text-center d-flex align-items-center justify-content-center">
-                <div class="referral-icon">
-                  <i class="fas fa-gift fa-3x text-primary"></i>
-                </div>
-              </div>
+              <p class="mt-2 text-sm text-gray-600">Share this code with friends to refer them to NexPrep!</p>
+            </div>
+            <div class="md:w-24 flex justify-center items-center">
+              <i class="fas fa-gift text-primary-600 text-4xl"></i>
             </div>
           </div>
         </div>
 
-        <!-- Referral Link Section -->
-        <div class="card mb-4 hover-lift">
-          <div class="card-header">
-            <h5 class="card-title mb-0">Referral Link</h5>
-          </div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-8">
-                <div class="input-group">
-                  <input type="text" class="form-control" [value]="referralInfo.referralLink" readonly>
-                  <button class="btn" type="button" 
-                          (click)="copyToClipboard(referralInfo.referralLink, 'Referral link')">
-                    <i class="fas fa-copy"></i> Copy
-                  </button>
-                </div>
-                <small class="form-text text-muted mt-2">Share this link directly with friends!</small>
+        <!-- Referral Link Card -->
+        <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
+          <h5 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <i class="fas fa-link text-secondary-500 mr-2"></i>
+            Referral Link
+          </h5>
+          <div class="flex flex-col md:flex-row gap-4">
+            <div class="flex-1">
+              <div class="flex">
+                <input type="text" [value]="referralInfo.referralLink" readonly 
+                       class="flex-1 px-4 py-3 border border-gray-300 rounded-l-lg bg-gray-50 text-gray-700">
+                <button type="button" 
+                        class="px-4 py-3 bg-secondary-500 text-white border border-secondary-500 rounded-r-lg hover:bg-secondary-600 transition-colors duration-200 flex items-center"
+                        (click)="copyToClipboard(referralInfo.referralLink, 'Referral link')">
+                  <i class="fas fa-copy mr-2"></i>Copy
+                </button>
               </div>
-              <div class="col-md-4 text-center d-flex align-items-center justify-content-center">
-                <div class="referral-icon">
-                  <i class="fas fa-link fa-3x text-info"></i>
-                </div>
-              </div>
+              <p class="mt-2 text-sm text-gray-600">Share this link directly with friends!</p>
+            </div>
+            <div class="md:w-24 flex justify-center items-center">
+              <i class="fas fa-link text-secondary-500 text-4xl"></i>
             </div>
           </div>
-        </div>        <!-- Referral Stats Section -->
-        <div class="stats-container">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="stat-item successful-referrals hover-lift">
-                <h6>Successful Referrals</h6>
-                <div class="display-6">{{ referralInfo.successfulReferrals || 0 }}</div>
-                <div class="text-info">Active Users</div>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="stat-item earnings hover-lift">
-                <h6>Referral Code</h6>
-                <div class="display-6 text-primary">{{ referralInfo.referralCode }}</div>
-                <div class="text-info">Your Code</div>
-              </div>
-            </div>
+        </div>
+
+        <!-- Referral Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white rounded-lg shadow-md p-6 text-center hover:shadow-lg transition-shadow duration-200">
+            <h6 class="text-sm font-medium text-gray-600 mb-2">Successful Referrals</h6>
+            <div class="text-3xl font-bold text-primary-600 mb-1">{{ referralInfo.successfulReferrals || 0 }}</div>
+            <div class="text-sm text-secondary-500">Active Users</div>
+          </div>
+          <div class="bg-white rounded-lg shadow-md p-6 text-center hover:shadow-lg transition-shadow duration-200">
+            <h6 class="text-sm font-medium text-gray-600 mb-2">Referral Code</h6>
+            <div class="text-2xl font-bold text-primary-600 mb-1">{{ referralInfo.referralCode }}</div>
+            <div class="text-sm text-secondary-500">Your Code</div>
           </div>
         </div>
 
         <!-- Referred By Section -->
-        <div class="card mt-4 hover-lift" *ngIf="referralInfo.referredBy">
-          <div class="card-header">
-            <h5 class="card-title mb-0">You Were Referred By</h5>
-          </div>
-          <div class="card-body text-center">
-            <div class="referred-by-info">
-              <i class="fas fa-user-friends fa-3x text-success mb-3"></i>
-              <h5 class="text-info">{{ referralInfo.referredBy.name }}</h5>
-              <small class="text-muted">{{ referralInfo.referredBy.email }}</small>
-            </div>
+        <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200" *ngIf="referralInfo.referredBy">
+          <h5 class="text-lg font-semibold text-gray-900 mb-4">You Were Referred By</h5>
+          <div class="text-center">
+            <i class="fas fa-user-friends text-green-500 text-4xl mb-3"></i>
+            <h5 class="text-lg font-semibold text-secondary-600">{{ referralInfo.referredBy.name }}</h5>
+            <p class="text-sm text-gray-600">{{ referralInfo.referredBy.email }}</p>
           </div>
         </div>
 
         <!-- Apply Referral Code Section -->
-        <div class="card mt-4 hover-lift" *ngIf="!referralInfo.referredBy">
-          <div class="card-header">
-            <h5 class="card-title mb-0">Give Credit Where It's Due</h5>
-          </div>
-          <div class="card-body text-center">
-            <div class="apply-referral-info">
-              <i class="fas fa-handshake fa-3x text-warning mb-3"></i>
-              <h6>Want to Give Credit?</h6>
-              <p class="text-muted mb-3">If someone referred you to NexPrep, you can still give them credit!</p>
-              <button class="btn btn-outline-info" (click)="openReferralModal()">
-                <i class="fas fa-plus-circle me-2"></i>Apply Referral Code
-              </button>
-            </div>
+        <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200" *ngIf="!referralInfo.referredBy">
+          <h5 class="text-lg font-semibold text-gray-900 mb-4">Give Credit Where It's Due</h5>
+          <div class="text-center">
+            <i class="fas fa-handshake text-amber-500 text-4xl mb-4"></i>
+            <h6 class="text-lg font-semibold text-gray-900 mb-2">Want to Give Credit?</h6>
+            <p class="text-gray-600 mb-4">If someone referred you to NexPrep, you can still give them credit!</p>
+            <button class="px-6 py-3 bg-secondary-500 text-white font-medium rounded-lg hover:bg-secondary-600 focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2 transition-all duration-200"
+                    (click)="openReferralModal()">
+              <i class="fas fa-plus-circle mr-2"></i>Apply Referral Code
+            </button>
           </div>
         </div>
       </div>

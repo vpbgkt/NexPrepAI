@@ -17,9 +17,8 @@ import { GlobalChatComponent } from './components/global-chat/global-chat.compon
     RouterModule, 
     CommonModule, 
     GlobalChatComponent // Add GlobalChatComponent to imports
-  ],
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss']
+  ],  templateUrl: './app.component.html',
+  styleUrls: []
 })
 export class AppComponent implements OnInit {
   currentUser$: Observable<FirebaseUser | null>;
@@ -27,6 +26,7 @@ export class AppComponent implements OnInit {
   appUserDisplayName: string | null = null;
   userRole: string | null = null; // Add userRole property
   currentRoute: string = ''; // Add property to track current route
+  mobileMenuOpen: boolean = false; // Add mobile menu state
   constructor(
     public authService: AuthService, 
     private firebaseAuthService: FirebaseAuthService,
@@ -149,7 +149,7 @@ export class AppComponent implements OnInit {
     // Hide chat on login page and during exam attempts
     const hideChatRoutes = ['/login', '/register'];
     
-    // Check if current route is login or register
+  // Check if current route is login or register
     if (hideChatRoutes.includes(this.currentRoute)) {
       return false;
     }
@@ -161,5 +161,14 @@ export class AppComponent implements OnInit {
     
     // Show chat on all other pages
     return true;
+  }
+
+  // Mobile menu methods
+  toggleMobileMenu(): void {
+    this.mobileMenuOpen = !this.mobileMenuOpen;
+  }
+
+  closeMobileMenu(): void {
+    this.mobileMenuOpen = false;
   }
 }

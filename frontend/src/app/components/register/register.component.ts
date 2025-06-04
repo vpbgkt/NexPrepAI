@@ -15,8 +15,7 @@ import { ReferralService } from '../../services/referral.service'; // Import Ref
   selector: 'app-register',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink], // Add RouterLink to imports
-  templateUrl: './register.component.html',
-  styleUrls: ['./register.component.scss']
+  templateUrl: './register.component.html'
 })
 export class RegisterComponent implements OnInit {
   form!: FormGroup;

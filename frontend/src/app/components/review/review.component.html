@@ -1,152 +1,190 @@
-<!-- Enhanced Review Page Template -->
-<div class="review-container">
+<!-- Enhanced Review Page Template with Tailwind CSS -->
+<div class="min-h-screen bg-gray-50">
   <!-- Loading State -->
-  <div *ngIf="loading" class="loading-state">
-    <div class="loading-spinner"></div>
-    <p>Loading review data...</p>
+  <div *ngIf="loading" class="flex flex-col items-center justify-center min-h-screen">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+    <p class="text-gray-600">Loading review data...</p>
   </div>
 
   <!-- Error State -->
-  <div *ngIf="error" class="error-state">
-    <div class="error-icon">⚠️</div>
-    <h3>Error Loading Review</h3>
-    <p>{{ error }}</p>
-    <button (click)="loadReviewData()" class="retry-btn">Retry</button>
+  <div *ngIf="error" class="flex flex-col items-center justify-center min-h-screen p-4">
+    <div class="text-6xl mb-4">⚠️</div>
+    <h3 class="text-2xl font-bold text-gray-800 mb-2">Error Loading Review</h3>
+    <p class="text-gray-600 mb-4">{{ error }}</p>
+    <button (click)="loadReviewData()" class="btn-primary">Retry</button>
   </div>
 
   <!-- Main Content -->
-  <div *ngIf="!loading && !error && reviewData" class="review-content">    <!-- Header -->
-    <div class="review-header">
-      <div class="header-left">
-        <button (click)="goBack()" class="back-btn">
-          <span class="back-icon">←</span> Back to Dashboard
-        </button>
-      </div>
-      
-      <div class="test-info">
-        <h1>{{ reviewData.attempt.seriesTitle }}</h1>
-        <div class="score-summary">
-          <div class="score-card">
-            <span class="score">{{ reviewData.attempt.score }}/{{ reviewData.attempt.maxScore }}</span>
-            <span class="percentage">{{ reviewData.attempt.percentage | number:'1.1-1' }}%</span>
-          </div>
-          <div class="test-meta">
-            <p><strong>Submitted:</strong> {{ formatDate(reviewData.attempt.submittedAt) }}</p>
-            <p><strong>Time Taken:</strong> {{ formatTime(reviewData.attempt.totalTimeSpent) }}</p>
+  <div *ngIf="!loading && !error && reviewData" class="max-w-7xl mx-auto p-4 lg:p-6">    
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-md p-4 lg:p-6 mb-6">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div class="flex-1">
+          <button (click)="goBack()" class="flex items-center text-gray-600 hover:text-gray-800 mb-4 transition-colors">
+            <span class="mr-2">←</span> Back to Dashboard
+          </button>
+          
+          <div class="space-y-4">
+            <h1 class="text-2xl lg:text-3xl font-bold text-gray-800">{{ reviewData.attempt.seriesTitle }}</h1>
+            <div class="flex flex-col lg:flex-row lg:items-center gap-4">
+              <div class="bg-gradient-to-r from-primary to-accent text-white p-4 rounded-lg">
+                <div class="text-2xl font-bold">{{ reviewData.attempt.score }}/{{ reviewData.attempt.maxScore }}</div>
+                <div class="text-lg">{{ reviewData.attempt.percentage | number:'1.1-1' }}%</div>
+              </div>
+              <div class="space-y-2 text-sm lg:text-base">
+                <p><strong>Submitted:</strong> {{ formatDate(reviewData.attempt.submittedAt) }}</p>
+                <p><strong>Time Taken:</strong> {{ formatTime(reviewData.attempt.totalTimeSpent) }}</p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>      <div class="header-actions">
-        <button (click)="downloadReviewAsPdf()" class="download-btn primary" [disabled]="downloadingPdf">
-          <span class="download-icon">📄</span>
-          <span *ngIf="!downloadingPdf">Download Review as PDF</span>
-          <span *ngIf="downloadingPdf">Generating PDF...</span>
-        </button>
+        
+        <div class="flex-shrink-0">
+          <button (click)="downloadReviewAsPdf()" class="btn-primary flex items-center gap-2" [disabled]="downloadingPdf">
+            <span>📄</span>
+            <span *ngIf="!downloadingPdf">Download PDF</span>
+            <span *ngIf="downloadingPdf">Generating...</span>
+          </button>
+        </div>
       </div>
-    </div><!-- Navigation Tabs -->
-    <div class="tab-navigation">
-      <button 
-        *ngFor="let tab of ['overview', 'questions', 'analytics', 'recommendations']"
-        [class.active]="activeTab === tab"
-        (click)="onTabChange(tab)"
-        class="tab-btn">
-        {{ tab | titlecase }}
-      </button>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-white rounded-lg shadow-md mb-6">
+      <div class="border-b border-gray-200">
+        <nav class="flex overflow-x-auto">
+          <button 
+            *ngFor="let tab of ['overview', 'questions', 'analytics', 'recommendations']"
+            [class.active]="activeTab === tab"
+            (click)="onTabChange(tab)"
+            class="flex-shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors"
+            [ngClass]="{
+              'border-primary text-primary': activeTab === tab,
+              'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== tab
+            }">
+            {{ tab | titlecase }}
+          </button>
+        </nav>
+      </div>
     </div>
 
     <!-- Tab Content -->
     <div class="tab-content">
       
       <!-- Overview Tab -->
-      <div *ngIf="activeTab === 'overview'" class="overview-tab">
-        <div class="stats-grid">
-          <div class="stat-card">
-            <h3>Overall Performance</h3>
-            <div class="stat-item">
-              <span class="label">Accuracy:</span>
-              <span class="value">{{ reviewData.analytics.overall.accuracy | number:'1.1-1' }}%</span>
-            </div>
-            <div class="stat-item">
-              <span class="label">Correct Answers:</span>
-              <span class="value correct">{{ reviewData.analytics.overall.correctAnswers }}</span>
-            </div>
-            <div class="stat-item">
-              <span class="label">Incorrect Answers:</span>
-              <span class="value incorrect">{{ reviewData.analytics.overall.incorrectAnswers }}</span>
-            </div>
-            <div class="stat-item">
-              <span class="label">Unanswered:</span>
-              <span class="value unanswered">{{ reviewData.analytics.overall.unanswered }}</span>
-            </div>
-            <div class="stat-item">
-              <span class="label">Flagged Questions:</span>
-              <span class="value">{{ reviewData.analytics.overall.flaggedCount }}</span>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <h3>Time Analysis</h3>
-            <div class="stat-item">
-              <span class="label">Total Time:</span>
-              <span class="value">{{ formatTime(reviewData.analytics.overall.timeSpent) }}</span>
-            </div>
-            <div class="stat-item">
-              <span class="label">Avg per Question:</span>
-              <span class="value">{{ formatTime(reviewData.analytics.overall.averageTimePerQuestion) }}</span>
-            </div>
-            <div class="stat-item">
-              <span class="label">Fastest Question:</span>
-              <span class="value">{{ formatTime(reviewData.analytics.timeAnalysis.fastestQuestion) }}</span>
-            </div>
-            <div class="stat-item">
-              <span class="label">Slowest Question:</span>
-              <span class="value">{{ formatTime(reviewData.analytics.timeAnalysis.slowestQuestion) }}</span>
+      <div *ngIf="activeTab === 'overview'" class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Overall Performance Card -->
+          <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold mb-4 text-gray-800">Overall Performance</h3>
+            <div class="space-y-3">
+              <div class="flex justify-between">
+                <span class="text-gray-600">Accuracy:</span>
+                <span class="font-semibold text-green-600">{{ reviewData.analytics.overall.accuracy | number:'1.1-1' }}%</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Correct Answers:</span>
+                <span class="font-semibold text-green-600">{{ reviewData.analytics.overall.correctAnswers }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Incorrect Answers:</span>
+                <span class="font-semibold text-red-600">{{ reviewData.analytics.overall.incorrectAnswers }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Unanswered:</span>
+                <span class="font-semibold text-yellow-600">{{ reviewData.analytics.overall.unanswered }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Flagged Questions:</span>
+                <span class="font-semibold">{{ reviewData.analytics.overall.flaggedCount }}</span>
+              </div>
             </div>
           </div>
 
-          <div class="stat-card">
-            <h3>Difficulty Breakdown</h3>
-            <div *ngFor="let difficulty of ['Easy', 'Medium', 'Hard']" class="difficulty-stat">
-              <span class="difficulty-label" [ngClass]="getDifficultyColor(difficulty)">
-                {{ difficulty }}
-              </span>
-              <div class="difficulty-bar">
-                <div class="progress-bar">
+          <!-- Time Analysis Card -->
+          <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold mb-4 text-gray-800">Time Analysis</h3>
+            <div class="space-y-3">
+              <div class="flex justify-between">
+                <span class="text-gray-600">Total Time:</span>
+                <span class="font-semibold">{{ formatTime(reviewData.analytics.overall.timeSpent) }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Avg per Question:</span>
+                <span class="font-semibold">{{ formatTime(reviewData.analytics.overall.averageTimePerQuestion) }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Fastest Question:</span>
+                <span class="font-semibold">{{ formatTime(reviewData.analytics.timeAnalysis.fastestQuestion) }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Slowest Question:</span>
+                <span class="font-semibold">{{ formatTime(reviewData.analytics.timeAnalysis.slowestQuestion) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Difficulty Breakdown Card -->
+          <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-lg font-semibold mb-4 text-gray-800">Difficulty Breakdown</h3>
+            <div class="space-y-4">
+              <div *ngFor="let difficulty of ['Easy', 'Medium', 'Hard']" class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-medium" 
+                    [ngClass]="{
+                      'text-green-600': difficulty === 'Easy',
+                      'text-yellow-600': difficulty === 'Medium',
+                      'text-red-600': difficulty === 'Hard'
+                    }">
+                    {{ difficulty }}
+                  </span>
+                  <span class="text-sm font-medium">
+                    {{ reviewData.analytics.difficultyBreakdown[difficulty]?.correct || 0 }}/{{ reviewData.analytics.difficultyBreakdown[difficulty]?.total || 0 }}
+                  </span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
                   <div 
-                    class="progress-fill"
+                    class="h-2 rounded-full transition-all duration-300"
+                    [ngClass]="{
+                      'bg-green-500': difficulty === 'Easy',
+                      'bg-yellow-500': difficulty === 'Medium',
+                      'bg-red-500': difficulty === 'Hard'
+                    }"
                     [style.width.%]="(reviewData.analytics.difficultyBreakdown[difficulty]?.correct / reviewData.analytics.difficultyBreakdown[difficulty]?.total) * 100">
                   </div>
                 </div>
-                <span class="difficulty-score">
-                  {{ reviewData.analytics.difficultyBreakdown[difficulty]?.correct || 0 }}/{{ reviewData.analytics.difficultyBreakdown[difficulty]?.total || 0 }}
-                </span>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Quick Navigation -->
-        <div class="quick-nav">
-          <h3>Quick Navigation</h3>
-          <div class="nav-buttons">
-            <button (click)="setActiveTab('questions'); filterBy = 'incorrect'" class="nav-btn incorrect">
-              Review Incorrect ({{ reviewData.analytics.overall.incorrectAnswers }})
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <h3 class="text-lg font-semibold mb-4 text-gray-800">Quick Navigation</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button (click)="setActiveTab('questions'); filterBy = 'incorrect'" 
+              class="p-4 rounded-lg border-2 border-red-200 text-red-700 hover:bg-red-50 transition-colors">
+              <div class="font-semibold">Review Incorrect</div>
+              <div class="text-sm">({{ reviewData.analytics.overall.incorrectAnswers }})</div>
             </button>
-            <button (click)="setActiveTab('questions'); filterBy = 'flagged'" class="nav-btn flagged">
-              Flagged Questions ({{ reviewData.analytics.overall.flaggedCount }})
+            <button (click)="setActiveTab('questions'); filterBy = 'flagged'" 
+              class="p-4 rounded-lg border-2 border-yellow-200 text-yellow-700 hover:bg-yellow-50 transition-colors">
+              <div class="font-semibold">Flagged Questions</div>
+              <div class="text-sm">({{ reviewData.analytics.overall.flaggedCount }})</div>
             </button>
-            <button (click)="setActiveTab('questions'); filterBy = 'unanswered'" class="nav-btn unanswered">
-              Unanswered ({{ reviewData.analytics.overall.unanswered }})
+            <button (click)="setActiveTab('questions'); filterBy = 'unanswered'" 
+              class="p-4 rounded-lg border-2 border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
+              <div class="font-semibold">Unanswered</div>
+              <div class="text-sm">({{ reviewData.analytics.overall.unanswered }})</div>
             </button>
           </div>
         </div>
-      </div>
-
-      <!-- Questions Tab -->
-      <div *ngIf="activeTab === 'questions'" class="questions-tab">
+      </div>      <!-- Questions Tab -->
+      <div *ngIf="activeTab === 'questions'" class="space-y-6">
         <!-- Question Filter -->
-        <div class="question-filter">
-          <label>Filter Questions:</label>
-          <select [(ngModel)]="filterBy" class="filter-select">
+        <div class="bg-white p-4 rounded-lg shadow-md">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Filter Questions:</label>
+          <select [(ngModel)]="filterBy" class="form-select w-full md:w-auto">
             <option value="all">All Questions</option>
             <option value="correct">Correct Only</option>
             <option value="incorrect">Incorrect Only</option>
@@ -155,378 +193,507 @@
           </select>
         </div>
 
-        <!-- Question List -->
-        <div class="question-list">
-          <div 
-            *ngFor="let question of getFilteredQuestions(); let i = index"
-            (click)="goToQuestion(reviewData.questions.indexOf(question))"
-            class="question-item"
-            [ngClass]="getQuestionStatus(question)">
-            
-            <div class="question-header">
-              <span class="question-number">Q{{ reviewData.questions.indexOf(question) + 1 }}</span>
-              <span class="question-status" [ngClass]="getQuestionStatus(question)">
-                {{ getQuestionStatus(question) | titlecase }}
-              </span>
-              <span *ngIf="question.flagged" class="flag-indicator">🚩</span>
-              <span class="difficulty" [ngClass]="getDifficultyColor(question.difficulty)">
-                {{ question.difficulty }}
-              </span>
-            </div>
-            
-            <div class="question-meta">
-              <span class="time-spent">⏱️ {{ formatTime(question.timeSpent) }}</span>
-              <span class="marks">{{ question.earned }}/{{ question.marks }} marks</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Question Detail View -->
-        <div *ngIf="getCurrentQuestion() as currentQuestion" class="question-detail">
-          <div class="question-navigation">
-            <button (click)="prevQuestion()" [disabled]="currentQuestionIndex === 0" class="nav-btn">
-              ← Previous
-            </button>
-            <span class="question-counter">
-              Question {{ currentQuestionIndex + 1 }} of {{ reviewData.questions.length }}
-            </span>
-            <button (click)="nextQuestion()" [disabled]="currentQuestionIndex === reviewData.questions.length - 1" class="nav-btn">
-              Next →
-            </button>
-          </div>
-
-          <div class="question-content">
-            <h4 [innerHTML]="currentQuestion.questionText"></h4>
-
-            <!-- Options Display -->
-            <div *ngFor="let option of currentQuestion.options; let j = index" class="option"
-              [ngClass]="{
-                'selected-user': isOptionSelected(currentQuestion, String(j)),
-                'correct-answer-option': isCorrectOption(currentQuestion, option._id),
-                'incorrect-user-selection': isOptionSelected(currentQuestion, String(j)) && !isCorrectOption(currentQuestion, option._id)
-              }">
-              <span class="option-letter">{{ String.fromCharCode(65 + j) }}.</span>
-              <span [innerHTML]="option.text"></span>
-              <!-- Visual indicators for each option -->
-              <span *ngIf="isOptionSelected(currentQuestion, String(j)) && isCorrectOption(currentQuestion, option._id)" class="feedback-icon correct-pick">
-                ✔️ Your Pick (Correct)
-              </span>
-              <span *ngIf="isOptionSelected(currentQuestion, String(j)) && !isCorrectOption(currentQuestion, option._id)" class="feedback-icon incorrect-pick">
-                ❌ Your Pick (Incorrect)
-              </span>
-              <span *ngIf="!isOptionSelected(currentQuestion, String(j)) && isCorrectOption(currentQuestion, option._id)" class="feedback-icon actual-correct">
-                ✔️ Correct Answer
-              </span>
-            </div>
-
-            <!-- Display User's Answer and Correct Answer Text -->
-            <div class="answer-summary">
-              <div class="user-answer-text">
-                <strong>Your Answer:</strong>
-                <ng-container *ngIf="currentQuestion.status === 'unanswered' || !(currentQuestion.userSelectedOptionTexts && currentQuestion.userSelectedOptionTexts.length > 0)">
-                  <span>Not Attempted</span>
-                </ng-container>
-                <ng-container *ngIf="currentQuestion.status !== 'unanswered' && currentQuestion.userSelectedOptionTexts && currentQuestion.userSelectedOptionTexts.length > 0">
-                  <span *ngFor="let userAnswerText of currentQuestion.userSelectedOptionTexts; let last = last">
-                    <span [innerHTML]="userAnswerText"></span>{{ !last ? ', ' : '' }}
-                  </span>
-                </ng-container>
-              </div>
-
-              <div class="correct-answer-text">
-                <strong>Correct Answer:</strong>
-                <span *ngIf="currentQuestion.correctOptionTexts && currentQuestion.correctOptionTexts.length > 0; else noCorrectAnswerText">
-                  <span *ngFor="let correctAnswerText of currentQuestion.correctOptionTexts; let last = last">
-                    <span [innerHTML]="correctAnswerText"></span>{{ !last ? ', ' : '' }}
-                  </span>
-                </span>
-                <ng-template #noCorrectAnswerText><span>Not Available</span></ng-template>
-              </div>
-            </div>
-
-            <div class="question-performance-details">
-              <p>
-                ⏱️ Time Taken: 
-                <span *ngIf="getCurrentQuestion()!.timeSpent > 0; else noTimeSpent">{{ formatTime(getCurrentQuestion()!.timeSpent) }}</span>
-                <ng-template #noTimeSpent>Not recorded</ng-template>
-                <small *ngIf="getCurrentQuestion()!.estimatedTime && getCurrentQuestion()!.estimatedTime! > 0">
-                  (Expected: {{ formatTime(getCurrentQuestion()!.estimatedTime!) }})
-                </small>
-                <small *ngIf="!getCurrentQuestion()!.estimatedTime || getCurrentQuestion()!.estimatedTime === 0">
-                  (Expected time not set)
-                </small>
-              </p>
-            </div>
-
-            <button (click)="showExplanation = !showExplanation" class="toggle-explanation-btn" [disabled]="!(getCurrentQuestion()?.explanations && getCurrentQuestion()!.explanations.length > 0)">
-              {{ showExplanation ? 'Hide' : 'Show' }} Explanation(s)
-              <span *ngIf="!(getCurrentQuestion()?.explanations && getCurrentQuestion()!.explanations.length > 0)">(None Available)</span>
-            </button>
-
-            <div *ngIf="showExplanation && getCurrentQuestion()?.explanations && getCurrentQuestion()!.explanations.length > 0" class="explanation-section">
-              <h5>Explanation(s)</h5>
-              <ng-container *ngIf="getCurrentQuestion()?.explanations && getCurrentQuestion()!.explanations.length > 0; else noExplanationContent">
-                <div *ngFor="let exp of getCurrentQuestion()!.explanations; let k = index" class="explanation-item">
-                  <p *ngIf="getCurrentQuestion()!.explanations.length > 1"><strong>Explanation {{ k + 1 }}:</strong></p>
-                  <div [innerHTML]="exp.content || exp.text || 'No content for this explanation.'"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Question List -->
+          <div class="bg-white rounded-lg shadow-md p-4 max-h-96 overflow-y-auto">
+            <h3 class="text-lg font-semibold mb-4">Questions</h3>
+            <div class="space-y-2">
+              <div 
+                *ngFor="let question of getFilteredQuestions(); let i = index"
+                (click)="goToQuestion(reviewData.questions.indexOf(question))"
+                class="p-3 rounded-lg border cursor-pointer transition-colors"
+                [ngClass]="{
+                  'border-green-200 bg-green-50': getQuestionStatus(question) === 'correct',
+                  'border-red-200 bg-red-50': getQuestionStatus(question) === 'incorrect',
+                  'border-gray-200 bg-gray-50': getQuestionStatus(question) === 'unanswered',
+                  'border-blue-200 bg-blue-50': currentQuestionIndex === reviewData.questions.indexOf(question)
+                }">
+                
+                <div class="flex items-center justify-between mb-2">
+                  <span class="font-medium">Q{{ reviewData.questions.indexOf(question) + 1 }}</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs px-2 py-1 rounded-full"
+                      [ngClass]="{
+                        'bg-green-100 text-green-800': getQuestionStatus(question) === 'correct',
+                        'bg-red-100 text-red-800': getQuestionStatus(question) === 'incorrect',
+                        'bg-gray-100 text-gray-800': getQuestionStatus(question) === 'unanswered'
+                      }">
+                      {{ getQuestionStatus(question) | titlecase }}
+                    </span>
+                    <span *ngIf="question.flagged" class="text-yellow-500">🚩</span>
+                    <span class="text-xs px-2 py-1 rounded-full"
+                      [ngClass]="{
+                        'bg-green-100 text-green-800': question.difficulty === 'Easy',
+                        'bg-yellow-100 text-yellow-800': question.difficulty === 'Medium',
+                        'bg-red-100 text-red-800': question.difficulty === 'Hard'
+                      }">
+                      {{ question.difficulty }}
+                    </span>
+                  </div>
                 </div>
-              </ng-container>
-              <ng-template #noExplanationContent>
-                <p>No explanation available for this question.</p>
-              </ng-template>
-            </div>
-
-            <div class="question-history-section">
-              <h5>Question History</h5>
-              <ul *ngIf="getCurrentQuestion()?.questionHistory && getCurrentQuestion()!.questionHistory!.length > 0; else noHistoryContent">
-                <li *ngFor="let historyItem of getCurrentQuestion()!.questionHistory">
-                  {{ historyItem.date | date }}: {{ historyItem.outcome }} ({{ formatTime(historyItem.timeTaken) }})
-                </li>
-              </ul>
-              <ng-template #noHistoryContent>
-                <p>No past performance history available for this question.</p>
-              </ng-template>
+                
+                <div class="flex items-center justify-between text-sm text-gray-600">
+                  <span>⏱️ {{ formatTime(question.timeSpent) }}</span>
+                  <span>{{ question.earned }}/{{ question.marks }} marks</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="question-feedback">
-            <h5>Your Feedback</h5>
-            <div class="feedback-item" *ngFor="let fb of getCurrentQuestion()!.feedback">
-              <div class="feedback-type" [ngClass]="{'positive': fb.type === 'correct', 'negative': fb.type === 'incorrect'}">
-                {{ fb.type === 'correct' ? '✔️ Correct' : '❌ Incorrect' }}
+          <!-- Question Detail View -->
+          <div *ngIf="getCurrentQuestion() as currentQuestion" class="bg-white rounded-lg shadow-md p-6">
+            <!-- Question Navigation -->
+            <div class="flex items-center justify-between mb-6">
+              <button (click)="prevQuestion()" [disabled]="currentQuestionIndex === 0" 
+                class="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed">
+                ← Previous
+              </button>
+              <span class="font-medium">
+                Question {{ currentQuestionIndex + 1 }} of {{ reviewData.questions.length }}
+              </span>
+              <button (click)="nextQuestion()" [disabled]="currentQuestionIndex === reviewData.questions.length - 1" 
+                class="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed">
+                Next →
+              </button>
+            </div>
+
+            <!-- Question Content -->
+            <div class="space-y-6">
+              <h4 class="text-lg font-medium" [innerHTML]="currentQuestion.questionText"></h4>
+
+              <!-- Options Display -->
+              <div class="space-y-3">
+                <div *ngFor="let option of currentQuestion.options; let j = index" 
+                  class="p-3 rounded-lg border"
+                  [ngClass]="{
+                    'border-blue-300 bg-blue-50': isOptionSelected(currentQuestion, String(j)) && isCorrectOption(currentQuestion, option._id),
+                    'border-red-300 bg-red-50': isOptionSelected(currentQuestion, String(j)) && !isCorrectOption(currentQuestion, option._id),
+                    'border-green-300 bg-green-50': !isOptionSelected(currentQuestion, String(j)) && isCorrectOption(currentQuestion, option._id),
+                    'border-gray-200': !isOptionSelected(currentQuestion, String(j)) && !isCorrectOption(currentQuestion, option._id)
+                  }">
+                  
+                  <div class="flex items-start gap-3">
+                    <span class="font-medium">{{ String.fromCharCode(65 + j) }}.</span>
+                    <span class="flex-1" [innerHTML]="option.text"></span>
+                    
+                    <span *ngIf="isOptionSelected(currentQuestion, String(j)) && isCorrectOption(currentQuestion, option._id)" 
+                      class="text-green-600 text-sm">
+                      ✔️ Your Pick (Correct)
+                    </span>
+                    <span *ngIf="isOptionSelected(currentQuestion, String(j)) && !isCorrectOption(currentQuestion, option._id)" 
+                      class="text-red-600 text-sm">
+                      ❌ Your Pick (Incorrect)
+                    </span>
+                    <span *ngIf="!isOptionSelected(currentQuestion, String(j)) && isCorrectOption(currentQuestion, option._id)" 
+                      class="text-green-600 text-sm">
+                      ✔️ Correct Answer
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div class="feedback-content">
-                <div [innerHTML]="fb.text"></div>
+
+              <!-- Answer Summary -->
+              <div class="bg-gray-50 p-4 rounded-lg space-y-3">
+                <div>
+                  <strong class="text-gray-700">Your Answer:</strong>
+                  <div class="mt-1">
+                    <ng-container *ngIf="currentQuestion.status === 'unanswered' || !(currentQuestion.userSelectedOptionTexts && currentQuestion.userSelectedOptionTexts.length > 0)">
+                      <span class="text-gray-500">Not Attempted</span>
+                    </ng-container>
+                    <ng-container *ngIf="currentQuestion.status !== 'unanswered' && currentQuestion.userSelectedOptionTexts && currentQuestion.userSelectedOptionTexts.length > 0">
+                      <span *ngFor="let userAnswerText of currentQuestion.userSelectedOptionTexts; let last = last">
+                        <span [innerHTML]="userAnswerText"></span>{{ !last ? ', ' : '' }}
+                      </span>
+                    </ng-container>
+                  </div>
+                </div>
+
+                <div>
+                  <strong class="text-gray-700">Correct Answer:</strong>
+                  <div class="mt-1">
+                    <span *ngIf="currentQuestion.correctOptionTexts && currentQuestion.correctOptionTexts.length > 0; else noCorrectAnswerText">
+                      <span *ngFor="let correctAnswerText of currentQuestion.correctOptionTexts; let last = last">
+                        <span [innerHTML]="correctAnswerText"></span>{{ !last ? ', ' : '' }}
+                      </span>
+                    </span>
+                    <ng-template #noCorrectAnswerText><span class="text-gray-500">Not Available</span></ng-template>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Question Performance Details -->
+              <div class="bg-blue-50 p-4 rounded-lg">
+                <p class="text-sm">
+                  ⏱️ <strong>Time Taken:</strong> 
+                  <span *ngIf="getCurrentQuestion()!.timeSpent > 0; else noTimeSpent">{{ formatTime(getCurrentQuestion()!.timeSpent) }}</span>
+                  <ng-template #noTimeSpent>Not recorded</ng-template>
+                  <span class="text-gray-600 ml-2" *ngIf="getCurrentQuestion()!.estimatedTime && getCurrentQuestion()!.estimatedTime! > 0">
+                    (Expected: {{ formatTime(getCurrentQuestion()!.estimatedTime!) }})
+                  </span>
+                </p>
+              </div>
+
+              <!-- Explanation Toggle -->
+              <button (click)="showExplanation = !showExplanation" 
+                class="btn-secondary w-full" 
+                [disabled]="!(getCurrentQuestion()?.explanations && getCurrentQuestion()!.explanations.length > 0)">
+                {{ showExplanation ? 'Hide' : 'Show' }} Explanation
+                <span *ngIf="!(getCurrentQuestion()?.explanations && getCurrentQuestion()!.explanations.length > 0)">(None Available)</span>
+              </button>
+
+              <!-- Explanation Section -->
+              <div *ngIf="showExplanation && getCurrentQuestion()?.explanations && getCurrentQuestion()!.explanations.length > 0" 
+                class="bg-yellow-50 p-4 rounded-lg">
+                <h5 class="font-semibold text-gray-800 mb-3">Explanation</h5>
+                <ng-container *ngIf="getCurrentQuestion()?.explanations && getCurrentQuestion()!.explanations.length > 0; else noExplanationContent">
+                  <div *ngFor="let exp of getCurrentQuestion()!.explanations; let k = index" class="mb-3 last:mb-0">
+                    <p *ngIf="getCurrentQuestion()!.explanations.length > 1" class="font-medium mb-2">Explanation {{ k + 1 }}:</p>
+                    <div [innerHTML]="exp.content || exp.text || 'No content for this explanation.'"></div>
+                  </div>
+                </ng-container>
+                <ng-template #noExplanationContent>
+                  <p class="text-gray-600">No explanation available for this question.</p>
+                </ng-template>
+              </div>
+
+              <!-- Question History -->
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <h5 class="font-semibold text-gray-800 mb-3">Question History</h5>
+                <ul *ngIf="getCurrentQuestion()?.questionHistory && getCurrentQuestion()!.questionHistory!.length > 0; else noHistoryContent" class="space-y-1">
+                  <li *ngFor="let historyItem of getCurrentQuestion()!.questionHistory" class="text-sm text-gray-600">
+                    {{ historyItem.date | date }}: {{ historyItem.outcome }} ({{ formatTime(historyItem.timeTaken) }})
+                  </li>
+                </ul>
+                <ng-template #noHistoryContent>
+                  <p class="text-gray-600 text-sm">No past performance history available for this question.</p>
+                </ng-template>
+              </div>              <!-- Question Feedback -->
+              <div *ngIf="getCurrentQuestion()?.feedback?.length" class="space-y-3">
+                <h5 class="font-semibold text-gray-800">Your Feedback</h5>
+                <div *ngFor="let fb of getCurrentQuestion()!.feedback" 
+                  class="p-3 rounded-lg"
+                  [ngClass]="{
+                    'bg-green-50 border border-green-200': fb.type === 'correct',
+                    'bg-red-50 border border-red-200': fb.type === 'incorrect'
+                  }">
+                  <div class="flex items-center gap-2 mb-2">
+                    <span [ngClass]="{
+                      'text-green-600': fb.type === 'correct',
+                      'text-red-600': fb.type === 'incorrect'
+                    }">
+                      {{ fb.type === 'correct' ? '✔️ Correct' : '❌ Incorrect' }}
+                    </span>
+                  </div>
+                  <div [innerHTML]="fb.text"></div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>      <!-- Analytics Tab -->
-      <div *ngIf="activeTab === 'analytics'" class="analytics-tab">
-        <div *ngIf="reviewData" class="analytics-content">
-          <h2>Performance Analytics Dashboard</h2>
+      <div *ngIf="activeTab === 'analytics'" class="space-y-6">
+        <div *ngIf="reviewData">
+          <h2 class="text-2xl font-bold text-gray-800 mb-6">Performance Analytics Dashboard</h2>
           
           <!-- Key Metrics Row -->
-          <div class="metrics-row">
-            <div class="metric-card highlight">
-              <div class="metric-icon">🎯</div>
-              <div class="metric-content">
-                <h3>{{ reviewData.analytics.overall.accuracy | number:'1.1-1' }}%</h3>
-                <p>Overall Accuracy</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-lg">
+              <div class="flex items-center gap-3">
+                <div class="text-3xl">🎯</div>
+                <div>
+                  <h3 class="text-2xl font-bold">{{ reviewData.analytics.overall.accuracy | number:'1.1-1' }}%</h3>
+                  <p class="text-green-100">Overall Accuracy</p>
+                </div>
               </div>
             </div>
             
-            <div class="metric-card">
-              <div class="metric-icon">⏱️</div>
-              <div class="metric-content">
-                <h3>{{ formatTime(reviewData.analytics.overall.averageTimePerQuestion) }}</h3>
-                <p>Avg Time/Question</p>
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+              <div class="flex items-center gap-3">
+                <div class="text-3xl">⏱️</div>
+                <div>
+                  <h3 class="text-xl font-bold text-gray-800">{{ formatTime(reviewData.analytics.overall.averageTimePerQuestion) }}</h3>
+                  <p class="text-gray-600">Avg Time/Question</p>
+                </div>
               </div>
             </div>
             
-            <div class="metric-card">
-              <div class="metric-icon">🚩</div>
-              <div class="metric-content">
-                <h3>{{ reviewData.analytics.overall.flaggedCount }}</h3>
-                <p>Flagged Questions</p>
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
+              <div class="flex items-center gap-3">
+                <div class="text-3xl">🚩</div>
+                <div>
+                  <h3 class="text-xl font-bold text-gray-800">{{ reviewData.analytics.overall.flaggedCount }}</h3>
+                  <p class="text-gray-600">Flagged Questions</p>
+                </div>
               </div>
             </div>
             
-            <div class="metric-card">
-              <div class="metric-icon">⚡</div>
-              <div class="metric-content">
-                <h3>{{ reviewData.analytics.timeAnalysis.questionsOverTime }}</h3>
-                <p>Over Time Limit</p>
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-red-500">
+              <div class="flex items-center gap-3">
+                <div class="text-3xl">⚡</div>
+                <div>
+                  <h3 class="text-xl font-bold text-gray-800">{{ reviewData.analytics.timeAnalysis.questionsOverTime }}</h3>
+                  <p class="text-gray-600">Over Time Limit</p>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Charts Section -->
-          <div class="charts-grid">
-            <div class="chart-container">
-              <h3>Answer Distribution</h3>
-              <div class="chart-wrapper">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+              <h3 class="text-lg font-semibold mb-4">Answer Distribution</h3>
+              <div class="h-64 flex items-center justify-center">
                 <canvas #accuracyChart></canvas>
               </div>
             </div>
 
-            <div class="chart-container">
-              <h3>Time Analysis per Question</h3>
-              <div class="chart-wrapper">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+              <h3 class="text-lg font-semibold mb-4">Time Analysis per Question</h3>
+              <div class="h-64 flex items-center justify-center">
                 <canvas #timeChart></canvas>
               </div>
             </div>
 
-            <div class="chart-container">
-              <h3>Performance by Difficulty</h3>
-              <div class="chart-wrapper">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+              <h3 class="text-lg font-semibold mb-4">Performance by Difficulty</h3>
+              <div class="h-64 flex items-center justify-center">
                 <canvas #difficultyChart></canvas>
               </div>
             </div>
           </div>
 
           <!-- Subject Performance Section -->
-          <div class="subject-performance">
-            <h3>Subject-wise Performance</h3>
-            <div class="subject-cards">
+          <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+            <h3 class="text-xl font-semibold mb-4">Subject-wise Performance</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div 
                 *ngFor="let subject of getSubjectPerformanceData()" 
-                class="subject-card"
-                [ngClass]="subject.performance">
+                class="p-4 rounded-lg border"
+                [ngClass]="{
+                  'border-green-200 bg-green-50': subject.performance === 'excellent',
+                  'border-yellow-200 bg-yellow-50': subject.performance === 'good',
+                  'border-red-200 bg-red-50': subject.performance === 'needs-improvement'
+                }">
                 
-                <div class="subject-header">
-                  <h4>{{ subject.name }}</h4>
-                  <span class="accuracy-badge">{{ subject.accuracy }}%</span>
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="font-semibold text-gray-800">{{ subject.name }}</h4>
+                  <span class="px-2 py-1 rounded-full text-sm font-medium"
+                    [ngClass]="{
+                      'bg-green-100 text-green-800': subject.performance === 'excellent',
+                      'bg-yellow-100 text-yellow-800': subject.performance === 'good',
+                      'bg-red-100 text-red-800': subject.performance === 'needs-improvement'
+                    }">
+                    {{ subject.accuracy }}%
+                  </span>
                 </div>
                 
-                <div class="subject-stats">
-                  <div class="stat">
-                    <span class="label">Correct:</span>
-                    <span class="value correct">{{ subject.correct }}</span>
+                <div class="grid grid-cols-3 gap-3 text-sm mb-3">
+                  <div class="text-center">
+                    <div class="font-medium text-green-600">{{ subject.correct }}</div>
+                    <div class="text-gray-500">Correct</div>
                   </div>
-                  <div class="stat">
-                    <span class="label">Total:</span>
-                    <span class="value">{{ subject.total }}</span>
+                  <div class="text-center">
+                    <div class="font-medium text-gray-800">{{ subject.total }}</div>
+                    <div class="text-gray-500">Total</div>
                   </div>
-                  <div class="stat">
-                    <span class="label">Avg Time:</span>
-                    <span class="value">{{ formatTime(subject.avgTime) }}</span>
+                  <div class="text-center">
+                    <div class="font-medium text-blue-600">{{ formatTime(subject.avgTime) }}</div>
+                    <div class="text-gray-500">Avg Time</div>
                   </div>
                 </div>
                 
-                <div class="progress-bar">
-                  <div class="progress-fill" [style.width.%]="subject.accuracy"></div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    class="h-2 rounded-full transition-all duration-300"
+                    [ngClass]="{
+                      'bg-green-500': subject.performance === 'excellent',
+                      'bg-yellow-500': subject.performance === 'good',
+                      'bg-red-500': subject.performance === 'needs-improvement'
+                    }"
+                    [style.width.%]="subject.accuracy">
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Time Analysis Details -->
-          <div class="time-analysis-details">
-            <h3>Detailed Time Analysis</h3>
-            <div class="time-stats-grid">
-              <div class="time-stat">
-                <span class="time-label">Total Time Spent:</span>
-                <span class="time-value">{{ formatTime(reviewData.analytics.overall.timeSpent) }}</span>
+          <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+            <h3 class="text-xl font-semibold mb-4">Detailed Time Analysis</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div class="text-center p-4 border rounded-lg">
+                <div class="text-sm text-gray-600 mb-1">Total Time Spent</div>
+                <div class="text-lg font-semibold text-gray-800">{{ formatTime(reviewData.analytics.overall.timeSpent) }}</div>
               </div>
-              <div class="time-stat">
-                <span class="time-label">Fastest Question:</span>
-                <span class="time-value">{{ formatTime(reviewData.analytics.timeAnalysis.fastestQuestion) }}</span>
+              <div class="text-center p-4 border rounded-lg">
+                <div class="text-sm text-gray-600 mb-1">Fastest Question</div>
+                <div class="text-lg font-semibold text-green-600">{{ formatTime(reviewData.analytics.timeAnalysis.fastestQuestion) }}</div>
               </div>
-              <div class="time-stat">
-                <span class="time-label">Slowest Question:</span>
-                <span class="time-value">{{ formatTime(reviewData.analytics.timeAnalysis.slowestQuestion) }}</span>
+              <div class="text-center p-4 border rounded-lg">
+                <div class="text-sm text-gray-600 mb-1">Slowest Question</div>
+                <div class="text-lg font-semibold text-red-600">{{ formatTime(reviewData.analytics.timeAnalysis.slowestQuestion) }}</div>
               </div>
-              <div class="time-stat">
-                <span class="time-label">Questions Over Time:</span>
-                <span class="time-value">{{ reviewData.analytics.timeAnalysis.questionsOverTime }} questions</span>
+              <div class="text-center p-4 border rounded-lg">
+                <div class="text-sm text-gray-600 mb-1">Questions Over Time</div>
+                <div class="text-lg font-semibold text-orange-600">{{ reviewData.analytics.timeAnalysis.questionsOverTime }}</div>
               </div>
             </div>
           </div>
 
           <!-- Performance Insights -->
-          <div class="performance-insights">
-            <h3>Performance Insights</h3>
-            <div class="insights-grid">
-              <div class="insight-card" *ngFor="let insight of getPerformanceInsights()">
-                <div class="insight-icon" [ngClass]="insight.type">{{ insight.icon }}</div>
-                <div class="insight-content">
-                  <h4>{{ insight.title }}</h4>
-                  <p>{{ insight.description }}</p>
+          <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-semibold mb-4">Performance Insights</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div *ngFor="let insight of getPerformanceInsights()" 
+                class="p-4 rounded-lg border-l-4"
+                [ngClass]="{
+                  'border-green-400 bg-green-50': insight.type === 'positive',
+                  'border-yellow-400 bg-yellow-50': insight.type === 'warning',
+                  'border-red-400 bg-red-50': insight.type === 'negative',
+                  'border-blue-400 bg-blue-50': insight.type === 'info'
+                }">
+                <div class="flex items-start gap-3">
+                  <span class="text-2xl">{{ insight.icon }}</span>
+                  <div>
+                    <h4 class="font-medium text-gray-800 mb-1">{{ insight.title }}</h4>
+                    <p class="text-sm text-gray-600">{{ insight.description }}</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>      <!-- Recommendations Tab -->
-      <div *ngIf="activeTab === 'recommendations'" class="recommendations-tab">
-        <h3>Study Recommendations</h3>
+      <div *ngIf="activeTab === 'recommendations'" class="space-y-6">
+        <h3 class="text-2xl font-bold text-gray-800">Study Recommendations</h3>
         
         <!-- Performance Level -->
-        <div class="performance-level">
-          <div class="level-indicator" [ngClass]="getPerformanceLevel().toLowerCase().replace(' ', '-')">
-            {{ getPerformanceLevelIcon() }} {{ getPerformanceLevel() }}
-          </div>
-          <div class="level-description">
-            {{ getPerformanceLevelDescription() }}
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="text-4xl">{{ getPerformanceLevelIcon() }}</div>
+            <div>
+              <div class="text-xl font-bold"
+                [ngClass]="{
+                  'text-green-600': getPerformanceLevel().toLowerCase().includes('excellent'),
+                  'text-yellow-600': getPerformanceLevel().toLowerCase().includes('good'),
+                  'text-red-600': getPerformanceLevel().toLowerCase().includes('needs')
+                }">
+                {{ getPerformanceLevel() }}
+              </div>
+              <div class="text-gray-600">{{ getPerformanceLevelDescription() }}</div>
+            </div>
           </div>
         </div>
 
         <!-- Recommendations Grid -->
-        <div class="recommendations-grid">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <!-- Priority Areas -->
-          <div class="recommendation-section">
-            <h4>🔥 Priority Areas</h4>
-            <div class="priority-areas">
-              <div *ngFor="let area of getPriorityAreas()" class="priority-item">
+          <div class="bg-white p-6 rounded-lg shadow-md">
+            <h4 class="text-lg font-semibold mb-4 flex items-center gap-2">
+              <span>🔥</span> Priority Areas
+            </h4>
+            <div class="space-y-3">
+              <div *ngFor="let area of getPriorityAreas()" 
+                class="flex items-center justify-between p-3 rounded-lg border">
                 <div>
-                  <div class="area-name">{{ area.subject }}</div>
-                  <div style="font-size: 0.9em; color: #6c757d;">{{ area.accuracy | number:'1.1-1' }}% accuracy</div>
+                  <div class="font-medium text-gray-800">{{ area.subject }}</div>
+                  <div class="text-sm text-gray-600">{{ area.accuracy | number:'1.1-1' }}% accuracy</div>
                 </div>
-                <span class="priority-badge" [ngClass]="area.priority.toLowerCase()">{{ area.priority }}</span>
+                <span class="px-2 py-1 rounded-full text-xs font-medium"
+                  [ngClass]="{
+                    'bg-red-100 text-red-800': area.priority.toLowerCase() === 'high',
+                    'bg-yellow-100 text-yellow-800': area.priority.toLowerCase() === 'medium',
+                    'bg-green-100 text-green-800': area.priority.toLowerCase() === 'low'
+                  }">
+                  {{ area.priority }}
+                </span>
               </div>
             </div>
           </div>
 
           <!-- Time Management Tips -->
-          <div class="recommendation-section">
-            <h4>⏰ Time Management</h4>
-            <ul class="tips-list">
-              <li *ngFor="let tip of getTimeManagementTips()">
-                <div class="tip-title">{{ tip.tip }}</div>
-                <div class="tip-reason">{{ tip.reason }}</div>
+          <div class="bg-white p-6 rounded-lg shadow-md">
+            <h4 class="text-lg font-semibold mb-4 flex items-center gap-2">
+              <span>⏰</span> Time Management
+            </h4>
+            <ul class="space-y-3">
+              <li *ngFor="let tip of getTimeManagementTips()" class="p-3 bg-blue-50 rounded-lg">
+                <div class="font-medium text-blue-800 mb-1">{{ tip.tip }}</div>
+                <div class="text-sm text-blue-600">{{ tip.reason }}</div>
               </li>
             </ul>
           </div>
 
           <!-- Strengths -->
-          <div class="recommendation-section">
-            <h4>💪 Your Strengths</h4>
-            <ul class="strengths-list">
-              <li *ngFor="let strength of getStrengths()">
-                <div class="strength-area">{{ strength.area }}</div>
-                <div class="strength-description">{{ strength.description }}</div>
+          <div class="bg-white p-6 rounded-lg shadow-md">
+            <h4 class="text-lg font-semibold mb-4 flex items-center gap-2">
+              <span>💪</span> Your Strengths
+            </h4>
+            <ul class="space-y-3">
+              <li *ngFor="let strength of getStrengths()" class="p-3 bg-green-50 rounded-lg">
+                <div class="font-medium text-green-800 mb-1">{{ strength.area }}</div>
+                <div class="text-sm text-green-600">{{ strength.description }}</div>
               </li>
             </ul>
           </div>
 
           <!-- Practice Recommendations -->
-          <div class="recommendation-section">
-            <h4>📝 Practice Focus</h4>
-            <ul class="practice-list">
-              <li *ngFor="let practice of getPracticeRecommendations()">
-                <div class="practice-title">{{ practice.title }}</div>
-                <div class="practice-description">{{ practice.description }}</div>
-                <span class="practice-priority" [ngClass]="practice.priority.toLowerCase()">{{ practice.priority }} Priority</span>
+          <div class="bg-white p-6 rounded-lg shadow-md">
+            <h4 class="text-lg font-semibold mb-4 flex items-center gap-2">
+              <span>📝</span> Practice Focus
+            </h4>
+            <ul class="space-y-3">
+              <li *ngFor="let practice of getPracticeRecommendations()" class="p-3 rounded-lg border">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="font-medium text-gray-800">{{ practice.title }}</div>
+                  <span class="px-2 py-1 rounded-full text-xs font-medium"
+                    [ngClass]="{
+                      'bg-red-100 text-red-800': practice.priority.toLowerCase() === 'high',
+                      'bg-yellow-100 text-yellow-800': practice.priority.toLowerCase() === 'medium',
+                      'bg-green-100 text-green-800': practice.priority.toLowerCase() === 'low'
+                    }">
+                    {{ practice.priority }} Priority
+                  </span>
+                </div>
+                <div class="text-sm text-gray-600">{{ practice.description }}</div>
               </li>
             </ul>
           </div>
         </div>
 
         <!-- Study Schedule -->
-        <div class="study-schedule">
-          <h4>📅 7-Day Study Schedule</h4>
-          <div class="schedule-grid">
-            <div *ngFor="let day of getStudySchedule()" class="schedule-day">
-              <div class="day-title">{{ day.day }}</div>
-              <div class="day-focus">{{ day.focus }}</div>
-              <ul class="day-activities">
-                <li *ngFor="let activity of day.activities">{{ activity }}</li>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <h4 class="text-lg font-semibold mb-4 flex items-center gap-2">
+            <span>📅</span> 7-Day Study Schedule
+          </h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
+            <div *ngFor="let day of getStudySchedule()" class="p-4 border rounded-lg hover:shadow-md transition-shadow">
+              <div class="font-semibold text-primary mb-2">{{ day.day }}</div>
+              <div class="text-sm font-medium text-gray-800 mb-2">{{ day.focus }}</div>
+              <ul class="text-xs text-gray-600 space-y-1">
+                <li *ngFor="let activity of day.activities" class="flex items-start gap-1">
+                  <span class="text-primary">•</span>
+                  <span>{{ activity }}</span>
+                </li>
               </ul>
             </div>
           </div>
         </div>
 
         <!-- Next Steps -->
-        <div class="next-steps">
-          <h4>🎯 Immediate Next Steps</h4>
-          <ol class="steps-list">
-            <li *ngFor="let step of getNextSteps(); let i = index" class="step-item">
-              <div class="step-number">{{ i + 1 }}</div>
-              <div class="step-content">
-                <div class="step-action">{{ step.action }}</div>
-                <div class="step-description">{{ step.description }}</div>
-                <div class="step-timeframe">{{ step.timeframe }}</div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <h4 class="text-lg font-semibold mb-4 flex items-center gap-2">
+            <span>🎯</span> Immediate Next Steps
+          </h4>
+          <ol class="space-y-4">
+            <li *ngFor="let step of getNextSteps(); let i = index" class="flex gap-4">
+              <div class="flex-shrink-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium">
+                {{ i + 1 }}
+              </div>
+              <div class="flex-1 pb-4">
+                <div class="font-medium text-gray-800 mb-1">{{ step.action }}</div>
+                <div class="text-sm text-gray-600 mb-2">{{ step.description }}</div>
+                <div class="text-xs text-primary font-medium">{{ step.timeframe }}</div>
               </div>
             </li>
           </ol>

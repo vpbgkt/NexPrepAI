@@ -1,125 +1,139 @@
 <!-- Chat bubble container -->
-<div class="chat-bubble-container" [class.minimized]="isMinimized" [class.expanded]="!isMinimized">
+<div class="fixed transition-all duration-300 ease-out z-[1000] font-sans"
+     [class]="isMinimized ? 'bottom-4 right-4 w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16' : 'bottom-4 right-4 w-80 h-96 sm:w-96 sm:h-[500px] md:w-[450px] md:h-[600px] lg:bottom-5 lg:right-5 max-sm:!w-[calc(100vw-2rem)] max-sm:!h-[calc(100vh-4rem)] max-sm:!left-4 max-sm:!right-4 max-sm:!bottom-4 max-sm:!top-4'">
   
   <!-- Chat toggle button (visible when minimized) -->
-  <div class="chat-toggle-button" 
+  <div class="w-full h-full bg-gradient-to-br from-primary-500 to-purple-600 rounded-full flex items-center justify-center cursor-pointer text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 relative" 
        *ngIf="isMinimized" 
        (click)="toggleChat()"
-       [class.has-unread]="hasUnreadMessages">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+       [class.ring-4]="hasUnreadMessages"
+       [class.ring-red-400]="hasUnreadMessages"
+       [class.animate-pulse]="hasUnreadMessages">
+    <svg class="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2ZM20 16H5.17L4 17.17V4H20V16Z" fill="currentColor"/>
       <circle cx="12" cy="10" r="2" fill="currentColor"/>
     </svg>
-    <div class="unread-badge" *ngIf="hasUnreadMessages">{{unreadCount}}</div>
+    <div class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium min-w-[1.25rem] px-1" *ngIf="hasUnreadMessages">{{unreadCount > 99 ? '99+' : unreadCount}}</div>
   </div>
 
   <!-- Expanded chat window -->
-  <div class="chat-window" *ngIf="!isMinimized">
+  <div class="bg-white rounded-xl shadow-2xl flex flex-col h-full overflow-hidden border border-gray-200" *ngIf="!isMinimized">
       <!-- Chat header -->
-    <div class="chat-header">
-      <div class="chat-title">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div class="bg-gradient-to-r from-primary-500 to-purple-600 text-white p-3 md:p-4 flex items-center justify-between rounded-t-xl">
+      <div class="flex items-center space-x-2 md:space-x-3">
+        <svg class="w-4 h-4 md:w-5 md:h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="currentColor"/>
         </svg>
-        <span>NexPrep Live Discussion</span>
-        <div class="online-indicator" *ngIf="username"></div>
+        <span class="font-medium text-sm md:text-base">NexPrep Live Discussion</span>
+        <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse" *ngIf="username" title="Online"></div>
       </div>
-      <button class="minimize-button" (click)="toggleChat()" aria-label="Minimize chat">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <button class="p-1 hover:bg-white/20 rounded-lg transition-colors duration-200" (click)="toggleChat()" aria-label="Minimize chat">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
       </button>
     </div>
 
     <!-- Connection status -->
-    <div class="connection-status" *ngIf="!username">
-      <div class="status-message">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div class="p-3 md:p-4 bg-yellow-50 border-b border-yellow-200" *ngIf="!username">
+      <div class="flex items-center space-x-2 text-yellow-800">
+        <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
           <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
-        Please log in to join the chat
+        <span class="text-sm">Please log in to join the chat</span>
       </div>
     </div>
 
     <!-- Connection status for logged-in users -->
-    <div class="connection-status" *ngIf="username && (!isConnected() || isReconnecting())">
-      <div class="status-message reconnecting" *ngIf="isReconnecting()">
-        <div class="loading-spinner"></div>
-        Reconnecting... (Attempt {{getReconnectAttempts()}}/5)
+    <div class="p-3 md:p-4 border-b" *ngIf="username && (!isConnected() || isReconnecting())" [class]="isReconnecting() ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'">
+      <div class="flex items-center space-x-2" *ngIf="isReconnecting()" [class]="isReconnecting() ? 'text-blue-800' : 'text-red-800'">
+        <div class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+        <span class="text-sm">Reconnecting... (Attempt {{getReconnectAttempts()}}/5)</span>
       </div>
-      <div class="status-message error" *ngIf="!isConnected() && !isReconnecting()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <div class="flex items-center space-x-2 text-red-800" *ngIf="!isConnected() && !isReconnecting()">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
           <path d="M12 8v4m0 4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
-        Connection lost. Checking connection...
+        <span class="text-sm">Connection lost. Checking connection...</span>
       </div>
     </div>
 
     <!-- Error display -->
-    <div class="error-message" *ngIf="error">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-        <path d="M15 9l-6 6m0-6l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-      {{error}}
+    <div class="p-3 md:p-4 bg-red-50 border-b border-red-200" *ngIf="error">
+      <div class="flex items-center space-x-2 text-red-800">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          <path d="M15 9l-6 6m0-6l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span class="text-sm">{{error}}</span>
+      </div>
     </div>
 
     <!-- Messages area -->
-    <div class="messages-area" #messagesArea *ngIf="username">
+    <div class="flex-1 overflow-y-auto p-2 md:p-3 space-y-2 md:space-y-3 messages-area" #messagesArea *ngIf="username">
       <div *ngFor="let msg of messages; trackBy: trackByMessage" 
-           class="message" 
-           [class.my-message]="msg.username === username" 
-           [class.other-message]="msg.username !== username">
-        <div class="message-content">
-          <div class="message-header" *ngIf="msg.username !== username">
-            <span class="username">{{msg.username}}</span>
-            <span class="timestamp">{{msg.timestamp | date:'shortTime'}}</span>
+           class="flex"
+           [class.justify-end]="msg.username === username"
+           [class.justify-start]="msg.username !== username">
+        <div class="max-w-[75%] md:max-w-[80%]">
+          <!-- Other user's message -->
+          <div *ngIf="msg.username !== username" class="space-y-1">
+            <div class="flex items-center space-x-2 text-xs text-gray-500 px-2">
+              <span class="font-medium">{{msg.username}}</span>
+              <span>{{msg.timestamp | date:'shortTime'}}</span>
+            </div>
+            <div class="bg-gray-100 text-gray-800 rounded-2xl rounded-tl-sm px-3 py-2 md:px-4 md:py-2">
+              <p class="text-sm md:text-base break-words">{{msg.text}}</p>
+            </div>
           </div>
-          <div class="message-text">{{msg.text}}</div>
-          <div class="message-time" *ngIf="msg.username === username">
-            {{msg.timestamp | date:'shortTime'}}
+          
+          <!-- Own message -->
+          <div *ngIf="msg.username === username" class="space-y-1">
+            <div class="bg-gradient-to-r from-primary-500 to-purple-600 text-white rounded-2xl rounded-tr-sm px-3 py-2 md:px-4 md:py-2">
+              <p class="text-sm md:text-base break-words">{{msg.text}}</p>
+            </div>
+            <div class="text-xs text-gray-500 text-right px-2">
+              {{msg.timestamp | date:'shortTime'}}
+            </div>
           </div>
         </div>
       </div>
       
-      <div *ngIf="messages.length === 0" class="no-messages">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <div *ngIf="messages.length === 0" class="flex flex-col items-center justify-center h-full text-gray-400 space-y-3">
+        <svg class="w-12 h-12 md:w-16 md:h-16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" stroke="currentColor" stroke-width="1.5"/>
         </svg>
-        <p>No messages yet</p>
-        <span>Be the first to say something!</span>
+        <div class="text-center">
+          <p class="font-medium text-sm md:text-base">No messages yet</p>
+          <span class="text-xs md:text-sm">Be the first to say something!</span>
+        </div>
       </div>
-    </div>    <!-- Input area -->
-    <div class="input-area" *ngIf="username">
-      <div class="input-container">
+    </div>
+
+    <!-- Input area -->
+    <div class="p-3 md:p-4 border-t border-gray-200 bg-gray-50" *ngIf="username">
+      <div class="flex items-center space-x-2 md:space-x-3">
         <input type="text" 
                [(ngModel)]="newMessage" 
                (keyup.enter)="sendMessage()"
                (focus)="markMessagesAsRead(); forceScrollToBottom()"
                placeholder="Type your message..."
                maxlength="500"
-               class="message-input">        <button class="send-button" 
+               class="flex-1 px-3 py-2 md:px-4 md:py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white text-sm md:text-base">
+        <button class="p-2 md:p-2.5 bg-gradient-to-r from-primary-500 to-purple-600 text-white rounded-full hover:from-primary-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105" 
                 (click)="sendMessage()" 
                 [disabled]="!newMessage.trim()"
                 aria-label="Send message">
-          <i class="fas fa-paper-plane"></i>
+          <i class="fas fa-paper-plane text-sm"></i>
         </button>
       </div>
-      <div class="character-count" *ngIf="newMessage.length > 400">
+      <div class="text-xs text-gray-500 mt-1 text-right" *ngIf="newMessage.length > 400">
         {{newMessage.length}}/500
       </div>
     </div>
 
-    <!-- Error message -->
-    <div class="error-message" *ngIf="error">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-        <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
-        <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
-      </svg>
-      <span>{{error}}</span>
-    </div>
+    <!-- Error message (duplicate removed as it's already shown above) -->
   </div>
 </div>

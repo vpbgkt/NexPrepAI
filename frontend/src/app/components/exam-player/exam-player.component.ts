@@ -149,10 +149,12 @@ interface PlayerSection {
   selector: 'app-exam-player',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
-  templateUrl: './exam-player.component.html',
-  styleUrls: ['./exam-player.component.scss']
+  templateUrl: './exam-player.component.html'
 })
 export class ExamPlayerComponent implements OnInit, OnDestroy {
+  // Make String constructor available in template
+  String = String;
+  
   /** @property {string} Test series unique identifier from route parameters */
   seriesId!: string;
   
@@ -731,8 +733,7 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
    * // - Start of section: moves to last question of previous section
    * // - First question: no movement (start of test)
    * ```
-   */
-  prev() {
+   */  prev() {
     this.updateQuestionTimeSpent(this.currentGlobalQuestionIndex); 
 
     if (this.currentQuestionInSectionIndex > 0) {
@@ -742,7 +743,7 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
       this.currentQuestionInSectionIndex = this.sections[this.currentSectionIndex].questions.length - 1;
     } else {
       // Already at the first question, do nothing
-      // this.currentGlobalQuestionIndex = this.getGlobalIndex(this.currentSectionIndex, this.currentQuestionInSectionIdx);
+      // this.currentGlobalQuestionIndex = this.getGlobalIndex(this.currentSectionIndex, this.currentQuestionInSectionIndex);
       // this.trackQuestionVisit(this.currentGlobalQuestionIndex); // Not needed if not moving
       return;
     }
@@ -1319,47 +1320,40 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
       this.cd.detectChanges(); 
     }
   }
+    /**
+   * @method markForReview
+   * @description Marks the current question for review by setting the flagged status.
+   */
+  markForReview(): void {
+    if (this.currentGlobalQuestionIndex >= 0) {
+      this.toggleQuestionFlag(this.currentGlobalQuestionIndex);
+    }
+  }
   
   /**
-   * @private
-   * @method attachAnswerChangeTracking
-   * @description Sets up reactive tracking for answer changes across all questions.
-   * Enables automatic analytics recording when users modify their responses.
-   * 
-   * @example
-   * ```typescript
-   * // Called after form initialization
-   * this.attachAnswerChangeTracking();
-   * // Sets up: valueChanges subscriptions for all question controls
-   * // Triggers: trackAnswerChange when answers are modified
-   * ```
+   * @method clearResponse
+   * @description Clears the response for the current question.
    */
-  private attachAnswerChangeTracking(): void {
-    this.responses.controls.forEach((control, index) => {
-      control.get('selected')?.valueChanges.pipe(distinctUntilChanged()).subscribe(() => {
-        this.trackAnswerChange(index);
-      });
-    });
+  clearResponse(): void {
+    if (this.currentGlobalQuestionIndex >= 0) {
+      const formCtrl = this.responses.at(this.currentGlobalQuestionIndex) as FormGroup;
+      if (formCtrl) {
+        formCtrl.get('selected')?.setValue(null);
+        formCtrl.get('lastModifiedAt')?.setValue(new Date().toISOString());
+        this.cd.detectChanges();
+      }
+    }
   }
-
   /**
    * @method ngOnDestroy
-   * @description Component cleanup lifecycle hook. Ensures proper resource cleanup
-   * and prevents memory leaks by stopping timers and unsubscribing from observables.
-   * 
-   * @example
-   * ```typescript
-   * // Automatically called by Angular framework when component is destroyed
-   * // Cleanup includes:
-   * // - RxJS subscriptions via destroy$ subject
-   * // - Timer interval clearance
-   * // - Resource cleanup logging
-   * ```
+   * @description Component cleanup lifecycle hook. Properly cleans up resources,
+   * stops timers, and prevents memory leaks.
    */
-  ngOnDestroy() {
+  ngOnDestroy(): void {
+    if (this.timerHandle) {
+      clearInterval(this.timerHandle);
+    }
     this.destroy$.next();
     this.destroy$.complete();
-    clearInterval(this.timerHandle); // Also clear the timer interval
-    console.log('ExamPlayerComponent destroyed, auto-save and timer stopped.');
   }
 }

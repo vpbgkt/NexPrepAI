@@ -19,7 +19,7 @@ interface GroupedTests {
   selector: 'app-test-list',
   standalone: true,
   templateUrl: './test-list.component.html',
-  styleUrls: ['./test-list.component.scss'],
+  styleUrls: [],
   imports: [CommonModule, RouterModule]
 })
 export class TestListComponent implements OnInit {

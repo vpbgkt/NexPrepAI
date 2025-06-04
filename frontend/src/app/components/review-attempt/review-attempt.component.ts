@@ -95,7 +95,7 @@ interface DisplayedSectionReview {
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './review-attempt.component.html',
-  styleUrls: ['./review-attempt.component.scss']
+  styleUrls: []
 })
 export class ReviewAttemptComponent implements OnInit {
   attemptId!: string;

@@ -9,8 +9,7 @@ import { FormsModule } from '@angular/forms';
   selector: 'app-global-chat',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './global-chat.component.html',
-  styleUrls: ['./global-chat.component.scss']
+  templateUrl: './global-chat.component.html'
 })
 export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('messagesArea') messagesArea: ElementRef<HTMLDivElement> | null = null;

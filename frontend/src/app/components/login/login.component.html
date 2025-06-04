@@ -1,38 +1,123 @@
-<div class="login-container">
-  <h2>Login to NexPrep</h2>
+<!-- Login Component - Tailwind CSS Responsive Design -->
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-md w-full space-y-8">
+    <!-- Login Card -->
+    <div class="bg-white rounded-xl shadow-2xl p-8">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <h2 class="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
+        <p class="text-gray-600">Sign in to your NexPrep account</p>
+      </div>
 
-  <!-- Traditional Email/Password Login -->
-  <form [formGroup]="form" (ngSubmit)="onSubmit()">
-    <div class="form-group">
-      <label for="email">Email</label>
-      <input type="email" id="email" placeholder="Enter your email" formControlName="email" required>
-      <div *ngIf="form.get('email')!.invalid && (form.get('email')!.dirty || form.get('email')!.touched)" class="error-message">
-        <span *ngIf="form.get('email')!.errors?.['required']">Email is required.</span>
-        <span *ngIf="form.get('email')!.errors?.['email']">Invalid email format.</span>
+      <!-- Traditional Email/Password Login Form -->
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+        <!-- Email Field -->
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+            Email Address
+          </label>
+          <input 
+            type="email" 
+            id="email" 
+            placeholder="Enter your email" 
+            formControlName="email" 
+            required
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 text-gray-900 placeholder-gray-500"
+            [class.border-red-500]="form.get('email')!.invalid && (form.get('email')!.dirty || form.get('email')!.touched)"
+          >
+          <div *ngIf="form.get('email')!.invalid && (form.get('email')!.dirty || form.get('email')!.touched)" 
+               class="mt-2 text-sm text-red-600">
+            <span *ngIf="form.get('email')!.errors?.['required']" class="flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              Email is required.
+            </span>
+            <span *ngIf="form.get('email')!.errors?.['email']" class="flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              Invalid email format.
+            </span>
+          </div>
+        </div>
+
+        <!-- Password Field -->
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+            Password
+          </label>
+          <input 
+            type="password" 
+            id="password" 
+            placeholder="Enter your password" 
+            formControlName="password" 
+            required
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 text-gray-900 placeholder-gray-500"
+            [class.border-red-500]="form.get('password')!.invalid && (form.get('password')!.dirty || form.get('password')!.touched)"
+          >
+          <div *ngIf="form.get('password')!.invalid && (form.get('password')!.dirty || form.get('password')!.touched)" 
+               class="mt-2 text-sm text-red-600">
+            <span *ngIf="form.get('password')!.errors?.['required']" class="flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              Password is required.
+            </span>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button 
+          type="submit" 
+          [disabled]="form.invalid"
+          class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
+          <span class="flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+            </svg>
+            Sign In
+          </span>
+        </button>
+      </form>
+
+      <!-- Divider -->
+      <div class="my-6">
+        <div class="relative">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-gray-300"></div>
+          </div>
+          <div class="relative flex justify-center text-sm">
+            <span class="px-4 bg-white text-gray-500 font-medium">OR</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Google Sign-In Button -->
+      <button 
+        type="button" 
+        (click)="signInWithGoogle()"
+        class="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+        <img src="assets/google-logo.png" alt="Google logo" class="w-5 h-5 mr-3">
+        Sign in with Google
+      </button>
+
+      <!-- Register Link -->
+      <div class="mt-6 text-center">
+        <p class="text-sm text-gray-600">
+          Don't have an account? 
+          <a routerLink="/register" class="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200">
+            Register here
+          </a>
+        </p>
       </div>
     </div>
 
-    <div class="form-group">
-      <label for="password">Password</label>
-      <input type="password" id="password" placeholder="Enter your password" formControlName="password" required>
-      <div *ngIf="form.get('password')!.invalid && (form.get('password')!.dirty || form.get('password')!.touched)" class="error-message">
-        <span *ngIf="form.get('password')!.errors?.['required']">Password is required.</span>
-      </div>
+    <!-- Additional Links -->
+    <div class="text-center">
+      <a href="#" class="text-sm text-gray-600 hover:text-gray-500 transition-colors duration-200">
+        Forgot your password?
+      </a>
     </div>
-
-    <button type="submit" class="btn btn-primary" [disabled]="form.invalid">Login</button>
-  </form>
-
-  <div class="social-login-divider">
-    <span>OR</span>
   </div>
-
-  <!-- Google Sign-In Button -->
-  <button type="button" class="btn btn-google" (click)="signInWithGoogle()">
-    <img src="assets/google-logo.png" alt="Google logo" class="google-logo"> Sign in with Google
-  </button>
-
-  <p class="register-link">
-    Don't have an account? <a routerLink="/register" class="auth-link">Register here</a>
-  </p>
 </div>

@@ -11,8 +11,7 @@ import { BackendUser } from '../../models/user.model';
   selector: 'app-student-dashboard',
   standalone: true,
   imports: [CommonModule, RouterModule],
-  templateUrl: './student-dashboard.component.html',
-  styleUrls: ['./student-dashboard.component.scss']
+  templateUrl: './student-dashboard.component.html'
 })
 export class StudentDashboardComponent implements OnInit {
   attempts: any[] = [];

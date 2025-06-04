@@ -1,367 +1,444 @@
-<div class="admin-rewards-container">
-  <div class="header">
-    <h1>Admin Rewards Management</h1>
-    <button class="create-btn" (click)="openCreateRewardModal()">Create New Reward</button>
-  </div>
-
-  <!-- Loading State -->
-  <div *ngIf="loading" class="loading-state">
-    <div class="loading-spinner"></div>
-    <p>Loading...</p>
-  </div>
-
-  <!-- Error State -->
-  <div *ngIf="error" class="error-state">
-    <p>{{ error }}</p>
-    <button (click)="loadData()" class="retry-btn">Retry</button>
-  </div>
-
-  <!-- Stats Overview -->
-  <div class="stats-grid" *ngIf="!loading && !error">
-    <div class="stat-card">
-      <div class="stat-icon total-rewards">🎁</div>
-      <div class="stat-content">
-        <h3>{{ rewards.length }}</h3>
-        <p>Total Rewards</p>
-      </div>
+<div class="min-h-screen bg-gray-50 p-4 md:p-6">
+  <div class="max-w-7xl mx-auto">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+      <h1 class="text-3xl font-bold text-gray-900 mb-4 sm:mb-0">Admin Rewards Management</h1>
+      <button class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-200" (click)="openCreateRewardModal()">
+        Create New Reward
+      </button>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon active-rewards">✨</div>
-      <div class="stat-content">
-        <h3>{{ getActiveRewardsCount() }}</h3>
-        <p>Active Rewards</p>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon pending-redemptions">⏳</div>
-      <div class="stat-content">
-        <h3>{{ getPendingRedemptionsCount() }}</h3>
-        <p>Pending Redemptions</p>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon total-points">💎</div>
-      <div class="stat-content">
-        <h3>{{ analytics?.pointsStats?.totalPointsEarned || 0 | number }}</h3>
-        <p>Total Points Earned</p>
-      </div>
-    </div>
-  </div>
 
-  <!-- Tab Navigation -->
-  <div class="tab-navigation">
-    <button 
-      [class]="'tab-button ' + (activeTab === 'overview' ? 'active' : '')"
-      (click)="setActiveTab('overview')">
-      Overview
-    </button>
-    <button 
-      [class]="'tab-button ' + (activeTab === 'rewards' ? 'active' : '')"
-      (click)="setActiveTab('rewards')">
-      Rewards
-    </button>
-    <button 
-      [class]="'tab-button ' + (activeTab === 'redemptions' ? 'active' : '')"
-      (click)="setActiveTab('redemptions')">
-      Redemptions
-    </button>
-    <button 
-      [class]="'tab-button ' + (activeTab === 'analytics' ? 'active' : '')"
-      (click)="setActiveTab('analytics')">
-      Analytics
-    </button>
-    <button 
-      [class]="'tab-button ' + (activeTab === 'points' ? 'active' : '')"
-      (click)="setActiveTab('points')">
-      Points Management
-    </button>
-  </div>
+    <!-- Loading State -->
+    <div *ngIf="loading" class="text-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+      <p class="text-gray-600">Loading...</p>
+    </div>
 
-  <!-- Tab Content -->
-  <div class="tab-content">
+    <!-- Error State -->
+    <div *ngIf="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+      <p>{{ error }}</p>
+      <button (click)="loadData()" class="mt-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors duration-200">
+        Retry
+      </button>
+    </div>
 
-    <!-- Overview Tab -->
-    <div *ngIf="activeTab === 'overview'" class="tab-pane">
-      <div class="overview-grid">
-        <div class="recent-activity">
-          <h3>Recent Activity</h3>
-          <div class="activity-list">
-            <div 
-              *ngFor="let redemption of getRecentRedemptions()" 
-              class="activity-item">
-              <span class="activity-user">{{ redemption.userId.username }}</span>
-              <span class="activity-action">redeemed {{ redemption.rewardId.title }}</span>
-              <span class="activity-time">{{ formatDate(redemption.redemptionDate) }}</span>
-            </div>
-            <div *ngIf="redemptions.length === 0" class="no-activity">
-              No recent activity
-            </div>
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" *ngIf="!loading && !error">
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center space-x-3">
+          <div class="text-3xl">🎁</div>
+          <div>
+            <div class="text-2xl font-bold text-gray-900">{{ rewards.length }}</div>
+            <div class="text-sm text-gray-600">Total Rewards</div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center space-x-3">
+          <div class="text-3xl">✨</div>
+          <div>
+            <div class="text-2xl font-bold text-gray-900">{{ getActiveRewardsCount() }}</div>
+            <div class="text-sm text-gray-600">Active Rewards</div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center space-x-3">
+          <div class="text-3xl">⏳</div>
+          <div>
+            <div class="text-2xl font-bold text-gray-900">{{ getPendingRedemptionsCount() }}</div>
+            <div class="text-sm text-gray-600">Pending Redemptions</div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center space-x-3">
+          <div class="text-3xl">💎</div>
+          <div>
+            <div class="text-2xl font-bold text-gray-900">{{ analytics?.pointsStats?.totalPointsEarned || 0 | number }}</div>
+            <div class="text-sm text-gray-600">Total Points Earned</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Rewards Tab -->
-    <div *ngIf="activeTab === 'rewards'" class="tab-pane">
-      <div class="table-container">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Category</th>
-              <th>Points Required</th>
-              <th>Status</th>
-              <th>Created</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let reward of rewards">
-              <td>
-                <div class="reward-info">
-                  <span class="reward-title">{{ reward.title }}</span>
-                  <span class="reward-description">{{ reward.description }}</span>
-                </div>
-              </td>
-              <td>
-                <span class="reward-category">{{ reward.category }}</span>
-              </td>
-              <td>
-                <span class="points-required">{{ reward.pointsRequired | number }}</span>
-              </td>
-              <td>
-                <span [class]="'status-badge ' + (reward.isActive ? 'active' : 'inactive')">
-                  {{ reward.isActive ? 'Active' : 'Inactive' }}
-                </span>
-              </td>
-              <td>{{ formatDate(reward.createdAt) }}</td>
-              <td>
-                <div class="action-buttons">
-                  <button class="edit-btn" (click)="openEditRewardModal(reward)">Edit</button>
-                  <button class="delete-btn" (click)="deleteReward(reward._id)">Delete</button>
-                </div>
-              </td>
-            </tr>
-            <tr *ngIf="rewards.length === 0">
-              <td colspan="6" class="no-data">No rewards found</td>
-            </tr>
-          </tbody>
-        </table>
+    <!-- Tab Navigation -->
+    <div class="bg-white rounded-lg shadow-sm mb-6">
+      <div class="border-b border-gray-200">
+        <nav class="flex space-x-8 px-6" aria-label="Tabs">
+          <button 
+            [class]="'py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ' + 
+                     (activeTab === 'overview' ? 
+                      'border-blue-500 text-blue-600' : 
+                      'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300')"
+            (click)="setActiveTab('overview')">
+            Overview
+          </button>
+          <button 
+            [class]="'py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ' + 
+                     (activeTab === 'rewards' ? 
+                      'border-blue-500 text-blue-600' : 
+                      'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300')"
+            (click)="setActiveTab('rewards')">
+            Rewards
+          </button>
+          <button 
+            [class]="'py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ' + 
+                     (activeTab === 'redemptions' ? 
+                      'border-blue-500 text-blue-600' : 
+                      'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300')"
+            (click)="setActiveTab('redemptions')">
+            Redemptions
+          </button>
+          <button 
+            [class]="'py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ' + 
+                     (activeTab === 'analytics' ? 
+                      'border-blue-500 text-blue-600' : 
+                      'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300')"
+            (click)="setActiveTab('analytics')">
+            Analytics
+          </button>
+          <button 
+            [class]="'py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ' + 
+                     (activeTab === 'points' ? 
+                      'border-blue-500 text-blue-600' : 
+                      'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300')"
+            (click)="setActiveTab('points')">
+            Points Management
+          </button>
+        </nav>
       </div>
-    </div>
 
-    <!-- Redemptions Tab -->
-    <div *ngIf="activeTab === 'redemptions'" class="tab-pane">
-      <div class="table-container">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>User</th>
-              <th>Reward</th>
-              <th>Points</th>
-              <th>Date</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let redemption of redemptions">
-              <td>{{ redemption.userId.username }}</td>
-              <td>{{ redemption.rewardId.title }}</td>
-              <td>{{ redemption.rewardId.pointsRequired | number }}</td>
-              <td>{{ formatDate(redemption.redemptionDate) }}</td>
-              <td>
-                <span [class]="'status-badge ' + getStatusClass(redemption.status)">
-                  {{ redemption.status }}
-                </span>
-              </td>
-              <td>
-                <div class="action-buttons" *ngIf="redemption.status === 'pending'">
-                  <button 
-                    class="approve-btn" 
-                    (click)="updateRedemptionStatus(redemption, 'approved')">
-                    Approve
-                  </button>
-                  <button 
-                    class="reject-btn" 
-                    (click)="updateRedemptionStatus(redemption, 'rejected')">
-                    Reject
-                  </button>
+      <!-- Tab Content -->
+      <div class="p-6">
+        <!-- Overview Tab -->
+        <div *ngIf="activeTab === 'overview'">
+          <div class="bg-white rounded-lg shadow-sm p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+            <div class="space-y-3">
+              <div 
+                *ngFor="let redemption of getRecentRedemptions()" 
+                class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center space-x-3">
+                  <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span class="text-blue-600 text-sm font-medium">{{ redemption.userId.username.charAt(0).toUpperCase() }}</span>
+                  </div>
+                  <div>
+                    <span class="font-medium text-gray-900">{{ redemption.userId.username }}</span>
+                    <span class="text-gray-600"> redeemed {{ redemption.rewardId.title }}</span>
+                  </div>
                 </div>
-              </td>
-            </tr>
-            <tr *ngIf="redemptions.length === 0">
-              <td colspan="6" class="no-data">No redemptions found</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Analytics Tab -->
-    <div *ngIf="activeTab === 'analytics'" class="tab-pane">
-      <div class="analytics-grid">
-        <div class="analytics-card">
-          <h3>User Statistics</h3>
-          <div class="analytics-content">
-            <div class="stat-row">
-              <span>Total Users:</span>
-              <span>{{ analytics?.userStats?.totalUsers || 0 }}</span>
-            </div>
-            <div class="stat-row">
-              <span>Users with Referrals:</span>
-              <span>{{ analytics?.userStats?.usersWithReferrals || 0 }}</span>
-            </div>
-            <div class="stat-row">
-              <span>Total Referrals:</span>
-              <span>{{ analytics?.userStats?.totalReferrals || 0 }}</span>
+                <span class="text-sm text-gray-500">{{ formatDate(redemption.redemptionDate) }}</span>
+              </div>
+              <div *ngIf="redemptions.length === 0" class="text-center py-8">
+                <div class="text-gray-400 text-sm">No recent activity</div>
+              </div>
             </div>
           </div>
         </div>
-        <div class="analytics-card">
-          <h3>Points Statistics</h3>
-          <div class="analytics-content">
-            <div class="stat-row">
-              <span>Total Points Earned:</span>
-              <span>{{ analytics?.pointsStats?.totalPointsEarned || 0 | number }}</span>
+
+        <!-- Rewards Tab -->
+        <div *ngIf="activeTab === 'rewards'">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Points Required</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr *ngFor="let reward of rewards">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div class="text-sm font-medium text-gray-900">{{ reward.title }}</div>
+                      <div class="text-sm text-gray-500">{{ reward.description }}</div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {{ reward.category }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {{ reward.pointsRequired | number }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span [class]="'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + 
+                                   (reward.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')">
+                      {{ reward.isActive ? 'Active' : 'Inactive' }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ formatDate(reward.createdAt) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div class="flex space-x-2">
+                      <button class="text-blue-600 hover:text-blue-900" (click)="openEditRewardModal(reward)">Edit</button>
+                      <button class="text-red-600 hover:text-red-900" (click)="deleteReward(reward._id)">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr *ngIf="rewards.length === 0">
+                  <td colspan="6" class="px-6 py-4 text-center text-gray-500">No rewards found</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Redemptions Tab -->
+        <div *ngIf="activeTab === 'redemptions'">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reward</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr *ngFor="let redemption of redemptions">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {{ redemption.userId.username }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {{ redemption.rewardId.title }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {{ redemption.rewardId.pointsRequired | number }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ formatDate(redemption.redemptionDate) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span [class]="'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + getStatusClass(redemption.status)">
+                      {{ redemption.status }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div class="flex space-x-2" *ngIf="redemption.status === 'pending'">
+                      <button 
+                        class="text-green-600 hover:text-green-900" 
+                        (click)="updateRedemptionStatus(redemption, 'approved')">
+                        Approve
+                      </button>
+                      <button 
+                        class="text-red-600 hover:text-red-900" 
+                        (click)="updateRedemptionStatus(redemption, 'rejected')">
+                        Reject
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr *ngIf="redemptions.length === 0">
+                  <td colspan="6" class="px-6 py-4 text-center text-gray-500">No redemptions found</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div *ngIf="activeTab === 'analytics'">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">User Statistics</h3>
+              <div class="space-y-3">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Total Users:</span>
+                  <span class="font-semibold text-gray-900">{{ analytics?.userStats?.totalUsers || 0 }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Users with Referrals:</span>
+                  <span class="font-semibold text-gray-900">{{ analytics?.userStats?.usersWithReferrals || 0 }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Total Referrals:</span>
+                  <span class="font-semibold text-gray-900">{{ analytics?.userStats?.totalReferrals || 0 }}</span>
+                </div>
+              </div>
             </div>
-            <div class="stat-row">
-              <span>Total Points Spent:</span>
-              <span>{{ analytics?.pointsStats?.totalPointsSpent || 0 | number }}</span>
+            <div class="bg-white rounded-lg shadow-sm p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Points Statistics</h3>
+              <div class="space-y-3">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Total Points Earned:</span>
+                  <span class="font-semibold text-gray-900">{{ analytics?.pointsStats?.totalPointsEarned || 0 | number }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Total Points Spent:</span>
+                  <span class="font-semibold text-gray-900">{{ analytics?.pointsStats?.totalPointsSpent || 0 | number }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Points in Circulation:</span>
+                  <span class="font-semibold text-gray-900">{{ analytics?.pointsStats?.totalPointsInCirculation || 0 | number }}</span>
+                </div>
+              </div>
             </div>
-            <div class="stat-row">
-              <span>Points in Circulation:</span>
-              <span>{{ analytics?.pointsStats?.totalPointsInCirculation || 0 | number }}</span>
-            </div>
+          </div>
+        </div>
+
+        <!-- Points Management Tab -->
+        <div *ngIf="activeTab === 'points'">
+          <div class="text-center">
+            <button class="bg-purple-600 text-white px-6 py-3 rounded-md hover:bg-purple-700 transition-colors duration-200" (click)="openPointsModal()">
+              Adjust User Points
+            </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Points Management Tab -->
-    <div *ngIf="activeTab === 'points'" class="tab-pane">
-      <div class="points-management">
-        <button class="adjust-points-btn" (click)="openPointsModal()">Adjust User Points</button>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- Points Adjustment Modal -->
-  <div *ngIf="showPointsModal" class="modal-overlay" (click)="closeModals()">
-    <div class="modal-content" (click)="$event.stopPropagation()">
-      <h2>Adjust User Points</h2>
-      <button class="close-btn" (click)="closeModals()">×</button>
-      <form (ngSubmit)="adjustUserPoints()">
-        <div class="form-group">
-          <label for="userId">User ID:</label>
-          <input 
-            type="text" 
-            id="userId" 
-            [(ngModel)]="pointsAdjustment.userId"
-            name="userId"
-            required>
-        </div>
-        <div class="form-group">
-          <label for="username">Username (for reference):</label>
-          <input 
-            type="text" 
-            id="username" 
-            [(ngModel)]="pointsAdjustment.username"
-            name="username">
-        </div>
-        <div class="form-group">
-          <label for="amount">Point Amount:</label>
-          <input 
-            type="number" 
-            id="amount" 
-            [(ngModel)]="pointsAdjustment.amount"
-            name="amount"
-            required>
-          <small>Use negative numbers to deduct points</small>
-        </div>
-        <div class="form-group">
-          <label for="description">Description:</label>
-          <textarea 
-            id="description" 
-            [(ngModel)]="pointsAdjustment.description"
-            name="description"
-            rows="3"
-            placeholder="Reason for adjustment..."></textarea>
-        </div>
-        <div class="form-actions">
-          <button type="button" class="cancel-btn" (click)="closeModals()">Cancel</button>
-          <button type="submit" class="submit-btn">
-            Adjust Points
+    <!-- Points Adjustment Modal -->
+    <div *ngIf="showPointsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" (click)="closeModals()">
+      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white" (click)="$event.stopPropagation()">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold text-gray-900">Adjust User Points</h2>
+          <button class="text-gray-400 hover:text-gray-600" (click)="closeModals()">
+            <span class="sr-only">Close</span>
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
-      </form>
+        <form (ngSubmit)="adjustUserPoints()" class="space-y-4">
+          <div>
+            <label for="userId" class="block text-sm font-medium text-gray-700">User ID:</label>
+            <input 
+              type="text" 
+              id="userId" 
+              [(ngModel)]="pointsAdjustment.userId"
+              name="userId"
+              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              required>
+          </div>
+          <div>
+            <label for="username" class="block text-sm font-medium text-gray-700">Username (for reference):</label>
+            <input 
+              type="text" 
+              id="username" 
+              [(ngModel)]="pointsAdjustment.username"
+              name="username"
+              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <div>
+            <label for="amount" class="block text-sm font-medium text-gray-700">Point Amount:</label>
+            <input 
+              type="number" 
+              id="amount" 
+              [(ngModel)]="pointsAdjustment.amount"
+              name="amount"
+              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              required>
+            <p class="mt-1 text-sm text-gray-500">Use negative numbers to deduct points</p>
+          </div>
+          <div>
+            <label for="description" class="block text-sm font-medium text-gray-700">Description:</label>
+            <textarea 
+              id="description" 
+              [(ngModel)]="pointsAdjustment.description"
+              name="description"
+              rows="3"
+              placeholder="Reason for adjustment..."
+              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+          </div>
+          <div class="flex justify-end space-x-3 pt-4">
+            <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300" (click)="closeModals()">
+              Cancel
+            </button>
+            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700">
+              Adjust Points
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
-  </div>
 
-  <!-- Reward Creation/Edit Modal -->
-  <div *ngIf="showCreateRewardModal || showEditRewardModal" class="modal-overlay" (click)="closeModals()">
-    <div class="modal-content" (click)="$event.stopPropagation()">
-      <h2>{{ showEditRewardModal ? 'Edit Reward' : 'Create New Reward' }}</h2>
-      <button class="close-btn" (click)="closeModals()">×</button>
-      <form (ngSubmit)="showEditRewardModal ? updateReward() : createReward()">
-        <div class="form-group">
-          <label for="title">Title:</label>
-          <input 
-            type="text" 
-            id="title" 
-            [(ngModel)]="newReward.title"
-            name="title"
-            required>
+    <!-- Reward Creation/Edit Modal -->
+    <div *ngIf="showCreateRewardModal || showEditRewardModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" (click)="closeModals()">
+      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white" (click)="$event.stopPropagation()">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold text-gray-900">{{ showEditRewardModal ? 'Edit Reward' : 'Create New Reward' }}</h2>
+          <button class="text-gray-400 hover:text-gray-600" (click)="closeModals()">
+            <span class="sr-only">Close</span>
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-        <div class="form-group">
-          <label for="category">Category:</label>
-          <select 
-            id="category" 
-            [(ngModel)]="newReward.category" 
-            name="category" 
-            required>
-            <option value="general">General</option>
-            <option value="discount">Discount</option>
-            <option value="merchandise">Merchandise</option>
-            <option value="digital">Digital Content</option>
-            <option value="premium">Premium Features</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="pointsRequired">Points Required:</label>
-          <input 
-            type="number" 
-            id="pointsRequired" 
-            [(ngModel)]="newReward.pointsRequired"
-            name="pointsRequired"
-            min="1"
-            required>
-        </div>
-        <div class="form-group">
-          <label for="description">Description:</label>
-          <textarea 
-            id="description" 
-            [(ngModel)]="newReward.description"
-            name="description"
-            rows="4"></textarea>
-        </div>
-        <div class="form-group">
-          <label>
+        <form (ngSubmit)="showEditRewardModal ? updateReward() : createReward()" class="space-y-4">
+          <div>
+            <label for="title" class="block text-sm font-medium text-gray-700">Title:</label>
+            <input 
+              type="text" 
+              id="title" 
+              [(ngModel)]="newReward.title"
+              name="title"
+              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              required>
+          </div>
+          <div>
+            <label for="category" class="block text-sm font-medium text-gray-700">Category:</label>
+            <select 
+              id="category" 
+              [(ngModel)]="newReward.category" 
+              name="category" 
+              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              required>
+              <option value="general">General</option>
+              <option value="discount">Discount</option>
+              <option value="merchandise">Merchandise</option>
+              <option value="digital">Digital Content</option>
+              <option value="premium">Premium Features</option>
+            </select>
+          </div>
+          <div>
+            <label for="pointsRequired" class="block text-sm font-medium text-gray-700">Points Required:</label>
+            <input 
+              type="number" 
+              id="pointsRequired" 
+              [(ngModel)]="newReward.pointsRequired"
+              name="pointsRequired"
+              min="1"
+              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              required>
+          </div>
+          <div>
+            <label for="description" class="block text-sm font-medium text-gray-700">Description:</label>
+            <textarea 
+              id="description" 
+              [(ngModel)]="newReward.description"
+              name="description"
+              rows="4"
+              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+          </div>
+          <div class="flex items-center">
             <input 
               type="checkbox" 
+              id="isActive"
               [(ngModel)]="newReward.isActive" 
-              name="isActive">
-            Active
-          </label>
-        </div>
-        <div class="form-actions">
-          <button type="button" class="cancel-btn" (click)="closeModals()">Cancel</button>
-          <button type="submit" class="save-btn">
-            {{ showEditRewardModal ? 'Update Reward' : 'Create Reward' }}
-          </button>
-        </div>
-      </form>
+              name="isActive"
+              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+            <label for="isActive" class="ml-2 block text-sm text-gray-900">Active</label>
+          </div>
+          <div class="flex justify-end space-x-3 pt-4">
+            <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300" (click)="closeModals()">
+              Cancel
+            </button>
+            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+              {{ showEditRewardModal ? 'Update Reward' : 'Create Reward' }}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </div>

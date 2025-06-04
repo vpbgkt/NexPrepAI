@@ -1,83 +1,188 @@
-<h2>Your Tests</h2>
-
-<!-- Loading Account Status -->
-<div *ngIf="isLoadingAccountStatus" class="loading-spinner-container text-center my-3">
-  <div class="spinner-border text-primary" role="status">
-    <span class="visually-hidden">Loading account status...</span>
-  </div>
-  <p>Loading account status...</p>
-</div>
-
-<!-- Account Expired Message -->
-<div *ngIf="!isLoadingAccountStatus && authService.getRole() === 'student' && isAccountExpired" class="alert alert-danger account-expired-alert">
-  <h4>Account Expired</h4>
-  <p>Your account has expired. You will not be able to start new tests. Please <a routerLink="/profile">visit your profile</a> to check your subscription status or contact support.</p>
-</div>
-
-<!-- Family Navigation Shortcuts -->
-<div class="family-navigation">
-  <ng-container *ngIf="groupedSeries.length > 0">
-    <span class="navigation-label">Jump to:</span>
-    <div class="family-buttons">
-      <a *ngFor="let group of groupedSeries" 
-         [href]="'#family-' + group.familyId"
-         class="family-nav-button"
-         [class.active]="activeFamily === group.familyId"
-         (click)="setActiveFamily(group.familyId, $event)">
-        {{ group.familyName }}
-      </a>
+<<!-- Test List Component - Tailwind CSS Responsive Design -->
+<div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+      <h2 class="text-3xl font-bold text-gray-900 mb-2">Your Tests</h2>
+      <p class="text-gray-600">Available practice tests and assessments</p>
     </div>
-  </ng-container>
-</div>
 
-<div *ngFor="let group of groupedSeries" class="test-family-group" [id]="'family-' + group.familyId">
-  <h3 class="family-title">{{ group.familyName }}</h3>
-  
-  <table>
-    <thead>
-      <tr>
-        <th>Title</th>
-        <th>Stream/Paper</th>
-        <th>Mode</th>
-        <th>Max Attempts</th>
-        <th>Start Time</th>
-        <th>End Time</th>
-        <th>Action</th>
-        <th>Leaderboard</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let s of group.tests">
-        <td>{{ s.title }}</td>
-        <td>
-          <div class="test-hierarchy">
-            <span class="stream">{{ s.stream.name || 'N/A' }}</span>
-            <span class="paper" *ngIf="s.paper.name">/ {{ s.paper.name }}</span>
+    <!-- Loading Account Status -->
+    <div *ngIf="isLoadingAccountStatus" class="flex flex-col items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+      <p class="text-gray-600">Loading account status...</p>
+    </div>
+
+    <!-- Account Expired Message -->
+    <div *ngIf="!isLoadingAccountStatus && authService.getRole() === 'student' && isAccountExpired" 
+         class="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
+      <div class="flex items-start">
+        <svg class="w-6 h-6 text-red-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <div>
+          <h4 class="text-lg font-semibold text-red-800 mb-2">Account Expired</h4>
+          <p class="text-red-700">
+            Your account has expired. You will not be able to start new tests. Please 
+            <a routerLink="/profile" class="underline font-medium hover:text-red-600">visit your profile</a> 
+            to check your subscription status or contact support.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Family Navigation Shortcuts -->
+    <div class="mb-8" *ngIf="groupedSeries.length > 0">
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <span class="text-sm font-medium text-gray-700 mb-3 block">Jump to:</span>
+        <div class="flex flex-wrap gap-2">
+          <a *ngFor="let group of groupedSeries" 
+             [href]="'#family-' + group.familyId"
+             class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
+             [class.bg-blue-50]="activeFamily === group.familyId"
+             [class.border-blue-300]="activeFamily === group.familyId"
+             [class.text-blue-700]="activeFamily === group.familyId"
+             (click)="setActiveFamily(group.familyId, $event)">
+            {{ group.familyName }}
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Test Groups -->
+    <div class="space-y-8">
+      <div *ngFor="let group of groupedSeries" 
+           class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden" 
+           [id]="'family-' + group.familyId">
+        
+        <!-- Group Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+          <h3 class="text-xl font-bold text-white">{{ group.familyName }}</h3>
+        </div>
+        
+        <!-- Desktop Table View -->
+        <div class="hidden lg:block overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stream/Paper</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mode</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Max Attempts</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Time</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Leaderboard</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr *ngFor="let s of group.tests" class="hover:bg-gray-50 transition-colors duration-200">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">{{ s.title }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">
+                    <span class="font-medium">{{ s.stream.name || 'N/A' }}</span>
+                    <span *ngIf="s.paper.name" class="text-gray-600">/ {{ s.paper.name }}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                        [ngClass]="modeClass(s.mode)">
+                    {{ s.mode | titlecase }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ s.maxAttempts }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ s.startAt | date:'short' }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ s.endAt | date:'short' }}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <button
+                    (click)="startSeries(s)"
+                    [disabled]="isSeriesDisabled(s)" 
+                    [title]="getDisabledReason(s)"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m2-10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Start
+                  </button>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <a *ngIf="s.enablePublicLeaderboard" 
+                     [routerLink]="['/leaderboard', s._id]"
+                     class="text-blue-600 hover:text-blue-900 text-sm font-medium">
+                    View
+                  </a>
+                  <span *ngIf="!s.enablePublicLeaderboard" class="text-gray-400 text-sm">N/A</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="lg:hidden">
+          <div class="divide-y divide-gray-200">
+            <div *ngFor="let s of group.tests" class="p-6">
+              <div class="flex items-start justify-between">
+                <div class="flex-1 min-w-0">
+                  <h4 class="text-lg font-medium text-gray-900 mb-2">{{ s.title }}</h4>
+                  <div class="space-y-2">
+                    <div class="flex items-center text-sm text-gray-600">
+                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                      </svg>
+                      <span class="font-medium">{{ s.stream.name || 'N/A' }}</span>
+                      <span *ngIf="s.paper.name"> / {{ s.paper.name }}</span>
+                    </div>
+                    <div class="flex items-center space-x-4 text-sm text-gray-600">
+                      <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                            [ngClass]="modeClass(s.mode)">
+                        {{ s.mode | titlecase }}
+                      </span>
+                      <span>Max Attempts: {{ s.maxAttempts }}</span>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                      <div>Start: {{ s.startAt | date:'short' }}</div>
+                      <div>End: {{ s.endAt | date:'short' }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="mt-4 flex items-center justify-between">
+                <button
+                  (click)="startSeries(s)"
+                  [disabled]="isSeriesDisabled(s)" 
+                  [title]="getDisabledReason(s)"
+                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m2-10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  Start Test
+                </button>
+                
+                <a *ngIf="s.enablePublicLeaderboard" 
+                   [routerLink]="['/leaderboard', s._id]"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200">
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                  </svg>
+                  Leaderboard
+                </a>
+              </div>
+            </div>
           </div>
-        </td>
-        <td>
-          <span [class]="modeClass(s.mode)">{{ s.mode | titlecase }}</span>
-        </td>
-        <td>{{ s.maxAttempts }}</td>
-        <td>{{ s.startAt | date:'short' }}</td>
-        <td>{{ s.endAt | date:'short' }}</td>
-        <td>
-          <button
-            (click)="startSeries(s)"
-            [disabled]="isSeriesDisabled(s)" 
-            [title]="getDisabledReason(s)">
-            Start
-          </button>
-        </td>
-        <td>
-          <a *ngIf="s.enablePublicLeaderboard" [routerLink]="['/leaderboard', s._id]">View</a>
-          <span *ngIf="!s.enablePublicLeaderboard">N/A</span>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+        </div>
+      </div>
+    </div>
 
-<div *ngIf="groupedSeries.length === 0" class="no-tests">
-  <p>No tests available at the moment. Please check back later.</p>
+    <!-- No Tests Message -->
+    <div *ngIf="groupedSeries.length === 0" class="text-center py-12">
+      <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 48 48">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M34 40h10v-4a6 6 0 00-10.712-3.714M34 40H14m20 0v-4a9.971 9.971 0 00-.712-3.714M14 40H4v-4a6 6 0 0110.713-3.714M14 40v-4c0-1.313.253-2.566.713-3.714m0 0A9.971 9.971 0 0124 34c4.137 0 7.892 1.249 10.713 3.286"></path>
+      </svg>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">No tests available</h3>
+      <p class="text-gray-600">No tests available at the moment. Please check back later.</p>    </div>
+  </div>
 </div>

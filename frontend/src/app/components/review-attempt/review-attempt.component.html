@@ -1,28 +1,62 @@
-<button class="btn btn-outline-primary btn-sm mb-3" (click)="downloadPdf()">
-  Download PDF scorecard
-</button>
+<div class="min-h-screen bg-gray-50 p-4 md:p-6">
+  <div class="max-w-4xl mx-auto">
+    <button class="bg-blue-600 text-white px-4 py-2 rounded-md border border-blue-600 hover:bg-blue-700 transition-colors duration-200 mb-4" (click)="downloadPdf()">
+      Download PDF scorecard
+    </button>
 
-<div *ngIf="loading">Loading review data...</div>
-<div *ngIf="error">{{ error }}</div>
-
-<div *ngIf="!loading && !error && attempt && displayedSections.length > 0">
-  <h2>Review: {{ attempt.series?.title || 'Test Series' }}</h2>
-  
-  <ng-container *ngFor="let section of displayedSections; let sectionIdx = index">
-    <h3 class="mt-4 mb-3">{{ section.title }}</h3>
-    <div *ngFor="let r of section.responses; let questionInSectionIdx = index">
-      <h4>Q{{ getGlobalQuestionNumberForReview(sectionIdx, questionInSectionIdx) }}: {{ r.questionData?.questionText || 'Question text not available' }}
-        <span *ngIf="r.review" class="material-icons-outlined flag-icon" title="Flagged for Review">flag</span> <!-- ADDED flag icon -->
-      </h4>
-      <p>Your answer:   {{ getAnswerText(r) }}</p>
-      <p>Correct answer: {{ getCorrectText(r) }}</p>
-      <p>Marks Earned: {{ r.earned }} / {{r.questionData?.marks}}</p>
-      <hr />
+    <div *ngIf="loading" class="text-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+      <p class="text-gray-600">Loading review data...</p>
     </div>
-  </ng-container>
 
-</div>
+    <div *ngIf="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+      {{ error }}
+    </div>
 
-<div *ngIf="!loading && !error && (!attempt || displayedSections.length === 0)">
-  No attempt data or sections found for review.
+    <div *ngIf="!loading && !error && attempt && displayedSections.length > 0" class="bg-white rounded-lg shadow-sm">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900">Review: {{ attempt.series?.title || 'Test Series' }}</h2>
+      </div>
+      
+      <div class="p-6">
+        <ng-container *ngFor="let section of displayedSections; let sectionIdx = index">
+          <div class="mb-8" [class.border-b]="sectionIdx < displayedSections.length - 1" [class.pb-8]="sectionIdx < displayedSections.length - 1" [class.border-gray-200]="sectionIdx < displayedSections.length - 1">
+            <h3 class="text-xl font-semibold text-gray-900 mb-6">{{ section.title }}</h3>
+            <div class="space-y-6">
+              <div *ngFor="let r of section.responses; let questionInSectionIdx = index" class="bg-gray-50 rounded-lg p-4">
+                <div class="flex items-start justify-between mb-3">
+                  <h4 class="text-lg font-medium text-gray-900">
+                    Q{{ getGlobalQuestionNumberForReview(sectionIdx, questionInSectionIdx) }}: {{ r.questionData?.questionText || 'Question text not available' }}
+                  </h4>
+                  <span *ngIf="r.review" class="material-icons-outlined text-orange-500 ml-2" title="Flagged for Review">flag</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <span class="text-sm font-medium text-gray-600">Your answer:</span>
+                    <p class="text-gray-900">{{ getAnswerText(r) }}</p>
+                  </div>
+                  <div>
+                    <span class="text-sm font-medium text-gray-600">Correct answer:</span>
+                    <p class="text-green-600 font-medium">{{ getCorrectText(r) }}</p>
+                  </div>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-sm font-medium text-gray-600">Marks Earned:</span>
+                  <span [class]="'font-semibold ' + (r.earned === r.questionData?.marks ? 'text-green-600' : r.earned > 0 ? 'text-yellow-600' : 'text-red-600')">
+                    {{ r.earned }} / {{ r.questionData?.marks }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && !error && (!attempt || displayedSections.length === 0)" class="text-center py-12">
+      <div class="text-6xl mb-4">📝</div>
+      <h3 class="text-xl font-semibold text-gray-900 mb-2">No Review Data Available</h3>
+      <p class="text-gray-600">No attempt data or sections found for review.</p>
+    </div>
+  </div>
 </div>

@@ -1,140 +1,235 @@
-<div class="leaderboard-container">  <div *ngIf="isLoading" class="loading-spinner">
-    <div class="spinner">
-      <div class="bounce1"></div>
-      <div class="bounce2"></div>
-      <div class="bounce3"></div>
-    </div>
-    <p>Loading leaderboard data...</p>
-  </div>
-  <div *ngIf="error && !isLoading" class="error-message">
-    <div class="error-icon">⚠️</div>
-    <h3>Unable to Load Leaderboard</h3>
-    <p>{{ error }}</p>
-    <a routerLink="/tests" class="back-btn">Return to Test Series</a>
-  </div>  <div *ngIf="!isLoading && !error && leaderboard.length > 0">
-    <h2>Leaderboard</h2>
-    <h3 *ngIf="seriesTitle">{{ seriesTitle }}</h3>    <div class="leaderboard-controls">
-      <div class="back-link">
-        <a routerLink="/tests">&larr; Back to Test Series</a>
+<div class="min-h-screen bg-gray-50 p-4 md:p-6">
+  <div class="max-w-7xl mx-auto">
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="text-center py-12">
+      <div class="flex justify-center space-x-2 mb-4">
+        <div class="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
+        <div class="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+        <div class="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
       </div>
-      
-      <div class="filters">
-        <label for="timeFilter">Show results from: </label>
-        <select id="timeFilter" [(ngModel)]="selectedTimeFilter" (change)="onTimeFilterChange()">
-          <option *ngFor="let option of timeFilterOptions" [value]="option.value">
-            {{ option.label }}
-          </option>
-        </select>
-        <label for="pageSizeFilter">Show: </label>
-        <select id="pageSizeFilter" [(ngModel)]="selectedPageSize" (change)="onPageSizeChange()">
-          <option *ngFor="let size of pageSizeOptions" [value]="size">
-            {{ size }} entries
-          </option>
-        </select>
-        <button (click)="refreshLeaderboard()" class="refresh-btn" [disabled]="isRefreshing">
-          <span *ngIf="!isRefreshing">↻ Refresh</span>
-          <span *ngIf="isRefreshing">Refreshing...</span>
-        </button>
-      </div>
+      <p class="text-gray-600">Loading leaderboard data...</p>
     </div>
-    
-    <div *ngIf="filteredLeaderboard.length === 0" class="no-filtered-results">
-      <p>No results found for the selected time period.</p>
-    </div>    <table *ngIf="filteredLeaderboard.length > 0">
-      <thead>
-        <tr>          <th (click)="onSortColumn('rank')" class="sortable">
-            Rank
-            <span class="sort-icon" *ngIf="sortColumn === 'rank'">
-              {{ sortDirection === 'asc' ? '▲' : '▼' }}
-            </span>
-          </th>
-          <th>Name</th>
-          <th (click)="onSortColumn('score')" class="sortable">
-            Score
-            <span class="sort-icon" *ngIf="sortColumn === 'score'">
-              {{ sortDirection === 'asc' ? '▲' : '▼' }}
-            </span>
-          </th>
-          <th (click)="onSortColumn('percentage')" class="sortable">
-            Percentage
-            <span class="sort-icon" *ngIf="sortColumn === 'percentage'">
-              {{ sortDirection === 'asc' ? '▲' : '▼' }}
-            </span>
-          </th>
-          <th (click)="onSortColumn('timeTakenSeconds')" class="sortable">
-            Time Taken
-            <span class="sort-icon" *ngIf="sortColumn === 'timeTakenSeconds'">
-              {{ sortDirection === 'asc' ? '▲' : '▼' }}
-            </span>
-          </th>
-          <th (click)="onSortColumn('submittedAt')" class="sortable">
-            Submitted At
-            <span class="sort-icon" *ngIf="sortColumn === 'submittedAt'">
-              {{ sortDirection === 'asc' ? '▲' : '▼' }}
-            </span>
-          </th>
-        </tr>      </thead>
-      <tbody>
-        <tr *ngFor="let entry of displayedLeaderboard; let i = index" [ngClass]="{
-          'gold': entry.rank === 1 || (entry.rank !== undefined && entry.rank === 1) || (i === 0 && currentPage === 1),
-          'silver': entry.rank === 2 || (entry.rank !== undefined && entry.rank === 2) || (i === 1 && currentPage === 1),
-          'bronze': entry.rank === 3 || (entry.rank !== undefined && entry.rank === 3) || (i === 2 && currentPage === 1)
-        }">
-          <td class="rank-cell">
-            <span class="rank">{{ entry.rank || ((currentPage - 1) * pageSize + i + 1) }}</span>
-          </td>
-          <td>
-            <img *ngIf="entry.photoURL" [src]="entry.photoURL" alt="Avatar" class="avatar-sm">
-            <span class="student-name">{{ entry.displayName || 'Anonymous' }}</span>
-          </td>          <td>{{ entry.score }}/{{ entry.maxScore }}</td>
-          <td class="percentage">{{ entry.percentage | number:'1.2-2' }}%</td>
-          <td>{{ formatTime(entry.timeTakenSeconds) }}</td>
-          <td>{{ entry.submittedAt | date:'medium' }}</td>
-        </tr>
-      </tbody>
-    </table>
-      <!-- Pagination controls -->
-    <div *ngIf="filteredLeaderboard.length > pageSize" class="pagination-controls">
-      <button 
-        [disabled]="currentPage === 1" 
-        (click)="updatePage(currentPage - 1)" 
-        class="page-btn prev"
-        [ngClass]="{'disabled': currentPage === 1}">
-        &laquo; Previous
-      </button>
-      
-      <div class="page-numbers">
-        <button 
-          *ngFor="let pageNumber of getPageNumbers()" 
-          (click)="updatePage(pageNumber)" 
-          [ngClass]="{'active': currentPage === pageNumber}">
-          {{ pageNumber }}
-        </button>
-      </div>
-      
-      <button 
-        [disabled]="currentPage === totalPages" 
-        (click)="updatePage(currentPage + 1)" 
-        class="page-btn next"
-        [ngClass]="{'disabled': currentPage === totalPages}">
-        Next &raquo;
-      </button>
-    </div>
-    
-    <div class="pagination-info" *ngIf="filteredLeaderboard.length > 0">
-      Showing {{ (currentPage - 1) * pageSize + 1 }} to {{ Math.min(currentPage * pageSize, filteredLeaderboard.length) }} 
-      of {{ filteredLeaderboard.length }} entries
-    </div>
-  </div>
-  <div *ngIf="!isLoading && !error && leaderboard.length === 0" class="empty-leaderboard">
-    <div class="empty-icon">📊</div>
-    <h3>No entries in the leaderboard yet</h3>
-    <p>This leaderboard may be empty because:</p>
-    <ul>
-      <li>No students have completed this test series yet</li>
-      <li>The leaderboard may be disabled for this test series</li>
-    </ul>
-    <a routerLink="/tests" class="back-btn">Go back to Test Series List</a>
-  </div>
 
+    <!-- Error State -->
+    <div *ngIf="error && !isLoading" class="text-center py-12">
+      <div class="text-6xl mb-4">⚠️</div>
+      <h3 class="text-xl font-semibold text-gray-900 mb-2">Unable to Load Leaderboard</h3>
+      <p class="text-gray-600 mb-4">{{ error }}</p>
+      <a routerLink="/tests" class="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-200">
+        Return to Test Series
+      </a>
+    </div>
+
+    <!-- Main Content -->
+    <div *ngIf="!isLoading && !error && leaderboard.length > 0">
+      <div class="mb-6">
+        <h2 class="text-3xl font-bold text-gray-900 mb-2">🏆 Leaderboard</h2>
+        <h3 *ngIf="seriesTitle" class="text-xl text-gray-600">{{ seriesTitle }}</h3>
+      </div>
+
+      <!-- Controls -->
+      <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+          <div>
+            <a routerLink="/tests" class="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors duration-200">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+              Back to Test Series
+            </a>
+          </div>
+          
+          <div class="flex flex-wrap items-center space-x-4">
+            <div class="flex items-center space-x-2">
+              <label for="timeFilter" class="text-sm font-medium text-gray-700">Show results from:</label>
+              <select id="timeFilter" [(ngModel)]="selectedTimeFilter" (change)="onTimeFilterChange()" 
+                      class="border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+                <option *ngFor="let option of timeFilterOptions" [value]="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
+            <div class="flex items-center space-x-2">
+              <label for="pageSizeFilter" class="text-sm font-medium text-gray-700">Show:</label>
+              <select id="pageSizeFilter" [(ngModel)]="selectedPageSize" (change)="onPageSizeChange()"
+                      class="border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+                <option *ngFor="let size of pageSizeOptions" [value]="size">
+                  {{ size }} entries
+                </option>
+              </select>
+            </div>
+            <button (click)="refreshLeaderboard()" [disabled]="isRefreshing"
+                    class="bg-blue-600 text-white px-3 py-2 rounded-md text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
+              <span *ngIf="!isRefreshing">↻ Refresh</span>
+              <span *ngIf="isRefreshing">Refreshing...</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- No Filtered Results -->
+      <div *ngIf="filteredLeaderboard.length === 0" class="text-center py-8">
+        <p class="text-gray-600">No results found for the selected time period.</p>
+      </div>
+
+      <!-- Leaderboard Table -->
+      <div *ngIf="filteredLeaderboard.length > 0" class="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th (click)="onSortColumn('rank')" 
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                  <div class="flex items-center space-x-1">
+                    <span>Rank</span>
+                    <span *ngIf="sortColumn === 'rank'" class="text-blue-500">
+                      {{ sortDirection === 'asc' ? '▲' : '▼' }}
+                    </span>
+                  </div>
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th (click)="onSortColumn('score')" 
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                  <div class="flex items-center space-x-1">
+                    <span>Score</span>
+                    <span *ngIf="sortColumn === 'score'" class="text-blue-500">
+                      {{ sortDirection === 'asc' ? '▲' : '▼' }}
+                    </span>
+                  </div>
+                </th>
+                <th (click)="onSortColumn('percentage')" 
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                  <div class="flex items-center space-x-1">
+                    <span>Percentage</span>
+                    <span *ngIf="sortColumn === 'percentage'" class="text-blue-500">
+                      {{ sortDirection === 'asc' ? '▲' : '▼' }}
+                    </span>
+                  </div>
+                </th>
+                <th (click)="onSortColumn('timeTakenSeconds')" 
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                  <div class="flex items-center space-x-1">
+                    <span>Time Taken</span>
+                    <span *ngIf="sortColumn === 'timeTakenSeconds'" class="text-blue-500">
+                      {{ sortDirection === 'asc' ? '▲' : '▼' }}
+                    </span>
+                  </div>
+                </th>
+                <th (click)="onSortColumn('submittedAt')" 
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                  <div class="flex items-center space-x-1">
+                    <span>Submitted At</span>
+                    <span *ngIf="sortColumn === 'submittedAt'" class="text-blue-500">
+                      {{ sortDirection === 'asc' ? '▲' : '▼' }}
+                    </span>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr *ngFor="let entry of displayedLeaderboard; let i = index" 
+                  [class]="'hover:bg-gray-50 ' + 
+                          (entry.rank === 1 || (entry.rank !== undefined && entry.rank === 1) || (i === 0 && currentPage === 1) ? 'bg-yellow-50 border-l-4 border-yellow-400' : 
+                           entry.rank === 2 || (entry.rank !== undefined && entry.rank === 2) || (i === 1 && currentPage === 1) ? 'bg-gray-50 border-l-4 border-gray-400' : 
+                           entry.rank === 3 || (entry.rank !== undefined && entry.rank === 3) || (i === 2 && currentPage === 1) ? 'bg-orange-50 border-l-4 border-orange-400' : '')">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <span class="text-lg font-bold text-gray-900">{{ entry.rank || ((currentPage - 1) * pageSize + i + 1) }}</span>
+                    <span *ngIf="entry.rank === 1 || (i === 0 && currentPage === 1)" class="ml-2">🥇</span>
+                    <span *ngIf="entry.rank === 2 || (i === 1 && currentPage === 1)" class="ml-2">🥈</span>
+                    <span *ngIf="entry.rank === 3 || (i === 2 && currentPage === 1)" class="ml-2">🥉</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <img *ngIf="entry.photoURL" [src]="entry.photoURL" alt="Avatar" 
+                         class="h-8 w-8 rounded-full mr-3">
+                    <div *ngIf="!entry.photoURL" class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center mr-3">
+                      <span class="text-white text-sm font-medium">{{ (entry.displayName || 'A').charAt(0).toUpperCase() }}</span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-900">{{ entry.displayName || 'Anonymous' }}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {{ entry.score }}/{{ entry.maxScore }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span [class]="'text-sm font-medium ' + 
+                               (entry.percentage >= 80 ? 'text-green-600' : 
+                                entry.percentage >= 60 ? 'text-yellow-600' : 'text-red-600')">
+                    {{ entry.percentage | number:'1.2-2' }}%
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {{ formatTime(entry.timeTakenSeconds) }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {{ entry.submittedAt | date:'medium' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div *ngIf="filteredLeaderboard.length > pageSize" class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <p class="text-sm text-gray-700">
+                Showing {{ (currentPage - 1) * pageSize + 1 }} to {{ Math.min(currentPage * pageSize, filteredLeaderboard.length) }} 
+                of {{ filteredLeaderboard.length }} entries
+              </p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button 
+                [disabled]="currentPage === 1" 
+                (click)="updatePage(currentPage - 1)" 
+                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span class="sr-only">Previous</span>
+                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+              </button>
+              
+              <button 
+                *ngFor="let pageNumber of getPageNumbers()" 
+                (click)="updatePage(pageNumber)" 
+                [class]="'relative inline-flex items-center px-4 py-2 border text-sm font-medium ' + 
+                         (currentPage === pageNumber ? 
+                          'z-10 bg-blue-50 border-blue-500 text-blue-600' : 
+                          'bg-white border-gray-300 text-gray-500 hover:bg-gray-50')">
+                {{ pageNumber }}
+              </button>
+              
+              <button 
+                [disabled]="currentPage === totalPages" 
+                (click)="updatePage(currentPage + 1)" 
+                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span class="sr-only">Next</span>
+                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!isLoading && !error && leaderboard.length === 0" class="text-center py-12">
+      <div class="text-6xl mb-4">📊</div>
+      <h3 class="text-xl font-semibold text-gray-900 mb-2">No entries in the leaderboard yet</h3>
+      <p class="text-gray-600 mb-4">This leaderboard may be empty because:</p>
+      <ul class="text-left text-gray-600 mb-6 inline-block">
+        <li>• No students have completed this test series yet</li>
+        <li>• The leaderboard may be disabled for this test series</li>
+      </ul>
+      <div>
+        <a routerLink="/tests" class="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-200">
+          Go back to Test Series List
+        </a>
+      </div>
+    </div>
+  </div>
 </div>

@@ -1,60 +1,139 @@
-<div class="dashboard-container fade-in">
-  <div class="dashboard-header">
-    <h1 class="dashboard-title">My Dashboard</h1>
-    <p class="dashboard-subtitle">Track your progress and performance across all tests</p>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 min-h-screen bg-gray-50 font-poppins animate-fade-in">
+  <!-- Dashboard Header -->
+  <div class="mb-6 md:mb-8">
+    <h1 class="text-2xl md:text-3xl lg:text-4xl font-bold text-primary-600 mb-2 md:mb-3 relative inline-block">
+      My Dashboard
+      <div class="absolute -bottom-2 left-0 w-2/5 md:w-1/3 h-1 bg-gradient-to-r from-primary-600 to-primary-400 rounded-full"></div>
+    </h1>
+    <p class="text-sm md:text-base text-gray-600">Track your progress and performance across all tests</p>
   </div>
 
   <!-- Loading Account Status -->
-  <div *ngIf="isLoadingAccountStatus" class="loading-spinner-container text-center my-3">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading account status...</span>
+  <div *ngIf="isLoadingAccountStatus" class="text-center py-8">
+    <div class="inline-flex items-center gap-3 px-6 py-4 bg-primary-50 rounded-lg">
+      <div class="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+      <p class="text-primary-700 font-medium">Checking account status...</p>
     </div>
-    <p>Checking account status...</p>
   </div>
 
   <!-- Account Expired Message -->
-  <div *ngIf="!isLoadingAccountStatus && authService.getRole() === 'student' && isAccountExpired" class="alert alert-warning account-status-alert my-3">
-    <h4>Account Status</h4>
-    <p>Your account has expired. While you can view your past attempts, you may not be able to start new tests. 
-       Please <a [routerLink]="['/profile']">visit your profile</a> to check your subscription details.</p>
+  <div *ngIf="!isLoadingAccountStatus && authService.getRole() === 'student' && isAccountExpired" 
+       class="bg-amber-50 border border-amber-200 rounded-lg p-4 md:p-6 mb-6">
+    <h4 class="text-amber-800 font-semibold text-lg mb-2">Account Status</h4>
+    <p class="text-amber-700 leading-relaxed">
+      Your account has expired. While you can view your past attempts, you may not be able to start new tests. 
+      Please <a [routerLink]="['/profile']" class="text-primary-600 hover:text-primary-700 underline font-medium">visit your profile</a> 
+      to check your subscription details.
+    </p>
   </div>
 
-  <div *ngIf="loading && !isLoadingAccountStatus" class="loading">Loading your attempts…</div>
-  <div *ngIf="error && !isLoadingAccountStatus" class="error">{{ error }}</div>
+  <!-- Loading State -->
+  <div *ngIf="loading && !isLoadingAccountStatus" class="text-center py-12">
+    <div class="inline-flex items-center gap-3 px-6 py-4 bg-primary-50 rounded-lg">
+      <div class="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+      <p class="text-primary-700 font-medium">Loading your attempts…</p>
+    </div>
+  </div>
 
-  <table *ngIf="!loading && !error && attempts && attempts.length > 0 && !isLoadingAccountStatus">
-    <thead>
-      <tr>
-        <th>Mock</th>
-        <th>Score</th>
-        <th>Out Of</th>
-        <th>%</th>
-        <th>Review</th>
-        <th>Leaderboard</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let a of attempts">
-        <td>{{ a?.series?.title || 'Unknown Test' }} ({{ a?.series?.year || 'N/A' }})</td>
-        <td>{{ a?.score || 0 }}</td>
-        <td>{{ a?.maxScore || 0 }}</td>
-        <td>{{ a?.percentage || 0 }}%</td>
-        <td>
-          <a [routerLink]="['/review', a?._id]">Review</a>
-        </td>
-        <td>
-          <a *ngIf="a?.series?.enablePublicLeaderboard" [routerLink]="['/leaderboard', a?.series?._id]">View</a>
-          <span *ngIf="!a?.series?.enablePublicLeaderboard">N/A</span>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <!-- Error State -->
+  <div *ngIf="error && !isLoadingAccountStatus" class="text-center py-12">
+    <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+      <p class="text-red-700 font-medium">{{ error }}</p>
+    </div>
+  </div>
 
-  <!-- Empty state when there are no attempts -->
-  <div *ngIf="!loading && !error && (!attempts || attempts.length === 0) && !isLoadingAccountStatus" class="empty-state">
-    <div class="empty-icon">📝</div>
-    <h3 class="empty-title">No Test Attempts Yet</h3>
-    <p class="empty-message">Take your first test to see your results here.</p>
-    <a [routerLink]="['/tests']" class="empty-action">Browse Tests</a>
+  <!-- Desktop Table View -->
+  <div *ngIf="!loading && !error && attempts && attempts.length > 0 && !isLoadingAccountStatus" 
+       class="hidden md:block bg-white rounded-lg shadow-lg overflow-hidden">
+    <table class="w-full">
+      <thead class="bg-gradient-to-r from-primary-600 to-primary-700">
+        <tr>
+          <th class="px-6 py-4 text-left text-sm font-semibold text-white">Mock Test</th>
+          <th class="px-6 py-4 text-center text-sm font-semibold text-white">Score</th>
+          <th class="px-6 py-4 text-center text-sm font-semibold text-white">Total</th>
+          <th class="px-6 py-4 text-center text-sm font-semibold text-white">Percentage</th>
+          <th class="px-6 py-4 text-center text-sm font-semibold text-white">Review</th>
+          <th class="px-6 py-4 text-center text-sm font-semibold text-white">Leaderboard</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200">
+        <tr *ngFor="let a of attempts" class="hover:bg-primary-50 transition-colors duration-200">
+          <td class="px-6 py-4 text-sm font-medium text-primary-700">
+            {{ a?.series?.title || 'Unknown Test' }} ({{ a?.series?.year || 'N/A' }})
+          </td>
+          <td class="px-6 py-4 text-sm text-center font-semibold text-gray-900">{{ a?.score || 0 }}</td>
+          <td class="px-6 py-4 text-sm text-center font-semibold text-gray-900">{{ a?.maxScore || 0 }}</td>
+          <td class="px-6 py-4 text-sm text-center font-bold text-primary-600">{{ a?.percentage || 0 }}%</td>
+          <td class="px-6 py-4 text-center">
+            <a [routerLink]="['/review', a?._id]" 
+               class="inline-block px-4 py-2 bg-secondary-500 text-white text-sm font-medium rounded-full hover:bg-secondary-600 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+              Review
+            </a>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <a *ngIf="a?.series?.enablePublicLeaderboard" 
+               [routerLink]="['/leaderboard', a?.series?._id]"
+               class="inline-block px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-full hover:bg-primary-600 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+              View
+            </a>
+            <span *ngIf="!a?.series?.enablePublicLeaderboard" 
+                  class="inline-block px-4 py-2 bg-gray-100 text-gray-500 text-sm rounded-full">
+              N/A
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Mobile Card View -->
+  <div *ngIf="!loading && !error && attempts && attempts.length > 0 && !isLoadingAccountStatus" 
+       class="md:hidden space-y-4">
+    <div *ngFor="let a of attempts" class="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+      <div class="mb-3">
+        <h3 class="font-semibold text-primary-700 text-sm">
+          {{ a?.series?.title || 'Unknown Test' }} ({{ a?.series?.year || 'N/A' }})
+        </h3>
+      </div>
+      
+      <div class="grid grid-cols-2 gap-3 mb-4 text-sm">
+        <div class="text-center">
+          <p class="text-gray-500 text-xs">Score</p>
+          <p class="font-semibold text-gray-900">{{ a?.score || 0 }}/{{ a?.maxScore || 0 }}</p>
+        </div>
+        <div class="text-center">
+          <p class="text-gray-500 text-xs">Percentage</p>
+          <p class="font-bold text-primary-600">{{ a?.percentage || 0 }}%</p>
+        </div>
+      </div>
+      
+      <div class="flex gap-2">
+        <a [routerLink]="['/review', a?._id]" 
+           class="flex-1 text-center px-3 py-2 bg-secondary-500 text-white text-sm font-medium rounded-lg hover:bg-secondary-600 transition-colors">
+          Review
+        </a>
+        <a *ngIf="a?.series?.enablePublicLeaderboard" 
+           [routerLink]="['/leaderboard', a?.series?._id]"
+           class="flex-1 text-center px-3 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors">
+          Leaderboard
+        </a>
+        <span *ngIf="!a?.series?.enablePublicLeaderboard" 
+              class="flex-1 text-center px-3 py-2 bg-gray-100 text-gray-500 text-sm rounded-lg">
+          No Leaderboard
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && !error && (!attempts || attempts.length === 0) && !isLoadingAccountStatus" 
+       class="text-center py-16 bg-white rounded-lg shadow-lg">
+    <div class="text-6xl mb-4">📝</div>
+    <h3 class="text-xl font-semibold text-gray-900 mb-2">No Test Attempts Yet</h3>
+    <p class="text-gray-600 mb-6">Take your first test to see your results here.</p>
+    <a [routerLink]="['/tests']" 
+       class="inline-block px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+      Browse Tests
+    </a>
   </div>
 </div>

@@ -7,8 +7,7 @@ import { AuthService } from '../../services/auth.service';
   selector: 'app-referral-modal',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
-  templateUrl: './referral-modal.component.html',
-  styleUrl: './referral-modal.component.scss'
+  templateUrl: './referral-modal.component.html'
 })
 export class ReferralModalComponent implements OnInit {
   @Input() isVisible = false;
