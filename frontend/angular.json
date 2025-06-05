@@ -38,7 +38,14 @@
             "scripts": []
           },
           "configurations": {
-            "production": {              "budgets": [
+            "production": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ],
+              "budgets": [
                 {
                   "type": "initial",
                   "maximumWarning": "1.5MB",
@@ -59,9 +66,11 @@
             }
           },
           "defaultConfiguration": "production"
-        },
-        "serve": {
+        },        "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "port": 4200
+          },
           "configurations": {
             "production": {
               "buildTarget": "frontend:build:production"

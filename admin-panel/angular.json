@@ -62,11 +62,11 @@
             }
           },
           "defaultConfiguration": "development"
-        },
-        "serve": {
+        },        "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "buildTarget": "admin-panel:build"
+            "buildTarget": "admin-panel:build",
+            "port": 4201
           },
           "configurations": {
             "production": {
