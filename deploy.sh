@@ -44,14 +44,21 @@ git pull --ff-only
 print_status "Installing backend dependencies..."
 cd backend && npm ci --omit=dev
 
+print_status "Installing admin-panel dependencies..."
+cd ../admin-panel && npm ci --legacy-peer-deps
+
+print_status "Building admin-panel for production..."
+npm run build:prod
+
 print_status "Installing frontend dependencies..."
-cd ../admin-panel && npm ci
+cd ../frontend && npm ci --legacy-peer-deps
 
 print_status "Building frontend for production..."
 npm run build:prod
 
 print_status "Updating web server files..."
-sudo rsync -av --delete dist/admin-panel/ /var/www/admin-panel/
+sudo rsync -av --delete ../admin-panel/dist/admin-panel/ /var/www/admin-panel/
+sudo rsync -av --delete dist/frontend/ /var/www/frontend/
 
 print_status "Restarting backend service..."
 pm2 reload nexprep-backend --env production

@@ -1,15 +1,31 @@
 # EC2 Server Angular 19 Dependency Fix
 
-## Issue
-The EC2 server is experiencing the same dependency conflict we resolved locally:
+## ✅ Issue Resolved
+The deployment script has been updated to handle Angular 19 dependencies correctly.
+
+## ⚠️ Previous Issue (Now Fixed)
+The EC2 server was experiencing dependency conflicts:
 - `ng2-charts@4.1.1` requires `@angular/cdk@>=14.0.0`
-- But it's pulling in `@angular/cdk@20.0.2` which requires Angular 20/21
-- This conflicts with our Angular 19.2.14 installation
+- But was pulling in `@angular/cdk@20.0.2` which requires Angular 20/21
+- This conflicted with our Angular 19.2.14 installation
 
-## Solution
-Use the same fix we applied locally by installing with legacy peer deps.
+## ✅ Solution Applied
+The `deploy.sh` script now automatically uses `--legacy-peer-deps` for both applications:
+- Admin Panel: `npm ci --legacy-peer-deps`
+- Frontend: `npm ci --legacy-peer-deps`
 
-## Commands to Run on EC2 Server
+## Quick Deployment (Recommended)
+
+```bash
+# Simply run the updated deployment script
+cd ~/NexPrep
+chmod +x deploy.sh
+./deploy.sh
+```
+
+## Manual Commands (If Needed)
+
+If you need to run commands manually on EC2 server:
 
 ```bash
 # Navigate to admin-panel directory
