@@ -17,18 +17,23 @@ require('./models/RewardTransaction');
 require('./models/RewardRedemption');
 
 // Load environment variables
-dotenv.config();
+const envFile = process.env.NODE_ENV === 'production' ? '.env.prod' : '.env.dev';
+dotenv.config({ path: envFile });
 
 // Connect to MongoDB
 connectDB();
 
 const app = express();
 const server = http.createServer(app); // Create HTTP server
+
+// Get allowed origins from environment (can be comma-separated)
+const allowedOrigins = process.env.ALLOWED_ORIGIN ? process.env.ALLOWED_ORIGIN.split(',') : ['http://localhost:4200'];
+
 const io = new Server(server, { // Attach socket.io to server
   cors: {
-    origin: "http://localhost:4200",
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
-    credentials: true
+    credentials: process.env.CORS_CREDENTIALS === 'true'
   }
 });
 
@@ -37,10 +42,10 @@ require('./socket/chatHandler')(io);
 
 const PORT = process.env.PORT || 5000;
 
-// CORS for local frontend
+// CORS configuration using environment variables
 app.use(cors({
-  origin: 'http://localhost:4200',
-  credentials: true
+  origin: allowedOrigins,
+  credentials: process.env.CORS_CREDENTIALS === 'true'
 }));
 
 // Debugging middleware

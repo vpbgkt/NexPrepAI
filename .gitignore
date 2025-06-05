@@ -119,6 +119,12 @@ backend/.env
 ehthumbs.db
 Thumbs.db
 
+# Environment variables (keep .env.dev for reference, but exclude production secrets)
+.env
+.env.local
+.env.prod
+backend/.env.prod
+
 # Firebase service account key
 backend/config/nexprepauth-firebase-adminsdk-fbsvc-4b2f8377b1.json
 

@@ -1,0 +1,23 @@
+module.exports = {
+  apps: [{
+    name: 'nexprep-backend',
+    script: 'server.js',
+    cwd: './backend',
+    instances: 1,
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '1G',
+    env: {
+      NODE_ENV: 'development',
+      PORT: 5000,
+      ALLOWED_ORIGIN: 'http://localhost:4200',
+      CORS_CREDENTIALS: 'true'
+    },
+    env_production: {
+      NODE_ENV: 'production',
+      PORT: 5000,
+      ALLOWED_ORIGIN: 'https://admin.yourdomain.com,http://13.203.105.33:4200',
+      CORS_CREDENTIALS: 'true'
+    }
+  }]
+};
