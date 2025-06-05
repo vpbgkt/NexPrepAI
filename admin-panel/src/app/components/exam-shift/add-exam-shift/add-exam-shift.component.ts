@@ -37,7 +37,6 @@ export class AddExamShiftComponent implements OnInit {
     // 2️⃣ Load Papers for dropdown
     this.paperSvc.getAll().subscribe(list => this.papers = list);
   }
-
   onSubmit() {
     if (this.form.invalid) return;
 
@@ -51,5 +50,9 @@ export class AddExamShiftComponent implements OnInit {
         window.alert(`❌ Failed to add shift: ${msg}`);
       }
     });
+  }
+
+  onCancel() {
+    this.router.navigate(['/exam-shifts']);
   }
 }

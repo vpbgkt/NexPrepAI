@@ -72,28 +72,27 @@
     <div class="flex-1 overflow-y-auto p-4" #sectionNavigator>
       <div *ngFor="let section of sections; let sIdx = index" class="mb-6">
         <div class="text-sm font-semibold text-gray-700 mb-3 px-2">{{ section.title }}</div>
-        <div class="grid grid-cols-5 gap-2">
-          <button *ngFor="let q of section.questions; let qIdx = index"
+        <div class="grid grid-cols-5 gap-2">          <button *ngFor="let q of section.questions; let qIdx = index"
                   (click)="goToQuestion(sIdx, qIdx)"
                   [attr.title]="'Question ' + getGlobalQuestionNumber(sIdx, qIdx)"
                   class="relative w-10 h-10 rounded-lg border-2 text-sm font-medium transition-all duration-200 hover:shadow-md"
-                  [class.border-green-500]="getQuestionStatus(sIdx, qIdx) === 'answered'"
-                  [class.bg-green-500]="getQuestionStatus(sIdx, qIdx) === 'answered'"
-                  [class.text-white]="getQuestionStatus(sIdx, qIdx) === 'answered'"
-                  [class.border-amber-500]="getQuestionStatus(sIdx, qIdx) === 'marked-for-review'"
-                  [class.bg-amber-500]="getQuestionStatus(sIdx, qIdx) === 'marked-for-review'"
-                  [class.text-white]="getQuestionStatus(sIdx, qIdx) === 'marked-for-review'"
-                  [class.border-red-500]="getQuestionStatus(sIdx, qIdx) === 'unanswered'"
-                  [class.bg-red-500]="getQuestionStatus(sIdx, qIdx) === 'unanswered'"
-                  [class.text-white]="getQuestionStatus(sIdx, qIdx) === 'unanswered'"
                   [class.border-primary-600]="isCurrentQuestion(sIdx, qIdx)"
                   [class.bg-primary-600]="isCurrentQuestion(sIdx, qIdx)"
                   [class.text-white]="isCurrentQuestion(sIdx, qIdx)"
                   [class.ring-2]="isCurrentQuestion(sIdx, qIdx)"
                   [class.ring-primary-300]="isCurrentQuestion(sIdx, qIdx)"
-                  [class.border-gray-300]="getQuestionStatus(sIdx, qIdx) === 'unvisited'"
-                  [class.bg-gray-100]="getQuestionStatus(sIdx, qIdx) === 'unvisited'"
-                  [class.text-gray-600]="getQuestionStatus(sIdx, qIdx) === 'unvisited'">
+                  [class.border-green-500]="!isCurrentQuestion(sIdx, qIdx) && getQuestionStatus(sIdx, qIdx) === 'answered'"
+                  [class.bg-green-500]="!isCurrentQuestion(sIdx, qIdx) && getQuestionStatus(sIdx, qIdx) === 'answered'"
+                  [class.text-white]="!isCurrentQuestion(sIdx, qIdx) && getQuestionStatus(sIdx, qIdx) === 'answered'"
+                  [class.border-amber-500]="!isCurrentQuestion(sIdx, qIdx) && getQuestionStatus(sIdx, qIdx) === 'marked-for-review'"
+                  [class.bg-amber-500]="!isCurrentQuestion(sIdx, qIdx) && getQuestionStatus(sIdx, qIdx) === 'marked-for-review'"
+                  [class.text-white]="!isCurrentQuestion(sIdx, qIdx) && getQuestionStatus(sIdx, qIdx) === 'marked-for-review'"
+                  [class.border-red-300]="!isCurrentQuestion(sIdx, qIdx) && getQuestionStatus(sIdx, qIdx) === 'unanswered'"
+                  [class.bg-red-200]="!isCurrentQuestion(sIdx, qIdx) && getQuestionStatus(sIdx, qIdx) === 'unanswered'"
+                  [class.text-red-800]="!isCurrentQuestion(sIdx, qIdx) && getQuestionStatus(sIdx, qIdx) === 'unanswered'"
+                  [class.border-gray-300]="!isCurrentQuestion(sIdx, qIdx) && getQuestionStatus(sIdx, qIdx) === 'unvisited'"
+                  [class.bg-gray-100]="!isCurrentQuestion(sIdx, qIdx) && getQuestionStatus(sIdx, qIdx) === 'unvisited'"
+                  [class.text-gray-600]="!isCurrentQuestion(sIdx, qIdx) && getQuestionStatus(sIdx, qIdx) === 'unvisited'">
             {{ getGlobalQuestionNumber(sIdx, qIdx) }}
             <span *ngIf="isQuestionFlagged(sIdx, qIdx)" 
                   class="absolute -top-1 -right-1 material-icons-outlined text-xs text-red-600">flag</span>
@@ -105,9 +104,8 @@
     <!-- Legend -->
     <div class="p-4 border-t border-gray-200 bg-gray-50">
       <div class="text-sm font-semibold text-gray-700 mb-3">Legend</div>
-      <div class="space-y-2 text-xs">
-        <div class="flex items-center gap-2">
-          <div class="w-4 h-4 bg-red-500 rounded border-2 border-red-500"></div>
+      <div class="space-y-2 text-xs">        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 bg-red-200 rounded border-2 border-red-300"></div>
           <span class="text-gray-600">Unanswered</span>
         </div>
         <div class="flex items-center gap-2">
@@ -121,10 +119,9 @@
         <div class="flex items-center gap-2">
           <div class="w-4 h-4 bg-primary-600 rounded border-2 border-primary-600 ring-2 ring-primary-300"></div>
           <span class="text-gray-600">Current Question</span>
-        </div>
-        <div class="flex items-center gap-2">
+        </div>        <div class="flex items-center gap-2">
           <span class="material-icons-outlined text-red-600 text-sm">flag</span>
-          <span class="text-gray-600">Flagged for Review</span>
+          <span class="text-gray-600">Marked for Review</span>
         </div>
       </div>
     </div>
@@ -135,8 +132,7 @@
               (click)="triggerManualSave()" [disabled]="!attemptId">
         <span class="material-icons-outlined text-sm">save</span>
         Save Progress
-      </button>
-      <button class="w-full bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 transition-colors duration-200 flex items-center justify-center gap-2 font-medium" 
+      </button>      <button class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center gap-2 font-medium" 
               (click)="submit()">
         <span class="material-icons-outlined">done_all</span>
         Submit Exam
@@ -146,12 +142,6 @@
 
   <!-- Main Question Area -->
   <div class="flex-1 flex flex-col">
-    <!-- Top Timer Bar -->
-    <div class="bg-white border-b border-gray-200 p-4">
-      <div class="flex items-center justify-between">
-        <div class="text-gray-600">Time left: {{ formatTime(timeLeft) }}</div>
-      </div>
-    </div>
 
     <!-- Question Content -->
     <div class="flex-1 overflow-y-auto p-6">
@@ -194,10 +184,9 @@
                 <!-- Options -->
                 <div *ngIf="currentQuestionDisplayData.displayOptions" class="space-y-3">
                   <div *ngFor="let option of currentQuestionDisplayData.displayOptions; let i = index" 
-                       class="relative">                    <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-200">
-                      <input type="radio" 
+                       class="relative">                    <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-200">                      <input type="radio" 
                              [value]="i" 
-                             formControlName="selectedOption"
+                             formControlName="selected"
                              class="mt-1 text-primary-600 focus:ring-primary-500">
                       <div class="flex-1">
                         <div class="font-medium text-gray-900 mb-1">{{ String.fromCharCode(65 + i) }})</div>
@@ -210,28 +199,9 @@
                     </label>
                   </div>
                 </div>
-              </div>
-
-              <!-- Additional Controls -->
+              </div>              <!-- Additional Controls -->
               <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                 <div class="flex flex-wrap items-center gap-4">
-                  <!-- Flag Button -->
-                  <button type="button" 
-                          (click)="toggleQuestionFlag(currentGlobalQuestionIndex)" 
-                          class="px-4 py-2 border rounded-lg transition-colors duration-200 flex items-center gap-2"
-                          [class.border-red-500]="isQuestionFlaggedByIndex(currentGlobalQuestionIndex)"
-                          [class.bg-red-50]="isQuestionFlaggedByIndex(currentGlobalQuestionIndex)"
-                          [class.text-red-700]="isQuestionFlaggedByIndex(currentGlobalQuestionIndex)"
-                          [class.border-gray-300]="!isQuestionFlaggedByIndex(currentGlobalQuestionIndex)"
-                          [class.text-gray-700]="!isQuestionFlaggedByIndex(currentGlobalQuestionIndex)"
-                          [class.hover:bg-red-50]="!isQuestionFlaggedByIndex(currentGlobalQuestionIndex)"
-                          title="Flag this question">
-                    <span class="material-icons-outlined text-sm">
-                      {{isQuestionFlaggedByIndex(currentGlobalQuestionIndex) ? 'flag' : 'flag_outline'}}
-                    </span>
-                    Flag
-                  </button>
-                  
                   <!-- Confidence Rating -->
                   <div class="flex items-center gap-2">
                     <label class="text-sm font-medium text-gray-700">Confidence Level:</label>
@@ -267,15 +237,24 @@
                       Next
                       <span class="material-icons-outlined text-sm">chevron_right</span>
                     </button>
-                  </div>
-
-                  <!-- Action Buttons -->
+                  </div>                  <!-- Action Buttons -->
                   <div class="flex gap-2">
                     <button type="button" 
-                            class="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors duration-200 flex items-center gap-2"
+                            class="px-4 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2"
+                            [class.border-amber-500]="isQuestionFlaggedByIndex(currentGlobalQuestionIndex)"
+                            [class.bg-amber-500]="isQuestionFlaggedByIndex(currentGlobalQuestionIndex)"
+                            [class.text-white]="isQuestionFlaggedByIndex(currentGlobalQuestionIndex)"
+                            [class.border-gray-300]="!isQuestionFlaggedByIndex(currentGlobalQuestionIndex)"
+                            [class.bg-gray-100]="!isQuestionFlaggedByIndex(currentGlobalQuestionIndex)"
+                            [class.text-gray-700]="!isQuestionFlaggedByIndex(currentGlobalQuestionIndex)"
+                            [class.hover:bg-amber-600]="isQuestionFlaggedByIndex(currentGlobalQuestionIndex)"
+                            [class.hover:bg-gray-200]="!isQuestionFlaggedByIndex(currentGlobalQuestionIndex)"
+                            [class.border]="true"
                             (click)="markForReview()">
-                      <span class="material-icons-outlined text-sm">bookmark</span>
-                      Mark for Review
+                      <span class="material-icons-outlined text-sm">
+                        {{isQuestionFlaggedByIndex(currentGlobalQuestionIndex) ? 'bookmark' : 'bookmark_border'}}
+                      </span>
+                      {{isQuestionFlaggedByIndex(currentGlobalQuestionIndex) ? 'Marked for Review' : 'Mark for Review'}}
                     </button>
                     <button type="button" 
                             class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200 flex items-center gap-2"

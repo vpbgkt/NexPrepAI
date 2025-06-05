@@ -1,145 +1,375 @@
-<div class="container mt-4">
-  <h2>Questions Pending Review</h2>
+<div class="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 p-6">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header Section -->
+    <div class="bg-gradient-to-r from-purple-600 to-blue-600 rounded-t-2xl px-8 py-6 shadow-lg">
+      <h2 class="text-3xl font-bold text-white text-center">Questions Pending Review</h2>
+    </div>
 
-  <div *ngIf="isLoading" class="text-center">
-    <p>Loading questions...</p>
-    <!-- You can add a spinner or loading animation here -->
-  </div>
+    <!-- Content Card -->
+    <div class="bg-white rounded-b-2xl shadow-xl overflow-hidden">
+      <div class="p-8">
+        <!-- Loading State -->
+        <div *ngIf="isLoading" class="text-center py-16">
+          <div class="inline-flex items-center space-x-2">
+            <svg class="animate-spin h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-lg text-gray-600">Loading questions...</span>
+          </div>
+        </div>
 
-  <div *ngIf="errorMessage" class="alert alert-danger">
-    {{ errorMessage }}
-  </div>
+        <!-- Error State -->
+        <div *ngIf="errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <div class="flex items-center">
+            <svg class="w-6 h-6 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+            </svg>
+            <span class="text-red-800 font-medium">{{ errorMessage }}</span>
+          </div>
+        </div>
 
-  <div *ngIf="!isLoading && !errorMessage && questions.length === 0" class="alert alert-info">
-    No questions are currently pending review.
-  </div>
-
-  <div *ngIf="!isLoading && !errorMessage && questions.length > 0">
-    <table class="table table-striped table-hover">
-      <thead>
-        <tr>
-          <th>Question Text (English)</th>
-          <th>Branch</th>
-          <th>Subject</th>
-          <th>Topic</th>
-          <th>Difficulty</th>
-          <th>Type</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <ng-container *ngFor="let q of questions; let i = index">
-          <tr>
-            <td>
-              {{ getQuestionText(q, 'en') }}
-            </td>
-            <td>{{ getHierarchyName(q.branch) }}</td>
-            <td>{{ getHierarchyName(q.subject) }}</td>
-            <td>{{ getHierarchyName(q.topic) }}</td>
-            <td>{{ q.difficulty || 'N/A' }}</td>
-            <td>{{ q.type || 'N/A' }}</td>
-            <td>
-              <button class="btn btn-outline-info btn-sm me-2" (click)="toggleDetails(q)" [title]="q.expanded ? 'Hide Details' : 'View Details'">
-                <i [class.fas]="true" [class.fa-eye]="!q.expanded" [class.fa-eye-slash]="q.expanded"></i>
-                <span class="ms-1">{{ q.expanded ? 'Hide' : 'Details' }}</span>
-              </button>
-              <button class="btn btn-outline-success btn-sm me-2" (click)="approveQuestion(getQuestionId(q))" [disabled]="!getQuestionId(q)" title="Approve">
-                <i class="fas fa-check"></i>
-                <span class="ms-1">Approve</span>
-              </button>
-              <button class="btn btn-outline-danger btn-sm" (click)="rejectQuestion(getQuestionId(q))" [disabled]="!getQuestionId(q)" title="Reject">
-                <i class="fas fa-times"></i>
-                <span class="ms-1">Reject</span>
-              </button>
-            </td>
-          </tr>
-          <tr *ngIf="q.expanded" class="question-details-row">
-            <td [attr.colspan]="7"> <!-- Span across all columns -->
-              <div class="question-details-container p-3">
-                <h5 class="details-header">Full Question Details:</h5>
-                <hr>
-                <p><strong>Status:</strong> {{ q.status }}</p>
-                <p><strong>Difficulty:</strong> {{ q.difficulty }}</p>
-                <p><strong>Type:</strong> {{ q.type || 'N/A' }}</p>
-                <p *ngIf="q.tags && q.tags.length > 0"><strong>Tags:</strong> {{ q.tags.join(', ') }}</p>
-                <p *ngIf="q.recommendedTimeAllotment"><strong>Recommended Time:</strong> {{ q.recommendedTimeAllotment }} minutes</p>
-                <p *ngIf="q.internalNotes"><strong>Internal Notes:</strong> {{ q.internalNotes }}</p>
-
-                <div *ngFor="let translation of q.translations; let ti = index">
-                  <h6>Translation ({{ translation.lang }})</h6>
-                  <p [innerHTML]="translation.questionText"></p>
-                  <div *ngIf="translation.images && translation.images.length > 0" class="mb-2">
-                    <strong>Images:</strong>
-                    <div class="d-flex flex-wrap">
-                      <div *ngFor="let img of translation.images" class="me-2 mb-2">
-                        <img [src]="img" alt="Question Image" style="max-width: 150px; max-height: 150px; border: 1px solid #ddd;">
+        <!-- Empty State -->
+        <div *ngIf="!isLoading && !errorMessage && questions.length === 0" class="text-center py-16">
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-8">
+            <svg class="w-16 h-16 text-blue-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-blue-800 text-lg font-medium">No questions are currently pending review.</p>
+            <p class="text-blue-600 mt-2">All questions have been reviewed and processed.</p>
+          </div>
+        </div>
+        <!-- Questions Table -->
+        <div *ngIf="!isLoading && !errorMessage && questions.length > 0" class="overflow-hidden">
+          <div class="overflow-x-auto shadow-lg rounded-lg border border-gray-200">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+                <tr>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    Question Text
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    Branch
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    Subject
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    Topic
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    Difficulty
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    Type
+                  </th>
+                  <th class="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <ng-container *ngFor="let q of questions; let i = index">
+                  <tr class="hover:bg-gray-50 transition-colors duration-200">
+                    <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+                      {{ getQuestionText(q, 'en') }}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {{ getHierarchyName(q.branch) }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        {{ getHierarchyName(q.subject) }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        {{ getHierarchyName(q.topic) }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" 
+                            [ngClass]="{
+                              'bg-red-100 text-red-800': q.difficulty === 'Hard',
+                              'bg-yellow-100 text-yellow-800': q.difficulty === 'Medium',
+                              'bg-green-100 text-green-800': q.difficulty === 'Easy',
+                              'bg-gray-100 text-gray-800': !q.difficulty
+                            }">
+                        {{ q.difficulty || 'N/A' }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                        {{ q.type || 'N/A' }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                      <div class="flex items-center justify-center space-x-2">
+                        <button 
+                          class="inline-flex items-center px-3 py-1.5 border border-blue-300 text-xs font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                          (click)="toggleDetails(q)" 
+                          [title]="q.expanded ? 'Hide Details' : 'View Details'">
+                          <i [class.fas]="true" [class.fa-eye]="!q.expanded" [class.fa-eye-slash]="q.expanded" class="mr-1"></i>
+                          {{ q.expanded ? 'Hide' : 'Details' }}
+                        </button>
+                        <button 
+                          class="inline-flex items-center px-3 py-1.5 border border-green-300 text-xs font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                          (click)="approveQuestion(getQuestionId(q))" 
+                          [disabled]="!getQuestionId(q)" 
+                          title="Approve">
+                          <i class="fas fa-check mr-1"></i>
+                          Approve
+                        </button>
+                        <button 
+                          class="inline-flex items-center px-3 py-1.5 border border-red-300 text-xs font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                          (click)="rejectQuestion(getQuestionId(q))" 
+                          [disabled]="!getQuestionId(q)" 
+                          title="Reject">
+                          <i class="fas fa-times mr-1"></i>
+                          Reject
+                        </button>
                       </div>
-                    </div>
-                  </div>
-                  <strong>Options:</strong>
-                  <ul>
-                    <li *ngFor="let option of translation.options" [class.correct-option]="option.isCorrect">
-                      <span [innerHTML]="option.text"></span>
-                      <span *ngIf="option.isCorrect"> (Correct)</span>
-                      <div *ngIf="option.img" class="mt-1">
-                        <img [src]="option.img" alt="Option Image" style="max-width: 100px; max-height: 100px; border: 1px solid #ddd;">
-                      </div>
-                    </li>
-                  </ul>
-                  <div *ngIf="translation.explanations && translation.explanations.length > 0">
-                    <strong>Explanations:</strong>
-                    <div *ngFor="let expl of translation.explanations" class="explanation-item mt-2 p-2 border rounded">
-                      <p><strong>Label:</strong> {{ expl.label || 'General' }} (Type: {{ expl.type }})</p>
-                      <div [ngSwitch]="expl.type">
-                        <p *ngSwitchCase="'text'" [innerHTML]="expl.content"></p>
-                        <a *ngSwitchCase="'video'" [href]="expl.content" target="_blank">View Video</a>
-                        <a *ngSwitchCase="'pdf'" [href]="expl.content" target="_blank">View PDF</a>
-                        <img *ngSwitchCase="'image'" [src]="expl.content" alt="Explanation Image" style="max-width: 200px; max-height: 200px; border: 1px solid #ddd;">
-                      </div>
-                    </div>
-                  </div>
-                  <hr *ngIf="ti < q.translations.length - 1">
-                </div>
+                    </td>
+                  </tr>                  <!-- Expanded Details Row -->
+                  <tr *ngIf="q.expanded" class="bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <td colspan="7" class="px-0 py-0">
+                      <div class="mx-6 my-4 bg-white rounded-lg shadow-md border border-blue-200 overflow-hidden">
+                        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+                          <h5 class="text-xl font-bold text-white flex items-center">
+                            <i class="fas fa-info-circle mr-3"></i>
+                            Full Question Details
+                          </h5>
+                        </div>
+                        
+                        <div class="p-6 space-y-6">
+                          <!-- Basic Info Section -->
+                          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-gray-50 rounded-lg p-4">
+                              <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Status</p>
+                              <p class="text-lg font-medium text-gray-900 mt-1">{{ q.status }}</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                              <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Difficulty</p>
+                              <p class="text-lg font-medium text-gray-900 mt-1">{{ q.difficulty }}</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                              <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Type</p>
+                              <p class="text-lg font-medium text-gray-900 mt-1">{{ q.type || 'N/A' }}</p>
+                            </div>
+                          </div>
 
-                <div *ngIf="q.explanations && q.explanations.length > 0 && q.translations.length === 0">
-                    <h6>General Explanations (No specific translation):</h6>
-                     <div *ngFor="let expl of q.explanations" class="explanation-item mt-2 p-2 border rounded">
-                      <p><strong>Label:</strong> {{ expl.label || 'General' }} (Type: {{ expl.type }})</p>
-                      <div [ngSwitch]="expl.type">
-                        <p *ngSwitchCase="'text'" [innerHTML]="expl.content"></p>
-                        <a *ngSwitchCase="'video'" [href]="expl.content" target="_blank">View Video</a>
-                        <a *ngSwitchCase="'pdf'" [href]="expl.content" target="_blank">View PDF</a>
-                        <img *ngSwitchCase="'image'" [src]="expl.content" alt="Explanation Image" style="max-width: 200px; max-height: 200px; border: 1px solid #ddd;">
-                      </div>
-                    </div>
-                </div>
+                          <!-- Additional Info -->
+                          <div class="space-y-4" *ngIf="q.tags || q.recommendedTimeAllotment || q.internalNotes">
+                            <div *ngIf="q.tags && q.tags.length > 0" class="bg-blue-50 rounded-lg p-4">
+                              <p class="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">Tags</p>
+                              <div class="flex flex-wrap gap-2">
+                                <span *ngFor="let tag of q.tags" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  {{ tag }}
+                                </span>
+                              </div>
+                            </div>
+                            <div *ngIf="q.recommendedTimeAllotment" class="bg-green-50 rounded-lg p-4">
+                              <p class="text-sm font-semibold text-green-700 uppercase tracking-wide">Recommended Time</p>
+                              <p class="text-lg font-medium text-green-900 mt-1">{{ q.recommendedTimeAllotment }} minutes</p>
+                            </div>
+                            <div *ngIf="q.internalNotes" class="bg-yellow-50 rounded-lg p-4">
+                              <p class="text-sm font-semibold text-yellow-700 uppercase tracking-wide">Internal Notes</p>
+                              <p class="text-gray-800 mt-1">{{ q.internalNotes }}</p>
+                            </div>
+                          </div>
 
+                          <!-- Translations Section -->
+                          <div *ngFor="let translation of q.translations; let ti = index" class="border border-gray-200 rounded-lg overflow-hidden">
+                            <div class="bg-gradient-to-r from-purple-100 to-blue-100 px-4 py-3 border-b">
+                              <h6 class="text-lg font-semibold text-purple-800">Translation ({{ translation.lang }})</h6>
+                            </div>
+                            
+                            <div class="p-4 space-y-4">
+                              <!-- Question Text -->
+                              <div class="bg-gray-50 rounded-lg p-4">
+                                <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">Question Text</p>
+                                <div class="prose max-w-none" [innerHTML]="translation.questionText"></div>
+                              </div>
+
+                              <!-- Question Images -->
+                              <div *ngIf="translation.images && translation.images.length > 0" class="bg-blue-50 rounded-lg p-4">
+                                <p class="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-3">Question Images</p>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                  <div *ngFor="let img of translation.images" class="relative">
+                                    <img [src]="img" alt="Question Image" 
+                                         class="w-full h-32 object-cover rounded-lg border-2 border-blue-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+                                  </div>
+                                </div>
+                              </div>
+
+                              <!-- Options -->
+                              <div class="bg-green-50 rounded-lg p-4">
+                                <p class="text-sm font-semibold text-green-700 uppercase tracking-wide mb-3">Answer Options</p>
+                                <div class="space-y-3">
+                                  <div *ngFor="let option of translation.options; let oi = index" 
+                                       class="flex items-start space-x-3 p-3 rounded-lg border"
+                                       [ngClass]="{
+                                         'bg-green-100 border-green-300': option.isCorrect,
+                                         'bg-white border-gray-200': !option.isCorrect
+                                       }">
+                                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-sm font-semibold"
+                                          [ngClass]="{
+                                            'bg-green-600 text-white': option.isCorrect,
+                                            'bg-gray-400 text-white': !option.isCorrect
+                                          }">
+                                      {{ String.fromCharCode(65 + oi) }}
+                                    </span>
+                                    <div class="flex-1">
+                                      <div class="prose max-w-none" [innerHTML]="option.text"></div>
+                                      <span *ngIf="option.isCorrect" class="inline-flex items-center mt-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-200 text-green-800">
+                                        <i class="fas fa-check mr-1"></i>
+                                        Correct Answer
+                                      </span>
+                                      <div *ngIf="option.img" class="mt-3">
+                                        <img [src]="option.img" alt="Option Image" 
+                                             class="max-w-24 h-20 object-cover rounded border border-gray-300 shadow-sm">
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <!-- Explanations -->
+                              <div *ngIf="translation.explanations && translation.explanations.length > 0" class="bg-indigo-50 rounded-lg p-4">
+                                <p class="text-sm font-semibold text-indigo-700 uppercase tracking-wide mb-3">Explanations</p>
+                                <div class="space-y-3">
+                                  <div *ngFor="let expl of translation.explanations" class="bg-white rounded-lg border border-indigo-200 p-4">
+                                    <p class="text-sm font-semibold text-indigo-600 mb-2">
+                                      {{ expl.label || 'General' }} 
+                                      <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 ml-2">
+                                        {{ expl.type }}
+                                      </span>
+                                    </p>
+                                    <div [ngSwitch]="expl.type">
+                                      <div *ngSwitchCase="'text'" class="prose max-w-none" [innerHTML]="expl.content"></div>
+                                      <a *ngSwitchCase="'video'" [href]="expl.content" target="_blank" 
+                                         class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                                        <i class="fas fa-play mr-2"></i>
+                                        View Video
+                                      </a>
+                                      <a *ngSwitchCase="'pdf'" [href]="expl.content" target="_blank"
+                                         class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                                        <i class="fas fa-file-pdf mr-2"></i>
+                                        View PDF
+                                      </a>
+                                      <img *ngSwitchCase="'image'" [src]="expl.content" alt="Explanation Image" 
+                                           class="max-w-sm h-auto rounded-lg border border-gray-300 shadow-sm">
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <hr *ngIf="ti < q.translations.length - 1" class="border-gray-200">
+                          </div>
+
+                          <!-- General Explanations (fallback) -->
+                          <div *ngIf="q.explanations && q.explanations.length > 0 && q.translations.length === 0" class="bg-indigo-50 rounded-lg p-4">
+                            <h6 class="text-lg font-semibold text-indigo-800 mb-4">General Explanations (No specific translation)</h6>
+                            <div class="space-y-3">
+                              <div *ngFor="let expl of q.explanations" class="bg-white rounded-lg border border-indigo-200 p-4">
+                                <p class="text-sm font-semibold text-indigo-600 mb-2">
+                                  {{ expl.label || 'General' }} 
+                                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 ml-2">
+                                    {{ expl.type }}
+                                  </span>
+                                </p>
+                                <div [ngSwitch]="expl.type">
+                                  <div *ngSwitchCase="'text'" class="prose max-w-none" [innerHTML]="expl.content"></div>
+                                  <a *ngSwitchCase="'video'" [href]="expl.content" target="_blank"
+                                     class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                                    <i class="fas fa-play mr-2"></i>
+                                    View Video
+                                  </a>
+                                  <a *ngSwitchCase="'pdf'" [href]="expl.content" target="_blank"
+                                     class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                                    <i class="fas fa-file-pdf mr-2"></i>
+                                    View PDF
+                                  </a>
+                                  <img *ngSwitchCase="'image'" [src]="expl.content" alt="Explanation Image" 
+                                       class="max-w-sm h-auto rounded-lg border border-gray-300 shadow-sm">
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-container>
+              </tbody>
+            </table>
+          </div>          <!-- Pagination Controls -->
+          <nav *ngIf="totalPages > 1" aria-label="Page navigation" class="mt-8">
+            <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg shadow">
+              <div class="flex flex-1 justify-between sm:hidden">
+                <button 
+                  class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  [class.disabled]="currentPage === 1"
+                  [disabled]="currentPage === 1"
+                  (click)="previousPage()">
+                  Previous
+                </button>
+                <button 
+                  class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  [class.disabled]="currentPage === totalPages"
+                  [disabled]="currentPage === totalPages"
+                  (click)="nextPage()">
+                  Next
+                </button>
               </div>
-            </td>
-          </tr>
-        </ng-container>
-      </tbody>
-    </table>
-
-    <!-- Pagination Controls -->
-    <nav *ngIf="totalPages > 1" aria-label="Page navigation">
-      <ul class="pagination justify-content-center">
-        <li class="page-item" [class.disabled]="currentPage === 1">
-          <button class="page-link" (click)="previousPage()">Previous</button>
-        </li>
-        <!-- Generate page numbers -->
-        <li class="page-item" *ngFor="let pageNum of [].constructor(totalPages); let i = index" [class.active]="currentPage === i + 1">
-          <button class="page-link" (click)="goToPage(i + 1)">{{ i + 1 }}</button>
-        </li>
-        <li class="page-item" [class.disabled]="currentPage === totalPages">
-          <button class="page-link" (click)="nextPage()">Next</button>
-        </li>
-      </ul>
-    </nav>
+              <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                <div>
+                  <p class="text-sm text-gray-700">
+                    Showing page <span class="font-medium">{{ currentPage }}</span> of <span class="font-medium">{{ totalPages }}</span>
+                  </p>
+                </div>
+                <div>
+                  <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                    <button 
+                      class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                      [disabled]="currentPage === 1"
+                      (click)="previousPage()">
+                      <span class="sr-only">Previous</span>
+                      <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                    
+                    <button 
+                      *ngFor="let pageNum of [].constructor(totalPages); let i = index"
+                      class="relative inline-flex items-center px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 transition-colors duration-200"
+                      [ngClass]="{
+                        'z-10 bg-indigo-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600': currentPage === i + 1,
+                        'text-gray-900 hover:bg-gray-50': currentPage !== i + 1
+                      }"
+                      (click)="goToPage(i + 1)">
+                      {{ i + 1 }}
+                    </button>
+                    
+                    <button 
+                      class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                      [disabled]="currentPage === totalPages"
+                      (click)="nextPage()">
+                      <span class="sr-only">Next</span>
+                      <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          </nav>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
-
-<!-- Make sure you have Font Awesome or similar for icons if you use them -->
-<!-- Add to your styles.scss or angular.json if not already present:
-@import '~@fortawesome/fontawesome-free/css/all.min.css';
--->

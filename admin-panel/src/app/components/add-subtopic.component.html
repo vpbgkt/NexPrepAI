@@ -1,73 +1,154 @@
-<h2>Add New Subtopic</h2>
+<!-- Modern Add Subtopic Form with Tailwind CSS -->
+<div class="min-h-screen bg-gradient-to-br from-success-50 to-success-100 py-6 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-md mx-auto">
+    <!-- Form Header -->
+    <div class="text-center mb-8">
+      <h2 class="text-3xl font-bold text-gray-900 mb-2">Add New Subtopic</h2>
+      <p class="text-gray-600">Create a new subtopic under a topic</p>
+    </div>
 
-<form #subtopicForm="ngForm" (ngSubmit)="submitSubtopic(subtopicForm)">
-  <div>
-    <label for="branch">Select Branch:</label>
-    <select
-      id="branch"
-      name="branch"
-      required
-      [(ngModel)]="selectedBranchId"
-      (change)="onBranchChange()"
-      ngModel
-    >
-      <option value="">-- Select Branch --</option>
-      <option value="none">None</option>
-      <option *ngFor="let branch of branches" [value]="branch._id">
-        {{ branch.name }}
-      </option>
-    </select>
+    <!-- Form Card -->
+    <div class="bg-white rounded-2xl shadow-lg p-8">
+      <form #subtopicForm="ngForm" (ngSubmit)="submitSubtopic(subtopicForm)" class="space-y-6">
+        
+        <!-- Branch Selection -->
+        <div class="form-group">
+          <label for="branch" class="block text-sm font-semibold text-gray-700 mb-2">
+            Select Branch <span class="text-red-500">*</span>
+          </label>
+          <div class="relative">
+            <select
+              id="branch"
+              name="branch"
+              required
+              [(ngModel)]="selectedBranchId"
+              (change)="onBranchChange()"
+              ngModel
+              class="form-select w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-success-500 focus:border-success-500 transition-colors appearance-none bg-white"
+            >
+              <option value="">-- Select Branch --</option>
+              <option value="none">None</option>
+              <option *ngFor="let branch of branches" [value]="branch._id">
+                {{ branch.name }}
+              </option>
+            </select>
+            <!-- Custom dropdown arrow -->
+            <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+              <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subject Selection -->
+        <div class="form-group">
+          <label for="subject" class="block text-sm font-semibold text-gray-700 mb-2">
+            Select Subject <span class="text-red-500">*</span>
+          </label>
+          <div class="relative">
+            <select
+              id="subject"
+              name="subject"
+              required
+              [(ngModel)]="selectedSubjectId"
+              (change)="onSubjectChange()"
+              ngModel
+              class="form-select w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-success-500 focus:border-success-500 transition-colors appearance-none bg-white"
+            >
+              <option value="">-- Select Subject --</option>
+              <option value="none">None</option>
+              <option *ngFor="let subject of subjects" [value]="subject._id">
+                {{ subject.name }}
+              </option>
+            </select>
+            <!-- Custom dropdown arrow -->
+            <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+              <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Topic Selection -->
+        <div class="form-group">
+          <label for="topic" class="block text-sm font-semibold text-gray-700 mb-2">
+            Select Topic <span class="text-red-500">*</span>
+          </label>
+          <div class="relative">
+            <select
+              id="topic"
+              name="topic"
+              required
+              [(ngModel)]="selectedTopicId"
+              ngModel
+              class="form-select w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-success-500 focus:border-success-500 transition-colors appearance-none bg-white"
+            >
+              <option value="">-- Select Topic --</option>
+              <option value="none">None</option>
+              <option *ngFor="let topic of topics" [value]="topic._id">
+                {{ topic.name }}
+              </option>
+            </select>
+            <!-- Custom dropdown arrow -->
+            <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+              <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subtopic Name Input -->
+        <div class="form-group">
+          <label for="subtopic" class="block text-sm font-semibold text-gray-700 mb-2">
+            Subtopic Name <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="subtopic"
+            name="subtopic"
+            required
+            [(ngModel)]="subtopicName"
+            placeholder="Enter subtopic name"
+            class="form-input w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-success-500 focus:border-success-500 transition-colors"
+          />
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-3 pt-4">
+          <button 
+            type="submit" 
+            [disabled]="isLoading"
+            class="btn-primary flex-1 px-6 py-3 bg-success-600 text-white rounded-lg font-semibold hover:bg-success-700 focus:outline-none focus:ring-2 focus:ring-success-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <span *ngIf="!isLoading">Create Subtopic</span>
+            <span *ngIf="isLoading" class="flex items-center justify-center">
+              <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Saving...
+            </span>
+          </button>
+
+          <button 
+            type="button" 
+            (click)="cancel()"
+            class="btn-secondary flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Help Text -->
+    <div class="mt-6 text-center">
+      <p class="text-sm text-gray-500">
+        Subtopics provide granular organization within topics
+      </p>
+    </div>
   </div>
-
-  <div>
-    <label for="subject">Select Subject:</label>
-    <select
-      id="subject"
-      name="subject"
-      required
-      [(ngModel)]="selectedSubjectId"
-      (change)="onSubjectChange()"
-      ngModel
-    >
-      <option value="">-- Select Subject --</option>
-      <option value="none">None</option>
-      <option *ngFor="let subject of subjects" [value]="subject._id">
-        {{ subject.name }}
-      </option>
-    </select>
-  </div>
-
-  <div>
-    <label for="topic">Select Topic:</label>
-    <select
-      id="topic"
-      name="topic"
-      required
-      [(ngModel)]="selectedTopicId"
-      ngModel
-    >
-      <option value="">-- Select Topic --</option>
-      <option value="none">None</option>
-      <option *ngFor="let topic of topics" [value]="topic._id">
-        {{ topic.name }}
-      </option>
-    </select>
-  </div>
-
-  <div>
-    <label for="subtopic">Subtopic Name:</label>
-    <input
-      type="text"
-      id="subtopic"
-      name="subtopic"
-      required
-      [(ngModel)]="subtopicName"
-    />
-  </div>
-
-  <button type="submit" [disabled]="isLoading">
-    {{ isLoading ? 'Saving...' : 'Create Subtopic' }}
-  </button>
-
-  <button type="button" (click)="cancel()">Cancel</button>
-</form>
+</div>

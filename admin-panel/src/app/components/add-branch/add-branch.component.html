@@ -1,26 +1,78 @@
-<h2>Add New Branch</h2>
+<!-- Modern Add Branch Form with Tailwind CSS -->
+<div class="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-2xl mx-auto">
+    
+    <!-- Page Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Add New Branch</h1>
+      <p class="text-gray-600">Create a new academic branch in the system</p>
+    </div>
 
-<form #branchForm="ngForm" (ngSubmit)="addBranch(branchForm)">
-  <div>
-    <label for="branchName">Branch Name:</label>
-    <input
-      type="text"
-      id="branchName"
-      name="branchName"
-      [(ngModel)]="branchName"
-      required
-      placeholder="Enter Branch Name"
-    />
-    <div *ngIf="branchForm.controls['branchName']?.invalid && (branchForm.controls['branchName']?.touched || branchForm.submitted)" class="error">
-        Branch name is required.
+    <!-- Main Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+      <form #branchForm="ngForm" (ngSubmit)="addBranch(branchForm)" class="p-8 space-y-6">
+        
+        <!-- Branch Name Input -->
+        <div class="form-group">
+          <label for="branchName" class="block text-sm font-medium text-gray-700 mb-2">
+            Branch Name <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="branchName"
+            name="branchName"
+            [(ngModel)]="branchName"
+            required
+            placeholder="Enter Branch Name (e.g., Engineering, Medical, Commerce)"
+            class="form-input w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+          />
+          <div *ngIf="branchForm.controls['branchName']?.invalid && (branchForm.controls['branchName']?.touched || branchForm.submitted)" 
+               class="mt-2 text-sm text-red-600">
+            <div class="flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z"></path>
+              </svg>
+              Branch name is required.
+            </div>
+          </div>
+          <p class="mt-1 text-sm text-gray-500">
+            Enter a descriptive name for the academic branch
+          </p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
+          <button 
+            type="submit" 
+            [disabled]="isLoading || branchForm.invalid"
+            class="btn-primary flex-1 px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-lg hover:from-primary-700 hover:to-primary-800 focus:ring-4 focus:ring-primary-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
+          >
+            <span class="flex items-center justify-center">
+              <svg *ngIf="isLoading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <svg *ngIf="!isLoading" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              {{ isLoading ? 'Creating Branch...' : 'Create Branch' }}
+            </span>
+          </button>
+
+          <button 
+            type="button" 
+            (click)="cancel()"
+            class="btn-secondary flex-1 px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 focus:ring-4 focus:ring-gray-200 transition-all duration-200"
+          >
+            <span class="flex items-center justify-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+              Cancel
+            </span>
+          </button>
+        </div>
+      </form>
     </div>
   </div>
-
-  <button type="submit" [disabled]="isLoading">
-    {{ isLoading ? 'Saving...' : 'Create Branch' }}
-  </button>
-
-  <button type="button" (click)="cancel()">
-    Cancel
-  </button>
-</form>
+</div>

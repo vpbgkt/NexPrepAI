@@ -1,8 +1,13 @@
-input {
-    margin: 10px 0;
-  }
-  
-  button {
-    margin-top: 10px;
-  }
+/**
+ * @fileoverview CSV Upload Component Styles
+ * @description Minimal SCSS for CSV upload component using Tailwind CSS
+ * 
+ * @author NexPrep Development Team
+ * @since 1.0.0
+ */
+
+/* Enhanced hover effects for upload area */
+.border-dashed:hover {
+  background-color: rgba(59, 130, 246, 0.02);
+}
   

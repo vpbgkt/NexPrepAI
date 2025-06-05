@@ -1,12 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service'; 
 import { Router, ActivatedRoute } from '@angular/router'; // Import ActivatedRoute
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss']
 })
@@ -33,10 +34,20 @@ export class HomeComponent implements OnInit {
     this.authService.logout();
     this.router.navigate(['/login']);
   }
-  
-  navigateToCreate(): void {
+    navigateToCreate(): void {
     if (this.hierarchySection) {
       this.router.navigate([`/${this.hierarchySection}/new`]);
     }
+  }
+
+  navigateToAddQuestion(): void {
+    this.router.navigate(['/add-question']);
+  }
+
+  navigateToCreateTest(): void {
+    this.router.navigate(['/test-series/create']);
+  }
+  navigateToAnalytics(): void {
+    this.router.navigate(['/test-series']);
   }
 }

@@ -1,156 +1,424 @@
-<div class="app-container">
-  <header class="main-header" *ngIf="authService.isLoggedIn()">
-    <nav class="navbar">
-      <div class="navbar-container">
-        <!-- Logo -->
-        <div class="navbar-brand">
-          <div class="logo">
-            <!-- Removed the "NexPrep Admin" title -->
-          </div>
+<!-- Modern Tailwind CSS Admin Panel Layout -->
+<div class="min-h-screen bg-gray-50 flex flex-col">
+  <!-- Header Navigation - Responsive with mobile-first approach -->
+  <header class="bg-white shadow-soft border-b border-gray-200 sticky top-0 z-50" *ngIf="authService.isLoggedIn()">
+    <nav class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">        <!-- Logo Section - Left aligned on all screens -->
+        <div class="flex-shrink-0 flex items-center">
+          <a routerLink="/home" class="flex items-center space-x-2 hover:opacity-80 transition-opacity duration-200 cursor-pointer">
+            <!-- Logo icon placeholder - can be replaced with actual logo -->
+            <div class="h-8 w-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center">
+              <span class="text-white font-bold text-sm">NP</span>
+            </div>
+            <span class="hidden sm:block text-xl font-semibold text-gray-900">NexPrep Admin</span>
+          </a>
         </div>
 
-        <!-- Mobile menu toggle -->        <button 
-          class="navbar-toggle" 
-          (click)="toggleMobileMenu()" 
-          [class.active]="mobileMenuOpen" 
-          aria-label="Toggle navigation"
-          [attr.aria-expanded]="mobileMenuOpen">
-          <span class="toggle-bar"></span>
-          <span class="toggle-bar"></span>
-          <span class="toggle-bar"></span>
-        </button>
+        <!-- Desktop Navigation - Hidden on mobile, shown on lg screens and up -->
+        <div class="hidden lg:flex lg:items-center lg:space-x-1">
+          <!-- Dashboard Link -->
+          <a routerLink="/home" 
+             routerLinkActive="bg-primary-100 text-primary-700 border-primary-500" 
+             class="nav-item px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-2">
+            <i class="fas fa-tachometer-alt text-sm"></i>
+            <span>Dashboard</span>
+          </a>          <!-- Questions Dropdown -->
+          <div class="relative dropdown" [class.bg-gray-100]="activeDropdown === 'questions'">
+            <button (click)="toggleDropdown('questions'); $event.stopPropagation()"
+                    class="nav-item px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-2">
+              <i class="fas fa-question-circle text-sm"></i>
+              <span>Questions</span>
+              <i class="fas fa-chevron-down text-xs transition-transform duration-200" 
+                 [class.rotate-180]="activeDropdown === 'questions'"></i>
+            </button>
+            <!-- Questions Dropdown Menu -->
+            <div *ngIf="activeDropdown === 'questions'" 
+                 class="absolute top-full left-0 mt-1 w-48 bg-white rounded-lg shadow-medium border border-gray-200 py-1 z-50">
+              <a routerLink="/questions" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeDropdown()"
+                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                View Questions
+              </a>
+              <a routerLink="/add-question" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeDropdown()"
+                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                Add Question
+              </a>
+              <a routerLink="/csv-import" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeDropdown()"
+                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                CSV Import
+              </a>
+              <a *ngIf="isSuperAdmin()" 
+                 routerLink="/questions/review" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeDropdown()"
+                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                Review Questions
+              </a>
+            </div>
+          </div>          <!-- Tests Dropdown -->
+          <div class="relative dropdown" [class.bg-gray-100]="activeDropdown === 'test-series'">
+            <button (click)="toggleDropdown('test-series'); $event.stopPropagation()"
+                    class="nav-item px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-2">
+              <i class="fas fa-clipboard-list text-sm"></i>
+              <span>Tests</span>
+              <i class="fas fa-chevron-down text-xs transition-transform duration-200" 
+                 [class.rotate-180]="activeDropdown === 'test-series'"></i>
+            </button>
+            <!-- Tests Dropdown Menu -->
+            <div *ngIf="activeDropdown === 'test-series'" 
+                 class="absolute top-full left-0 mt-1 w-48 bg-white rounded-lg shadow-medium border border-gray-200 py-1 z-50">
+              <a routerLink="/test-series" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeDropdown()"
+                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                View All
+              </a>
+              <a routerLink="/test-series/create" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeDropdown()"
+                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                Create New
+              </a>
+            </div>
+          </div>          <!-- Content Dropdown -->
+          <div class="relative dropdown" [class.bg-gray-100]="activeDropdown === 'content'">
+            <button (click)="toggleDropdown('content'); $event.stopPropagation()"
+                    class="nav-item px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-2">
+              <i class="fas fa-sitemap text-sm"></i>
+              <span>Content</span>
+              <i class="fas fa-chevron-down text-xs transition-transform duration-200" 
+                 [class.rotate-180]="activeDropdown === 'content'"></i>
+            </button>
+            <!-- Content Dropdown Menu -->
+            <div *ngIf="activeDropdown === 'content'" 
+                 class="absolute top-full left-0 mt-1 w-48 bg-white rounded-lg shadow-medium border border-gray-200 py-1 z-50">
+              <a routerLink="/subjects" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeDropdown()"
+                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                Subjects
+              </a>
+              <a routerLink="/topics" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeDropdown()"
+                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                Topics
+              </a>
+              <a routerLink="/subtopics" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeDropdown()"
+                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                Subtopics
+              </a>
+            </div>
+          </div>          <!-- Exams Dropdown -->
+          <div class="relative dropdown" [class.bg-gray-100]="activeDropdown === 'exam-structure'">
+            <button (click)="toggleDropdown('exam-structure'); $event.stopPropagation()"
+                    class="nav-item px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-2">
+              <i class="fas fa-graduation-cap text-sm"></i>
+              <span>Exams</span>
+              <i class="fas fa-chevron-down text-xs transition-transform duration-200" 
+                 [class.rotate-180]="activeDropdown === 'exam-structure'"></i>
+            </button>
+            <!-- Exams Dropdown Menu -->
+            <div *ngIf="activeDropdown === 'exam-structure'" 
+                 class="absolute top-full left-0 mt-1 w-48 bg-white rounded-lg shadow-medium border border-gray-200 py-1 z-50">
+              <a routerLink="/exam-families" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeDropdown()"
+                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                Exam Families
+              </a>
+              <a routerLink="/exam-streams" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeDropdown()"
+                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                Exam Streams
+              </a>              <a routerLink="/exam-papers" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeDropdown()"
+                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                Exam Papers
+              </a>
+              <a routerLink="/exam-shifts" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeDropdown()"
+                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                Exam Shifts
+              </a>
+            </div>
+          </div>
 
-        <!-- Navigation menu -->
-        <div class="navbar-menu" [class.active]="mobileMenuOpen">
-          <ul class="navbar-nav">
-            <li class="nav-item">
-              <a routerLink="/home" 
-                 routerLinkActive="active" 
-                 (click)="closeMobileMenu()"
-                 class="nav-link">
-                <i class="nav-icon fas fa-tachometer-alt"></i>
-                <span>Dashboard</span>
-              </a>
-            </li>
-            
-            <li class="nav-item dropdown" [class.open]="activeDropdown === 'questions'">
-              <a class="nav-link dropdown-toggle" (click)="toggleDropdown('questions')">
-                <i class="nav-icon fas fa-question-circle"></i>
-                <span>Questions</span>
-                <i class="dropdown-arrow fas fa-chevron-down"></i>
-              </a>
-              <ul class="dropdown-menu">
-                <li><a routerLink="/questions" routerLinkActive="active" (click)="closeMobileMenu()">View Questions</a></li>
-                <li><a routerLink="/add-question" routerLinkActive="active" (click)="closeMobileMenu()">Add Question</a></li>
-                <li><a routerLink="/csv-import" routerLinkActive="active" (click)="closeMobileMenu()">CSV Import</a></li>
-                <li *ngIf="isSuperAdmin()"><a routerLink="/questions/review" routerLinkActive="active" (click)="closeMobileMenu()">Review Questions</a></li>
-              </ul>
-            </li>
-              <li class="nav-item dropdown" [class.open]="activeDropdown === 'test-series'">
-              <a class="nav-link dropdown-toggle" (click)="toggleDropdown('test-series')">
-                <i class="nav-icon fas fa-clipboard-list"></i>
-                <span>Tests</span>
-                <i class="dropdown-arrow fas fa-chevron-down"></i>
-              </a>
-              <ul class="dropdown-menu">
-                <li><a routerLink="/test-series" routerLinkActive="active" (click)="closeMobileMenu()">View All</a></li>
-                <li><a routerLink="/test-series/create" routerLinkActive="active" (click)="closeMobileMenu()">Create New</a></li>
-              </ul>
-            </li>
-              <li class="nav-item dropdown" [class.open]="activeDropdown === 'content'">
-              <a class="nav-link dropdown-toggle" (click)="toggleDropdown('content')">
-                <i class="nav-icon fas fa-sitemap"></i>
-                <span>Content</span>
-                <i class="dropdown-arrow fas fa-chevron-down"></i>
-              </a>
-              <ul class="dropdown-menu">
-                <li><a routerLink="/subjects" routerLinkActive="active" (click)="closeMobileMenu()">Subjects</a></li>
-                <li><a routerLink="/topics" routerLinkActive="active" (click)="closeMobileMenu()">Topics</a></li>
-                <li><a routerLink="/subtopics" routerLinkActive="active" (click)="closeMobileMenu()">Subtopics</a></li>
-              </ul>
-            </li>
-            
-            <li class="nav-item dropdown" [class.open]="activeDropdown === 'exam-structure'">
-              <a class="nav-link dropdown-toggle" (click)="toggleDropdown('exam-structure')">
-                <i class="nav-icon fas fa-graduation-cap"></i>
-                <span>Exams</span>
-                <i class="dropdown-arrow fas fa-chevron-down"></i>
-              </a>
-              <ul class="dropdown-menu">
-                <li><a routerLink="/exam-families" routerLinkActive="active" (click)="closeMobileMenu()">Exam Families</a></li>
-                <li><a routerLink="/exam-streams" routerLinkActive="active" (click)="closeMobileMenu()">Exam Streams</a></li>
-                <li><a routerLink="/exam-papers" routerLinkActive="active" (click)="closeMobileMenu()">Exam Papers</a></li>
-                <li><a routerLink="/exam-shifts" routerLinkActive="active" (click)="closeMobileMenu()">Exam Shifts</a></li>
-              </ul>
-            </li>
-              <li class="nav-item" *ngIf="authService.getRole() === 'superadmin' || authService.getRole() === 'admin'">
-              <a routerLink="/user-management" 
-                 routerLinkActive="active" 
-                 (click)="closeMobileMenu()"
-                 class="nav-link">
-                <i class="nav-icon fas fa-users"></i>
-                <span>Users</span>
-              </a>
-            </li>
-            
-            <li class="nav-item" *ngIf="authService.getRole() === 'superadmin' || authService.getRole() === 'admin'">
-              <a routerLink="/leaderboard" 
-                 routerLinkActive="active" 
-                 (click)="closeMobileMenu()"
-                 class="nav-link">
-                <i class="nav-icon fas fa-trophy"></i>
-                <span>Leaderboard</span>
-              </a>
-            </li>
-            
-            <li class="nav-item">
-              <a routerLink="/analytics" 
-                 routerLinkActive="active" 
-                 (click)="closeMobileMenu()"
-                 class="nav-link">
-                <i class="nav-icon fas fa-chart-bar"></i>
-                <span>Analytics</span>
-              </a>
-            </li>
-          </ul>        </div>
+          <!-- Users Link -->
+          <a *ngIf="authService.getRole() === 'superadmin' || authService.getRole() === 'admin'"
+             routerLink="/user-management" 
+             routerLinkActive="bg-primary-100 text-primary-700 border-primary-500"
+             class="nav-item px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-2">
+            <i class="fas fa-users text-sm"></i>
+            <span>Users</span>
+          </a>
 
-        <!-- User menu -->
-        <div class="navbar-user">
-          <div class="user-dropdown"> <!-- Removed [class.open] and (click) bindings -->
-            <button class="user-toggle"> <!-- Removed (click) binding -->
-              <div class="user-avatar">
+          <!-- Leaderboard Link -->
+          <a *ngIf="authService.getRole() === 'superadmin' || authService.getRole() === 'admin'"
+             routerLink="/leaderboard" 
+             routerLinkActive="bg-primary-100 text-primary-700 border-primary-500"
+             class="nav-item px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-2">
+            <i class="fas fa-trophy text-sm"></i>
+            <span>Leaderboard</span>
+          </a>
+
+          <!-- Analytics Link -->
+          <a routerLink="/analytics" 
+             routerLinkActive="bg-primary-100 text-primary-700 border-primary-500"
+             class="nav-item px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-2">
+            <i class="fas fa-chart-bar text-sm"></i>
+            <span>Analytics</span>
+          </a>
+        </div>
+
+        <!-- Right side - User menu and mobile toggle -->
+        <div class="flex items-center space-x-3">
+          <!-- User Profile Section - Visible on all screens -->
+          <div class="flex items-center space-x-3">
+            <!-- User Avatar and Info -->
+            <div class="flex items-center space-x-2">
+              <div class="h-8 w-8 bg-gradient-to-br from-secondary-500 to-secondary-700 rounded-full flex items-center justify-center text-white font-medium text-sm">
                 {{ userName?.charAt(0)?.toUpperCase() || 'A' }}
               </div>
-              <div class="user-info">
-                <span class="user-name">{{ userName || 'Admin' }}</span>
-                <span class="user-role">{{ authService.getRole() || 'admin' }}</span>
+              <div class="hidden sm:block">
+                <div class="text-sm font-medium text-gray-900">{{ userName || 'Admin' }}</div>
+                <div class="text-xs text-gray-500">{{ authService.getRole() || 'admin' }}</div>
               </div>
-              <!-- Dropdown arrow icon removed -->
+            </div>
+            
+            <!-- Logout Button -->
+            <button (click)="logout()" 
+                    class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:text-danger-600 transition-colors duration-200">
+              <i class="fas fa-sign-out-alt text-sm mr-2"></i>
+              <span class="hidden sm:inline">Logout</span>
             </button>
-            <!-- ul.user-menu removed -->
           </div>
-          <!-- Direct Logout Button -->
-          <a href="#" class="nav-link logout-button" (click)="logout(); closeMobileMenu()">
-            <i class="fas fa-sign-out-alt"></i>
-            <span class="logout-text">Logout</span>
+
+          <!-- Mobile menu toggle - Only visible on mobile -->
+          <button type="button" 
+                  (click)="toggleMobileMenu()"
+                  class="lg:hidden inline-flex items-center justify-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200"
+                  [attr.aria-expanded]="mobileMenuOpen">
+            <span class="sr-only">Open main menu</span>
+            <!-- Hamburger icon when menu is closed -->
+            <svg *ngIf="!mobileMenuOpen" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <!-- X icon when menu is open -->
+            <svg *ngIf="mobileMenuOpen" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Navigation Menu - Only visible when mobileMenuOpen is true -->
+      <div *ngIf="mobileMenuOpen" class="lg:hidden border-t border-gray-200 pt-4 pb-3 bg-white">
+        <div class="space-y-1">
+          <!-- Mobile Dashboard Link -->
+          <a routerLink="/home" 
+             routerLinkActive="bg-primary-100 text-primary-700 border-l-4 border-primary-500"
+             (click)="closeMobileMenu()"
+             class="flex items-center px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+            <i class="fas fa-tachometer-alt text-lg mr-3"></i>
+            Dashboard
+          </a>          <!-- Mobile Questions Section -->
+          <div class="space-y-1">
+            <button (click)="toggleDropdown('questions'); $event.stopPropagation()"
+                    class="w-full flex items-center justify-between px-4 py-3 text-left text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+              <div class="flex items-center">
+                <i class="fas fa-question-circle text-lg mr-3"></i>
+                Questions
+              </div>
+              <i class="fas fa-chevron-down text-sm transition-transform duration-200" 
+                 [class.rotate-180]="activeDropdown === 'questions'"></i>
+            </button>
+            <div *ngIf="activeDropdown === 'questions'" class="pl-10 space-y-1">
+              <a routerLink="/questions" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeMobileMenu()"
+                 class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+                View Questions
+              </a>
+              <a routerLink="/add-question" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeMobileMenu()"
+                 class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+                Add Question
+              </a>
+              <a routerLink="/csv-import" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeMobileMenu()"
+                 class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+                CSV Import
+              </a>
+              <a *ngIf="isSuperAdmin()" 
+                 routerLink="/questions/review" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeMobileMenu()"
+                 class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+                Review Questions
+              </a>
+            </div>
+          </div>          <!-- Mobile Tests Section -->
+          <div class="space-y-1">
+            <button (click)="toggleDropdown('test-series'); $event.stopPropagation()"
+                    class="w-full flex items-center justify-between px-4 py-3 text-left text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+              <div class="flex items-center">
+                <i class="fas fa-clipboard-list text-lg mr-3"></i>
+                Tests
+              </div>
+              <i class="fas fa-chevron-down text-sm transition-transform duration-200" 
+                 [class.rotate-180]="activeDropdown === 'test-series'"></i>
+            </button>
+            <div *ngIf="activeDropdown === 'test-series'" class="pl-10 space-y-1">
+              <a routerLink="/test-series" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeMobileMenu()"
+                 class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+                View All
+              </a>
+              <a routerLink="/test-series/create" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeMobileMenu()"
+                 class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+                Create New
+              </a>
+            </div>
+          </div>          <!-- Mobile Content Section -->
+          <div class="space-y-1">
+            <button (click)="toggleDropdown('content'); $event.stopPropagation()"
+                    class="w-full flex items-center justify-between px-4 py-3 text-left text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+              <div class="flex items-center">
+                <i class="fas fa-sitemap text-lg mr-3"></i>
+                Content
+              </div>
+              <i class="fas fa-chevron-down text-sm transition-transform duration-200" 
+                 [class.rotate-180]="activeDropdown === 'content'"></i>
+            </button>
+            <div *ngIf="activeDropdown === 'content'" class="pl-10 space-y-1">
+              <a routerLink="/subjects" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeMobileMenu()"
+                 class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+                Subjects
+              </a>
+              <a routerLink="/topics" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeMobileMenu()"
+                 class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+                Topics
+              </a>
+              <a routerLink="/subtopics" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeMobileMenu()"
+                 class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+                Subtopics
+              </a>
+            </div>
+          </div>          <!-- Mobile Exams Section -->
+          <div class="space-y-1">
+            <button (click)="toggleDropdown('exam-structure'); $event.stopPropagation()"
+                    class="w-full flex items-center justify-between px-4 py-3 text-left text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+              <div class="flex items-center">
+                <i class="fas fa-graduation-cap text-lg mr-3"></i>
+                Exams
+              </div>
+              <i class="fas fa-chevron-down text-sm transition-transform duration-200" 
+                 [class.rotate-180]="activeDropdown === 'exam-structure'"></i>
+            </button>
+            <div *ngIf="activeDropdown === 'exam-structure'" class="pl-10 space-y-1">
+              <a routerLink="/exam-families" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeMobileMenu()"
+                 class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+                Exam Families
+              </a>
+              <a routerLink="/exam-streams" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeMobileMenu()"
+                 class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+                Exam Streams
+              </a>
+              <a routerLink="/exam-papers" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeMobileMenu()"
+                 class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+                Exam Papers
+              </a>
+              <a routerLink="/exam-shifts" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeMobileMenu()"
+                 class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+                Exam Shifts
+              </a>
+            </div>
+          </div>
+
+          <!-- Mobile Users Link -->
+          <a *ngIf="authService.getRole() === 'superadmin' || authService.getRole() === 'admin'"
+             routerLink="/user-management" 
+             routerLinkActive="bg-primary-100 text-primary-700 border-l-4 border-primary-500"
+             (click)="closeMobileMenu()"
+             class="flex items-center px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+            <i class="fas fa-users text-lg mr-3"></i>
+            Users
+          </a>
+
+          <!-- Mobile Leaderboard Link -->
+          <a *ngIf="authService.getRole() === 'superadmin' || authService.getRole() === 'admin'"
+             routerLink="/leaderboard" 
+             routerLinkActive="bg-primary-100 text-primary-700 border-l-4 border-primary-500"
+             (click)="closeMobileMenu()"
+             class="flex items-center px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+            <i class="fas fa-trophy text-lg mr-3"></i>
+            Leaderboard
+          </a>
+
+          <!-- Mobile Analytics Link -->
+          <a routerLink="/analytics" 
+             routerLinkActive="bg-primary-100 text-primary-700 border-l-4 border-primary-500"
+             (click)="closeMobileMenu()"
+             class="flex items-center px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+            <i class="fas fa-chart-bar text-lg mr-3"></i>
+            Analytics
           </a>
         </div>
       </div>
     </nav>
   </header>
 
-  <!-- Mobile menu overlay -->
-  <div class="mobile-overlay" 
-       [class.active]="mobileMenuOpen" 
+  <!-- Mobile Overlay - Closes mobile menu when clicked -->
+  <div *ngIf="mobileMenuOpen" 
+       class="lg:hidden fixed inset-0 z-40 bg-gray-900 bg-opacity-50" 
        (click)="closeMobileMenu()"></div>
 
-  <main class="main-content">
-    <router-outlet></router-outlet>
+  <!-- Main Content Area - Flexible and responsive -->
+  <main class="flex-1 bg-gray-50">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+      <!-- Router outlet with proper spacing and responsive layout -->
+      <div class="min-h-full">
+        <router-outlet></router-outlet>
+      </div>
+    </div>
   </main>
 
-  <footer class="main-footer" *ngIf="authService.isLoggedIn()">
-    <div class="footer-content">
-      <p>&copy; {{ currentYear }} NexPrep Admin Panel. All rights reserved.</p>
+  <!-- Footer - Modern and clean -->
+  <footer class="bg-white border-t border-gray-200" *ngIf="authService.isLoggedIn()">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+      <div class="text-center text-sm text-gray-500">
+        <p>&copy; {{ currentYear }} NexPrep Admin Panel. All rights reserved.</p>
+      </div>
     </div>
   </footer>
 </div>

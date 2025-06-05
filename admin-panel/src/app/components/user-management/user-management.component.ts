@@ -80,7 +80,6 @@ export class UserManagementComponent implements OnInit {
     }
     return '';
   }
-
   getDaysLeft(dateString?: string | null): string {
     if (!dateString) {
       return 'N/A';
@@ -102,6 +101,26 @@ export class UserManagementComponent implements OnInit {
       return 'Expired';
     }
     return `${diffDays} days left`;
+  }
+
+  getDaysLeftNumber(dateString?: string | null): number {
+    if (!dateString) {
+      return -1;
+    }
+    const expiryDate = new Date(dateString);
+    const today = new Date();
+    // Remove time part for accurate day difference calculation
+    expiryDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    if (isNaN(expiryDate.getTime())) {
+      return -1;
+    }
+
+    const diffTime = expiryDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return diffDays;
   }
 
   addExpiryDays(user: User, days: number): void {

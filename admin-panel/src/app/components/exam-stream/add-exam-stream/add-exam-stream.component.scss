@@ -1,108 +1,18 @@
-@use 'sass:color';
+/**
+ * @fileoverview Add Exam Stream Component Styles
+ * @description Minimal SCSS for add exam stream component using Tailwind CSS
+ * 
+ * @author NexPrep Development Team
+ * @since 1.0.0
+ */
 
-// Define Sass color variables directly instead of using CSS variables
-$primary-color: #6200ea;
-$primary-light: #a255ff;
-$primary-dark: #3700b3;
-$secondary-color: #03dac6;
-$secondary-dark: #018786;
-$danger-color: #cf6679;
-$warning-color: #ffb74d;
-$success-color: #69f0ae;
-$neutral-light: #f5f5f5;
-$neutral-medium: #e0e0e0;
-$neutral-dark: #757575;
-$text-primary: #212121;
-$text-secondary: #757575;
-$white: #ffffff;
-
-:host {
-  display: block;
-  padding: 1.5rem;
+/* Custom focus styles for form elements */
+.form-group select:focus,
+.form-group input:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-h2 {
-  font-size: 1.8rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: $primary-dark;
-}
-
-form {
-  max-width: 600px;
-  background-color: $white;
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  
-  label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: $text-primary;
-  }
-  
-  input, select, textarea {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid $neutral-medium;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 1rem;
-    margin-bottom: 1.5rem;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    
-    &:focus {
-      outline: none;
-      border-color: $primary-light;
-      box-shadow: 0 0 0 3px color.adjust($primary-light, $alpha: -0.7);
-    }
-    
-    &::placeholder {
-      color: $neutral-dark;
-      opacity: 0.7;
-    }
-  }
-  
-  select {
-    appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 1rem center;
-    background-size: 1em;
-  }
-  
-  button[type="submit"] {
-    background-color: $primary-color;
-    color: $white;
-    border: none;
-    border-radius: 8px;
-    padding: 0.75rem 1.5rem;
-    font-size: 1rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.2s ease;
-    
-    &:hover:not(:disabled) {
-      background-color: color.adjust($primary-color, $lightness: -5%);
-      transform: translateY(-2px);
-    }
-    
-    &:disabled {
-      background-color: $neutral-medium;
-      cursor: not-allowed;
-      opacity: 0.7;
-    }
-  }
-}
-
-// Remove development message
-p {
-  display: none;
-}
-
-@media (max-width: 768px) {
-  form {
-    padding: 1.5rem;
-  }
+/* Enhanced button hover animation */
+button[type="submit"]:hover:not(:disabled) {
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
 }

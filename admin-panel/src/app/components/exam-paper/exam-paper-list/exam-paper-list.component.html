@@ -1,24 +1,74 @@
-<h2>Exam Papers</h2>
+<div class="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 p-4 lg:p-6">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header Section -->
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 mb-8">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <i class="fas fa-file-alt text-purple-500"></i>
+            Exam Papers
+          </h2>
+          <p class="text-gray-600 mt-2">Manage and organize exam papers by family and stream</p>
+        </div>
+        
+        <button 
+          [routerLink]="['/exam-papers','new']" 
+          class="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center gap-2">
+          <i class="fas fa-plus"></i>
+          Add Paper
+        </button>
+      </div>
+    </div>
 
-<button [routerLink]="['/exam-papers','new']" class="btn-small">
-  + Add Paper
-</button>
-
-<table>
-  <thead>
-    <tr>
-      <th>Family</th>
-      <th>Stream</th>
-      <th>Code</th>
-      <th>Name</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let p of papers">
-      <td>{{ p.family }}</td>
-      <td>{{ p.stream }}</td>
-      <td>{{ p.code }}</td>
-      <td>{{ p.name }}</td>
-    </tr>
-  </tbody>
-</table>
+    <!-- Table Section -->
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr class="bg-gradient-to-r from-gray-800 to-gray-900 text-white">
+              <th class="px-6 py-4 text-left font-semibold">
+                <i class="fas fa-users mr-2"></i>Family
+              </th>
+              <th class="px-6 py-4 text-left font-semibold">
+                <i class="fas fa-stream mr-2"></i>Stream
+              </th>
+              <th class="px-6 py-4 text-left font-semibold">
+                <i class="fas fa-code mr-2"></i>Code
+              </th>
+              <th class="px-6 py-4 text-left font-semibold">
+                <i class="fas fa-file-signature mr-2"></i>Name
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of papers; let i = index" 
+                class="border-b border-gray-100 hover:bg-gray-50 transition-all duration-200"
+                [class.bg-purple-50]="i % 2 === 0">
+              <td class="px-6 py-4 text-gray-800 font-medium">{{ p.family }}</td>
+              <td class="px-6 py-4 text-gray-700">{{ p.stream }}</td>
+              <td class="px-6 py-4">
+                <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                  {{ p.code }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-gray-800 font-medium">{{ p.name }}</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <!-- Empty State -->
+        <div *ngIf="!papers || papers.length === 0" class="text-center py-12">
+          <i class="fas fa-file-alt text-4xl text-gray-400 mb-4"></i>
+          <h3 class="text-xl font-semibold text-gray-600 mb-2">No Exam Papers Found</h3>
+          <p class="text-gray-500 mb-6">Get started by creating your first exam paper</p>
+          <button 
+            [routerLink]="['/exam-papers','new']" 
+            class="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg">
+            <i class="fas fa-plus mr-2"></i>
+            Add Your First Paper
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

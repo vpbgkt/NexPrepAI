@@ -1,79 +1,284 @@
-<div *ngIf="isLoading" class="loading-indicator">
-  <p>Loading question details...</p>
-</div>
+<!-- Modern Question Detail View with Tailwind CSS -->
+<div class="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-6xl mx-auto">
 
-<div *ngIf="errorMessage" class="error-message">
-  <p>{{ errorMessage }}</p>
-  <button routerLink="/questions">Back to Question List</button>
-</div>
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="flex items-center justify-center py-20">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+        <p class="text-gray-600 text-lg">Loading question details...</p>
+      </div>
+    </div>
 
-<div *ngIf="!isLoading && !errorMessage && question" class="question-detail-container">
-  <h2>Question Details: {{ getIdString(question._id) | slice:0:8 }}...</h2>
-  <button routerLink="/questions" class="back-button">Back to List</button>
-  <button [routerLink]="['/questions', 'edit', getIdString(question._id)]" class="edit-button">Edit Question</button>
+    <!-- Error State -->
+    <div *ngIf="errorMessage" class="max-w-2xl mx-auto">
+      <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+        <svg class="w-12 h-12 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z"></path>
+        </svg>
+        <h3 class="text-lg font-semibold text-red-800 mb-2">Error Loading Question</h3>
+        <p class="text-red-700 mb-4">{{ errorMessage }}</p>
+        <button 
+          routerLink="/questions" 
+          class="btn-primary px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+        >
+          Back to Question List
+        </button>
+      </div>
+    </div>
 
-  <div class="detail-section">
-    <h3>Basic Information</h3>
-    <p><strong>ID:</strong> {{ getIdString(question._id) }}</p>
-    <p><strong>Type:</strong> {{ question.type }}</p>
-    <p><strong>Status:</strong> {{ question.status }}</p>
-    <p><strong>Difficulty:</strong> {{ question.difficulty }}</p>
-    <p *ngIf="question.tags && question.tags.length > 0"><strong>Tags:</strong> {{ question.tags.join(', ') }}</p>
-    <p *ngIf="question.recommendedTimeAllotment !== undefined"><strong>Recommended Time (seconds):</strong> {{ question.recommendedTimeAllotment }}</p>
-    <p *ngIf="question.internalNotes"><strong>Internal Notes:</strong> {{ question.internalNotes }}</p>
-    <p><strong>Version:</strong> {{ getDisplayVersion(question.version) }}</p>
-    <p><strong>Created At:</strong> {{ formatDate(question.createdAt) | date:'medium' }}</p>
-    <p><strong>Updated At:</strong> {{ formatDate(question.updatedAt) | date:'medium' }}</p>
-  </div>
-
-  <div class="detail-section">
-    <h3>Hierarchy</h3>
-    <p><strong>Branch:</strong> {{ getHierarchyName(question.branch) }}</p>
-    <p><strong>Subject:</strong> {{ getHierarchyName(question.subject) }}</p>
-    <p><strong>Topic:</strong> {{ getHierarchyName(question.topic) }}</p>
-    <p><strong>Subtopic:</strong> {{ getHierarchyName(question.subTopic) }}</p>
-  </div>
-
-  <div class="detail-section" *ngIf="question.translations && question.translations.length > 0">
-    <h3>Translations</h3>
-    <div *ngFor="let trans of question.translations" class="translation-block">
-      <h4>Language: {{ trans.lang.toUpperCase() }}</h4>
-      <p><strong>Question Text:</strong></p>
-      <div [innerHTML]="trans.questionText"></div>
+    <!-- Question Detail Content -->
+    <div *ngIf="!isLoading && !errorMessage && question" class="space-y-6">
       
-      <div *ngIf="trans.options && trans.options.length > 0">
-        <p><strong>Options:</strong></p>
-        <ul>
-          <li *ngFor="let opt of trans.options; let i = index">
-            {{ i + 1 }}. <span [innerHTML]="opt.text"></span> ({{ opt.isCorrect ? 'Correct' : 'Incorrect' }})
-          </li>
-        </ul>
+      <!-- Header with Actions -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div class="mb-4 sm:mb-0">
+            <h1 class="text-2xl font-bold text-gray-900">Question Details</h1>
+            <p class="text-gray-600 mt-1">ID: {{ getIdString(question._id) | slice:0:8 }}...</p>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <button 
+              routerLink="/questions" 
+              class="btn-secondary px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+              </svg>
+              Back to List
+            </button>
+            <button 
+              [routerLink]="['/questions', 'edit', getIdString(question._id)]" 
+              class="btn-primary px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+              </svg>
+              Edit Question
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div *ngIf="trans.explanations && trans.explanations.length > 0">
-        <p><strong>Explanations:</strong></p>
-        <ul *ngFor="let exp of trans.explanations">
-          <li>
-            <strong>Type:</strong> {{ exp.type }}
-            <span *ngIf="exp.label"><strong>Label:</strong> {{ exp.label }}</span>
+      <!-- Basic Information Section -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <svg class="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Basic Information
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="space-y-3">
             <div>
-              <strong>Content:</strong> 
-              <span *ngIf="exp.type === 'text'" [innerHTML]="exp.content"></span>
-              <a *ngIf="exp.type === 'video' || exp.type === 'pdf' || exp.type === 'image'" [href]="exp.content" target="_blank">{{ exp.content }}</a>
+              <span class="text-sm font-medium text-gray-500">Question ID</span>
+              <p class="text-gray-900 font-mono text-sm">{{ getIdString(question._id) }}</p>
             </div>
-          </li>
-        </ul>
+            <div>
+              <span class="text-sm font-medium text-gray-500">Type</span>
+              <p class="text-gray-900 capitalize">{{ question.type }}</p>
+            </div>
+            <div>
+              <span class="text-sm font-medium text-gray-500">Status</span>
+              <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                    [class]="question.status === 'Published' ? 'bg-green-100 text-green-800' : 
+                            question.status === 'draft' ? 'bg-yellow-100 text-yellow-800' : 
+                            'bg-gray-100 text-gray-800'">
+                {{ question.status }}
+              </span>
+            </div>
+          </div>
+          
+          <div class="space-y-3">
+            <div>
+              <span class="text-sm font-medium text-gray-500">Difficulty</span>
+              <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                    [class]="question.difficulty === 'Easy' ? 'bg-green-100 text-green-800' : 
+                            question.difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 
+                            question.difficulty === 'Hard' ? 'bg-red-100 text-red-800' : 
+                            'bg-gray-100 text-gray-800'">
+                {{ question.difficulty }}
+              </span>
+            </div>
+            <div *ngIf="question.recommendedTimeAllotment !== undefined">
+              <span class="text-sm font-medium text-gray-500">Recommended Time</span>
+              <p class="text-gray-900">{{ question.recommendedTimeAllotment }} seconds</p>
+            </div>
+            <div>
+              <span class="text-sm font-medium text-gray-500">Version</span>
+              <p class="text-gray-900">{{ getDisplayVersion(question.version) }}</p>
+            </div>
+          </div>
+          
+          <div class="space-y-3">
+            <div>
+              <span class="text-sm font-medium text-gray-500">Created</span>
+              <p class="text-gray-900 text-sm">{{ formatDate(question.createdAt) | date:'medium' }}</p>
+            </div>
+            <div>
+              <span class="text-sm font-medium text-gray-500">Last Updated</span>
+              <p class="text-gray-900 text-sm">{{ formatDate(question.updatedAt) | date:'medium' }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <div *ngIf="question.tags && question.tags.length > 0" class="mt-6 pt-6 border-t border-gray-200">
+          <span class="text-sm font-medium text-gray-500 block mb-2">Tags</span>
+          <div class="flex flex-wrap gap-2">
+            <span *ngFor="let tag of question.tags" 
+                  class="inline-flex px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+              {{ tag }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Internal Notes -->
+        <div *ngIf="question.internalNotes" class="mt-6 pt-6 border-t border-gray-200">
+          <span class="text-sm font-medium text-gray-500 block mb-2">Internal Notes</span>
+          <div class="bg-gray-50 rounded-lg p-4">
+            <p class="text-gray-700 text-sm">{{ question.internalNotes }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hierarchy Section -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+          </svg>
+          Subject Hierarchy
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4">
+            <span class="text-sm font-medium text-blue-600 block mb-1">Branch</span>
+            <p class="text-blue-900 font-medium">{{ getHierarchyName(question.branch) }}</p>
+          </div>
+          <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4">
+            <span class="text-sm font-medium text-green-600 block mb-1">Subject</span>
+            <p class="text-green-900 font-medium">{{ getHierarchyName(question.subject) }}</p>
+          </div>
+          <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-4">
+            <span class="text-sm font-medium text-yellow-600 block mb-1">Topic</span>
+            <p class="text-yellow-900 font-medium">{{ getHierarchyName(question.topic) }}</p>
+          </div>
+          <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4">
+            <span class="text-sm font-medium text-purple-600 block mb-1">Subtopic</span>
+            <p class="text-purple-900 font-medium">{{ getHierarchyName(question.subTopic) }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Translations Section -->
+      <div *ngIf="question.translations && question.translations.length > 0" 
+           class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>
+          </svg>
+          Translations
+        </h2>
+        
+        <div class="space-y-6">
+          <div *ngFor="let trans of question.translations; let i = index" 
+               class="border border-gray-200 rounded-lg p-6 bg-gray-50">
+            <!-- Language Header -->
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                <span class="inline-flex px-3 py-1 text-sm font-medium bg-indigo-100 text-indigo-800 rounded-full mr-3">
+                  {{ trans.lang.toUpperCase() }}
+                </span>
+                {{ trans.lang === 'en' ? 'English' : 'हिन्दी' }}
+              </h3>
+            </div>
+            
+            <!-- Question Text -->
+            <div class="mb-6">
+              <h4 class="text-sm font-medium text-gray-700 mb-2">Question Text</h4>
+              <div class="bg-white rounded-lg p-4 border border-gray-200">
+                <div [innerHTML]="trans.questionText" class="prose prose-sm max-w-none"></div>
+              </div>
+            </div>
+            
+            <!-- Options -->
+            <div *ngIf="trans.options && trans.options.length > 0" class="mb-6">
+              <h4 class="text-sm font-medium text-gray-700 mb-3">Answer Options</h4>
+              <div class="space-y-2">
+                <div *ngFor="let opt of trans.options; let optIndex = index" 
+                     class="flex items-start p-3 rounded-lg border"
+                     [class]="opt.isCorrect ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'">
+                  <span class="inline-flex items-center justify-center w-6 h-6 text-sm font-medium rounded-full mr-3"
+                        [class]="opt.isCorrect ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'">
+                    {{ optIndex + 1 }}
+                  </span>
+                  <div class="flex-1">
+                    <div [innerHTML]="opt.text" class="prose prose-sm max-w-none"></div>
+                    <span *ngIf="opt.isCorrect" 
+                          class="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full mt-2">
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                      Correct Answer
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Explanations -->
+            <div *ngIf="trans.explanations && trans.explanations.length > 0" class="mb-6">
+              <h4 class="text-sm font-medium text-gray-700 mb-3">Explanations</h4>
+              <div class="space-y-3">
+                <div *ngFor="let exp of trans.explanations" 
+                     class="bg-white rounded-lg p-4 border border-gray-200">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="inline-flex px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
+                      {{ exp.type | titlecase }}
+                    </span>
+                    <span *ngIf="exp.label" class="text-sm text-gray-600">{{ exp.label }}</span>
+                  </div>
+                  <div class="mt-2">
+                    <div *ngIf="exp.type === 'text'" [innerHTML]="exp.content" class="prose prose-sm max-w-none"></div>
+                    <a *ngIf="exp.type === 'video' || exp.type === 'pdf' || exp.type === 'image'" 
+                       [href]="exp.content" 
+                       target="_blank"
+                       class="text-primary-600 hover:text-primary-800 underline break-all">
+                      {{ exp.content }}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Question History Section -->
+      <div *ngIf="question.questionHistory && question.questionHistory.length > 0" 
+           class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Question History
+        </h2>
+        
+        <div class="space-y-2">
+          <div *ngFor="let history of question.questionHistory" 
+               class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div>
+              <span class="font-medium text-gray-900">{{ history.examName }}</span>
+              <span class="text-gray-600 ml-2">{{ history.title }}</span>
+            </div>
+            <span class="text-sm text-gray-500">
+              {{ formatDate(history.dateAppeared) | date:'shortDate' }}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
-
-  <div class="detail-section" *ngIf="question.questionHistory && question.questionHistory.length > 0">
-    <h3>Question History</h3>
-    <ul>
-      <li *ngFor="let history of question.questionHistory">
-        {{ history.examName }} ({{ formatDate(history.dateAppeared) | date:'shortDate' }}) - {{ history.title }}
-      </li>
-    </ul>
-  </div>
-
 </div>

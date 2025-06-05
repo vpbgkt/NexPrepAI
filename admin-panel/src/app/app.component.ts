@@ -51,9 +51,7 @@ export class AppComponent implements OnInit {
 
   isSuperAdmin(): boolean {
     return this.authService.getUserRole() === 'superadmin';
-  }
-
-  toggleDropdown(dropdown: string) {
+  }  toggleDropdown(dropdown: string) {
     if (this.activeDropdown === dropdown) {
       this.activeDropdown = null;
     } else {
@@ -69,16 +67,18 @@ export class AppComponent implements OnInit {
     this.authService.logout();
     this.router.navigate(['/login']);
   }
-
   // Close dropdowns when clicking outside
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
     
-    // Check if click is outside dropdown areas
-    if (!target.closest('.dropdown') && !target.closest('.user-dropdown')) {
-      this.activeDropdown = null;
+    // Check if click is on a dropdown button or inside dropdown menu
+    if (target.closest('.dropdown') || target.closest('.user-dropdown')) {
+      return; // Don't close if clicking inside dropdown area
     }
+    
+    // Close dropdown if clicking outside
+    this.activeDropdown = null;
   }
 
   // Close mobile menu on escape key

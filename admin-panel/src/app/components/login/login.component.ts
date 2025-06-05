@@ -13,6 +13,7 @@ import { Router } from '@angular/router';
 })
 export class LoginComponent implements OnInit {
   form!: FormGroup; // Initialize in ngOnInit
+  isLoading = false; // Loading state for the submit button
 
   constructor(
     private fb: FormBuilder,
@@ -35,10 +36,12 @@ export class LoginComponent implements OnInit {
       // For this specific case, allowing the form to be initialized is harmless 
       // as the component will be navigated away from shortly.
     }
-  }
-  onSubmit() {
+  }  onSubmit() {
     if (this.form.invalid) return;
+    
+    this.isLoading = true; // Start loading
     const { email, password } = this.form.value as { email: string; password: string };
+    
     this.auth.login(email, password).subscribe({
       next: (res: any) => {
         // Check if the user has admin or superadmin role
@@ -46,6 +49,7 @@ export class LoginComponent implements OnInit {
           // If not admin or superadmin, log them out and show error
           this.auth.logout();
           alert('Access denied: Only administrators or super administrators can access this panel. Please login with appropriate credentials.');
+          this.isLoading = false; // Stop loading
           return;
         }
         
@@ -53,6 +57,7 @@ export class LoginComponent implements OnInit {
         this.router.navigate(['/home']);
       },
       error: err => {
+        this.isLoading = false; // Stop loading on error
         // err.error.message comes from your backend
         const msg = err.error?.message || 'Login failed. Please check your credentials and try again.';
         alert(msg);

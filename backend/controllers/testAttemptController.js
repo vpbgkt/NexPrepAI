@@ -464,14 +464,15 @@ exports.submitAttempt = async (req, res) => {
                                           .select('translations type options') // Ensure options are selected for correct answer check
                                           .lean(); 
     
-    const masterQuestionsMap = new Map(masterQuestions.map(qDoc => [qDoc._id.toString(), qDoc]));
-
-    console.log(`--- Starting Grade Calculation for Attempt: ${attemptId} ---`);    console.log(`User ID: ${userId}`);
+    const masterQuestionsMap = new Map(masterQuestions.map(qDoc => [qDoc._id.toString(), qDoc]));    console.log(`--- Starting Grade Calculation for Attempt: ${attemptId} ---`);    console.log(`User ID: ${userId}`);
     // console.log(`Raw responses from client (length ${responses.length}):`, JSON.stringify(responses, null, 2));
     
     // Create a position-indexed array of responses to handle duplicate question IDs
     const clientResponsesArray = Array.isArray(responses) ? responses : [];
     console.log(`Client responses received (length ${clientResponsesArray.length}):`, JSON.stringify(clientResponsesArray, null, 2));
+    
+    // Debug: Show what question instance keys are in the client responses
+    console.log(`[SUBMIT_DEBUG] Client response keys:`, clientResponsesArray.map(r => r.questionInstanceKey));
     
     const processedResponses = [];
     let sectionIndex = 0; // Track section index for composite key generation
@@ -483,9 +484,12 @@ exports.submitAttempt = async (req, res) => {
           
           for (const attemptQuestion of section.questions) { // These are the questions as defined in the attempt structure
             const questionId = attemptQuestion.question.toString();
-            
-            // Create composite key that matches frontend format: questionId_sectionIdx_questionIdx
+              // Create composite key that matches frontend format: questionId_sectionIdx_questionIdx
             const questionInstanceKey = `${questionId}_${sectionIndex}_${questionIndex}`;
+            
+            // Enhanced debug logging for all questions during submission
+            console.log(`[SUBMIT_DEBUG] Processing Q${questionIndex + 1} in Section ${sectionIndex}: ${questionId}`);
+            console.log(`[SUBMIT_DEBUG] Expected questionInstanceKey: ${questionInstanceKey}`);
             
             // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
             // Replace 'SPECIFIC_QUESTION_ID_HERE' with an actual ID you want to trace
@@ -499,11 +503,33 @@ exports.submitAttempt = async (req, res) => {
 
             let earnedForThisSlot = 0;
             let statusForThisSlot = 'not-attempted'; 
-            
-            // Find user response by matching questionInstanceKey instead of position
+              // Find user response by matching questionInstanceKey instead of position
             const userResponseForThisSlot = clientResponsesArray.find(response => 
               response.questionInstanceKey === questionInstanceKey
             );            
+            
+            // Normalize userResponseForThisSlot.selected to always be an array for consistent processing
+            let normalizedSelectedArray = [];
+            if (userResponseForThisSlot && userResponseForThisSlot.selected !== undefined && userResponseForThisSlot.selected !== null) {
+              if (Array.isArray(userResponseForThisSlot.selected)) {
+                normalizedSelectedArray = userResponseForThisSlot.selected;
+              } else {
+                // If it's a single value (string, number from radio/single-select), wrap it in an array
+                // Also ensure empty strings are not pushed as a valid selection if they mean 'unanswered'
+                if (userResponseForThisSlot.selected !== "") {
+                    normalizedSelectedArray = [userResponseForThisSlot.selected];
+                }
+              }
+            }
+            
+            // Enhanced debug: Log the matching result for ALL questions
+            console.log(`[SUBMIT_DEBUG] Looking for response with key: ${questionInstanceKey}`);
+            console.log(`[SUBMIT_DEBUG] Found matching response: ${userResponseForThisSlot ? 'YES' : 'NO'}`);
+            if (userResponseForThisSlot) {
+              console.log(`[SUBMIT_DEBUG] Response selected (original):`, userResponseForThisSlot.selected);
+              console.log(`[SUBMIT_DEBUG] Response selected (normalized):`, normalizedSelectedArray);
+            }
+            
             // Debug: Log the matching result for troubleshooting
             if (questionId === debugQuestionId) {
               console.log(`[DEBUG ${attemptId}] Found response for ${questionInstanceKey}:`, userResponseForThisSlot ? 'YES' : 'NO');
@@ -513,7 +539,7 @@ exports.submitAttempt = async (req, res) => {
               console.warn(`[${attemptId}] Missing details for question ${questionId} in attempt structure or master DB. Skipping for grading.`);              processedResponses.push({
                 question: questionId,
                 questionInstanceKey: questionInstanceKey, // Add the composite key for matching in review
-                selected: userResponseForThisSlot ? userResponseForThisSlot.selected : [],
+                selected: normalizedSelectedArray, // Use normalized array
                 earned: 0,
                 status: 'error-missing-details',
                 timeSpent: userResponseForThisSlot?.timeSpent || 0,
@@ -540,7 +566,7 @@ exports.submitAttempt = async (req, res) => {
             }
             // #### END DEBUG LOGGING ####
 
-            if (userResponseForThisSlot && userResponseForThisSlot.selected && userResponseForThisSlot.selected.length > 0) {
+            if (userResponseForThisSlot && normalizedSelectedArray.length > 0) { // Check normalizedSelectedArray
               // User attempted this question
               // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
               if (questionId === debugQuestionId) {
@@ -556,8 +582,8 @@ exports.submitAttempt = async (req, res) => {
               }
 
               if (masterQuestionData.type === 'single') {
-                if (userResponseForThisSlot.selected.length === 1 && optionsSource) {
-                  const selectedIndex = parseInt(String(userResponseForThisSlot.selected[0]), 10);
+                if (normalizedSelectedArray.length === 1 && optionsSource) { // Check normalizedSelectedArray
+                  const selectedIndex = parseInt(String(normalizedSelectedArray[0]), 10); // Use normalizedSelectedArray
                   if (selectedIndex >= 0 && selectedIndex < optionsSource.length) {
                     const selectedOptionText = optionsSource[selectedIndex].text;
                     if (correctOptionTexts.includes(selectedOptionText)) {
@@ -598,7 +624,7 @@ exports.submitAttempt = async (req, res) => {
               } else if (masterQuestionData.type === 'multiple') {
                 const selectedOptionTextsForMSQ = [];
                 if (optionsSource) {
-                  userResponseForThisSlot.selected.forEach(selectedIndexStr => {
+                  normalizedSelectedArray.forEach(selectedIndexStr => { // Use normalizedSelectedArray
                     const selectedIndex = parseInt(String(selectedIndexStr), 10);
                     if (selectedIndex >= 0 && selectedIndex < optionsSource.length) {
                       selectedOptionTextsForMSQ.push(optionsSource[selectedIndex].text);
@@ -645,8 +671,10 @@ exports.submitAttempt = async (req, res) => {
               }
               // #### END DEBUG LOGGING ####
             }
-            
-            calculatedScore += earnedForThisSlot;
+              calculatedScore += earnedForThisSlot;
+
+            // Enhanced debug logging for final status
+            console.log(`[SUBMIT_DEBUG] Question ${questionId} final status: ${statusForThisSlot}, earned: ${earnedForThisSlot}`);
 
             // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
             if (questionId === debugQuestionId) {
@@ -657,7 +685,7 @@ exports.submitAttempt = async (req, res) => {
               processedResponses.push({
               question: questionId,
               questionInstanceKey: questionInstanceKey, // Add the composite key for matching in review
-              selected: userResponseForThisSlot ? userResponseForThisSlot.selected : [],
+              selected: normalizedSelectedArray, // Use normalized array
               earned: earnedForThisSlot,
               status: statusForThisSlot,
               timeSpent: userResponseForThisSlot?.timeSpent || 0,
@@ -1331,7 +1359,7 @@ exports.getEnhancedReview = async (req, res) => {
 
         for (const section of attempt.sections || []) {
             let questionIndex = 0; // Track question index within section for composite key generation
-            
+          
             for (const questionData of section.questions || []) { // questionData is from attempt.sections.questions
                 const fullQuestion = masterQuestionsMap.get(questionData.question.toString());
 
@@ -1822,12 +1850,11 @@ function calculatePerformanceAnalytics(attempt, questions) {
   let fastestQuestion = Infinity;
   let slowestQuestion = 0;
   let questionsOverTime = 0;
-  
-  questions.forEach(q => {
+    questions.forEach(q => {
     // Basic counts
     if (q.isCorrect) {
       correctAnswers++;
-    } else if (q.status === 'answered') {
+    } else if (q.status === 'incorrect') {
       incorrectAnswers++;
     } else {
       unanswered++;

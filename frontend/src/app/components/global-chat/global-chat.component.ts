@@ -17,11 +17,10 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
   messages: ChatMessage[] = [];
   newMessage: string = '';
   error: string | null = null;
-  private subscriptions = new Subscription();
-  username: string | null = null;
+  private subscriptions = new Subscription();  username: string | null = null;
   shouldScrollToBottom = true;
     // Chat bubble state
-  isMinimized: boolean = false;
+  isMinimized: boolean = true;
   hasUnreadMessages: boolean = false;
   unreadCount: number = 0;
   private lastReadMessageCount: number = 0;

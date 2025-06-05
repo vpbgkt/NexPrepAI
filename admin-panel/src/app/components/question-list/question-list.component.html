@@ -1,144 +1,330 @@
-<h2>Filter Questions</h2>
+<!-- Modern Question List with Tailwind CSS -->
+<div class="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-7xl mx-auto">
+    
+    <!-- Page Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Question Management</h1>
+      <p class="text-gray-600">Filter and manage your question bank</p>
+    </div>
 
-<form (ngSubmit)="applyFilters()" #filterForm="ngForm" style="margin-bottom: 20px;">
-  <!-- ADDED: Search Term Input -->
-  <label>
-    Search:
-    <input type="text" [(ngModel)]="filters.searchTerm" name="searchTerm" placeholder="Enter search term...">
-  </label>
+    <!-- Filter Section -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+        </svg>
+        Filter Questions
+      </h2>
+      
+      <form (ngSubmit)="applyFilters()" #filterForm="ngForm" class="space-y-6">
+        <!-- Search and Quick Filters Row -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Search Input -->
+          <div class="lg:col-span-1">
+            <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+            <div class="relative">
+              <input 
+                type="text" 
+                id="search"
+                [(ngModel)]="filters.searchTerm" 
+                name="searchTerm" 
+                placeholder="Enter search term..."
+                class="form-input w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
 
-  <label>
-    Branch:
-    <select [(ngModel)]="filters.branch" name="branch" (change)="onBranchChange()">
-      <option value="">-- Select Branch --</option>
-      <option *ngFor="let branch of branches" [value]="getIdValue(branch._id)">{{ branch.name }}</option>
-    </select>
-  </label>
+          <!-- Difficulty Filter -->
+          <div>
+            <label for="difficulty" class="block text-sm font-medium text-gray-700 mb-2">Difficulty</label>
+            <select 
+              id="difficulty"
+              [(ngModel)]="filters.difficulty" 
+              name="difficulty" 
+              (change)="onFilterChange()"
+              class="form-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="">-- All Levels --</option>
+              <option *ngFor="let level of difficultyLevels" [value]="level">{{ level }}</option>
+            </select>
+          </div>
 
-  <label>
-    Subject:
-    <select [(ngModel)]="filters.subject" name="subject" (change)="onSubjectChange()" [disabled]="!filters.branch">
-      <option value="">-- Select Subject --</option>
-      <option *ngFor="let subject of subjects" [value]="getIdValue(subject._id)">{{ subject.name }}</option>
-    </select>
-  </label>
+          <!-- Type Filter -->
+          <div>
+            <label for="type" class="block text-sm font-medium text-gray-700 mb-2">Question Type</label>
+            <select 
+              id="type"
+              [(ngModel)]="filters.type" 
+              name="type" 
+              (change)="onFilterChange()"
+              class="form-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="">-- All Types --</option>
+              <option *ngFor="let type of questionTypes" [value]="type">{{ type }}</option>
+            </select>
+          </div>
 
-  <label>
-    Topic:
-    <select [(ngModel)]="filters.topic" name="topic" (change)="onTopicChange()" [disabled]="!filters.subject">
-      <option value="">-- Select Topic --</option>
-      <option *ngFor="let topic of topics" [value]="getIdValue(topic._id)">{{ topic.name }}</option>
-    </select>
-  </label>
+          <!-- Status Filter -->
+          <div>
+            <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <select 
+              id="status"
+              [(ngModel)]="filters.status" 
+              name="status" 
+              (change)="onFilterChange()"
+              class="form-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="">-- All Status --</option>
+              <option *ngFor="let status of questionStatuses" [value]="status">{{ status }}</option>
+            </select>
+          </div>
+        </div>
 
-  <label>
-    Subtopic:
-    <select [(ngModel)]="filters.subtopic" name="subtopic" (change)="onFilterChange()" [disabled]="!filters.topic">
-      <option value="">-- Select Subtopic --</option>
-      <option *ngFor="let subtopic of subtopics" [value]="getIdValue(subtopic._id)">{{ subtopic.name }}</option>
-    </select>
-  </label>
+        <!-- Hierarchy Filters Row -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Branch Filter -->
+          <div>
+            <label for="branch" class="block text-sm font-medium text-gray-700 mb-2">Branch</label>
+            <select 
+              id="branch"
+              [(ngModel)]="filters.branch" 
+              name="branch" 
+              (change)="onBranchChange()"
+              class="form-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="">-- Select Branch --</option>
+              <option *ngFor="let branch of branches" [value]="getIdValue(branch._id)">{{ branch.name }}</option>
+            </select>
+          </div>
 
-  <label>
-    Difficulty:
-    <select [(ngModel)]="filters.difficulty" name="difficulty" (change)="onFilterChange()">
-      <option value="">-- All --</option>
-      <option *ngFor="let level of difficultyLevels" [value]="level">{{ level }}</option>
-    </select>
-  </label>
+          <!-- Subject Filter -->
+          <div>
+            <label for="subject" class="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+            <select 
+              id="subject"
+              [(ngModel)]="filters.subject" 
+              name="subject" 
+              (change)="onSubjectChange()" 
+              [disabled]="!filters.branch"
+              class="form-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              <option value="">-- Select Subject --</option>
+              <option *ngFor="let subject of subjects" [value]="getIdValue(subject._id)">{{ subject.name }}</option>
+            </select>
+          </div>
 
-  <label>
-    Type:
-    <select [(ngModel)]="filters.type" name="type" (change)="onFilterChange()">
-      <option value="">-- All --</option>
-      <option *ngFor="let type of questionTypes" [value]="type">{{ type }}</option>
-    </select>
-  </label>
+          <!-- Topic Filter -->
+          <div>
+            <label for="topic" class="block text-sm font-medium text-gray-700 mb-2">Topic</label>
+            <select 
+              id="topic"
+              [(ngModel)]="filters.topic" 
+              name="topic" 
+              (change)="onTopicChange()" 
+              [disabled]="!filters.subject"
+              class="form-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              <option value="">-- Select Topic --</option>
+              <option *ngFor="let topic of topics" [value]="getIdValue(topic._id)">{{ topic.name }}</option>
+            </select>
+          </div>
 
-  <label>
-    Status:
-    <select [(ngModel)]="filters.status" name="status" (change)="onFilterChange()">
-      <option value="">-- All --</option>
-      <option *ngFor="let status of questionStatuses" [value]="status">{{ status }}</option>
-    </select>
-  </label>
+          <!-- Subtopic Filter -->
+          <div>
+            <label for="subtopic" class="block text-sm font-medium text-gray-700 mb-2">Subtopic</label>
+            <select 
+              id="subtopic"
+              [(ngModel)]="filters.subtopic" 
+              name="subtopic" 
+              (change)="onFilterChange()" 
+              [disabled]="!filters.topic"
+              class="form-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              <option value="">-- Select Subtopic --</option>
+              <option *ngFor="let subtopic of subtopics" [value]="getIdValue(subtopic._id)">{{ subtopic.name }}</option>
+            </select>
+          </div>
+        </div>
 
-  <button type="submit">Apply Filters</button>
-  <button type="button" (click)="resetFilters()">Reset Filters</button> <!-- MODIFIED: type="button" for reset -->
-</form>
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap gap-3 pt-4 border-t border-gray-200">
+          <button 
+            type="submit"
+            class="btn-primary px-6 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors"
+          >
+            Apply Filters
+          </button>
+          <button 
+            type="button" 
+            (click)="resetFilters()"
+            class="btn-secondary px-6 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+          >
+            Reset Filters
+          </button>
+        </div>
+      </form>
+    </div>
 
-<h2>Question List</h2>
+    <!-- Questions Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+          <svg class="w-5 h-5 mr-2 text-secondary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          Question List
+        </h2>
+      </div>
 
-<table border="1" cellpadding="8" cellspacing="0">
-  <thead>
-    <tr>
-      <th>Question Text (Primary)</th>
-      <th>Languages</th>
-      <th>Options (Summary)</th>
-      <th>Type</th>
-      <th>Status</th>
-      <th>Difficulty</th>
-      <th>Subject</th>
-      <th>Topic</th>
-      <th>Past History (Summary)</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let q of questions">
-      <td>{{ q.displayQuestionText }}</td>
-      <td>{{ getLanguageIndicator(q) }}</td>
-      <td>{{ getOptionsSummary(q) }}</td>
-      <td>{{ q.type }}</td>
-      <td>{{ q.status }}</td>
-      <td>{{ q.difficulty }}</td>
-      <td>{{ getPopulatedFieldName(q.subject) || getIdValue(q.subject) }}</td>
-      <td>{{ getPopulatedFieldName(q.topic) || getIdValue(q.topic) }}</td>
-      <td>{{ getPastHistorySummary(q) }}</td>
-      <td>
-        <button (click)="editQuestion(getIdValue(q._id))">Edit</button>
-        <button (click)="deleteQuestion(getIdValue(q._id))">Delete</button>
-        <button (click)="viewQuestionDetails(getIdValue(q._id))">Full View</button> <!-- ADDED: Full View Button -->
-      </td>
-    </tr>
-    <tr *ngIf="questions.length === 0">
-      <td colspan="10">No questions found.</td> <!-- MODIFIED: colspan to match new column count -->
-    </tr>
-  </tbody>
-</table>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Question Text</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Languages</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Options</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Difficulty</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Topic</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Past History</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr *ngFor="let q of questions; let i = index" class="hover:bg-gray-50 transition-colors">
+              <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">{{ q.displayQuestionText }}</td>
+              <td class="px-6 py-4 text-sm">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  {{ getLanguageIndicator(q) }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-700 max-w-xs truncate">{{ getOptionsSummary(q) }}</td>
+              <td class="px-6 py-4 text-sm">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  {{ q.type }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-sm">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" 
+                      [ngClass]="q.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'">
+                  {{ q.status }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-sm">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                      [ngClass]="{
+                        'bg-red-100 text-red-800': q.difficulty === 'Hard',
+                        'bg-yellow-100 text-yellow-800': q.difficulty === 'Medium',
+                        'bg-green-100 text-green-800': q.difficulty === 'Easy'
+                      }">
+                  {{ q.difficulty }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-700 truncate">{{ getPopulatedFieldName(q.subject) || getIdValue(q.subject) }}</td>
+              <td class="px-6 py-4 text-sm text-gray-700 truncate">{{ getPopulatedFieldName(q.topic) || getIdValue(q.topic) }}</td>
+              <td class="px-6 py-4 text-sm text-gray-700 max-w-xs truncate">{{ getPastHistorySummary(q) }}</td>
+              <td class="px-6 py-4 text-sm">
+                <div class="flex items-center space-x-2">
+                  <button 
+                    (click)="editQuestion(getIdValue(q._id))"
+                    class="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                  >
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    </svg>
+                    Edit
+                  </button>
+                  <button 
+                    (click)="viewQuestionDetails(getIdValue(q._id))"
+                    class="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                  >
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                    View
+                  </button>
+                  <button 
+                    (click)="deleteQuestion(getIdValue(q._id))"
+                    class="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                  >
+                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="questions.length === 0">
+              <td colspan="10" class="px-6 py-12 text-center text-gray-500">
+                <div class="flex flex-col items-center">
+                  <svg class="w-12 h-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                  <p class="text-lg font-medium">No questions found</p>
+                  <p class="text-sm">Try adjusting your filters or add some questions to get started.</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-<!-- Pagination Controls -->
-<div *ngIf="totalPages > 0" class="pagination-controls">
-  <button (click)="previousPage()" [disabled]="currentPage === 1">Previous</button>
-  
-  <ng-container *ngFor="let pageNum of getPageNumbers()">
-    <button 
-      (click)="handlePageClick(pageNum)" 
-      [class.current-page]="pageNum === currentPage"
-      [disabled]="pageNum === '...'">
-      {{ pageNum }}
-    </button>
-  </ng-container>
-  
-  <button (click)="nextPage()" [disabled]="currentPage === totalPages">Next</button>
-  
-  <span class="page-info">Page {{ currentPage }} of {{ totalPages }} ({{ totalQuestions }} items)</span>
+      <!-- Pagination Controls -->
+      <div *ngIf="totalPages > 0" class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center text-sm text-gray-700">
+            <span>Page {{ currentPage }} of {{ totalPages }} ({{ totalQuestions }} items)</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button 
+              (click)="previousPage()" 
+              [disabled]="currentPage === 1"
+              class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+              Previous
+            </button>
+            
+            <div class="hidden md:flex space-x-1">
+              <ng-container *ngFor="let pageNum of getPageNumbers()">
+                <button 
+                  (click)="handlePageClick(pageNum)" 
+                  [disabled]="pageNum === '...'"
+                  class="relative inline-flex items-center px-4 py-2 text-sm font-medium border rounded-md transition-colors"
+                  [ngClass]="pageNum === currentPage ? 
+                    'bg-primary-600 text-white border-primary-600' : 
+                    'text-gray-700 bg-white border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'"
+                >
+                  {{ pageNum }}
+                </button>
+              </ng-container>
+            </div>
+            
+            <button 
+              (click)="nextPage()" 
+              [disabled]="currentPage === totalPages"
+              class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+              <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
-
-<style>
-  .pagination-controls {
-    margin-top: 20px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  .pagination-controls button.current-page {
-    font-weight: bold;
-    background-color: #007bff;
-    color: white;
-    border-color: #007bff;
-  }
-  .page-info {
-    margin-left: 15px;
-  }
-</style>

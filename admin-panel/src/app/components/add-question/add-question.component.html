@@ -1,298 +1,619 @@
-<div class="lang-switch">
-  <button type="button"
-          (click)="switchLanguage('en')"
-          [class.active]="currentLang === 'en'">
-    English
-  </button>
-  <button type="button"
-          (click)="switchLanguage('hi')"
-          [class.active]="currentLang === 'hi'">
-    हिन्दी
-  </button>
+<!-- Modern Add Question Form with Tailwind CSS -->
+<div class="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-4xl mx-auto">
+    
+    <!-- Page Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Add New Question</h1>
+      <p class="text-gray-600">Create a comprehensive question with multiple language support</p>
+    </div>
+
+    <!-- Language Switch -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-900">Language Selection</h2>
+        <div class="flex items-center space-x-2 bg-gray-100 p-1 rounded-lg">
+          <button 
+            type="button"
+            (click)="switchLanguage('en')"
+            [class]="currentLang === 'en' ? 'bg-white shadow-sm text-primary-600 font-semibold' : 'text-gray-600 hover:text-gray-900'"
+            class="px-4 py-2 text-sm rounded-md transition-all duration-200"
+          >
+            English
+          </button>
+          <button 
+            type="button"
+            (click)="switchLanguage('hi')"
+            [class]="currentLang === 'hi' ? 'bg-white shadow-sm text-primary-600 font-semibold' : 'text-gray-600 hover:text-gray-900'"
+            class="px-4 py-2 text-sm rounded-md transition-all duration-200"
+          >
+            हिन्दी
+          </button>
+        </div>
+      </div>
+      <p class="text-sm text-gray-500">
+        Current editing language: <span class="font-medium">{{ currentLang === 'en' ? 'English' : 'हिन्दी' }}</span>
+      </p>
+    </div>
+
+    <!-- Main Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+      <form #f="ngForm" (ngSubmit)="addQuestion(f)" novalidate class="space-y-8 p-8">
+
+        <!-- Question Text Section -->
+        <div class="form-section">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Question Text
+          </h3>
+          
+          <div class="form-group">
+            <label for="questionText" class="block text-sm font-medium text-gray-700 mb-2">
+              Question Text ({{ currentLang.toUpperCase() }}) <span class="text-red-500">*</span>
+            </label>
+            <input
+              name="questionText_{{currentLang}}"
+              type="text"
+              required
+              [(ngModel)]="question.translations[currentLang].questionText"
+              #qt="ngModel"
+              placeholder="Enter your question text here..."
+              class="form-input w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+            />
+            <div *ngIf="qt.invalid && (qt.touched || f.submitted)" class="mt-2 text-sm text-red-600">
+              <div class="flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+                Question is required.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Question Images Section -->
+        <div class="form-section">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-secondary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            Question Images ({{ currentLang.toUpperCase() }})
+          </h3>
+          
+          <div class="space-y-4">
+            <div *ngFor="let imgUrl of langPack.images; let imgIndex = index" 
+                 class="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
+              <div class="flex-shrink-0">
+                <img 
+                  [src]="imgUrl" 
+                  alt="Question Image {{imgIndex + 1}}" 
+                  *ngIf="imgUrl" 
+                  class="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                />
+                <div *ngIf="!imgUrl" class="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
+                  <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="flex-1">
+                <input 
+                  type="text" 
+                  [(ngModel)]="langPack.images![imgIndex]" 
+                  name="questionImage{{currentLang}}_{{imgIndex}}" 
+                  placeholder="Image URL {{imgIndex + 1}}"
+                  class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <button 
+                type="button" 
+                (click)="removeQuestionImage(imgIndex)"
+                class="btn-danger px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+              >
+                Remove
+              </button>
+            </div>
+            
+            <button 
+              type="button" 
+              (click)="addQuestionImage()"
+              class="btn-secondary w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+              </svg>
+              Add Question Image URL
+            </button>
+          </div>
+        </div>
+
+        <!-- Options Section -->
+        <div class="form-section">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+            </svg>
+            Answer Options
+          </h3>
+          
+          <div class="space-y-4">
+            <div *ngFor="let opt of langPack.options; let i = index" 
+                 class="p-4 border border-gray-200 rounded-lg bg-white">
+              <div class="flex items-start justify-between mb-3">
+                <h4 class="text-sm font-medium text-gray-900">Option {{ i + 1 }}</h4>
+                <div class="flex items-center space-x-2">
+                  <label class="inline-flex items-center">
+                    <input
+                      name="optCorrect_{{currentLang}}_{{i}}"
+                      type="checkbox"
+                      [(ngModel)]="opt.isCorrect"
+                      class="form-checkbox h-4 w-4 text-primary-600 rounded focus:ring-primary-500 border-gray-300"
+                    />
+                    <span class="ml-2 text-sm text-gray-700 font-medium">Correct Answer</span>
+                  </label>
+                  <button
+                    type="button"
+                    (click)="removeOption(i)"
+                    [disabled]="langPack.options.length <= 2"
+                    class="btn-danger px-2 py-1 text-xs bg-red-100 text-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-200 transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Option Text</label>
+                  <input
+                    name="optText_{{currentLang}}_{{i}}"
+                    type="text"
+                    required
+                    [(ngModel)]="opt.text"
+                    placeholder="Enter option text"
+                    class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Image URL (Optional)</label>
+                  <input
+                    name="optImg_{{currentLang}}_{{i}}"
+                    type="text"
+                    placeholder="Image URL (optional)"
+                    [(ngModel)]="opt.img"
+                    class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <button 
+              type="button" 
+              (click)="addOption()"
+              class="btn-secondary w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+              </svg>
+              Add Option
+            </button>          </div>
+        </div>
+
+        <!-- Explanations Section -->
+        <div class="form-section">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-warning-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Explanations ({{ currentLang.toUpperCase() }})
+          </h3>
+          
+          <div class="space-y-4">
+            <div *ngFor="let exp of langPack.explanations; let j = index" 
+                 class="p-4 border border-gray-200 rounded-lg bg-white">
+              <div class="flex items-center justify-between mb-3">
+                <h4 class="text-sm font-medium text-gray-900">Explanation {{ j + 1 }}</h4>
+                <button
+                  type="button"
+                  (click)="removeExplanation(j)"
+                  class="btn-danger px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                >
+                  Remove
+                </button>
+              </div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <select
+                    name="expType_{{currentLang}}_{{j}}"
+                    required
+                    [(ngModel)]="exp.type"
+                    class="form-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="text">Text</option>
+                    <option value="video">Video</option>
+                    <option value="pdf">PDF</option>
+                    <option value="image">Image</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Label (Optional)</label>
+                  <input
+                    name="expLabel_{{currentLang}}_{{j}}"
+                    type="text"
+                    placeholder="Label (optional)"
+                    [(ngModel)]="exp.label"
+                    class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Content URL/Text</label>
+                  <input
+                    name="expContent_{{currentLang}}_{{j}}"
+                    type="text"
+                    required
+                    placeholder="Content URL/Text"
+                    [(ngModel)]="exp.content"
+                    class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <button 
+              type="button" 
+              (click)="addExplanation()"
+              class="btn-secondary w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+              </svg>
+              Add Explanation
+            </button>
+          </div>
+        </div>
+
+        <!-- Question Metadata Section -->
+        <div class="form-section">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            Question Settings
+          </h3>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Status -->
+            <div class="form-group">
+              <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
+                Status <span class="text-red-500">*</span>
+              </label>
+              <select
+                id="status"
+                name="status"
+                [(ngModel)]="question.status"
+                required
+                #statusCtrl="ngModel"
+                class="form-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="draft">Draft</option>
+                <option value="Published">Published</option>
+                <option value="Pending Review">Pending Review</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+              <div *ngIf="statusCtrl.invalid && (statusCtrl.touched || f.submitted)" class="mt-2 text-sm text-red-600">
+                <div class="flex items-center">
+                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z"></path>
+                  </svg>
+                  Status is required.
+                </div>
+              </div>
+            </div>
+
+            <!-- Difficulty -->
+            <div class="form-group">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Difficulty</label>
+              <select
+                name="difficulty"
+                [(ngModel)]="question.difficulty"
+                #diff="ngModel"
+                class="form-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="Not-mentioned">Not-mentioned</option>
+                <option value="Easy">Easy</option>
+                <option value="Medium">Medium</option>
+                <option value="Hard">Hard</option>
+              </select>
+            </div>
+
+            <!-- Type -->
+            <div class="form-group">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Type <span class="text-red-500">*</span>
+              </label>
+              <select
+                name="type"
+                required
+                [(ngModel)]="question.type"
+                #typ="ngModel"
+                class="form-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="">Select Type</option>
+                <option value="single">Single-correct</option>
+                <option value="multiple">Multiple-correct</option>
+                <option value="integer">Integer</option>
+                <option value="matrix">Matrix</option>
+              </select>
+              <div *ngIf="typ.invalid && (typ.touched || f.submitted)" class="mt-2 text-sm text-red-600">
+                <div class="flex items-center">
+                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z"></path>
+                  </svg>
+                  Type is required.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hierarchy Section -->
+        <div class="form-section">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+            </svg>
+            Subject Hierarchy
+          </h3>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Branch -->
+            <div class="form-group">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Branch</label>
+              <div class="flex space-x-2">
+                <select
+                  name="branchId"
+                  [(ngModel)]="question.branchId"
+                  (change)="onBranchChange(question.branchId)"
+                  #br="ngModel"
+                  class="form-select flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="Not-mentioned">Not-mentioned</option>
+                  <option *ngFor="let b of branches" [value]="b._id">{{ b.name }}</option>
+                </select>
+                <button 
+                  type="button" 
+                  (click)="goToAddBranch()"
+                  class="btn-secondary px-3 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors whitespace-nowrap"
+                >
+                  + Add
+                </button>
+              </div>
+            </div>
+
+            <!-- Subject -->
+            <div class="form-group">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+              <div class="flex space-x-2">
+                <select
+                  name="subjectId"
+                  [(ngModel)]="question.subjectId"
+                  (change)="onSubjectChange(question.subjectId)"
+                  #su="ngModel"
+                  class="form-select flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="Not-mentioned">Not-mentioned</option>
+                  <option *ngFor="let s of subjects" [value]="s._id">{{ s.name }}</option>
+                </select>
+                <button 
+                  type="button" 
+                  (click)="goToAddSubject()"
+                  class="btn-secondary px-3 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors whitespace-nowrap"
+                >
+                  + Add
+                </button>
+              </div>
+            </div>
+
+            <!-- Topic -->
+            <div class="form-group">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Topic</label>
+              <div class="flex space-x-2">
+                <select
+                  name="topicId"
+                  [(ngModel)]="question.topicId"
+                  (change)="onTopicChange(question.topicId)"
+                  #to="ngModel"
+                  class="form-select flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="Not-mentioned">Not-mentioned</option>
+                  <option *ngFor="let t of topics" [value]="t._id">{{ t.name }}</option>
+                </select>
+                <button 
+                  type="button" 
+                  (click)="goToAddTopic()"
+                  class="btn-secondary px-3 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors whitespace-nowrap"
+                >
+                  + Add
+                </button>
+              </div>
+            </div>
+
+            <!-- Subtopic -->
+            <div class="form-group">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Subtopic</label>
+              <div class="flex space-x-2">
+                <select
+                  name="subtopicId"
+                  [(ngModel)]="question.subtopicId"
+                  #st="ngModel"
+                  class="form-select flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="Not-mentioned">Not-mentioned</option>
+                  <option *ngFor="let st of subtopics" [value]="st._id">{{ st.name }}</option>
+                </select>
+                <button 
+                  type="button" 
+                  (click)="goToAddSubtopic()"
+                  class="btn-secondary px-3 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors whitespace-nowrap"
+                >
+                  + Add
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Details Section -->
+        <div class="form-section">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
+            Additional Details
+          </h3>
+          
+          <div class="space-y-6">
+            <!-- Tags -->
+            <div class="form-group">
+              <label for="tags" class="block text-sm font-medium text-gray-700 mb-2">
+                Tags (comma-separated)
+              </label>
+              <input
+                type="text"
+                id="tags"
+                name="tags"
+                [(ngModel)]="tagsInputString"
+                (ngModelChange)="onTagsInputChange($event)"
+                placeholder="e.g., algebra, geometry, important"
+                class="form-input w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
+              <p class="mt-1 text-sm text-gray-500">
+                Enter keywords separated by commas to help categorize this question
+              </p>
+            </div>
+
+            <!-- Recommended Time -->
+            <div class="form-group">
+              <label for="recommendedTime" class="block text-sm font-medium text-gray-700 mb-2">
+                Recommended Time (seconds)
+              </label>
+              <input
+                type="number"
+                id="recommendedTime"
+                name="recommendedTime"
+                [(ngModel)]="question.recommendedTimeAllotment"
+                placeholder="e.g., 300"
+                min="1"
+                class="form-input w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
+              <p class="mt-1 text-sm text-gray-500">
+                Suggested time for students to solve this question
+              </p>
+            </div>
+
+            <!-- Internal Notes -->
+            <div class="form-group">
+              <label for="internalNotes" class="block text-sm font-medium text-gray-700 mb-2">
+                Internal Notes/Author Comments
+              </label>
+              <textarea
+                id="internalNotes"
+                name="internalNotes"
+                [(ngModel)]="question.internalNotes"
+                rows="4"
+                placeholder="Internal notes or comments for this question..."
+                class="form-textarea w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-y"
+              ></textarea>
+              <p class="mt-1 text-sm text-gray-500">
+                Private notes visible only to content creators and administrators
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Appearance History Section -->
+        <div class="form-section">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Appearance History
+          </h3>
+          
+          <div class="bg-gray-50 rounded-lg p-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Exam Name</label>
+                <input
+                  name="histExam"
+                  type="text"
+                  placeholder="e.g., JEE Main 2023"
+                  [(ngModel)]="histEntry.examName"
+                  class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                <input
+                  name="histYear"
+                  type="number"
+                  [min]="1900"
+                  [max]="currentYear"
+                  [(ngModel)]="histEntry.year"
+                  placeholder="2023"
+                  class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div class="flex items-end">
+                <button 
+                  type="button" 
+                  (click)="addHistory()"
+                  class="btn-primary w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                >
+                  Add Entry
+                </button>
+              </div>
+            </div>
+            
+            <!-- History List -->
+            <div *ngIf="histList.length" class="space-y-2">
+              <h4 class="text-sm font-medium text-gray-700 mb-2">Previous Appearances:</h4>
+              <div class="space-y-1">
+                <div *ngFor="let h of histList" 
+                     class="flex items-center justify-between bg-white px-3 py-2 rounded border">
+                  <span class="text-sm text-gray-700">{{ h.examName }} — {{ h.year }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <p *ngIf="!histList.length" class="text-sm text-gray-500 italic">
+              No appearance history recorded yet.
+            </p>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-end pt-6 border-t border-gray-200">
+          <button 
+            type="submit"
+            [disabled]="f.invalid"
+            class="btn-primary px-8 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold rounded-lg hover:from-primary-700 hover:to-primary-800 focus:ring-4 focus:ring-primary-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
+          >
+            <span class="flex items-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              Create Question
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
-
-<form #f="ngForm" (ngSubmit)="addQuestion(f)" novalidate>
-
-  <!-- QUESTION TEXT -->
-  <div>
-    <label>Question</label>
-    <input
-      name="questionText_{{currentLang}}"
-      type="text"
-      required
-      [(ngModel)]="question.translations[currentLang].questionText"
-      #qt="ngModel"
-    />
-    <div *ngIf="qt.invalid && (qt.touched || f.submitted)" class="error">
-      Question is required.
-    </div>
-  </div>
-
-  <!-- IMAGE URLs -->
-  <!--
-  <div>
-    <label>Image URLs (pipe-separated)</label>
-    <input
-      name="images_{{currentLang}}" // This was likely a typo and should have been question.images not question.images_{{currentLang}}
-      type="text"
-      [(ngModel)]="question.images[0]" // This is the problematic line
-    />
-    <small>e.g. https://…jpg|https://…jpg</small>
-  </div>
-  -->
-
-  <!-- IMAGE URLs for current language -->
-  <div class="form-section">
-    <h4>Question Images (for {{ currentLang.toUpperCase() }})</h4>
-    <div *ngFor="let imgUrl of langPack.images; let imgIndex = index" class="image-item">
-      <img [src]="imgUrl" alt="Question Image {{imgIndex + 1}}" *ngIf="imgUrl" style="max-width: 100px; max-height: 100px; margin-right: 10px;">
-      <input type="text" [(ngModel)]="langPack.images![imgIndex]" name="questionImage{{currentLang}}_{{imgIndex}}" placeholder="Image URL {{imgIndex + 1}}" style="flex-grow: 1; margin-right: 10px;">
-      <button type="button" (click)="removeQuestionImage(imgIndex)">Remove</button>
-    </div>
-    <button type="button" (click)="addQuestionImage()">+ Add Question Image URL</button>
-  </div>
-
-  <!-- OPTIONS -->
-  <div *ngFor="let opt of langPack.options; let i = index">  <!-- UPDATED to use langPack -->
-    <label>Option {{ i + 1 }}</label>
-    <input
-      name="optText_{{currentLang}}_{{i}}"
-      type="text"
-      required
-      [(ngModel)]="opt.text"
-    />
-    <input
-      name="optImg_{{currentLang}}_{{i}}"
-      type="text"
-      placeholder="Image URL (optional)"
-      [(ngModel)]="opt.img"
-    />
-    <label>
-      <input
-        name="optCorrect_{{currentLang}}_{{i}}"
-        type="checkbox"
-        [(ngModel)]="opt.isCorrect"
-      />
-      Correct
-    </label>
-    <!-- UPDATED to use langPack -->
-    <button
-      type="button"
-      (click)="removeOption(i)"
-      [disabled]="langPack.options.length <= 2"
-    >
-      Remove
-    </button>
-  </div>
-  <button type="button" (click)="addOption()">+ Add Option</button>
-
-  <!-- EXPLANATIONS -->
-  <div *ngFor="let exp of langPack.explanations; let j = index"> <!-- UPDATED to use langPack -->
-    <select
-      name="expType_{{currentLang}}_{{j}}"
-      required
-      [(ngModel)]="exp.type"
-    >
-      <option value="text">Text</option>
-      <option value="video">Video</option>
-      <option value="pdf">PDF</option>
-      <option value="image">Image</option>
-    </select>
-    <input
-      name="expLabel_{{currentLang}}_{{j}}"
-      type="text"
-      placeholder="Label (optional)"
-      [(ngModel)]="exp.label"
-    />
-    <input
-      name="expContent_{{currentLang}}_{{j}}"
-      type="text"
-      required
-      placeholder="Content URL/Text"
-      [(ngModel)]="exp.content"
-    />
-    <button type="button" (click)="removeExplanation(j)">Remove</button>
-  </div>
-  <button type="button" (click)="addExplanation()">+ Add Explanation</button>
-
-  <!-- STATUS -->
-  <div>
-    <label for="status">Status:</label>
-    <select
-      id="status"
-      name="status"
-      [(ngModel)]="question.status"
-      required
-      #statusCtrl="ngModel"
-    >
-      <option value="draft">Draft</option>
-      <option value="Published">Published</option>
-      <option value="Pending Review">Pending Review</option>
-      <option value="active">Active</option>
-      <option value="inactive">Inactive</option>
-    </select>
-    <div *ngIf="statusCtrl.invalid && (statusCtrl.touched || f.submitted)" class="error">
-      Status is required.
-    </div>
-  </div>
-
-  <!-- DIFFICULTY -->
-  <div>
-    <label>Difficulty</label>
-    <select
-      name="difficulty"
-      [(ngModel)]="question.difficulty"
-      #diff="ngModel"
-    >
-      <option value="Not-mentioned">Not-mentioned</option>
-      <option value="Easy">Easy</option>
-      <option value="Medium">Medium</option>
-      <option value="Hard">Hard</option>
-    </select>
-  </div>
-
-  <!-- TYPE -->
-  <div>
-    <label>Type</label>
-    <select
-      name="type"
-      required
-      [(ngModel)]="question.type"
-      #typ="ngModel"
-    >
-      <option value="">Select</option>
-      <option value="single">Single-correct</option>
-      <option value="multiple">Multiple-correct</option>
-      <option value="integer">Integer</option>
-      <option value="matrix">Matrix</option>
-    </select>
-    <div *ngIf="typ.invalid && (typ.touched || f.submitted)" class="error">
-      Type is required.
-    </div>
-  </div>
-
-  <!-- BRANCH / SUBJECT / TOPIC / SUBTOPIC -->
-  <div>
-    <label>Branch</label>
-    <select
-      name="branchId"
-      [(ngModel)]="question.branchId"
-      (change)="onBranchChange(question.branchId)"
-      #br="ngModel"
-    >
-      <option value="Not-mentioned">Not-mentioned</option>
-      <option *ngFor="let b of branches" [value]="b._id">{{ b.name }}</option>
-    </select>
-    <button type="button" class="btn-small" (click)="goToAddBranch()">
-      + Add Branch
-    </button>
-  </div>
-
-  <div>
-    <label>Subject</label>
-    <select
-      name="subjectId"
-      [(ngModel)]="question.subjectId"
-      (change)="onSubjectChange(question.subjectId)"
-      #su="ngModel"
-    >
-      <option value="Not-mentioned">Not-mentioned</option>
-      <option *ngFor="let s of subjects" [value]="s._id">{{ s.name }}</option>
-    </select>
-    <button type="button" class="btn-small" (click)="goToAddSubject()">
-      + Add Subject
-    </button>
-  </div>
-
-  <div>
-    <label>Topic</label>
-    <select
-      name="topicId"
-      [(ngModel)]="question.topicId"
-      (change)="onTopicChange(question.topicId)"
-      #to="ngModel"
-    >
-      <option value="Not-mentioned">Not-mentioned</option>
-      <option *ngFor="let t of topics" [value]="t._id">{{ t.name }}</option>
-    </select>
-    <button type="button" class="btn-small" (click)="goToAddTopic()">
-      + Add Topic
-    </button>
-  </div>
-
-  <div>
-    <label>Subtopic</label>
-    <select
-      name="subtopicId"
-      [(ngModel)]="question.subtopicId"
-      #st="ngModel"
-    >
-      <option value="Not-mentioned">Not-mentioned</option>
-      <option *ngFor="let st of subtopics" [value]="st._id">{{ st.name }}</option>
-    </select>
-    <button type="button" class="btn-small" (click)="goToAddSubtopic()">
-      + Add Subtopic
-    </button>
-  </div>
-
-  <!-- TAGS (Keywords) -->
-  <div>
-    <label for="tags">Tags (comma-separated):</label>
-    <input
-      type="text"
-      id="tags"
-      name="tags"
-      [(ngModel)]="tagsInputString"
-      (ngModelChange)="onTagsInputChange($event)"
-      placeholder="e.g., algebra, geometry, important"
-    />
-  </div>
-
-  <!-- RECOMMENDED TIME ALLOTMENT -->
-  <div>
-    <label for="recommendedTime">Recommended Time (seconds):</label>
-    <input
-      type="number"
-      id="recommendedTime"
-      name="recommendedTime"
-      [(ngModel)]="question.recommendedTimeAllotment"
-      placeholder="e.g., 300"
-    />
-  </div>
-
-  <!-- INTERNAL NOTES -->
-  <div>
-    <label for="internalNotes">Internal Notes/Author Comments:</label>
-    <textarea
-      id="internalNotes"
-      name="internalNotes"
-      [(ngModel)]="question.internalNotes"
-      rows="3"
-      placeholder="Internal notes or comments for this question..."
-    ></textarea>
-  </div>
-
-  <!-- APPEARANCE HISTORY -->
-  <div>
-    <label>Appearance</label>
-    <input
-      name="histExam"
-      type="text"
-      placeholder="Exam name"
-      [(ngModel)]="histEntry.examName"
-    />
-    <input
-      name="histYear"
-      type="number"
-      [min]="1900"
-      [max]="currentYear"
-      [(ngModel)]="histEntry.year"
-    />
-    <button type="button" (click)="addHistory()">Add</button>
-  </div>
-  <ul *ngIf="histList.length">
-    <li *ngFor="let h of histList">{{ h.examName }} — {{ h.year }}</li>
-  </ul>
-
-  <button type="submit">Submit</button>
-</form>

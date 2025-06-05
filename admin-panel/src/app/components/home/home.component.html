@@ -1,28 +1,222 @@
-<div class="container">
-  <!-- If it's a hierarchy section page -->
-  <div *ngIf="hierarchySection; else defaultHome" class="hierarchy-section">
-    <div class="section-header">
-      <h2>{{ hierarchySection | titlecase }} Management</h2>
-      <button class="add-btn" (click)="navigateToCreate()">Add New {{ hierarchySection | titlecase }}</button>
+<!-- Modern Tailwind CSS Home Dashboard -->
+<div class="min-h-full">
+  <!-- Hierarchy Section - Enhanced with modern design and responsive layout -->
+  <div *ngIf="hierarchySection; else defaultHome" class="space-y-6">
+    <!-- Section Header with gradient background and improved typography -->
+    <div class="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl shadow-medium p-6 sm:p-8">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-bold text-white">
+            {{ hierarchySection | titlecase }} Management
+          </h1>
+          <p class="text-primary-100 mt-2">
+            Manage and organize your {{ hierarchySection }} efficiently
+          </p>
+        </div>
+        <!-- Add button with enhanced styling -->
+        <button 
+          (click)="navigateToCreate()"
+          class="inline-flex items-center px-6 py-3 bg-white text-primary-700 font-semibold rounded-lg shadow-soft hover:bg-gray-50 hover:shadow-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary-600">
+          <i class="fas fa-plus text-sm mr-2"></i>
+          Add New {{ hierarchySection | titlecase }}
+        </button>
+      </div>
     </div>
     
-    <div class="section-content">
-      <div class="under-construction">
-        <h3>This page is under construction</h3>
-        <p>The {{ hierarchySection | titlecase }} listing page is currently being developed.</p>
-        <p>In the meantime, you can add new {{ hierarchySection }} by clicking the button above.</p>
+    <!-- Section Content with modern card design -->
+    <div class="bg-white rounded-xl shadow-soft border border-gray-100 p-6 sm:p-8">
+      <div class="text-center py-12">
+        <!-- Construction icon -->
+        <div class="mx-auto h-16 w-16 bg-warning-100 rounded-full flex items-center justify-center mb-6">
+          <i class="fas fa-tools text-warning-600 text-2xl"></i>
+        </div>
+        
+        <!-- Construction message with better typography -->
+        <h3 class="text-xl font-semibold text-gray-900 mb-4">
+          Page Under Construction
+        </h3>
+        <div class="max-w-md mx-auto space-y-2">
+          <p class="text-gray-600">
+            The {{ hierarchySection | titlecase }} listing page is currently being developed.
+          </p>
+          <p class="text-gray-600">
+            In the meantime, you can add new {{ hierarchySection }} by clicking the button above.
+          </p>
+        </div>
+        
+        <!-- Progress indicator -->
+        <div class="mt-8 max-w-xs mx-auto">
+          <div class="bg-gray-200 rounded-full h-2">
+            <div class="bg-primary-600 h-2 rounded-full w-3/4 transition-all duration-500"></div>
+          </div>
+          <p class="text-sm text-gray-500 mt-2">Development Progress: 75%</p>
+        </div>
       </div>
     </div>
   </div>
   
-  <!-- Default home page -->
+  <!-- Default Dashboard Home - Enhanced with modern layout and cards -->
   <ng-template #defaultHome>
-    <div *ngIf="userName; else genericWelcome">
-      <h2>Welcome, {{ userName }}!</h2>
+    <div class="space-y-8">
+      <!-- Welcome Header with gradient background -->
+      <div class="bg-gradient-to-r from-primary-600 via-primary-700 to-secondary-600 rounded-xl shadow-medium p-6 sm:p-8">
+        <div class="text-center">
+          <div *ngIf="userName; else genericWelcome">
+            <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3">
+              Welcome back, {{ userName }}! 👋
+            </h1>
+          </div>
+          <ng-template #genericWelcome>
+            <h1 class="text-3xl sm:text-4xl font-bold text-white mb-3">
+              Welcome to NexPrep Admin! 🚀
+            </h1>
+          </ng-template>
+          <p class="text-primary-100 text-lg">
+            Manage your educational content and monitor platform performance
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick Stats Cards - Responsive grid layout -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Total Questions Card -->
+        <div class="stat-card group hover:scale-105 transition-transform duration-200">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600">Total Questions</p>
+              <p class="text-3xl font-bold text-gray-900">1,247</p>
+              <p class="text-sm text-success-600">
+                <i class="fas fa-arrow-up text-xs mr-1"></i>
+                +12% from last month
+              </p>
+            </div>
+            <div class="h-12 w-12 bg-primary-100 rounded-lg flex items-center justify-center group-hover:bg-primary-200 transition-colors duration-200">
+              <i class="fas fa-question-circle text-primary-600 text-xl"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Tests Card -->
+        <div class="stat-card group hover:scale-105 transition-transform duration-200">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600">Active Tests</p>
+              <p class="text-3xl font-bold text-gray-900">43</p>
+              <p class="text-sm text-success-600">
+                <i class="fas fa-arrow-up text-xs mr-1"></i>
+                +5% from last month
+              </p>
+            </div>
+            <div class="h-12 w-12 bg-secondary-100 rounded-lg flex items-center justify-center group-hover:bg-secondary-200 transition-colors duration-200">
+              <i class="fas fa-clipboard-list text-secondary-600 text-xl"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Total Users Card -->
+        <div class="stat-card group hover:scale-105 transition-transform duration-200">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600">Total Users</p>
+              <p class="text-3xl font-bold text-gray-900">8,934</p>
+              <p class="text-sm text-success-600">
+                <i class="fas fa-arrow-up text-xs mr-1"></i>
+                +18% from last month
+              </p>
+            </div>
+            <div class="h-12 w-12 bg-success-100 rounded-lg flex items-center justify-center group-hover:bg-success-200 transition-colors duration-200">
+              <i class="fas fa-users text-success-600 text-xl"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Completion Rate Card -->
+        <div class="stat-card group hover:scale-105 transition-transform duration-200">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600">Completion Rate</p>
+              <p class="text-3xl font-bold text-gray-900">87%</p>
+              <p class="text-sm text-warning-600">
+                <i class="fas fa-arrow-down text-xs mr-1"></i>
+                -2% from last month
+              </p>
+            </div>
+            <div class="h-12 w-12 bg-warning-100 rounded-lg flex items-center justify-center group-hover:bg-warning-200 transition-colors duration-200">
+              <i class="fas fa-chart-line text-warning-600 text-xl"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions Section -->
+      <div class="bg-white rounded-xl shadow-soft border border-gray-100 p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-6">Quick Actions</h2>        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Add Question Action -->
+          <a routerLink="/add-question" 
+             (click)="navigateToAddQuestion()"
+             class="group flex items-center p-4 bg-gray-50 rounded-lg hover:bg-primary-50 hover:border-primary-200 border border-gray-200 transition-all duration-200 cursor-pointer">
+            <div class="h-10 w-10 bg-primary-100 rounded-lg flex items-center justify-center group-hover:bg-primary-200 transition-colors duration-200 mr-3">
+              <i class="fas fa-plus text-primary-600"></i>
+            </div>
+            <div>
+              <h3 class="font-medium text-gray-900 group-hover:text-primary-700">Add Question</h3>
+              <p class="text-sm text-gray-500">Create new test questions</p>
+            </div>
+          </a>
+
+          <!-- Create Test Series Action -->
+          <a routerLink="/test-series/create" 
+             (click)="navigateToCreateTest()"
+             class="group flex items-center p-4 bg-gray-50 rounded-lg hover:bg-secondary-50 hover:border-secondary-200 border border-gray-200 transition-all duration-200 cursor-pointer">
+            <div class="h-10 w-10 bg-secondary-100 rounded-lg flex items-center justify-center group-hover:bg-secondary-200 transition-colors duration-200 mr-3">
+              <i class="fas fa-clipboard-list text-secondary-600"></i>
+            </div>
+            <div>
+              <h3 class="font-medium text-gray-900 group-hover:text-secondary-700">Create Test</h3>
+              <p class="text-sm text-gray-500">Setup new test series</p>
+            </div>
+          </a>          <!-- View Analytics Action -->
+          <a routerLink="/test-series" 
+             (click)="navigateToAnalytics()"
+             class="group flex items-center p-4 bg-gray-50 rounded-lg hover:bg-success-50 hover:border-success-200 border border-gray-200 transition-all duration-200 cursor-pointer">
+            <div class="h-10 w-10 bg-success-100 rounded-lg flex items-center justify-center group-hover:bg-success-200 transition-colors duration-200 mr-3">
+              <i class="fas fa-chart-bar text-success-600"></i>
+            </div>
+            <div>
+              <h3 class="font-medium text-gray-900 group-hover:text-success-700">View Analytics</h3>
+              <p class="text-sm text-gray-500">Monitor test series metrics</p>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Getting Started Guide -->
+      <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Getting Started</h2>
+        <p class="text-gray-600 mb-6">
+          Use the navigation menu above to access different sections of the admin panel. 
+          Here are some common tasks to get you started:
+        </p>
+        
+        <!-- Step-by-step guide -->
+        <ol class="serial-list space-y-4">
+          <li class="text-gray-700">
+            <strong>Manage Questions:</strong> Add, edit, or review questions in the Questions section
+          </li>
+          <li class="text-gray-700">
+            <strong>Create Test Series:</strong> Set up comprehensive test series for different exam types
+          </li>
+          <li class="text-gray-700">
+            <strong>Organize Content:</strong> Structure your content using Subjects, Topics, and Subtopics
+          </li>
+          <li class="text-gray-700">
+            <strong>Monitor Performance:</strong> Track user engagement and platform analytics
+          </li>
+          <li class="text-gray-700">
+            <strong>User Management:</strong> Manage user accounts and permissions (Admin/SuperAdmin only)
+          </li>
+        </ol>
+      </div>
     </div>
-    <ng-template #genericWelcome>
-      <h2>Welcome to the Admin Panel!</h2>
-    </ng-template>
-    <p>Use the navigation menu to manage your content.</p>
   </ng-template>
 </div>

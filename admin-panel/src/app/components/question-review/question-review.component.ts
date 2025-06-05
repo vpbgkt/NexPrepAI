@@ -14,6 +14,9 @@ import { Question, PopulatedHierarchyField } from '../../models/question.model';
 export class QuestionReviewComponent implements OnInit {
   private questionService = inject(QuestionService);
 
+  // Make String available in template
+  String = String;
+
   questions: Question[] = [];
   isLoading = false;
   errorMessage = '';

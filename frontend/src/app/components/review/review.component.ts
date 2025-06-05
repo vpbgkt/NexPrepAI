@@ -825,11 +825,10 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {  /** 
    * const invalidTime = this.formatTime(NaN);
    * console.log(invalidTime); // "0:00"
    * ```
-   */
-  formatTime(seconds: number): string {
+   */  formatTime(seconds: number): string {
     if (!seconds || isNaN(seconds)) return '0:00';
     const mins = Math.floor(Math.abs(seconds) / 60);
-    const secs = Math.abs(seconds) % 60;
+    const secs = Math.floor(Math.abs(seconds) % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
