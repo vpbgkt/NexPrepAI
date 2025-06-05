@@ -91,11 +91,10 @@ interface DisplayedSectionReview {
 }
 
 @Component({
-  selector: 'app-review-attempt',
-  standalone: true,
-  imports: [CommonModule, RouterModule],
-  templateUrl: './review-attempt.component.html',
-  styleUrls: []
+    selector: 'app-review-attempt',
+    imports: [CommonModule, RouterModule],
+    templateUrl: './review-attempt.component.html',
+    styleUrls: []
 })
 export class ReviewAttemptComponent implements OnInit {
   attemptId!: string;

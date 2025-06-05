@@ -12,10 +12,9 @@ import { FirebaseAuthService } from '../../services/firebase-auth.service'; // I
 import { ReferralService } from '../../services/referral.service'; // Import ReferralService
 
 @Component({
-  selector: 'app-register',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink], // Add RouterLink to imports
-  templateUrl: './register.component.html'
+    selector: 'app-register',
+    imports: [CommonModule, ReactiveFormsModule, RouterLink], // Add RouterLink to imports
+    templateUrl: './register.component.html'
 })
 export class RegisterComponent implements OnInit {
   form!: FormGroup;

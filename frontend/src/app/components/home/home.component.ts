@@ -3,10 +3,9 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 
 @Component({
-  selector: 'app-home',
-  standalone: true,
-  imports: [CommonModule, RouterModule],  templateUrl: './home.component.html',
-  styleUrls: []
+    selector: 'app-home',
+    imports: [CommonModule, RouterModule], templateUrl: './home.component.html',
+    styleUrls: []
 })
 export class HomeComponent {
   constructor() { }

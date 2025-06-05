@@ -6,10 +6,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 @Component({
-  selector: 'app-global-chat',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './global-chat.component.html'
+    selector: 'app-global-chat',
+    imports: [CommonModule, FormsModule],
+    templateUrl: './global-chat.component.html'
 })
 export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('messagesArea') messagesArea: ElementRef<HTMLDivElement> | null = null;

@@ -146,10 +146,9 @@ interface PlayerSection {
  * ```
  */
 @Component({
-  selector: 'app-exam-player',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
-  templateUrl: './exam-player.component.html'
+    selector: 'app-exam-player',
+    imports: [CommonModule, ReactiveFormsModule],
+    templateUrl: './exam-player.component.html'
 })
 export class ExamPlayerComponent implements OnInit, OnDestroy {
   // Make String constructor available in template

@@ -49,10 +49,9 @@ interface AnalyticsData {
 
 @Component({
     selector: 'app-admin-rewards',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './admin-rewards.component.html',
-  styleUrls: []
+    imports: [CommonModule, FormsModule],
+    templateUrl: './admin-rewards.component.html',
+    styleUrls: []
 })
 export class AdminRewardsComponent implements OnInit, OnDestroy {
   activeTab = 'overview';

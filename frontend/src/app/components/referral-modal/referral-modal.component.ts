@@ -4,10 +4,9 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { AuthService } from '../../services/auth.service';
 
 @Component({
-  selector: 'app-referral-modal',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
-  templateUrl: './referral-modal.component.html'
+    selector: 'app-referral-modal',
+    imports: [CommonModule, ReactiveFormsModule],
+    templateUrl: './referral-modal.component.html'
 })
 export class ReferralModalComponent implements OnInit {
   @Input() isVisible = false;

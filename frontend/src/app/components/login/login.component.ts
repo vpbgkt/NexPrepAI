@@ -12,10 +12,9 @@ import { Router, RouterLink } from '@angular/router'; // Import RouterLink
 import { FirebaseAuthService } from '../../services/firebase-auth.service'; // Import FirebaseAuthService
 
 @Component({
-  selector: 'app-login',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink], // Add RouterLink to imports
-  templateUrl: './login.component.html'
+    selector: 'app-login',
+    imports: [CommonModule, ReactiveFormsModule, RouterLink], // Add RouterLink to imports
+    templateUrl: './login.component.html'
 })
 export class LoginComponent implements OnInit {
   form!: FormGroup;  // will init in ngOnInit

@@ -8,10 +8,9 @@ import { map, catchError } from 'rxjs/operators'; // Import map and catchError
 import { BackendUser } from '../../models/user.model';
 
 @Component({
-  selector: 'app-student-dashboard',
-  standalone: true,
-  imports: [CommonModule, RouterModule],
-  templateUrl: './student-dashboard.component.html'
+    selector: 'app-student-dashboard',
+    imports: [CommonModule, RouterModule],
+    templateUrl: './student-dashboard.component.html'
 })
 export class StudentDashboardComponent implements OnInit {
   attempts: any[] = [];

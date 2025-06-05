@@ -16,11 +16,10 @@ interface GroupedTests {
 }
 
 @Component({
-  selector: 'app-test-list',
-  standalone: true,
-  templateUrl: './test-list.component.html',
-  styleUrls: [],
-  imports: [CommonModule, RouterModule]
+    selector: 'app-test-list',
+    templateUrl: './test-list.component.html',
+    styleUrls: [],
+    imports: [CommonModule, RouterModule]
 })
 export class TestListComponent implements OnInit {
   series: TestSeries[] = [];

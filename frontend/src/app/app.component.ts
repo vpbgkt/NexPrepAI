@@ -10,15 +10,14 @@ import { CommonModule } from '@angular/common';
 import { GlobalChatComponent } from './components/global-chat/global-chat.component'; // Import GlobalChatComponent
 
 @Component({
-  selector: 'app-root',
-  standalone: true,
-  imports: [
-    RouterOutlet, 
-    RouterModule, 
-    CommonModule, 
-    GlobalChatComponent // Add GlobalChatComponent to imports
-  ],  templateUrl: './app.component.html',
-  styleUrls: []
+    selector: 'app-root',
+    imports: [
+        RouterOutlet,
+        RouterModule,
+        CommonModule,
+        GlobalChatComponent // Add GlobalChatComponent to imports
+    ], templateUrl: './app.component.html',
+    styleUrls: []
 })
 export class AppComponent implements OnInit {
   currentUser$: Observable<FirebaseUser | null>;

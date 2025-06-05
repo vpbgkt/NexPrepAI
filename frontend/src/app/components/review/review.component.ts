@@ -207,9 +207,9 @@ interface PerformanceAnalytics {
  * @author NexPrep Development Team
  */
 @Component({
-  selector: 'app-review',  standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './review.component.html'
+    selector: 'app-review',
+    imports: [CommonModule, FormsModule],
+    templateUrl: './review.component.html'
 })
 export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {  /** @property {ElementRef<HTMLCanvasElement>} Chart canvas reference for accuracy visualization */
   @ViewChild('accuracyChart', { static: false }) accuracyChartRef!: ElementRef<HTMLCanvasElement>;

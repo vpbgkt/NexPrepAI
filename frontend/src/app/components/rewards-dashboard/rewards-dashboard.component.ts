@@ -6,10 +6,9 @@ import { Subscription } from 'rxjs';
 import { RewardService, RewardSummary, Reward, RewardTransaction, LeaderboardEntry } from '../../services/reward.service';
 
 @Component({
-  selector: 'app-rewards-dashboard',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  template: `
+    selector: 'app-rewards-dashboard',
+    imports: [CommonModule, FormsModule],
+    template: `
     <div class="min-h-screen bg-gray-50 p-4 md:p-6">
       <!-- Header Section -->
       <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -280,7 +279,7 @@ import { RewardService, RewardSummary, Reward, RewardTransaction, LeaderboardEnt
       </div>
     </div>
   `,
-  styleUrls: []
+    styleUrls: []
 })
 export class RewardsDashboardComponent implements OnInit, OnDestroy {
   rewardSummary: RewardSummary | null = null;

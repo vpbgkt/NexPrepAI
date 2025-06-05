@@ -6,11 +6,10 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
 @Component({
-  selector: 'app-leaderboard',
-  standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
-  templateUrl: './leaderboard.component.html',
-  styleUrls: []
+    selector: 'app-leaderboard',
+    imports: [CommonModule, RouterModule, FormsModule],
+    templateUrl: './leaderboard.component.html',
+    styleUrls: []
 })
 export class LeaderboardComponent implements OnInit {
   leaderboard: LeaderboardEntry[] = [];

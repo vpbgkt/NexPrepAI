@@ -6,10 +6,9 @@ import { AuthService, BackendUser } from '../../services/auth.service'; // Impor
 import { ReferralModalComponent } from '../referral-modal/referral-modal.component';
 
 @Component({
-  selector: 'app-profile',
-  standalone: true, 
-  imports: [CommonModule, ReactiveFormsModule, ReferralModalComponent],
-  templateUrl: './profile.component.html'
+    selector: 'app-profile',
+    imports: [CommonModule, ReactiveFormsModule, ReferralModalComponent],
+    templateUrl: './profile.component.html'
 })
 export class ProfileComponent implements OnInit {
   profileForm: FormGroup;
