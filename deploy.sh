@@ -61,7 +61,13 @@ sudo rsync -av --delete ../admin-panel/dist/admin-panel/ /var/www/admin-panel/
 sudo rsync -av --delete dist/frontend/ /var/www/frontend/
 
 print_status "Restarting backend service..."
-pm2 reload nexprep-backend --env production
+cd ..
+# Check if PM2 process exists, if not start it, otherwise reload it
+if pm2 list | grep -q "nexprep-backend"; then
+    pm2 reload nexprep-backend
+else
+    pm2 start ecosystem.config.js --env production
+fi
 
 print_status "Reloading nginx..."
 sudo systemctl reload nginx
