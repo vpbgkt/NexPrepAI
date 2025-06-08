@@ -1,0 +1,288 @@
+// filepath: c:\\Users\\vpbgk\\OneDrive\\Desktop\\project\\NexPrep\\admin-panel\\src\\app\\components\\edit-question\\edit-question.component.scss
+:host {
+  display: block;
+  padding: 20px;
+  font-family: Arial, sans-serif; // Using a common sans-serif font
+}
+
+h2 {
+  color: #333;
+  margin-bottom: 25px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 10px;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px; // Adds space between form elements/sections
+}
+
+// General styling for form sections
+.form-section {
+  background-color: #f9f9f9;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  margin-bottom: 15px;
+
+  h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #555;
+  }
+}
+
+// Styling for labels
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: #444;
+}
+
+// Styling for input fields, select, and textarea
+input[type="text"],
+input[type="number"],
+input[type="email"], // Assuming you might have email inputs
+input[type="password"], // Assuming you might have password inputs
+select,
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box; // Ensures padding doesn't affect overall width
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+
+  &:focus {
+    border-color: #007bff; // Highlight on focus
+    outline: none;
+  }
+}
+
+textarea {
+  min-height: 80px;
+  resize: vertical; // Allow vertical resizing
+}
+
+// Button styling
+button,
+input[type="submit"] { // General button styling
+  padding: 10px 18px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  text-transform: capitalize;
+
+  &:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// Primary button (e.g., Save, Add)
+button[type="submit"],
+button.primary,
+button[type="button"][class*="add"], // Catches "addOption", "addExplanation", "addQuestionImage"
+.language-switcher button[type="button"] // Language buttons
+ {
+  background-color: #007bff;
+  color: white;
+
+  &:hover {
+    background-color: #0056b3;
+  }
+  &:disabled {
+    background-color: #a0cfff;
+    cursor: not-allowed;
+  }
+}
+
+// Secondary/Default button (e.g., Cancel, Remove)
+button[type="button"]:not([class*="add"]):not(.primary):not(.active), // Exclude add, primary, and active language buttons
+button.secondary {
+  background-color: #6c757d;
+  color: white;
+
+  &:hover {
+    background-color: #545b62;
+  }
+}
+
+// Destructive action button (e.g., Remove)
+.remove-option-btn,
+.remove-explanation-btn,
+button[type="button"][title*="Remove"], // Generic remove
+button[type="button"] { // Targeting specific remove buttons by their text or function if needed
+  &[class*="remove"], // Catches buttons with "remove" in their class
+  &[onclick*="remove"] { // Catches buttons with "remove" in their click handler (less ideal but a fallback)
+    background-color: #dc3545;
+    color: white;
+
+    &:hover {
+      background-color: #c82333;
+    }
+  }
+}
+// Ensure "Remove Option" and "Remove Explanation" get destructive styling
+.remove-option-btn, .remove-explanation-btn {
+    background-color: #dc3545 !important; // Use important if other styles override
+    color: white !important;
+     &:hover {
+      background-color: #c82333 !important;
+    }
+}
+
+
+// Language switcher specific styles
+.language-switcher {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  align-items: center;
+
+  label {
+    margin-bottom: 0; // Align with buttons
+  }
+
+  button {
+    background-color: #f0f0f0; // Default state for language buttons
+    color: #333;
+    border: 1px solid #ddd;
+
+    &.active {
+      background-color: #007bff; // Active language
+      color: white;
+      border-color: #007bff;
+      font-weight: bold;
+    }
+
+    &:hover:not(.active) {
+      background-color: #e0e0e0;
+    }
+  }
+}
+
+// Options styling
+.option-item {
+  .option-content {
+    display: flex;
+    align-items: center;
+    gap: 15px; // Space between text input, checkbox, image, and remove button
+  }
+
+  input[type="text"] {
+    flex-grow: 1; // Allow text input to take available space
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 0; // Override default label margin
+    font-weight: normal; // Normal weight for checkbox label
+    white-space: nowrap;
+  }
+
+  .option-image-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    img {
+      border: 1px solid #eee;
+      border-radius: 4px;
+    }
+  }
+}
+
+// Image items (for question images)
+.image-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+
+  img {
+    border: 1px solid #eee;
+    border-radius: 4px;
+  }
+  input[type="text"] {
+    flex-grow: 1;
+  }
+}
+
+
+// Explanation items
+.explanation-item {
+  .explanation-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap; // Allow controls to wrap on smaller screens
+
+    label {
+      margin-bottom: 0; // Align with inputs/selects
+      white-space: nowrap;
+    }
+    input[type="text"], select {
+      width: auto; // Don't take full width in this flex container
+      min-width: 150px; // Ensure they are not too small
+    }
+  }
+}
+
+// Error messages
+.error {
+  color: #dc3545; // Red color for errors
+  font-size: 0.875rem;
+  margin-top: 5px;
+}
+
+// Horizontal rule for separation
+hr {
+  border: none;
+  border-top: 1px solid #e0e0e0;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+// Final action buttons (Save, Cancel) container
+form > div:last-child { // Targeting the last div which usually holds save/cancel
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #eee; // Visual separation for action buttons
+}
+
+// Responsive adjustments (optional, can be expanded)
+@media (max-width: 768px) {
+  .option-item .option-content,
+  .explanation-item .explanation-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  select,
+  textarea {
+    font-size: 0.95rem; // Slightly smaller font on small screens
+  }
+
+  button {
+    padding: 9px 15px;
+    font-size: 0.95rem;
+  }
+}
+

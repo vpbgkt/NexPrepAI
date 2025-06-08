@@ -9,7 +9,7 @@ module.exports = {
     max_memory_restart: '1G',    env: {
       NODE_ENV: 'development',
       PORT: 5000,
-      ALLOWED_ORIGIN: 'http://localhost:4200,http://localhost:4201',
+      ALLOWED_ORIGIN: ['http://localhost:4200/api', 'http://localhost:4201/api'],
       CORS_CREDENTIALS: 'true'
     },
     env_production: {

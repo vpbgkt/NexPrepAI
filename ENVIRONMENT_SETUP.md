@@ -8,12 +8,6 @@ No more manual editing of configuration files when switching between development
 
 ## 🔧 Development Setup
 
-### Quick Start
-```powershell
-# Run the development setup script
-.\dev-start.ps1
-```
-
 ### Manual Start
 ```powershell
 # Install all dependencies
@@ -48,10 +42,7 @@ npm install -g pm2
 
 2. **Deploy**:
 ```bash
-# Use the automated deployment script
-./deploy.sh
-
-# Or manually:
+# Manual deployment:
 git pull
 cd admin-panel && npm ci && npm run build:prod
 pm2 restart nexprep-backend --env production
@@ -81,9 +72,7 @@ NexPrep/
 ├── backend/
 │   ├── .env.dev               # Development environment variables
 │   └── .env.prod              # Production environment template
-├── ecosystem.config.js        # PM2 configuration
-├── deploy.sh                  # Production deployment script
-└── dev-start.ps1             # Windows development script
+└── ecosystem.config.js        # PM2 configuration
 ```
 
 ## 🔄 How It Works
@@ -107,6 +96,13 @@ npm run build            # Build frontend for production
 npm run start:prod       # Start backend in production mode with PM2
 npm run start:dev        # Start backend in development mode with PM2
 npm run install:all      # Install dependencies for all projects
+npm run stop             # Stop PM2 backend process
+npm run restart:prod     # Restart backend in production mode
+npm run restart:dev      # Restart backend in development mode
+npm run logs             # View backend logs
+npm run status           # Check PM2 status
+npm run monitor          # Open PM2 monitoring interface
+npm run clean            # Clean node_modules and build directories
 ```
 
 ### Frontend (admin-panel)

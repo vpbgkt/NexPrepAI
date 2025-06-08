@@ -63,17 +63,16 @@
           },
           "defaultConfiguration": "development"
         },        "serve": {
-          "builder": "@angular-devkit/build-angular:dev-server",
-          "options": {
+          "builder": "@angular-devkit/build-angular:dev-server",          "options": {
             "buildTarget": "admin-panel:build",
-            "port": 4201
-          },
-          "configurations": {
+            "port": 4201,
+            "proxyConfig": "proxy.conf.js"
+          },"configurations": {
             "production": {
               "buildTarget": "admin-panel:build:production"
-            },
-            "development": {
-              "buildTarget": "admin-panel:build:development"
+            },            "development": {
+              "buildTarget": "admin-panel:build:development",
+              "proxyConfig": "proxy.conf.js"
             }
           },
           "defaultConfiguration": "development"
