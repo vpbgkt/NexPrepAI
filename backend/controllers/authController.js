@@ -83,12 +83,81 @@ const DEFAULT_FREE_TRIAL_DAYS = 30;
  *   "referralCodeInput": "ABC123XYZ"
  * }
  */
+/**
+ * Validate email format and domain
+ * @param {string} email - Email to validate
+ * @returns {Object} - Validation result with isValid boolean and message
+ */
+function validateEmail(email) {
+  if (!email) {
+    return { isValid: false, message: "Email is required" };
+  }
+
+  // Basic email format validation
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(email)) {
+    return { isValid: false, message: "Invalid email format" };
+  }
+
+  // Check for invalid domains/patterns
+  const invalidPatterns = [
+    /^.+@example\.(com|org|net)$/i,
+    /^.+@test\.(com|org|net)$/i,
+    /^.+@sample\.(com|org|net)$/i,
+    /^.+@dummy\.(com|org|net)$/i,
+    /^[a-z]@[a-z]\.(com|org|net)$/i, // Single character before and after @
+    /^.+@.+\.(fake|invalid|test)$/i
+  ];
+
+  for (const pattern of invalidPatterns) {
+    if (pattern.test(email)) {
+      return { isValid: false, message: "Please use a valid email address. Test emails like abc@example.com are not allowed" };
+    }
+  }
+
+  return { isValid: true, message: "" };
+}
+
+/**
+ * Validate password strength
+ * @param {string} password - Password to validate
+ * @returns {Object} - Validation result with isValid boolean and message
+ */
+function validatePassword(password) {
+  if (!password) {
+    return { isValid: false, message: "Password is required" };
+  }
+
+  if (password.length < 6) {
+    return { isValid: false, message: "Password must be at least 6 characters long" };
+  }
+
+  // Must contain at least one letter or number
+  if (!/[a-zA-Z0-9]/.test(password)) {
+    return { isValid: false, message: "Password must contain at least one letter or number" };
+  }
+
+  return { isValid: true, message: "" };
+}
+
 const registerUser = async (req, res) => {
   try {
     const { username, name, email, password, role, referralCodeInput } = req.body; // Added referralCodeInput
 
     if (!name) { // Add validation for name
       return res.status(400).json({ message: "Name is required" });
+    }
+
+    // Validate email
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      return res.status(400).json({ message: emailValidation.message });
+    }
+
+    // Validate password
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({ message: passwordValidation.message });
     }
 
     const existingUser = await User.findOne({ email });
@@ -323,21 +392,56 @@ exports.firebaseSignIn = async (req, res) => {
       if (!user.displayName && name) {
         user.displayName = name;
       }
-      await user.save();
-    } else {
+      await user.save();    } else {
       // New user via Firebase
       console.log(`New user signing in with Firebase UID: ${uid}. Creating account.`);
+      
+      // Validate email if provided
+      if (email) {
+        const emailValidation = validateEmail(email);
+        if (!emailValidation.isValid) {
+          return res.status(400).json({ message: emailValidation.message });
+        }
+      }
+      
       const referralCode = await generateUniqueReferralCode(User); // Generate referral code for new Firebase user
       
       // Determine user's name, trying displayName, then name, then a default
       let newUserName = decodedToken.name || decodedToken.email?.split('@')[0] || 'User';
       if (decodedToken.phone_number && !decodedToken.name && !decodedToken.email) {
         newUserName = `User_${decodedToken.phone_number.slice(-4)}`; // e.g., User_1234
+      }// Generate a unique username for Firebase users
+      let baseUsername;
+      if (email) {
+        // Extract username from email (part before @) and clean it
+        baseUsername = email.split('@')[0]
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, ''); // Remove dots, hyphens, and other special characters
+        
+        // Ensure minimum length
+        if (baseUsername.length < 3) {
+          baseUsername = baseUsername + 'user';
+        }
+      } else {
+        // Fallback for users without email (phone-only users)
+        baseUsername = newUserName.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (baseUsername.length < 3) {
+          baseUsername = 'user';
+        }
       }
-
+      
+      let username = baseUsername;
+      let counter = 1;
+      
+      // Ensure username is unique
+      while (await User.findOne({ username: username })) {
+        username = `${baseUsername}${counter}`;
+        counter++;
+      }
 
       user = new User({
         firebaseUid: uid,
+        username: username, // Add the generated unique username
         email: email, // Firebase email is usually verified
         name: newUserName, // Use determined name
         displayName: name || newUserName, // Set displayName

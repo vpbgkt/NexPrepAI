@@ -82,12 +82,11 @@ export class FirebaseAuthService {  private userSubject = new BehaviorSubject<Fi
                     photoURL: response.photoURL
                   };
                     // Use AuthService to handle storing app token and user object
-                  this.authService.handleFirebaseLogin(response.token, userObj);
-                    // Only navigate if we're on the login page or a page that requires authentication but doesn't exist
+                  this.authService.handleFirebaseLogin(response.token, userObj);                  // Only navigate if we're on the login/register page or a page that requires authentication but doesn't exist
                   const currentUrl = this.router.url;
-                  if (currentUrl === '/login') {
+                  if (currentUrl === '/login' || currentUrl === '/register') {
                     // Redirect all users to home page instead of role-based dashboards
-                    console.log('FirebaseAuthService: Navigating from login to /home');
+                    console.log(`FirebaseAuthService: Navigating from ${currentUrl} to /home`);
                     this.router.navigate(['/home'])
                       .then(navSuccess => {
                         console.log(`FirebaseAuthService: Navigation to /home status: ${navSuccess}`);

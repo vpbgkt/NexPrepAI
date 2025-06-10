@@ -48,9 +48,7 @@
             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200 text-gray-900 placeholder-gray-500"
             [class.border-red-500]="form.get('username')!.invalid && (form.get('username')!.dirty || form.get('username')!.touched)"
           >
-        </div>
-
-        <!-- Email Field -->
+        </div>        <!-- Email Field -->
         <div>
           <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
             Email Address
@@ -63,9 +61,28 @@
             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200 text-gray-900 placeholder-gray-500"
             [class.border-red-500]="form.get('email')!.invalid && (form.get('email')!.dirty || form.get('email')!.touched)"
           >
-        </div>
-
-        <!-- Password Field -->
+          <div *ngIf="form.get('email')!.invalid && (form.get('email')!.dirty || form.get('email')!.touched)" 
+               class="mt-2 text-sm text-red-600">
+            <span *ngIf="form.get('email')!.errors?.['required']" class="flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              Email is required.
+            </span>
+            <span *ngIf="form.get('email')!.errors?.['invalidEmailFormat']" class="flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              Please enter a valid email format.
+            </span>
+            <span *ngIf="form.get('email')!.errors?.['invalidEmailDomain']" class="flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              Please use a valid email address. Test emails like abc&#64;example.com are not allowed.
+            </span>
+          </div>
+        </div>        <!-- Password Field -->
         <div>
           <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
             Password
@@ -74,10 +91,31 @@
             id="password" 
             formControlName="password" 
             type="password"
-            placeholder="Create a password"
+            placeholder="Create a password (min. 6 characters)"
             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200 text-gray-900 placeholder-gray-500"
             [class.border-red-500]="form.get('password')!.invalid && (form.get('password')!.dirty || form.get('password')!.touched)"
           >
+          <div *ngIf="form.get('password')!.invalid && (form.get('password')!.dirty || form.get('password')!.touched)" 
+               class="mt-2 text-sm text-red-600">
+            <span *ngIf="form.get('password')!.errors?.['required']" class="flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              Password is required.
+            </span>
+            <span *ngIf="form.get('password')!.errors?.['minLength']" class="flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              Password must be at least 6 characters long.
+            </span>
+            <span *ngIf="form.get('password')!.errors?.['noAlphanumeric']" class="flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              Password must contain at least one letter or number.
+            </span>
+          </div>
         </div>
 
         <!-- Referral Code Field -->
