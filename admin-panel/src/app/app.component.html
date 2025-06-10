@@ -2,30 +2,30 @@
 <div class="min-h-screen bg-gray-50 flex flex-col">
   <!-- Header Navigation - Responsive with mobile-first approach -->
   <header class="bg-white shadow-soft border-b border-gray-200 sticky top-0 z-50" *ngIf="authService.isLoggedIn()">
-    <nav class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 overflow-hidden">      <div class="flex justify-between items-center h-16 min-w-0">        <!-- Logo Section - Left aligned on all screens -->
-        <div class="flex-shrink-0 flex items-center min-w-0">
+    <nav class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">      <div class="flex justify-between items-center h-16 min-w-0">        <!-- Logo Section - Left aligned on all screens -->
+        <div class="flex-shrink-0 flex items-center min-w-0 mr-4">
           <a routerLink="/home" class="flex items-center space-x-2 hover:opacity-80 transition-opacity duration-200 cursor-pointer">
             <!-- Logo icon placeholder - can be replaced with actual logo -->
             <div class="h-8 w-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center flex-shrink-0">
-              <span class="text-white font-bold text-sm">NP</span>
+              <span class="text-white font-bold text-sm">AP</span>
             </div>
-            <span class="hidden sm:block text-xl font-semibold text-gray-900 truncate">NexPrep Admin</span>
+            <span class="hidden sm:block text-xl font-semibold text-gray-900 truncate">AdminPanel</span>
           </a>
         </div>
 
         <!-- Desktop Navigation - Hidden on mobile, shown on lg screens and up -->
-        <div class="hidden lg:flex lg:items-center lg:space-x-1 flex-1 justify-center max-w-2xl mx-4 overflow-hidden">
+        <div class="hidden lg:flex lg:items-center lg:space-x-2 flex-1 justify-start min-w-0 mr-4">
           <!-- Dashboard Link -->
           <a routerLink="/home" 
              routerLinkActive="bg-primary-100 text-primary-700 border-primary-500" 
-             class="nav-item px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-2">
-            <i class="fas fa-tachometer-alt text-sm"></i>
+             class="nav-item px-2 py-2 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-1">
+            <i class="fas fa-tachometer-alt text-xs"></i>
             <span>Dashboard</span>
           </a>          <!-- Questions Dropdown -->
           <div class="relative dropdown" [class.bg-gray-100]="activeDropdown === 'questions'">
             <button (click)="toggleDropdown('questions'); $event.stopPropagation()"
-                    class="nav-item px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-2">
-              <i class="fas fa-question-circle text-sm"></i>
+                    class="nav-item px-2 py-2 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-1">
+              <i class="fas fa-question-circle text-xs"></i>
               <span>Questions</span>
               <i class="fas fa-chevron-down text-xs transition-transform duration-200" 
                  [class.rotate-180]="activeDropdown === 'questions'"></i>
@@ -62,8 +62,8 @@
           </div>          <!-- Tests Dropdown -->
           <div class="relative dropdown" [class.bg-gray-100]="activeDropdown === 'test-series'">
             <button (click)="toggleDropdown('test-series'); $event.stopPropagation()"
-                    class="nav-item px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-2">
-              <i class="fas fa-clipboard-list text-sm"></i>
+                    class="nav-item px-2 py-2 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-1">
+              <i class="fas fa-clipboard-list text-xs"></i>
               <span>Tests</span>
               <i class="fas fa-chevron-down text-xs transition-transform duration-200" 
                  [class.rotate-180]="activeDropdown === 'test-series'"></i>
@@ -87,8 +87,8 @@
           </div>          <!-- Content Dropdown -->
           <div class="relative dropdown" [class.bg-gray-100]="activeDropdown === 'content'">
             <button (click)="toggleDropdown('content'); $event.stopPropagation()"
-                    class="nav-item px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-2">
-              <i class="fas fa-sitemap text-sm"></i>
+                    class="nav-item px-2 py-2 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-1">
+              <i class="fas fa-sitemap text-xs"></i>
               <span>Content</span>
               <i class="fas fa-chevron-down text-xs transition-transform duration-200" 
                  [class.rotate-180]="activeDropdown === 'content'"></i>
@@ -118,8 +118,8 @@
           </div>          <!-- Exams Dropdown -->
           <div class="relative dropdown" [class.bg-gray-100]="activeDropdown === 'exam-structure'">
             <button (click)="toggleDropdown('exam-structure'); $event.stopPropagation()"
-                    class="nav-item px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-2">
-              <i class="fas fa-graduation-cap text-sm"></i>
+                    class="nav-item px-2 py-2 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-1">
+              <i class="fas fa-graduation-cap text-xs"></i>
               <span>Exams</span>
               <i class="fas fa-chevron-down text-xs transition-transform duration-200" 
                  [class.rotate-180]="activeDropdown === 'exam-structure'"></i>
@@ -157,8 +157,8 @@
           <a *ngIf="authService.getRole() === 'superadmin' || authService.getRole() === 'admin'"
              routerLink="/user-management" 
              routerLinkActive="bg-primary-100 text-primary-700 border-primary-500"
-             class="nav-item px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-2">
-            <i class="fas fa-users text-sm"></i>
+             class="nav-item px-2 py-2 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-1">
+            <i class="fas fa-users text-xs"></i>
             <span>Users</span>
           </a>
 
@@ -166,20 +166,20 @@
           <a *ngIf="authService.getRole() === 'superadmin' || authService.getRole() === 'admin'"
              routerLink="/leaderboard" 
              routerLinkActive="bg-primary-100 text-primary-700 border-primary-500"
-             class="nav-item px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-2">
-            <i class="fas fa-trophy text-sm"></i>
+             class="nav-item px-2 py-2 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-1">
+            <i class="fas fa-trophy text-xs"></i>
             <span>Leaderboard</span>
           </a>
 
           <!-- Analytics Link -->
           <a routerLink="/analytics" 
              routerLinkActive="bg-primary-100 text-primary-700 border-primary-500"
-             class="nav-item px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-2">
-            <i class="fas fa-chart-bar text-sm"></i>
+             class="nav-item px-2 py-2 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200 flex items-center space-x-1">
+            <i class="fas fa-chart-bar text-xs"></i>
             <span>Analytics</span>
           </a>
         </div>        <!-- Right side - User menu and mobile toggle -->
-        <div class="flex items-center space-x-2 md:space-x-3 flex-shrink-0">
+        <div class="flex items-center space-x-2 md:space-x-3 flex-shrink-0 min-w-0 ml-4">
           <!-- User Profile Section - Responsive layout -->
           <div class="flex items-center space-x-2 lg:space-x-3">
             <!-- User Avatar and Info -->
