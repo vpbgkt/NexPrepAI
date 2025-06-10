@@ -3,6 +3,7 @@ import { CommonModule }       from '@angular/common';
 import { ActivatedRoute }     from '@angular/router';
 import { HttpClient }         from '@angular/common/http';
 import { saveAs }             from 'file-saver';
+import { environment }        from '../../../environments/environment';
 
 import { ChartData, ChartOptions } from 'chart.js';
 import { NgChartsModule }          from 'ng2-charts';
@@ -37,11 +38,10 @@ export class SeriesAnalyticsComponent implements OnInit {
     private route: ActivatedRoute,
     private http: HttpClient
   ) {}
-
   ngOnInit() {
     this.seriesId = this.route.snapshot.paramMap.get('seriesId') || '';
     this.http.get<SeriesAnalytics>(
-      `http://localhost:5000/api/analytics/series/${this.seriesId}`
+      `${environment.apiUrl}/analytics/series/${this.seriesId}`
     ).subscribe({
       next: data => {
         this.totalAttempts = data.totalAttempts;
@@ -62,9 +62,8 @@ export class SeriesAnalyticsComponent implements OnInit {
   get averageTimeMin() {
     return (this.averageTimeMs / 1000 / 60).toFixed(1);
   }
-
   downloadCsv() {
-    const url = `http://localhost:5000/api/analytics/series/${this.seriesId}/attempts.csv`;
+    const url = `${environment.apiUrl}/analytics/series/${this.seriesId}/attempts.csv`;
     this.http.get(url, {
         responseType: 'blob',
         headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` }

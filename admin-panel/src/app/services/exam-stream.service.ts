@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface ExamStream {
   _id: string;
@@ -11,7 +12,7 @@ export interface ExamStream {
 
 @Injectable({ providedIn: 'root' })
 export class ExamStreamService {
-  private base = 'http://localhost:5000/api/examStreams';
+  private base = `${environment.apiUrl}/examStreams`;
 
   constructor(private http: HttpClient) {}
 

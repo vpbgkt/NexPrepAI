@@ -22,6 +22,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap, BehaviorSubject } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 /**
  * @interface AuthResponse
@@ -115,9 +116,8 @@ interface FirebaseSignInResponse {
  * ```
  */
 @Injectable({ providedIn: 'root' })
-export class AuthService {
-  /** @property {string} Base URL for authentication API endpoints */
-  private base = 'http://localhost:5000/api/auth';
+export class AuthService {  /** @property {string} Base URL for authentication API endpoints */
+  private base = `${environment.apiUrl}/auth`;
   private tokenExpirationTimer: any;
 
   private appUserNameSubject = new BehaviorSubject<string | null>(this.getAppUserName());

@@ -10,6 +10,7 @@ import { RouterModule, ActivatedRoute } from '@angular/router';
 import { TestService } from '../../services/test.service';
 import { saveAs } from 'file-saver';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 // Define interfaces based on the expected structure of 'data'
 
@@ -272,11 +273,10 @@ export class ReviewAttemptComponent implements OnInit {
 
   /**
    * Downloads test attempt scorecard as PDF
-   * Input: None (uses component's attemptId)
-   * Output: Triggers PDF download or shows error alert
+   * Input: None (uses component's attemptId)   * Output: Triggers PDF download or shows error alert
    */
   downloadPdf(): void {
-    const url = `http://localhost:5000/api/tests/${this.attemptId}/pdf`;
+    const url = `${environment.apiUrl}/tests/${this.attemptId}/pdf`;
     this.http.get(url, {
       responseType: 'blob',
       headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` }

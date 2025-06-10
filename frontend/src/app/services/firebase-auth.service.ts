@@ -5,6 +5,7 @@ import { Observable, BehaviorSubject } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http'; // For backend communication
 import { AuthService } from './auth.service'; // Import AuthService
 import { ReferralService } from './referral.service'; // Import ReferralService
+import { environment } from '../../environments/environment';
 
 interface BackendUser { // Duplicating from AuthService for clarity, consider a shared types file
   _id: string;
@@ -31,7 +32,7 @@ interface FirebaseSignInResponse { // Duplicating from AuthService for clarity
 })
 export class FirebaseAuthService {  private userSubject = new BehaviorSubject<FirebaseUser | null>(null);
   currentUser$: Observable<FirebaseUser | null> = this.userSubject.asObservable();
-  private backendUrl = 'http://localhost:5000/api/auth'; // Adjust if your backend URL is different
+  private backendUrl = `${environment.apiUrl}/auth`; // Adjust if your backend URL is different
 
   private firebaseUserJustSignedOut = false; // Flag to track explicit Firebase sign-out
   private tempReferralCode: string | null = null; // Store referral code during Firebase auth process

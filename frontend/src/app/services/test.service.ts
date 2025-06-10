@@ -13,6 +13,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 /**
  * @interface TestSeries
@@ -134,16 +135,16 @@ export interface LeaderboardEntry {
  * ```
  */
 @Injectable({ providedIn: 'root' })
-export class TestService {
-  /** @private Base API URL for all test-related endpoints */
-  private base = 'http://localhost:5000/api';
+export class TestService {  /** @private Base API URL for all test-related endpoints */
+  private base = environment.apiUrl;
 
   /**
    * @constructor
    * @description Initializes the TestService with HTTP client dependency
    * @param {HttpClient} http - Angular HTTP client for API communication
-   */
-  constructor(private http: HttpClient) {}
+   */  constructor(private http: HttpClient) {
+    this.base = environment.apiUrl;
+  }
   /**
    * @method getSeries
    * @description Retrieves all available test series for the current user

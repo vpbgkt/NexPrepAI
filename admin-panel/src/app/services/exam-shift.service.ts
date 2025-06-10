@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface ExamShift {
   _id: string;
@@ -12,7 +13,7 @@ export interface ExamShift {
 
 @Injectable({ providedIn: 'root' })
 export class ExamShiftService {
-  private base = 'http://localhost:5000/api/examShifts';
+  private base = `${environment.apiUrl}/examShifts`;
 
   constructor(private http: HttpClient) {}
 
