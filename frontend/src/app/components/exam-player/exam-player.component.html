@@ -78,6 +78,7 @@
                        class="relative">                    <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-200">                      <input type="radio" 
                              [value]="i" 
                              formControlName="selected"
+                             (change)="onAnswerChange()"
                              class="mt-1 text-primary-600 focus:ring-primary-500">
                       <div class="flex-1">
                         <div class="font-medium text-gray-900 mb-1">{{ String.fromCharCode(65 + i) }})</div>
@@ -152,25 +153,81 @@
                             (click)="clearResponse()">
                       <span class="material-icons-outlined text-sm">clear</span>
                       Clear
-                    </button>                  </div>
+                    </button>
+                    
+                    <!-- Finish Exam Button - Only visible on last question -->
+                    <button *ngIf="isLastQuestionOverall()" 
+                            type="button" 
+                            class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center gap-2 font-semibold shadow-md"
+                            (click)="submit()">
+                      <span class="material-icons-outlined text-sm">done_all</span>
+                      Finish Exam
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </ng-container>
-        </div>
-      </form>
+        </div>      </form>
     </div>
   </div>  <!-- Sidebar - Mobile: Fixed Bottom, Desktop: Left Side -->
-  <div class="fixed bottom-0 left-0 w-full h-80 md:relative md:w-80 md:h-auto bg-white shadow-lg border-t md:border-t-0 md:border-r border-gray-200 flex flex-col order-2 md:order-1 z-50">
-    <!-- Sidebar Header - Fixed at top -->
-    <div class="flex-shrink-0 p-2 md:p-4 border-b border-gray-200 bg-white">
-      <div class="text-xs md:text-lg font-semibold text-gray-900 mb-1 md:mb-2 line-clamp-1">{{ testSeriesTitle }}</div>
-      <div class="bg-primary-100 rounded-lg p-2 md:p-3 flex items-center gap-2 text-primary-700">
-        <span class="material-icons-outlined text-sm md:text-xl">timer</span>
-        <span class="font-mono text-xs md:text-lg font-semibold">{{ formatTime(timeLeft) }}</span>
-      </div>
+  <div class="sidebar-container" [ngClass]="{
+    'h-5/6': isSidebarVisible,
+    'h-16': !isSidebarVisible,
+    'fixed': true,
+    'bottom-0': true,
+    'left-0': true,
+    'w-full': true,
+    'bg-white': true,
+    'shadow-lg': true,
+    'border-t': true,
+    'md:border-t-0': true,
+    'md:border-r': true,
+    'border-gray-200': true,
+    'flex': true,
+    'flex-col': true,
+    'order-2': true,
+    'md:order-1': true,
+    'z-50': true,
+    'md:relative': true,
+    'md:w-80': true,
+    'md:h-auto': true,
+    'transition-all': true,
+    'duration-300': true,
+    'ease-in-out': true
+  }">
+    
+    <!-- Mobile Toggle Button (only visible on mobile) -->
+    <div class="md:hidden flex-shrink-0 p-3 border-b border-gray-200 bg-white">
+      <button 
+        (click)="toggleSidebar()"
+        class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all duration-200 shadow-md">
+        <span class="material-icons-outlined text-base">
+          {{ isSidebarVisible ? 'keyboard_arrow_down' : 'keyboard_arrow_up' }}
+        </span>
+        <span class="text-sm font-semibold">
+          {{ isSidebarVisible ? 'Hide Questions' : 'Show Questions' }}
+        </span>
+        <span class="material-icons-outlined text-xs text-primary-200">
+          {{ isSidebarVisible ? 'visibility_off' : 'visibility' }}
+        </span>
+      </button>
+    </div>
+    
+    <!-- Sidebar Content - Hidden on mobile when collapsed -->
+    <div class="flex-1 flex flex-col min-h-0"
+         [class.hidden]="!isSidebarVisible"
+         [class.md:flex]="true">
       
-      <!-- Language Switcher -->
+      <!-- Sidebar Header - Fixed at top -->
+      <div class="flex-shrink-0 p-2 md:p-4 border-b border-gray-200 bg-white">
+        <div class="text-xs md:text-lg font-semibold text-gray-900 mb-1 md:mb-2 line-clamp-1">{{ testSeriesTitle }}</div>
+        <div class="bg-primary-100 rounded-lg p-2 md:p-3 flex items-center gap-2 text-primary-700">
+          <span class="material-icons-outlined text-sm md:text-xl">timer</span>
+          <span class="font-mono text-xs md:text-lg font-semibold">{{ formatTime(timeLeft) }}</span>
+        </div>
+        
+        <!-- Language Switcher -->
       <div class="mt-1 md:mt-3" *ngIf="currentQuestionDisplayData && currentQuestionDisplayData.availableLanguages && currentQuestionDisplayData.availableLanguages.length > 1">
         <div class="flex bg-gray-100 rounded-lg p-1">
           <button *ngIf="currentQuestionDisplayData.availableLanguages.includes('en')" 
@@ -253,18 +310,44 @@
           <span class="material-icons-outlined text-red-600 text-sm">flag</span>
           <span class="text-gray-600">Marked for Review</span>
         </div>
-      </div>
-    </div>    <!-- Sidebar Footer - Fixed at bottom -->
+      </div>    </div>    <!-- Sidebar Footer - Always visible (Auto-save status + Submit button) -->
     <div class="flex-shrink-0 p-2 md:p-4 border-t border-gray-200 bg-white space-y-1 md:space-y-2">
-      <button class="w-full bg-gray-600 text-white py-1.5 md:py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors duration-200 flex items-center justify-center gap-2 text-xs md:text-base font-medium" 
-              (click)="triggerManualSave()" [disabled]="!attemptId">
-        <span class="material-icons-outlined text-sm md:text-base">save</span>
-        Save Progress
-      </button>
+      
+      <!-- Auto-save Status Indicator -->
+      <div class="w-full flex items-center justify-center gap-2 py-1.5 md:py-2 px-4 rounded-lg text-xs md:text-sm" 
+           [ngClass]="{
+             'bg-green-50 text-green-700 border border-green-200': autoSaveStatus === 'Saved',
+             'bg-blue-50 text-blue-700 border border-blue-200': isAutoSaving,
+             'bg-red-50 text-red-700 border border-red-200': autoSaveStatus.includes('failed'),
+             'bg-gray-50 text-gray-600 border border-gray-200': !autoSaveStatus && !isAutoSaving
+           }">
+        
+        <!-- Loading spinner when saving -->
+        <div *ngIf="isAutoSaving" class="animate-spin rounded-full h-3 w-3 md:h-4 md:w-4 border-b-2 border-blue-600"></div>
+        
+        <!-- Status icons -->
+        <span *ngIf="!isAutoSaving" class="material-icons-outlined text-sm md:text-base">
+          {{ autoSaveStatus === 'Saved' ? 'cloud_done' : 
+             autoSaveStatus.includes('failed') ? 'cloud_off' : 
+             'cloud_sync' }}
+        </span>
+        
+        <!-- Status text -->
+        <span class="font-medium">
+          {{ isAutoSaving ? 'Auto-saving...' : 
+             autoSaveStatus || 'Auto-save enabled' }}
+        </span>
+        
+        <!-- Last saved timestamp -->
+        <span *ngIf="lastSavedAt && !isAutoSaving && autoSaveStatus === 'Saved'" class="text-xs opacity-70">
+          {{ lastSavedAt | date:'HH:mm:ss' }}
+        </span>
+      </div>      
+      <!-- Finish Exam Button -->
       <button class="w-full bg-blue-600 text-white py-1.5 md:py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center gap-2 font-bold text-xs md:text-base" 
               (click)="submit()">
         <span class="material-icons-outlined text-sm md:text-base">done_all</span>
-        Submit Exam
+        Finish Exam
       </button>
     </div>
   </div>

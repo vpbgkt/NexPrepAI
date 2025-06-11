@@ -25,7 +25,7 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 import { TestService, StartTestResponse } from '../../services/test.service'; // Ensure StartTestResponse is imported
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators'; // Import takeUntil
-import { Subject } from 'rxjs'; // Import Subject
+import { Subject, interval } from 'rxjs'; // Import Subject and interval
 
 /**
  * @interface QuestionOption
@@ -217,9 +217,21 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
     UNANSWERED: 'unanswered',
     MARKED_FOR_REVIEW: 'marked-for-review'
   };
-
   /** @property {Subject<void>} RxJS subject for component destruction cleanup */
   private destroy$ = new Subject<void>();
+  /** @property {boolean} Controls sidebar visibility on mobile devices */
+  isSidebarVisible = false;
+
+  /** @property {boolean} Indicates if auto-save is currently in progress */
+  isAutoSaving = false;
+  /** @property {string} Last auto-save status message */
+  autoSaveStatus = '';
+  /** @property {Date} Timestamp of last successful auto-save */
+  lastSavedAt: Date | null = null;
+  /** @property {boolean} Tracks if there are unsaved changes */
+  hasUnsavedChanges = false;
+  /** @property {string} JSON string of last saved form state for comparison */
+  private lastSavedState = '';
 
   /**
    * @constructor
@@ -371,34 +383,70 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
       error: (err: any) => alert(err.error?.message || 'Failed to start test')
     });
   }
-
   /**
    * @private
    * @method attachAutoSave
-   * @description Sets up automatic progress saving with debouncing to prevent excessive API calls.
-   * Monitors form changes and triggers saves after a delay period of inactivity.
+   * @description Sets up comprehensive automatic progress saving with multiple triggers.
+   * Implements smart debouncing, change detection, and various save triggers for optimal UX.
    * 
    * @example
    * ```typescript
    * // Called during test initialization
    * this.attachAutoSave();
-   * // Configuration:
-   * // - 5-second debounce delay
-   * // - Change detection via JSON comparison
-   * // - Automatic cleanup on component destroy
+   * // Features:
+   * // - 2-second debounce for answer changes
+   * // - Immediate save on navigation
+   * // - Periodic backup save every 30 seconds
+   * // - Browser event handling (beforeunload)
+   * // - Smart change detection to avoid unnecessary saves
    * ```
    */
   private attachAutoSave() {
+    // 1. Auto-save on form changes (debounced for 2 seconds)
     this.form.valueChanges
       .pipe(
-        debounceTime(5000),
+        debounceTime(2000), // Wait 2 seconds after last change
         distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
-        takeUntil(this.destroy$) // Unsubscribe when destroy$ emits
+        takeUntil(this.destroy$)
       )
       .subscribe(vals => {
-        console.log('Form value changed, attempting auto-save:', vals);
-        this.saveProgressInternal(false); // Call internal save, indicating it's an auto-save
+        console.log('Form value changed, triggering auto-save:', vals);
+        this.checkForChanges();
+        if (this.hasUnsavedChanges) {
+          this.autoSaveProgress('answer_change');
+        }
       });
+
+    // 2. Periodic backup save every 30 seconds (safety net)
+    interval(30000) // 30 seconds
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.checkForChanges();
+        if (this.hasUnsavedChanges) {
+          this.autoSaveProgress('periodic_backup');
+        }
+      });    // 3. Browser beforeunload event (save before page close)
+    window.addEventListener('beforeunload', (event) => {
+      this.checkForChanges();
+      if (this.hasUnsavedChanges) {
+        // Synchronous save for beforeunload
+        this.saveProgressSync();
+        event.preventDefault();
+        event.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return 'You have unsaved changes. Are you sure you want to leave?';
+      }
+      return undefined;
+    });
+
+    // 4. Page visibility change (save when user switches tabs)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        this.checkForChanges();
+        if (this.hasUnsavedChanges) {
+          this.autoSaveProgress('visibility_change');
+        }
+      }
+    });
   }
 
   /**
@@ -594,12 +642,11 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
         clearInterval(this.timerHandle);
         // Auto-submit or handle timeout
         this.submit(); 
-      }
-    }, 1000);
+      }    }, 1000);
 
-    // this.attachAutoSave(); // Auto-save disabled for now
+    this.attachAutoSave(); // Enable auto-save functionality
     this.navigateToInitialQuestion();
-    this.cd.detectChanges(); 
+    this.cd.detectChanges();
   }
 
   /**
@@ -670,10 +717,15 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
    * // Updates: current indices, time tracking, visit history
    * // Triggers: change detection for UI updates
    * ```
-   */
-  goToQuestion(sectionIdx: number, questionInSectionIdx: number) {
+   */  goToQuestion(sectionIdx: number, questionInSectionIdx: number) {
     if (this.sections[sectionIdx] && this.sections[sectionIdx].questions[questionInSectionIdx]) {
       this.updateQuestionTimeSpent(this.currentGlobalQuestionIndex);
+      
+      // Auto-save before navigation
+      this.checkForChanges();
+      if (this.hasUnsavedChanges) {
+        this.autoSaveProgress('navigation');
+      }
 
       this.currentSectionIndex = sectionIdx;
       this.currentQuestionInSectionIndex = questionInSectionIdx;
@@ -698,9 +750,14 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
    * // - End of section: moves to first question of next section
    * // - Last question: no movement (end of test)
    * ```
-   */
-  next() {
+   */  next() {
     this.updateQuestionTimeSpent(this.currentGlobalQuestionIndex);
+    
+    // Auto-save before navigation
+    this.checkForChanges();
+    if (this.hasUnsavedChanges) {
+      this.autoSaveProgress('navigation');
+    }
 
     if (this.currentQuestionInSectionIndex < this.sections[this.currentSectionIndex].questions.length - 1) {
       this.currentQuestionInSectionIndex++;
@@ -708,9 +765,6 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
       this.currentSectionIndex++;
       this.currentQuestionInSectionIndex = 0;
     } else {
-      // Already at the last question, do nothing or handle end of test
-      // this.currentGlobalQuestionIndex = this.getGlobalIndex(this.currentSectionIndex, this.currentQuestionInSectionIndex); 
-      // this.trackQuestionVisit(this.currentGlobalQuestionIndex); // Not needed if not moving
       return;
     }
     this.currentGlobalQuestionIndex = this.getGlobalIndex(this.currentSectionIndex, this.currentQuestionInSectionIndex);
@@ -734,6 +788,12 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
    * ```
    */  prev() {
     this.updateQuestionTimeSpent(this.currentGlobalQuestionIndex); 
+    
+    // Auto-save before navigation
+    this.checkForChanges();
+    if (this.hasUnsavedChanges) {
+      this.autoSaveProgress('navigation');
+    }
 
     if (this.currentQuestionInSectionIndex > 0) {
       this.currentQuestionInSectionIndex--;
@@ -741,9 +801,6 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
       this.currentSectionIndex--;
       this.currentQuestionInSectionIndex = this.sections[this.currentSectionIndex].questions.length - 1;
     } else {
-      // Already at the first question, do nothing
-      // this.currentGlobalQuestionIndex = this.getGlobalIndex(this.currentSectionIndex, this.currentQuestionInSectionIndex);
-      // this.trackQuestionVisit(this.currentGlobalQuestionIndex); // Not needed if not moving
       return;
     }
     this.currentGlobalQuestionIndex = this.getGlobalIndex(this.currentSectionIndex, this.currentQuestionInSectionIndex);
@@ -1343,6 +1400,22 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
       }
     }
   }
+
+  /**
+   * @method toggleSidebar
+   * @description Toggles the visibility of the sidebar on mobile devices.
+   * Provides space-saving navigation for smaller screens.
+   * 
+   * @example
+   * ```typescript
+   * this.toggleSidebar();
+   * // Toggles: isSidebarVisible property for mobile view management
+   * ```
+   */
+  toggleSidebar(): void {
+    this.isSidebarVisible = !this.isSidebarVisible;
+  }
+
   /**
    * @method ngOnDestroy
    * @description Component cleanup lifecycle hook. Properly cleans up resources,
@@ -1354,5 +1427,139 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
     }
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  /**
+   * @private
+   * @method checkForChanges
+   * @description Compares current form state with last saved state to detect changes.
+   * Used to prevent unnecessary save operations and track unsaved changes.
+   */
+  private checkForChanges(): void {
+    const currentState = JSON.stringify(this.form.value);
+    this.hasUnsavedChanges = currentState !== this.lastSavedState;
+  }
+
+  /**
+   * @private
+   * @method autoSaveProgress
+   * @description Enhanced auto-save method with status tracking and user feedback.
+   * Replaces the old manual save system with intelligent automatic saving.
+   * 
+   * @param {string} trigger - The trigger that initiated this save operation
+   */
+  private autoSaveProgress(trigger: string): void {
+    if (!this.attemptId || this.isAutoSaving) return;
+    
+    this.isAutoSaving = true;
+    this.autoSaveStatus = 'Saving...';
+    this.updateQuestionTimeSpent(this.currentGlobalQuestionIndex);
+    
+    // Update current question's metadata
+    const formCtrl = this.responses.at(this.currentGlobalQuestionIndex) as FormGroup;
+    if (formCtrl) {
+      if (!formCtrl.get('visitedAt')?.value) {
+        formCtrl.get('visitedAt')?.setValue(new Date().toISOString());
+      }
+      formCtrl.get('lastModifiedAt')?.setValue(new Date().toISOString());
+    }
+
+    const payload = this.responses.controls.map(ctrl => ctrl.value);
+    
+    console.log(`[AutoSave] Triggered by: ${trigger}`, payload.length, 'responses');
+
+    this.testSvc.saveProgress(this.attemptId, { responses: payload, timeLeft: this.timeLeft }).subscribe({
+      next: () => {
+        this.isAutoSaving = false;
+        this.autoSaveStatus = 'Saved';
+        this.lastSavedAt = new Date();
+        this.lastSavedState = JSON.stringify(this.form.value);
+        this.hasUnsavedChanges = false;
+        
+        console.log(`[AutoSave] Success - Trigger: ${trigger}`);
+        
+        // Clear status message after 2 seconds
+        setTimeout(() => {
+          this.autoSaveStatus = '';
+          this.cd.detectChanges();
+        }, 2000);
+        
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        this.isAutoSaving = false;
+        this.autoSaveStatus = 'Save failed - will retry';
+        console.error(`[AutoSave] Error - Trigger: ${trigger}`, err);
+        
+        // Clear error message after 3 seconds
+        setTimeout(() => {
+          this.autoSaveStatus = '';
+          this.cd.detectChanges();
+        }, 3000);
+        
+        this.cd.detectChanges();
+      }
+    });
+  }
+
+  /**
+   * @private
+   * @method saveProgressSync
+   * @description Synchronous progress saving for critical moments like beforeunload.
+   * Uses sendBeacon API for reliability during page unload.
+   */
+  private saveProgressSync(): void {
+    if (!this.attemptId) return;
+    
+    this.updateQuestionTimeSpent(this.currentGlobalQuestionIndex);
+    const payload = {
+      responses: this.responses.controls.map(ctrl => ctrl.value),
+      timeLeft: this.timeLeft
+    };
+    
+    // Use sendBeacon for reliable transmission during page unload
+    const url = `/api/test-attempts/${this.attemptId}/progress`;
+    const data = JSON.stringify(payload);
+    
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(url, data);
+      console.log('[AutoSave] Sync save via sendBeacon');
+    } else {
+      // Fallback for older browsers
+      try {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', url, false); // Synchronous request
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(data);
+        console.log('[AutoSave] Sync save via XMLHttpRequest');
+      } catch (error) {
+        console.error('[AutoSave] Sync save failed:', error);
+      }
+    }
+  }
+
+  /**
+   * @method onAnswerChange
+   * @description Handles immediate response when user selects or changes an answer.
+   * Triggers auto-save and updates tracking metadata.
+   * 
+   * @example
+   * ```typescript
+   * // Called automatically when radio button selection changes
+   * this.onAnswerChange();
+   * // Updates: lastModifiedAt timestamp, triggers change detection
+   * ```
+   */
+  onAnswerChange(): void {
+    // Track the answer change with timestamp
+    this.trackAnswerChange(this.currentGlobalQuestionIndex);
+    
+    // Mark that we have unsaved changes
+    this.hasUnsavedChanges = true;
+    
+    // Trigger change detection for reactive form
+    this.cd.detectChanges();
+    
+    console.log('[AutoSave] Answer changed for question', this.currentGlobalQuestionIndex);
   }
 }
