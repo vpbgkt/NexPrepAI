@@ -78,6 +78,53 @@
   background-color: #1d4ed8;
 }
 
+/* Form Component Styles */
+@layer components {
+  .form-label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+  }
+  
+  .form-input {
+    @apply w-full px-4 py-3 border border-gray-300 rounded-lg text-sm placeholder-gray-400 bg-white transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500;
+  }
+  
+  .form-input:focus {
+    @apply shadow-lg;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  
+  .form-error {
+    @apply text-red-600 text-xs mt-1 flex items-center;
+  }
+  
+  .form-group {
+    @apply space-y-2;
+  }
+    /* Enhanced input field with icon padding */
+  .form-input-with-left-icon {
+    @apply pl-10;
+  }
+  
+  .form-input-with-right-icon {
+    @apply pr-10;
+  }
+}
+
+/* Button Components Enhanced */
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ease-in-out;
+  }
+  
+  .btn-primary:hover:not(:disabled) {
+    @apply transform -translate-y-0.5 shadow-lg;
+  }
+  
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 ease-in-out;
+  }
+}
+
 /* Utility Classes */
 .shadow-soft {
   box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
