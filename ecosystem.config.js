@@ -11,11 +11,10 @@ module.exports = {
       PORT: 5000,
       ALLOWED_ORIGIN: ['http://localhost:4200/api', 'http://localhost:4201/api'],
       CORS_CREDENTIALS: 'true'
-    },
-    env_production: {
+    },    env_production: {
       NODE_ENV: 'production',
       PORT: 5000,
-      ALLOWED_ORIGIN: 'http://13.203.105.33,http://localhost:80,http://localhost:3000',
+      ALLOWED_ORIGIN: 'http://43.205.88.43,http://localhost:80,http://localhost:3000',
       CORS_CREDENTIALS: 'true'
     }
   }]
