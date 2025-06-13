@@ -38,12 +38,17 @@
                  (click)="closeDropdown()"
                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
                 View Questions
-              </a>
-              <a routerLink="/add-question" 
+              </a>              <a routerLink="/add-question" 
                  routerLinkActive="bg-primary-50 text-primary-700"
                  (click)="closeDropdown()"
                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
                 Add Question
+              </a>
+              <a routerLink="/question-editor" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeDropdown()"
+                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                ✨ Enhanced Editor
               </a>
               <a routerLink="/csv-import" 
                  routerLinkActive="bg-primary-50 text-primary-700"
@@ -96,6 +101,12 @@
             <!-- Content Dropdown Menu -->
             <div *ngIf="activeDropdown === 'content'" 
                  class="absolute top-full left-0 mt-1 w-48 bg-white rounded-lg shadow-medium border border-gray-200 py-1 z-50">
+              <a routerLink="/branches" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeDropdown()"
+                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                Branches
+              </a>
               <a routerLink="/subjects" 
                  routerLinkActive="bg-primary-50 text-primary-700"
                  (click)="closeDropdown()"
@@ -246,12 +257,17 @@
                  (click)="closeMobileMenu()"
                  class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
                 View Questions
-              </a>
-              <a routerLink="/add-question" 
+              </a>              <a routerLink="/add-question" 
                  routerLinkActive="bg-primary-50 text-primary-700"
                  (click)="closeMobileMenu()"
                  class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
                 Add Question
+              </a>
+              <a routerLink="/question-editor" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeMobileMenu()"
+                 class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+                ✨ Enhanced Editor
               </a>
               <a routerLink="/csv-import" 
                  routerLinkActive="bg-primary-50 text-primary-700"
@@ -304,6 +320,12 @@
                  [class.rotate-180]="activeDropdown === 'content'"></i>
             </button>
             <div *ngIf="activeDropdown === 'content'" class="pl-10 space-y-1">
+              <a routerLink="/branches" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeMobileMenu()"
+                 class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+                Branches
+              </a>
               <a routerLink="/subjects" 
                  routerLinkActive="bg-primary-50 text-primary-700"
                  (click)="closeMobileMenu()"

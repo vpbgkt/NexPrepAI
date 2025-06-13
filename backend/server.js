@@ -76,6 +76,7 @@ app.use('/api/examStreams', require('./routes/examStreams'));
 app.use('/api/examPapers', require('./routes/examPapers'));
 app.use('/api/examShifts', require('./routes/examShifts'));
 app.use('/api/leaderboard', require('./routes/leaderboard'));
+app.use('/api/images', require('./routes/images')); // Added image serving routes
 
 // Swagger Docs
 const swaggerUi = require('swagger-ui-express');

@@ -114,7 +114,7 @@ const createBranch = async (req, res) => {
 const getBranches = async (req, res) => {
   try {
     const branches = await Branch.find();
-    res.json(branches);
+    res.json(branches || []); // Ensure an array is sent
   } catch (error) {
     res.status(500).json({ error: 'Failed to get branches' });
   }

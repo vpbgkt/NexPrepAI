@@ -5,12 +5,36 @@
 
 const express = require('express');
 const router  = express.Router();
+const multer = require('multer');
+const { v4: uuidv4 } = require('uuid');
+const path = require('path');
+const { uploadToS3 } = require('../config/s3Config');
 
 const { verifyToken } = require('../middleware/verifyToken');
 const auditFields     = require('../middleware/auditFields');
 
 // ⭐ one consistent import – no chance of missing a function
 const questionCtrl = require('../controllers/questionController');
+
+// Configure multer for memory storage (for S3 upload)
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const mimetype = allowedTypes.test(file.mimetype);
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error("Error: File upload only supports JPEG, JPG, PNG, GIF, and WebP images"));
+  }
+});
+
+/* ──────────────── IMAGE UPLOAD ────────────────── */
+router.post('/upload-image', verifyToken, upload.single('questionImageFile'), questionCtrl.uploadQuestionImage);
+router.delete('/delete-image', verifyToken, questionCtrl.deleteQuestionImage);
 
 /* ──────────────── READ / FILTER ───────────────── */
 router.get('/filter', verifyToken, questionCtrl.filterQuestions);

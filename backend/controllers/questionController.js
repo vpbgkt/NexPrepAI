@@ -33,6 +33,9 @@
 //       request object. If you use another field, adjust it below.
 
 const mongoose  = require('mongoose');
+const { v4: uuidv4 } = require('uuid');
+const path = require('path');
+const { s3, deleteFromS3, getFileUrl } = require('../config/s3Config');
 const Question  = require('../models/Question');
 const Branch    = require('../models/Branch');
 const Subject   = require('../models/Subject');
@@ -270,9 +273,7 @@ exports.addQuestion = async (req, res) => {
     });
 
     return res.status(201).json(question);
-
   } catch (err) {
-    console.error('❌ addQuestion error:', err);
     return res.status(500).json({ message:'Server error', error:err.message });
   }
 };
@@ -440,9 +441,7 @@ exports.filterQuestions = async (req, res) => {
       currentPage: pageNumber,
       totalPages: Math.ceil(totalCount / limitNumber)
     });
-
   } catch (err) {
-    console.error('❌ filterQuestions error:', err);
     res.status(500).json({ message: 'Server error while filtering questions', error: err.message });
   }
 };
@@ -505,12 +504,140 @@ exports.updateQuestionStatus = async (req, res) => {
       .lean();
 
     return res.json(populatedQuestion);
-
   } catch (err) {
-    console.error('❌ updateQuestionStatus error:', err);
     if (err.name === 'CastError') { // Handle invalid ObjectId format
         return res.status(400).json({ message: 'Invalid question ID format' });
     }
     return res.status(500).json({ message: 'Server error while updating question status', error: err.message });
+  }
+};
+
+/**
+ * Upload Question Image to S3
+ * 
+ * Handles image upload for question body or option images.
+ * Implements "Upload As You Go" approach with immediate S3 upload.
+ * 
+ * @route POST /api/v1/questions/upload-image
+ * @access Private (requires authentication)
+ * @param {File} req.file - Image file from multer
+ * @param {string} req.body.branchId - Branch ID for S3 categorization
+ * @param {string} req.body.subjectId - Subject ID for S3 categorization
+ * @param {string} req.body.topicId - Topic ID for S3 categorization
+ * @param {string} req.body.imageFor - 'body' or 'option'
+ * @param {string} req.body.optionIndex - Option index (if imageFor is 'option') * @param {string} req.body.questionId - Question ID (if editing existing question)
+ */
+exports.uploadQuestionImage = async (req, res) => {
+  try {
+    // Check if file was uploaded
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded.' });
+    }
+
+    const { branchId, subjectId, topicId, imageFor, optionIndex, questionId } = req.body;
+
+    // Validate required fields
+    if (!branchId || !subjectId || !topicId || !imageFor) {
+      return res.status(400).json({ 
+        message: 'Missing required fields: branchId, subjectId, topicId, imageFor are required.' 
+      });
+    }
+
+    // Validate imageFor
+    if (!['body', 'option'].includes(imageFor)) {
+      return res.status(400).json({ 
+        message: 'Invalid imageFor value. Must be "body" or "option".' 
+      });
+    }
+
+    // If imageFor is 'option', optionIndex is required
+    if (imageFor === 'option' && optionIndex === undefined) {
+      return res.status(400).json({ 
+        message: 'optionIndex is required when imageFor is "option".' 
+      });
+    }
+
+    // Get branch, subject, topic names for S3 path
+    const [branch, subject, topic] = await Promise.all([
+      Branch.findById(branchId).select('name'),
+      Subject.findById(subjectId).select('name'),
+      Topic.findById(topicId).select('name')
+    ]);
+
+    if (!branch || !subject || !topic) {
+      return res.status(400).json({ 
+        message: 'Invalid hierarchy: Branch, Subject, or Topic not found.' 
+      });
+    }
+
+    // Sanitize names for S3 path
+    const sanitizedBranch = branch.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    const sanitizedSubject = subject.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    const sanitizedTopic = topic.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
+    // Generate unique filename
+    const originalName = req.file.originalname;
+    const extension = path.extname(originalName).toLowerCase();
+    const uniqueFileName = `${uuidv4()}${extension}`;
+
+    // Construct S3 key based on strategy
+    let s3Key;
+    if (questionId) {
+      // Editing existing question - use questionId in path
+      const imageType = imageFor === 'option' ? `option-${optionIndex}` : 'body';
+      s3Key = `question-images/${sanitizedBranch}/${sanitizedSubject}/${sanitizedTopic}/${questionId}/${imageType}-${uniqueFileName}`;
+    } else {
+      // New question - simpler path without questionId
+      const imageType = imageFor === 'option' ? `option-${optionIndex}` : 'body';
+      s3Key = `question-images/${sanitizedBranch}/${sanitizedSubject}/${sanitizedTopic}/${imageType}-${uniqueFileName}`;
+    }    // TODO: Implement actual S3 upload
+    // Upload to S3 (without ACL since bucket doesn't allow ACLs)
+    const uploadParams = {
+      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Key: s3Key,
+      Body: req.file.buffer,
+      ContentType: req.file.mimetype
+      // Removed ACL: 'public-read' since bucket doesn't allow ACLs
+    };    const uploadResult = await s3.upload(uploadParams).promise();
+    
+    // Store the S3 key and provide a proxy URL for accessing the image
+    const proxyUrl = `${req.protocol}://${req.get('host')}/api/images/s3-proxy?key=${s3Key}`;
+    
+    res.status(200).json({
+      imageUrl: proxyUrl,
+      s3Key: s3Key,
+      message: 'Image uploaded successfully'
+    });  } catch (error) {
+    res.status(500).json({ 
+      message: 'Failed to upload image', 
+      error: error.message 
+    });
+  }
+};
+
+/**
+ * Delete Question Image from S3
+ * 
+ * Removes uploaded image from S3 storage.
+ * 
+ * @route DELETE /api/v1/questions/delete-image
+ * @access Private (requires authentication) * @param {string} req.body.imageUrl - S3 URL of image to delete
+ */
+exports.deleteQuestionImage = async (req, res) => {
+  try {
+    const { imageUrl } = req.body;
+
+    if (!imageUrl) {
+      return res.status(400).json({ message: 'Image URL is required.' });
+    }    // Delete from S3
+    await deleteFromS3(imageUrl);
+    
+    res.status(200).json({
+      message: 'Image deleted successfully'    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Failed to delete image', 
+      error: error.message 
+    });
   }
 };

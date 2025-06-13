@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MathDisplayComponent } from '../math-display/math-display.component';
+import { ImageUploadService, ImageUploadRequest } from '../../services/image-upload.service';
 
 interface MathSymbol {
   symbol: string;
@@ -11,29 +11,67 @@ interface MathSymbol {
 
 interface QuestionOption {
   text: string;
+  imageFile?: File | null;
+  imagePreviewUrl?: string | null;
+  imageUrl?: string | null; // S3 URL after upload
+  uploadStatus?: 'idle' | 'uploading' | 'success' | 'error';
+}
+
+interface Branch {
+  _id: string;
+  name: string;
+}
+
+interface Subject {
+  _id: string;
+  name: string;
+  branchId: string;
+}
+
+interface Topic {
+  _id: string;
+  name: string;
+  subjectId: string;
 }
 
 @Component({
   selector: 'app-question-editor',
-  imports: [CommonModule, FormsModule, MathDisplayComponent],
+  standalone: true,
+  imports: [CommonModule, FormsModule],
   templateUrl: './question-editor.component.html',
-  styleUrl: './question-editor.component.scss'
+  styleUrls: ['./question-editor.component.scss']
 })
 export class QuestionEditorComponent implements OnInit {
   
   // Question data
   questionText: string = '';
   options: QuestionOption[] = [
-    { text: '' },
-    { text: '' },
-    { text: '' },
-    { text: '' }
+    { text: '', uploadStatus: 'idle' },
+    { text: '', uploadStatus: 'idle' },
+    { text: '', uploadStatus: 'idle' },
+    { text: '', uploadStatus: 'idle' }
   ];
   correctAnswerIndex: number = 0;
   difficulty: string = 'medium';
-  subject: string = '';
-  topic: string = '';
   points: number = 1;
+
+  // Subject Hierarchy
+  selectedBranchId: string = '';
+  selectedSubjectId: string = '';
+  selectedTopicId: string = '';
+  
+  // Hierarchy Data
+  branches: Branch[] = [];
+  subjects: Subject[] = [];
+  topics: Topic[] = [];
+  filteredSubjects: Subject[] = [];
+  filteredTopics: Topic[] = [];
+
+  // Question Image
+  questionImageFile: File | null = null;
+  questionImagePreviewUrl: string | null = null;
+  questionImageUrl: string | null = null; // S3 URL after upload
+  questionImageUploadStatus: 'idle' | 'uploading' | 'success' | 'error' = 'idle';
 
   // UI state
   showPreview: boolean = false;
@@ -86,23 +124,201 @@ export class QuestionEditorComponent implements OnInit {
     { display: '∛x', latex: '\\sqrt[3]{x}', description: 'Cube root of x' },
     { display: 'log₂', latex: '\\log_2', description: 'Log base 2' }
   ];
-
   // Sample data (would come from API in real app)
-  subjects = [
-    { id: 1, name: 'Mathematics' },
-    { id: 2, name: 'Physics' },
-    { id: 3, name: 'Chemistry' }
-  ];
+  // These will be replaced with actual API data
+  
+  constructor(private imageUploadService: ImageUploadService) {}
 
-  topics = [
-    { id: 1, name: 'Algebra' },
-    { id: 2, name: 'Calculus' },
-    { id: 3, name: 'Geometry' }
-  ];
+  ngOnInit(): void {
+    this.loadHierarchyData();
+  }
 
-  constructor() {}
+  loadHierarchyData(): void {
+    // TODO: Replace with actual API calls
+    this.branches = [
+      { _id: '1', name: 'Engineering' },
+      { _id: '2', name: 'Medical' },
+      { _id: '3', name: 'Arts & Science' }
+    ];
 
-  ngOnInit(): void {}
+    this.subjects = [
+      { _id: '1', name: 'Mathematics', branchId: '1' },
+      { _id: '2', name: 'Physics', branchId: '1' },
+      { _id: '3', name: 'Chemistry', branchId: '1' },
+      { _id: '4', name: 'Biology', branchId: '2' },
+      { _id: '5', name: 'Anatomy', branchId: '2' },
+      { _id: '6', name: 'English', branchId: '3' },
+      { _id: '7', name: 'History', branchId: '3' }
+    ];
+
+    this.topics = [
+      { _id: '1', name: 'Algebra', subjectId: '1' },
+      { _id: '2', name: 'Calculus', subjectId: '1' },
+      { _id: '3', name: 'Geometry', subjectId: '1' },
+      { _id: '4', name: 'Mechanics', subjectId: '2' },
+      { _id: '5', name: 'Thermodynamics', subjectId: '2' },
+      { _id: '6', name: 'Organic Chemistry', subjectId: '3' },
+      { _id: '7', name: 'Inorganic Chemistry', subjectId: '3' }
+    ];
+  }
+
+  // Hierarchy Change Methods
+  onBranchChange(): void {
+    this.selectedSubjectId = '';
+    this.selectedTopicId = '';
+    this.filteredSubjects = this.subjects.filter(s => s.branchId === this.selectedBranchId);
+    this.filteredTopics = [];
+  }
+
+  onSubjectChange(): void {
+    this.selectedTopicId = '';
+    this.filteredTopics = this.topics.filter(t => t.subjectId === this.selectedSubjectId);
+  }
+
+  onTopicChange(): void {
+    // Topic changed - hierarchy is now complete
+  }
+
+  isHierarchyComplete(): boolean {
+    return !!(this.selectedBranchId && this.selectedSubjectId && this.selectedTopicId);
+  }
+  // Image Upload Methods
+  onQuestionImageSelected(event: Event): void {
+    const element = event.currentTarget as HTMLInputElement;
+    const fileList: FileList | null = element.files;
+    
+    if (fileList && fileList[0]) {
+      const file = fileList[0];
+      
+      // Validate file
+      const validation = this.imageUploadService.validateImageFile(file);
+      if (!validation.isValid) {
+        alert(validation.error);
+        return;
+      }
+      
+      this.questionImageFile = file;
+      
+      // Generate preview
+      this.imageUploadService.generatePreviewUrl(file)
+        .then(previewUrl => {
+          this.questionImagePreviewUrl = previewUrl;
+        })
+        .catch(error => {
+          console.error('Failed to generate preview:', error);
+        });
+      
+      // Start upload immediately
+      this.uploadQuestionImage();
+    }
+  }
+
+  onOptionImageSelected(event: Event, optionIndex: number): void {
+    const element = event.currentTarget as HTMLInputElement;
+    const fileList: FileList | null = element.files;
+    
+    if (fileList && fileList[0]) {
+      const file = fileList[0];
+      
+      // Validate file
+      const validation = this.imageUploadService.validateImageFile(file);
+      if (!validation.isValid) {
+        alert(validation.error);
+        return;
+      }
+      
+      this.options[optionIndex].imageFile = file;
+      
+      // Generate preview
+      this.imageUploadService.generatePreviewUrl(file)
+        .then(previewUrl => {
+          this.options[optionIndex].imagePreviewUrl = previewUrl;
+        })
+        .catch(error => {
+          console.error('Failed to generate preview:', error);
+        });
+      
+      // Start upload immediately
+      this.uploadOptionImage(optionIndex);
+    }
+  }
+
+  uploadQuestionImage(): void {
+    if (!this.questionImageFile || !this.isHierarchyComplete()) return;
+    
+    this.questionImageUploadStatus = 'uploading';
+    
+    const uploadRequest: ImageUploadRequest = {
+      file: this.questionImageFile,
+      branchId: this.selectedBranchId,
+      subjectId: this.selectedSubjectId,
+      topicId: this.selectedTopicId,
+      imageFor: 'body'
+    };
+    
+    this.imageUploadService.uploadQuestionImage(uploadRequest).subscribe({
+      next: (response) => {
+        this.questionImageUploadStatus = 'success';
+        this.questionImageUrl = response.imageUrl;
+        console.log('Question image uploaded successfully:', response.imageUrl);
+      },
+      error: (error) => {
+        this.questionImageUploadStatus = 'error';
+        console.error('Question image upload failed:', error);
+      }
+    });
+  }
+
+  uploadOptionImage(optionIndex: number): void {
+    const option = this.options[optionIndex];
+    if (!option.imageFile || !this.isHierarchyComplete()) return;
+    
+    option.uploadStatus = 'uploading';
+    
+    const uploadRequest: ImageUploadRequest = {
+      file: option.imageFile,
+      branchId: this.selectedBranchId,
+      subjectId: this.selectedSubjectId,
+      topicId: this.selectedTopicId,
+      imageFor: 'option',
+      optionIndex: optionIndex
+    };
+    
+    this.imageUploadService.uploadQuestionImage(uploadRequest).subscribe({
+      next: (response) => {
+        option.uploadStatus = 'success';
+        option.imageUrl = response.imageUrl;
+        console.log(`Option ${optionIndex} image uploaded successfully:`, response.imageUrl);
+      },
+      error: (error) => {
+        option.uploadStatus = 'error';
+        console.error(`Option ${optionIndex} image upload failed:`, error);
+      }
+    });
+  }
+
+  retryQuestionImageUpload(): void {
+    this.uploadQuestionImage();
+  }
+
+  retryOptionImageUpload(optionIndex: number): void {
+    this.uploadOptionImage(optionIndex);
+  }
+
+  removeQuestionImage(): void {
+    this.questionImageFile = null;
+    this.questionImagePreviewUrl = null;
+    this.questionImageUrl = null;
+    this.questionImageUploadStatus = 'idle';
+  }
+
+  removeOptionImage(optionIndex: number): void {
+    const option = this.options[optionIndex];
+    option.imageFile = null;
+    option.imagePreviewUrl = null;
+    option.imageUrl = null;
+    option.uploadStatus = 'idle';
+  }
 
   togglePreview(): void {
     this.showPreview = !this.showPreview;
@@ -120,10 +336,12 @@ export class QuestionEditorComponent implements OnInit {
     };
     this.questionText += ` ${formats[type]} `;
   }
-
   addOption(): void {
     if (this.options.length < 6) {
-      this.options.push({ text: '' });
+      this.options.push({ 
+        text: '', 
+        uploadStatus: 'idle' 
+      });
     }
   }
 
@@ -135,15 +353,19 @@ export class QuestionEditorComponent implements OnInit {
       }
     }
   }
-
   saveQuestion(): void {
     const questionData = {
       text: this.questionText,
-      options: this.options,
+      imageUrl: this.questionImageUrl,
+      options: this.options.map(opt => ({
+        text: opt.text,
+        imageUrl: opt.imageUrl
+      })),
       correctAnswer: this.correctAnswerIndex,
       difficulty: this.difficulty,
-      subject: this.subject,
-      topic: this.topic,
+      branchId: this.selectedBranchId,
+      subjectId: this.selectedSubjectId,
+      topicId: this.selectedTopicId,
       points: this.points
     };
     
@@ -154,8 +376,7 @@ export class QuestionEditorComponent implements OnInit {
   isValid(): boolean {
     return this.questionText.trim() !== '' && 
            this.options.every(opt => opt.text.trim() !== '') &&
-           this.subject !== '' &&
-           this.topic !== '';
+           this.isHierarchyComplete();
   }
 
   // Helper to convert index to letter
