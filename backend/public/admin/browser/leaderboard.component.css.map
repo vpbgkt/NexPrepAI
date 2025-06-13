@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/components/leaderboard/leaderboard.component.scss"],
+  "sourcesContent": ["/**\n * @fileoverview Leaderboard Component Styles\n * @description Minimal SCSS for leaderboard component using Tailwind CSS\n * \n * @author NexPrep Development Team\n * @since 1.0.0\n */\n\n/* Animation for tab transitions */\n@keyframes fadeIn {\n  from { \n    opacity: 0; \n    transform: translateY(10px); \n  }\n  to { \n    opacity: 1; \n    transform: translateY(0); \n  }\n}\n\n.animate-fadeIn {\n  animation: fadeIn 0.3s ease-in-out;\n}\n\n/* Smooth scrolling for tables */\n.overflow-x-auto {\n  scrollbar-width: thin;\n  scrollbar-color: #cbd5e0 #f7fafc;\n}\n\n.overflow-x-auto::-webkit-scrollbar {\n  height: 6px;\n}\n\n.overflow-x-auto::-webkit-scrollbar-track {\n  background: #f7fafc;\n  border-radius: 3px;\n}\n\n.overflow-x-auto::-webkit-scrollbar-thumb {\n  background: #cbd5e0;\n  border-radius: 3px;\n}\n\n.overflow-x-auto::-webkit-scrollbar-thumb:hover {\n  background: #a0aec0;\n}\n"],
+  "mappings": ";AASA,WAAA;AACE;AACE,aAAA;AACA,eAAA,WAAA;;AAEF;AACE,aAAA;AACA,eAAA,WAAA;;;AAIJ,CAAA;AACE,aAAA,OAAA,KAAA;;AAIF,CAAA;AACE,mBAAA;AACA,mBAAA,QAAA;;AAGF,CALA,eAKA;AACE,UAAA;;AAGF,CATA,eASA;AACE,cAAA;AACA,iBAAA;;AAGF,CAdA,eAcA;AACE,cAAA;AACA,iBAAA;;AAGF,CAnBA,eAmBA,yBAAA;AACE,cAAA;;",
+  "names": []
+}

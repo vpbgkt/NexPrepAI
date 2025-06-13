@@ -1,7 +1,7 @@
 /**
  * Analytics Controller
  * 
- * Provides comprehensive analytics and reporting functionality for the NexPrep platform.
+ * Provides comprehensive analytics and reporting functionality for the NexPrepAI platform.
  * Handles question performance analytics, test series statistics, and data export capabilities.
  * Generates insights for administrators to monitor question difficulty, time patterns, and user performance.
  * 

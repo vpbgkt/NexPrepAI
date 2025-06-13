@@ -1,12 +1,11 @@
-/**
- * @fileoverview Test Service for NexPrep Frontend Application
+/** * @fileoverview Test Service for NexPrepAI Frontend Application
  * @description Comprehensive service for managing test series, test attempts, progress tracking,
- * and review functionality in the NexPrep student application.
+ * and review functionality in the NexPrepAI student application.
  * @module TestService
  * @requires @angular/core
  * @requires @angular/common/http
  * @requires rxjs
- * @author NexPrep Development Team
+ * @author NexPrepAI Development Team
  * @since 1.0.0
  */
 
@@ -108,7 +107,7 @@ export interface LeaderboardEntry {
 
 /**
  * @class TestService
- * @description Angular service for managing all test-related operations in the NexPrep frontend.
+ * @description Angular service for managing all test-related operations in the NexPrepAI frontend.
  * Handles test series retrieval, test attempts, progress tracking, submissions, and review functionality.
  * 
  * @example

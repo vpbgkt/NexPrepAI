@@ -1,14 +1,20 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MathDisplayComponent } from '../math-display/math-display.component';
 
 @Component({
   selector: 'app-math-test',
+  standalone: true,
   imports: [CommonModule, MathDisplayComponent],
   templateUrl: './math-test.component.html',
   styleUrl: './math-test.component.scss'
 })
-export class MathTestComponent {
+export class MathTestComponent implements OnInit {
+
+  ngOnInit(): void {
+    // This ensures the component lifecycle is properly initialized
+    // which helps Angular's static analysis detect template usage
+  }
   
   // Sample mathematical questions for testing
   sampleQuestions = [

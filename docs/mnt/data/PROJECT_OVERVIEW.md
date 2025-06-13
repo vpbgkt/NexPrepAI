@@ -1,12 +1,12 @@
-# 📚 NexPrep - Complete Project Overview
+# 📚 NexPrepAI - Complete Project Overview
 
 ## 🎯 Project Description
 
-NexPrep is a comprehensive online examination and test preparation platform designed for students preparing for competitive exams like NEET, JEE, AIIMS, GATE, and other entrance examinations. The platform provides a complete ecosystem for mock tests, question practice, performance analytics, and comprehensive exam preparation.
+NexPrepAI is a comprehensive online examination and test preparation platform designed for students preparing for competitive exams like NEET, JEE, AIIMS, GATE, and other entrance examinations. The platform provides a complete ecosystem for mock tests, question practice, performance analytics, and comprehensive exam preparation.
 
 ## 🏗️ Architecture Overview
 
-NexPrep follows a modern three-tier architecture with clear separation of concerns:
+NexPrepAI follows a modern three-tier architecture with clear separation of concerns:
 
 ### **Frontend Applications (2)**
 - **Student Portal** (`/frontend`) - Angular 19 SPA for students
@@ -57,7 +57,7 @@ NexPrep follows a modern three-tier architecture with clear separation of concer
 ## 📁 Project Structure
 
 ```
-NexPrep/
+NexPrepAI/
 ├── 📱 frontend/                 # Student Portal (Angular 19)
 │   ├── src/app/
 │   │   ├── components/          # UI Components
@@ -140,8 +140,8 @@ NexPrep/
 ### **Quick Start**
 ```bash
 # Clone repository
-git clone https://github.com/vpbgkt/NexPrep.git
-cd NexPrep
+git clone https://github.com/vpbgkt/NexPrepAI.git
+cd NexPrepAI
 
 # Backend setup
 cd backend
@@ -212,7 +212,7 @@ We welcome contributions from the community! Please see our contributing guideli
 
 For technical support, feature requests, or collaboration:
 - **Developer**: Vishal Prajapat (@vpbgkt)
-- **GitHub**: [NexPrep Repository](https://github.com/vpbgkt/NexPrep)
+- **GitHub**: [NexPrepAI Repository](https://github.com/vpbgkt/NexPrepAI)
 - **Documentation**: `/docs/mnt/data/` directory
 
 ---

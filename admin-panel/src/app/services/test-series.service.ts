@@ -1,5 +1,5 @@
 /**
- * @fileoverview Test Series Service for NexPrep Admin Panel
+ * @fileoverview Test Series Service for NexPrepAI Admin Panel
  * @description Core service for comprehensive test series management in the admin panel.
  * Provides functionality for creating, updating, and managing test series with advanced
  * features including section configuration, question pooling, variant management,
@@ -8,7 +8,7 @@
  * @requires @angular/core
  * @requires @angular/common/http
  * @requires rxjs
- * @author NexPrep Development Team
+ * @author NexPrepAI Development Team
  * @since 1.0.0
  */
 
@@ -103,7 +103,7 @@ export interface TestSeries {
 
 /**
  * @class TestSeriesService
- * @description Core service for comprehensive test series management in the NexPrep admin panel.
+ * @description Core service for comprehensive test series management in the NexPrepAI admin panel.
  * Provides complete lifecycle management for test series including creation, updates,
  * listing, and advanced configuration capabilities with support for multi-section tests,
  * question pooling, variant management, and sophisticated randomization features.

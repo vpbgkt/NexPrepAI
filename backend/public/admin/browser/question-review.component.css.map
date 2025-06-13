@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/components/question-review/question-review.component.scss"],
+  "sourcesContent": ["/* Minimal styles for question-review component - most styling moved to Tailwind CSS */\r\n\r\n/* Custom styles for prose content in explanations and question text */\r\n:host ::ng-deep .prose {\r\n  color: inherit;\r\n  max-width: none;\r\n}\r\n\r\n:host ::ng-deep .prose p {\r\n  margin-bottom: 0.5rem;\r\n}\r\n\r\n:host ::ng-deep .prose img {\r\n  max-width: 100%;\r\n  height: auto;\r\n  border-radius: 0.25rem;\r\n}\r\n\r\n/* Ensure images maintain aspect ratio */\r\n:host ::ng-deep img {\r\n  object-fit: cover;\r\n}\r\n\r\n/* Animation for expanding rows */\r\n.question-details-row {\r\n  animation: slideDown 0.3s ease-out;\r\n}\r\n\r\n@keyframes slideDown {\r\n  from {\r\n    opacity: 0;\r\n    transform: translateY(-10px);\r\n  }\r\n  to {\r\n    opacity: 1;\r\n    transform: translateY(0);\r\n  }\r\n}\r\n"],
+  "mappings": ";AAGA,MAAA,UAAA,CAAA;AACE,SAAA;AACA,aAAA;;AAGF,MAAA,UAAA,CALA,MAKA;AACE,iBAAA;;AAGF,MAAA,UAAA,CATA,MASA;AACE,aAAA;AACA,UAAA;AACA,iBAAA;;AAIF,MAAA,UAAA;AACE,cAAA;;AAIF,CAAA;AACE,aAAA,UAAA,KAAA;;AAGF,WAHE;AAIA;AACE,aAAA;AACA,eAAA,WAAA;;AAEF;AACE,aAAA;AACA,eAAA,WAAA;;;",
+  "names": []
+}

@@ -1,6 +1,6 @@
-# NexPrep Environment Configuration
+# NexPrepAI Environment Configuration
 
-This document explains how to use the automated environment configuration system for NexPrep.
+This document explains how to use the automated environment configuration system for NexPrepAI.
 
 ## 🎯 Problem Solved
 
@@ -45,7 +45,7 @@ npm install -g pm2
 # Manual deployment:
 git pull
 cd admin-panel && npm ci && npm run build:prod
-pm2 restart nexprep-backend --env production
+pm2 restart nexprepai-backend --env production
 ```
 
 ### Manual Production Commands
@@ -57,13 +57,13 @@ pm2 start ecosystem.config.js --env production
 cd admin-panel && npm run build:prod
 
 # View logs
-pm2 logs nexprep-backend
+pm2 logs nexprepai-backend
 ```
 
 ## 📁 File Structure
 
 ```
-NexPrep/
+NexPrepAI/
 ├── admin-panel/
 │   ├── src/environments/
 │   │   ├── environment.ts      # Development: http://localhost:5000/api

@@ -1,7 +1,7 @@
 
-# 📘 NexPrep CSV Question Upload – Complete Guide
+# 📘 NexPrepAI CSV Question Upload – Complete Guide
 
-This comprehensive guide explains the format, validation, and process for uploading questions to NexPrep using CSV files or direct API calls.
+This comprehensive guide explains the format, validation, and process for uploading questions to NexPrepAI using CSV files or direct API calls.
 
 ---
 

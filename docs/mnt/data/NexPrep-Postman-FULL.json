@@ -1,8 +1,7 @@
-{
-  "info": {
-    "_postman_id": "nexprep-20250419043912",
-    "name": "NexPrep API",
-    "description": "Postman collection for NexPrep Backend",
+{  "info": {
+    "_postman_id": "nexprepai-20250419043912",
+    "name": "NexPrepAI API",
+    "description": "Postman collection for NexPrepAI Backend",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [

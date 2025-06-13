@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/app.component.scss"],
+  "sourcesContent": ["/* \r\n * App Component Styles - Now using Tailwind CSS\r\n * All styling has been moved to utility classes in the HTML template\r\n * This file is kept for any component-specific overrides if needed\r\n */\r\n\r\n/* Custom component-specific styles that cannot be achieved with Tailwind utilities */\r\n.rotate-180 {\r\n  transform: rotate(180deg);\r\n}\r\n"],
+  "mappings": ";AAOA,CAAA;AACE,aAAA,OAAA;;",
+  "names": []
+}

@@ -85,7 +85,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Health check
 app.get('/', (req, res) => {
-  res.send('🚀 NexPrep API is running...');
+  res.send('🚀 NexPrepAI API is running...');
 });
 
 // Start server

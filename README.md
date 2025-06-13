@@ -1,6 +1,6 @@
-# 📚 NexPrep Backend API
+# 📚 NexPrepAI Backend API
 
-NexPrep is a full-featured mock test and exam preparation platform designed for students in medical, engineering, and other competitive domains. This backend powers all core features — from test creation and submission to analytics and leaderboards.
+NexPrepAI is a full-featured mock test and exam preparation platform designed for students in medical, engineering, and other competitive domains. This backend powers all core features — from test creation and submission to analytics and leaderboards.
 
 ---
 
@@ -26,8 +26,8 @@ backend/ ├── config/ # MongoDB config │ └── db.js │ ├── co
 
 ```bash
 # Clone the repo
-git clone https://github.com/vpbgkt/NexPrep.git
-cd NexPrep/backend
+git clone https://github.com/vpbgkt/NexPrepAI.git
+cd NexPrepAI/backend
 
 # Install dependencies
 npm install
@@ -60,7 +60,7 @@ Route	Method	Description
 
 ## ➕ Add Question API: /api/questions/add
 
-Use this API to add a new question into NexPrep backend with full structure:
+Use this API to add a new question into NexPrepAI backend with full structure:
 
 ```json
 {

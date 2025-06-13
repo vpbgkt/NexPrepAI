@@ -2,7 +2,7 @@
  * @fileoverview Question Detail Component
  * 
  * This component provides a comprehensive view for displaying detailed information
- * about a single question in the NexPrep admin panel. It handles the visualization
+ * about a single question in the NexPrepAI admin panel. It handles the visualization
  * of question data including multilingual translations, hierarchical categorization,
  * options, explanations, metadata, and administrative information.
  * 
@@ -31,11 +31,11 @@
  * - ActivatedRoute: For retrieving question ID from route parameters
  * - Question model: Type definitions for question structure
  * 
- * @author NexPrep Development Team
+ * @author NexPrepAI Development Team
  * @version 1.0.0
  */
 
-// filepath: c:\Users\vpbgk\OneDrive\Desktop\project\NexPrep\admin-panel\src\app\components\question-detail\question-detail.component.ts
+// filepath: c:\Users\vpbgk\OneDrive\Desktop\project\NexPrepAI\admin-panel\src\app\components\question-detail\question-detail.component.ts
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { QuestionService } from '../../services/question.service';
@@ -200,6 +200,40 @@ export class QuestionDetailComponent implements OnInit {
   getOptionText(option: any): string {
     return option?.text || 'N/A';
   }
+
+  /**
+   * @method getHierarchyName
+   * @description Safely extracts the name from a hierarchical field object or returns the ID.
+   * @param {any} field - Hierarchical field data, which can be a string (ID),
+   *                      an object with an $oid property (ID), or a PopulatedHierarchyField object.
+   * @returns {string} The name of the hierarchical entity or its ID if the name is not available.
+   * 
+   * @description
+   * This utility method handles the display of hierarchical fields like Branch, Subject, Topic, and Subtopic.
+   * It checks if the field is populated (i.e., an object with a 'name' property) and returns the name.
+   * If the field is not populated, it returns the ID string.
+   * 
+   * @example
+   * ```typescript
+   * const branchName = this.getHierarchyName(this.question.branch);
+   * // Returns "Science" if question.branch is { _id: '...', name: 'Science' }
+   * // Returns "60d5f1b2c3d4e5f6a7b8c9d0" if question.branch is '60d5f1b2c3d4e5f6a7b8c9d0'
+   * // or { $oid: '60d5f1b2c3d4e5f6a7b8c9d0' }
+   * ```
+   */
+  getHierarchyName(field: any): string {
+    if (field && typeof field === 'object' && field.name) {
+      return field.name; // Covers PopulatedHierarchyField
+    }
+    if (field && typeof field === 'object' && field.$oid) {
+      return field.$oid; // Covers { $oid: string }
+    }
+    if (typeof field === 'string') {
+      return field; // Covers string ID
+    }
+    return 'N/A'; // Fallback for undefined or unexpected structure
+  }
+
   /**
    * @method getIdString
    * @description Converts various ID formats to display-ready string representation
@@ -268,40 +302,6 @@ export class QuestionDetailComponent implements OnInit {
     return null; // Or throw an error, or handle as invalid date
   }
   /**
-   * @method getHierarchyName
-   * @description Extracts display name from hierarchical field objects (Branch/Subject/Topic/Subtopic)
-   * @param {string | PopulatedHierarchyField | { $oid: string } | undefined} field - Hierarchy field in various formats
-   * @returns {string} Display name or ID string or 'N/A' if invalid
-   * 
-   * @description
-   * This utility method handles the complexity of hierarchical field references that may
-   * appear as populated objects (with name property), ObjectId references, or plain strings.
-   * Provides consistent name extraction for displaying Branch, Subject, Topic, and Subtopic
-   * information in the question detail view.
-   * 
-   * @field_types
-   * - PopulatedHierarchyField: Object with name property (preferred for display)
-   * - ObjectId string: Direct ID reference
-   * - $oid object: MongoDB ObjectId format
-   * - undefined/null: Missing or invalid data
-   * 
-   * @example
-   * ```typescript
-   * const branchName = this.getHierarchyName(question.branch);
-   * // Returns "Engineering" if populated, or ObjectId if not populated
-   * const subjectName = this.getHierarchyName(question.subject);
-   * // Returns "Physics" if populated, or ObjectId if not populated
-   * ```
-   */
-  // Helper to get name from populated hierarchy field or return the ID string
-  getHierarchyName(field: string | PopulatedHierarchyField | { $oid: string } | undefined): string {
-    if (!field) return 'N/A';
-    if (typeof field === 'string') return field; // It's an ID
-    if ((field as { $oid: string }).$oid) return (field as { $oid: string }).$oid; // It's an ObjectId as a string
-    if ((field as PopulatedHierarchyField).name) return (field as PopulatedHierarchyField).name; // It's populated
-    return 'Invalid Data';
-  }
-  /**
    * @method getDisplayVersion
    * @description Converts version numbers from various formats to display-ready strings
    * @param {any} version - Version value in various formats (number, $numberInt object, undefined)
@@ -334,5 +334,30 @@ export class QuestionDetailComponent implements OnInit {
       return 'N/A';
     }
     return String(version);
+  }
+
+  /**
+   * @method onImageError
+   * @description Handles image loading errors by setting a placeholder or hiding broken images
+   * @param {Event} event - Image error event
+   * @returns {void}
+   * 
+   * @description
+   * This method is called when an image fails to load (e.g., broken URL, network issue).
+   * It replaces the broken image with a placeholder or error message to improve user experience.
+   * 
+   * @example
+   * ```html
+   * <img [src]="imageUrl" (error)="onImageError($event)">
+   * ```
+   */
+  onImageError(event: any): void {
+    const img = event.target;
+    img.style.display = 'none'; // Hide broken image
+    
+    // Optionally, you could set a placeholder image instead:
+    // img.src = 'assets/images/image-placeholder.png';
+    
+    console.warn('Failed to load image:', img.src);
   }
 }

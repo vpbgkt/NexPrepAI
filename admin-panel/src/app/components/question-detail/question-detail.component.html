@@ -194,16 +194,34 @@
                 {{ trans.lang === 'en' ? 'English' : 'हिन्दी' }}
               </h3>
             </div>
-            
-            <!-- Question Text -->
+              <!-- Question Text -->
             <div class="mb-6">
               <h4 class="text-sm font-medium text-gray-700 mb-2">Question Text</h4>
               <div class="bg-white rounded-lg p-4 border border-gray-200">
                 <div [innerHTML]="trans.questionText" class="prose prose-sm max-w-none"></div>
               </div>
             </div>
-            
-            <!-- Options -->
+
+            <!-- Question Images -->
+            <div *ngIf="trans.images && trans.images.length > 0" class="mb-6">
+              <h4 class="text-sm font-medium text-gray-700 mb-2">Question Images</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div *ngFor="let imageUrl of trans.images; let imgIndex = index" 
+                     class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div class="aspect-w-16 aspect-h-9">
+                    <img [src]="imageUrl" 
+                         [alt]="'Question image ' + (imgIndex + 1)"
+                         class="w-full h-48 object-contain bg-gray-50"
+                         (error)="onImageError($event)"
+                         loading="lazy">
+                  </div>
+                  <div class="p-2 bg-gray-50">
+                    <p class="text-xs text-gray-600 truncate">Image {{ imgIndex + 1 }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+              <!-- Options -->
             <div *ngIf="trans.options && trans.options.length > 0" class="mb-6">
               <h4 class="text-sm font-medium text-gray-700 mb-3">Answer Options</h4>
               <div class="space-y-2">
@@ -215,7 +233,17 @@
                     {{ optIndex + 1 }}
                   </span>
                   <div class="flex-1">
-                    <div [innerHTML]="opt.text" class="prose prose-sm max-w-none"></div>
+                    <div [innerHTML]="opt.text" class="prose prose-sm max-w-none mb-2"></div>
+                    
+                    <!-- Option Image -->
+                    <div *ngIf="opt.img" class="mt-2">
+                      <img [src]="opt.img" 
+                           [alt]="'Option ' + (optIndex + 1) + ' image'"
+                           class="max-w-xs h-auto rounded-lg border border-gray-200 bg-gray-50"
+                           (error)="onImageError($event)"
+                           loading="lazy">
+                    </div>
+
                     <span *ngIf="opt.isCorrect" 
                           class="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full mt-2">
                       <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

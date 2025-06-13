@@ -1,11 +1,11 @@
 /**
- * @fileoverview Mathematical Content Rendering Service for NexPrep Admin Panel
+ * @fileoverview Mathematical Content Rendering Service for NexPrepAI Admin Panel
  * @description Angular service providing comprehensive mathematical equation rendering
  * using KaTeX library. Supports LaTeX expressions, formatting processing, and safe
  * HTML rendering for exam questions and mathematical content.
  * @module MathRendererService
  * @requires katex
- * @author NexPrep Development Team
+ * @author NexPrepAI Development Team
  * @since 1.0.0
  */
 

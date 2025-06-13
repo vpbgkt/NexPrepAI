@@ -1,6 +1,6 @@
-# 📚 NexPrep Documentation Hub
+# 📚 NexPrepAI Documentation Hub
 
-Welcome to the comprehensive documentation for the **NexPrep Online Examination Platform**. This documentation provides everything you need to understand, deploy, and extend the platform.
+Welcome to the comprehensive documentation for the **NexPrepAI Online Examination Platform**. This documentation provides everything you need to understand, deploy, and extend the platform.
 
 ---
 
@@ -16,9 +16,9 @@ Welcome to the comprehensive documentation for the **NexPrep Online Examination 
 - **[CSV Import Guide](./csv%20question%20upload.md)** - Bulk question upload via CSV files
 
 ### 🛠️ **Development Resources**
-- **[Postman Collection](./NexPrep-Postman-FULL.json)** - Complete API testing collection
-- **[Postman Environment](./NexPrep-Postman-Environment.json)** - Environment variables for API testing
-- **[Professional Roadmap](./NexPrep_Backend_Professional_Roadmap.pdf)** - Development roadmap and best practices
+- **[Postman Collection](./NexPrepAI-Postman-FULL.json)** - Complete API testing collection
+- **[Postman Environment](./NexPrepAI-Postman-Environment.json)** - Environment variables for API testing
+- **[Professional Roadmap](./NexPrepAI_Backend_Professional_Roadmap.pdf)** - Development roadmap and best practices
 
 ---
 
@@ -27,7 +27,7 @@ Welcome to the comprehensive documentation for the **NexPrep Online Examination 
 ### **For Developers**
 1. **Architecture Overview**: Start with [Technical Architecture](./TECHNICAL_ARCHITECTURE.md)
 2. **API Reference**: Use [API Documentation](./API_DOCUMENTATION.md) for endpoint details
-3. **Testing**: Import [Postman Collection](./NexPrep-Postman-FULL.json) for API testing
+3. **Testing**: Import [Postman Collection](./NexPrepAI-Postman-FULL.json) for API testing
 
 ### **For Content Managers**
 1. **Question Management**: Read [Question Upload Guide](./README_QUESTION_UPLOAD.md)
@@ -140,5 +140,5 @@ Welcome to the comprehensive documentation for the **NexPrep Online Examination 
 
 ---
 
-**Maintained by**: NexPrep Development Team  
+**Maintained by**: NexPrepAI Development Team  
 **Contact**: For technical questions, refer to the API documentation or system architecture guides.

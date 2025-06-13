@@ -314,14 +314,25 @@ exports.getAllQuestions = async (_req, res) => {
  * @throws {500} Server error during question retrieval
  */
 exports.getQuestionById = async (req, res) => {
-  const q = await Question.findById(req.params.id).lean();
-  if (!q) return res.status(404).json({ message: 'Not found' });
+  try {
+    const q = await Question.findById(req.params.id)
+      .populate('branch', 'name')
+      .populate('subject', 'name')
+      .populate('topic', 'name')
+      .populate('subTopic', 'name')
+      .lean();
+    
+    if (!q) return res.status(404).json({ message: 'Not found' });
 
-  const askLang = req.query.lang ?? 'en';
-  const pack = q.translations.find(t => t.lang === askLang) ||
-               q.translations[0]; // fallback
+    const askLang = req.query.lang ?? 'en';
+    const pack = q.translations.find(t => t.lang === askLang) ||
+                 q.translations[0]; // fallback
 
-  res.json({ ...q, translation: pack });
+    res.json({ ...q, translation: pack });
+  } catch (error) {
+    console.error('Error fetching question by ID:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
 };
 
 /**

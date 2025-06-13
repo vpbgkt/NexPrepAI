@@ -1,7 +1,7 @@
 {
-  "name": "nexprep",
+  "name": "nexprepai",
   "version": "1.0.0",
-  "description": "NexPrep - Online Test Preparation Platform",
+  "description": "NexPrepAI - Online Test Preparation Platform",
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && npm run dev",
@@ -12,21 +12,21 @@
     "build:all": "npm run install:all && npm run build",
     "start:prod": "pm2 start ecosystem.config.js --env production",
     "start:dev": "pm2 start ecosystem.config.js --env development",
-    "stop": "pm2 stop nexprep-backend",
-    "restart:prod": "pm2 restart nexprep-backend --env production",
-    "restart:dev": "pm2 restart nexprep-backend --env development",
-    "logs": "pm2 logs nexprep-backend",
+    "stop": "pm2 stop nexprepai-backend",
+    "restart:prod": "pm2 restart nexprepai-backend --env production",
+    "restart:dev": "pm2 restart nexprepai-backend --env development",
+    "logs": "pm2 logs nexprepai-backend",
     "status": "pm2 status",
     "monitor": "pm2 monit",
     "install:all": "npm install && cd admin-panel && npm install && cd ../backend && npm install",
     "clean": "cd admin-panel && Remove-Item -Recurse -Force dist,node_modules -ErrorAction SilentlyContinue && cd ../backend && Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue && Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue"
   },
   "keywords": [
-    "nexprep",
+    "nexprepai",
     "test-preparation",
     "online-testing"
   ],
-  "author": "NexPrep Development Team",
+  "author": "NexPrepAI Development Team",
   "license": "ISC",
   "dependencies": {
     "html2pdf.js": "^0.10.3"

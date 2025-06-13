@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/components/login/login.component.scss"],
+  "sourcesContent": ["/**\r\n * @fileoverview Login Component Styles\r\n * @description Minimal SCSS for login component using Tailwind CSS\r\n * \r\n * @author NexPrepAI Development Team\r\n * @since 1.0.0\r\n */\r\n\r\n/* Custom form field focus styles */\r\n.form-input:focus {\r\n  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);\r\n}\r\n\r\n/* Enhanced button hover animations */\r\n.btn-primary:hover {\r\n  transform: translateY(-1px);\r\n  box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);\r\n}\r\n\r\n/* Loading spinner animation */\r\n@keyframes spin {\r\n  to { transform: rotate(360deg); }\r\n}\r\n\r\n.animate-spin {\r\n  animation: spin 1s linear infinite;\r\n}\r\n"],
+  "mappings": ";AASA,CAAA,UAAA;AACE,cAAA,EAAA,EAAA,EAAA,IAAA,KAAA,EAAA,EAAA,GAAA,EAAA,GAAA,EAAA;;AAIF,CAAA,WAAA;AACE,aAAA,WAAA;AACA,cAAA,EAAA,KAAA,KAAA,KAAA,EAAA,EAAA,GAAA,EAAA,GAAA,EAAA;;AAIF,WAAA;AACE;AAAK,eAAA,OAAA;;;AAGP,CAAA;AACE,aAAA,KAAA,GAAA,OAAA;;",
+  "names": []
+}

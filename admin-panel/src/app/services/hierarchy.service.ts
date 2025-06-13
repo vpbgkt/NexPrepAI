@@ -1,5 +1,5 @@
 /**
- * @fileoverview Hierarchy Service for NexPrep Admin Panel
+ * @fileoverview Hierarchy Service for NexPrepAI Admin Panel
  * @description Provides educational hierarchy management functionality for organizing
  * academic content in a structured Branch → Subject → Topic → Subtopic hierarchy.
  * @module HierarchyService
@@ -7,7 +7,7 @@
  * @requires @angular/common/http
  * @requires rxjs
  * @requires environment
- * @author NexPrep Development Team
+ * @author NexPrepAI Development Team
  * @since 1.0.0
  */
 
@@ -68,7 +68,7 @@ export interface Subtopic {
 
 /**
  * @class HierarchyService
- * @description Angular service for managing educational content hierarchy in the NexPrep admin panel.
+ * @description Angular service for managing educational content hierarchy in the NexPrepAI admin panel.
  * Provides methods to retrieve and navigate through the four-level academic structure:
  * Branch → Subject → Topic → Subtopic
  * 

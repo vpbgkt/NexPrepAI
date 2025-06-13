@@ -1,5 +1,5 @@
 
-# 📚 NexPrep - Question Entry Documentation
+# 📚 NexPrepAI - Question Entry Documentation
 
 ## ✅ Primary API Endpoints  
 
@@ -48,7 +48,7 @@
     {
       "type": "pdf",
       "label": "Study Material",
-      "content": "https://resources.nexprep.com/physics/gravity.pdf"
+      "content": "https://resources.nexprepai.com/physics/gravity.pdf"
     }
   ],
   "askedIn": [
@@ -149,7 +149,7 @@ Authorization: Bearer {jwt_token}
 ```json
 POST /api/auth/login
 {
-  "email": "admin@nexprep.com",
+  "email": "admin@nexprepai.com",
   "password": "admin_password"
 }
 ```

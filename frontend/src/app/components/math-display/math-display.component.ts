@@ -5,6 +5,7 @@ import * as katex from 'katex';
 
 @Component({
   selector: 'app-math-display',
+  standalone: true,
   imports: [CommonModule],
   template: `
     <div 

@@ -1,5 +1,5 @@
 /**
- * @fileoverview Authentication Service for NexPrep Admin Panel
+ * @fileoverview Authentication Service for NexPrepAI Admin Panel
  * @description Provides comprehensive authentication and authorization functionality including
  * user login, logout, token management, role-based access control, and user session management.
  * @module AuthService
@@ -7,7 +7,7 @@
  * @requires @angular/common/http
  * @requires rxjs
  * @requires environment
- * @author NexPrep Development Team
+ * @author NexPrepAI Development Team
  * @since 1.0.0
  */
 

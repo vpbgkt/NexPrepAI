@@ -1,6 +1,6 @@
 module.exports = {
   apps: [{
-    name: 'nexprep-backend',
+    name: 'nexprepai-backend',
     script: 'server.js', // Assumes server.js is the entry point in the cwd
     cwd: './backend',    // Sets the current working directory for the app
     instances: 1,
@@ -28,7 +28,7 @@ module.exports = {
       // If both are served from the root of the same domain, then just one origin is needed:
       // ALLOWED_ORIGIN: 'http://43.205.88.43',
       CORS_CREDENTIALS: 'true'
-      // Ensure MONGO_URI, JWT_SECRET, etc., are in /var/www/nexprep/backend/.env on the server
+      // Ensure MONGO_URI, JWT_SECRET, etc., are in /var/www/nexprepai/backend/.env on the server
       // and loaded by your application using dotenv.
     }
   }]

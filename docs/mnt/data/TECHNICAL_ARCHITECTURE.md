@@ -1,8 +1,8 @@
-# 🔧 NexPrep - Technical Architecture Documentation
+# 🔧 NexPrepAI - Technical Architecture Documentation
 
 ## 🏗️ System Architecture
 
-NexPrep implements a modern three-tier architecture designed for scalability, maintainability, and performance.
+NexPrepAI implements a modern three-tier architecture designed for scalability, maintainability, and performance.
 
 ### **Architecture Diagram**
 ```

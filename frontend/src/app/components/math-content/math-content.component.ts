@@ -1,10 +1,10 @@
 /**
- * @fileoverview Mathematical Content Display Component for NexPrep Frontend
+ * @fileoverview Mathematical Content Display Component for NexPrepAI Frontend
  * @description Reusable Angular component for rendering mathematical expressions and
  * formatted content in exam questions. Provides safe HTML rendering with KaTeX
  * support and comprehensive text formatting capabilities.
  * @module MathContentComponent
- * @author NexPrep Development Team
+ * @author NexPrepAI Development Team
  * @since 1.0.0
  */
 

@@ -9,7 +9,7 @@
  * - GET /api/leaderboard/combined - Combined leaderboard with both metrics
  * - GET /api/leaderboard/stats - Admin statistics summary
  * 
- * @author NexPrep Development Team
+ * @author NexPrepAI Development Team
  * @since 1.0.0
  */
 

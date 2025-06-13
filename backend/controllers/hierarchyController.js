@@ -2,7 +2,7 @@
  * @fileoverview Academic Hierarchy Controller
  * 
  * This module handles the academic subject hierarchy management operations for
- * the NexPrep platform, providing functionality to manage the educational content
+ * the NexPrepAI platform, providing functionality to manage the educational content
  * structure. The hierarchy consists of four levels: Branch → Subject → Topic → SubTopic,
  * which allows for organized categorization of educational content and questions.
  * 
@@ -21,7 +21,7 @@
  * - Comprehensive error handling and validation
  * - Support for educational content organization
  * 
- * @author NexPrep Development Team
+ * @author NexPrepAI Development Team
  * @version 1.0.0
  */
 
@@ -425,7 +425,7 @@ const getSubTopics = async (req, res) => {
  * @description Module exports for academic hierarchy controller functions
  * 
  * This module provides a complete set of CRUD operations for managing the
- * four-level academic hierarchy in the NexPrep platform. The hierarchy
+ * four-level academic hierarchy in the NexPrepAI platform. The hierarchy
  * structure follows the pattern: Branch → Subject → Topic → SubTopic.
  */
 module.exports = {

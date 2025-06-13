@@ -1,5 +1,5 @@
 /**
- * @fileoverview Add Question Component for NexPrep Admin Panel
+ * @fileoverview Add Question Component for NexPrepAI Admin Panel
  * @description Comprehensive multilingual question creation interface supporting English and Hindi
  * translations with advanced features including multiple choice options, explanations, images,
  * hierarchical categorization, and metadata management.
@@ -14,7 +14,7 @@
  * @requires TopicService
  * @requires SubtopicService
  * @requires QuestionService
- * @author NexPrep Development Team
+ * @author NexPrepAI Development Team
  * @since 1.0.0
  */
 

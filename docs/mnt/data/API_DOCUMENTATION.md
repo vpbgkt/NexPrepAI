@@ -1,8 +1,8 @@
-# 🚀 NexPrep - Complete API Documentation
+# 🚀 NexPrepAI - Complete API Documentation
 
 ## 📋 API Overview
 
-NexPrep provides a comprehensive RESTful API built with Node.js and Express, offering endpoints for authentication, test management, question operations, and analytics.
+NexPrepAI provides a comprehensive RESTful API built with Node.js and Express, offering endpoints for authentication, test management, question operations, and analytics.
 
 **Base URL**: `http://localhost:5000/api`  
 **Authentication**: JWT Bearer Token  
@@ -680,8 +680,8 @@ questionText,options,correctOptions,explanation,difficulty,marks,branch,subject,
 ## 🔧 API Testing
 
 Import the provided Postman collection for comprehensive API testing:
-- `NexPrep-Postman-FULL.json`: Complete API collection
-- `NexPrep-Postman-Environment.json`: Environment variables
+- `NexPrepAI-Postman-FULL.json`: Complete API collection
+- `NexPrepAI-Postman-Environment.json`: Environment variables
 
 ---
 

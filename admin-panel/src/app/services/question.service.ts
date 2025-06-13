@@ -1,5 +1,5 @@
 /**
- * @fileoverview Question Service for NexPrep Admin Panel
+ * @fileoverview Question Service for NexPrepAI Admin Panel
  * @description Provides comprehensive question management functionality including CRUD operations,
  * filtering, hierarchy management, and import capabilities for the admin panel.
  * @module QuestionService
@@ -8,7 +8,7 @@
  * @requires Question
  * @requires rxjs
  * @requires environment
- * @author NexPrep Development Team
+ * @author NexPrepAI Development Team
  * @since 1.0.0
  */
 
@@ -35,7 +35,7 @@ export interface PaginatedQuestionsResponse {
 
 /**
  * @class QuestionService
- * @description Angular service for managing questions in the NexPrep admin panel.
+ * @description Angular service for managing questions in the NexPrepAI admin panel.
  * Handles all question-related operations including CRUD operations, filtering,
  * hierarchy management, and bulk operations.
  * 

@@ -1,4 +1,4 @@
-// filepath: c:\\Users\\vpbgk\\OneDrive\\Desktop\\project\\NexPrep\\admin-panel\\src\\app\\pipes\\highlight.pipe.ts
+// filepath: c:\\Users\\vpbgk\\OneDrive\\Desktop\\project\\NexPrepAI\\admin-panel\\src\\app\\pipes\\highlight.pipe.ts
 import { Pipe, PipeTransform } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 

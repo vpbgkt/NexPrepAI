@@ -81,7 +81,7 @@ const sampleRewards = [
     termsAndConditions: "Must be scheduled within 30 days of redemption. Subject to expert availability."
   },
   {
-    title: "NexPrep Study Guide E-book",
+    title: "NexPrepAI Study Guide E-book",
     description: "Comprehensive digital study guide with tips and strategies",
     pointsCost: 200,
     category: "DIGITAL_CONTENT",
@@ -166,7 +166,7 @@ async function seedRewards() {
       adminUser = new User({
         username: 'rewardadmin',
         name: 'Reward Administrator',
-        email: 'admin@nexprep.com',
+        email: 'admin@nexprepai.com',
         role: 'admin',
         referralCode: 'ADMIN001'
       });

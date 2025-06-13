@@ -4,7 +4,7 @@
  * Provides methods to fetch question leaderboards, exam paper leaderboards,
  * combined metrics, and admin statistics
  * 
- * @author NexPrep Development Team
+ * @author NexPrepAI Development Team
  * @since 1.0.0
  */
 

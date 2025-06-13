@@ -3,10 +3,9 @@ const swaggerJSDoc = require('swagger-jsdoc');
 const options = {
   definition: {
     openapi: '3.0.0',
-    info: {
-      title: 'NexPrep API',
+    info: {      title: 'NexPrepAI API',
       version: '1.0.0',
-      description: 'Documentation for NexPrep backend',
+      description: 'Documentation for NexPrepAI backend',
     },
     servers: [
       {

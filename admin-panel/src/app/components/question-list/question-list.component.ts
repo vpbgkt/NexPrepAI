@@ -1,5 +1,5 @@
 /**
- * @fileoverview Question List Component for NexPrep Admin Panel providing comprehensive question
+ * @fileoverview Question List Component for NexPrepAI Admin Panel providing comprehensive question
  * management interface with advanced filtering, pagination, search capabilities, and bulk operations.
  * Enables administrators to efficiently browse, search, filter, and manage the entire question bank.
  * 
@@ -15,7 +15,7 @@
  * - Question history and usage tracking
  * 
  * @version 1.0.0
- * @author NexPrep Development Team
+ * @author NexPrepAI Development Team
  * @since 2023
  */
 

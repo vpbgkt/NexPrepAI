@@ -1,10 +1,10 @@
-# NexPrep Authentication Documentation
+# NexPrepAI Authentication Documentation
 
-This document provides comprehensive information about the authentication system in the NexPrep application.
+This document provides comprehensive information about the authentication system in the NexPrepAI application.
 
 ## Available Authentication Methods
 
-The NexPrep application currently supports the following authentication methods:
+The NexPrepAI application currently supports the following authentication methods:
 
 1. **Email/Password Authentication**
    - Traditional authentication using an email address and password

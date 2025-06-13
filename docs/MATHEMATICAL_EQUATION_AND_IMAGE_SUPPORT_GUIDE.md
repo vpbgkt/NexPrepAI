@@ -1,7 +1,7 @@
 # Mathematical Equation and Image Support Guide
 
 ## 📋 Overview
-NexPrep now includes comprehensive support for mathematical expressions using LaTeX notation and image uploads for questions and options. This guide covers how to use all the new features in the enhanced question editor.
+NexPrepAI now includes comprehensive support for mathematical expressions using LaTeX notation and image uploads for questions and options. This guide covers how to use all the new features in the enhanced question editor.
 
 ## 🚀 Features Implemented
 
@@ -333,7 +333,7 @@ When reporting issues, please include:
 
 ## 🎉 Conclusion
 
-The enhanced question editor with mathematical expression and image support significantly improves the NexPrep platform's ability to create rich, educational content. This comprehensive system provides educators with powerful tools to create engaging, mathematically accurate test questions with visual elements.
+The enhanced question editor with mathematical expression and image support significantly improves the NexPrepAI platform's ability to create rich, educational content. This comprehensive system provides educators with powerful tools to create engaging, mathematically accurate test questions with visual elements.
 
 For additional support or advanced usage scenarios, please contact the development team or refer to the technical documentation in the codebase.
 

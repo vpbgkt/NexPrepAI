@@ -1,5 +1,5 @@
 /**
- * @fileoverview Review Component for NexPrep Frontend Application
+ * @fileoverview Review Component for NexPrepAI Frontend Application
  * @description Comprehensive Angular component for detailed post-exam review and analysis.
  * Provides advanced features for result visualization, question-wise analytics,
  * performance insights, progress tracking, and detailed answer explanations.
@@ -13,7 +13,7 @@
  * @requires chart.js
  * @requires file-saver
  * @requires html2pdf.js
- * @author NexPrep Development Team
+ * @author NexPrepAI Development Team
  * @since 1.0.0
  */
 
@@ -202,9 +202,8 @@ interface PerformanceAnalytics {
  * // - Detailed answer explanations
  * // - Performance insights and study recommendations
  * ```
- * 
- * @since 1.0.0
- * @author NexPrep Development Team
+ *  * @since 1.0.0
+ * @author NexPrepAI Development Team
  */
 @Component({
     selector: 'app-review',
@@ -1057,7 +1056,7 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {  /** 
 
       const options = {
         margin:       [0.5, 0.5, 0.5, 0.5], // inches
-        filename:     `nexprep-review-${this.attemptId}-${new Date().toISOString().split('T')[0]}.pdf`,
+        filename:     `nexprepai-review-${this.attemptId}-${new Date().toISOString().split('T')[0]}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2, logging: false, useCORS: true },
         jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }

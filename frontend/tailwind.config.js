@@ -7,7 +7,7 @@ module.exports = {
   ],
   theme: {
     extend: {
-      // Custom colors for the NexPrep brand
+      // Custom colors for the NexPrepAI brand
       colors: {
         primary: {
           50: '#eff6ff',

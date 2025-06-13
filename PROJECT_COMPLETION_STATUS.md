@@ -2,7 +2,7 @@
 
 ## ✅ IMPLEMENTATION COMPLETE
 
-We have successfully implemented comprehensive mathematical equation and image upload support for the NexPrep exam platform. Here's the final status:
+We have successfully implemented comprehensive mathematical equation and image upload support for the NexPrepAI exam platform. Here's the final status:
 
 ## 🚀 What's Been Delivered
 
@@ -89,7 +89,7 @@ We have successfully implemented comprehensive mathematical equation and image u
 ## 📁 File Structure Overview
 
 ```
-NexPrep/
+NexPrepAI/
 ├── docs/
 │   ├── MATHEMATICAL_EQUATION_AND_IMAGE_SUPPORT_GUIDE.md  # User guide
 │   └── TECHNICAL_IMPLEMENTATION_SUMMARY.md              # Technical docs

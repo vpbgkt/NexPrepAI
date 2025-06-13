@@ -1,6 +1,6 @@
 # Firebase Configuration Updates Needed
 
-After removing phone authentication from the NexPrep codebase, please make these changes in the Firebase Console:
+After removing phone authentication from the NexPrepAI codebase, please make these changes in the Firebase Console:
 
 1. Go to the [Firebase Console](https://console.firebase.google.com/)
 2. Select your project "nexprepauth"

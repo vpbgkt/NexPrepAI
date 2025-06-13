@@ -1,5 +1,5 @@
 /**
- * @fileoverview Exam Player Component for NexPrep Frontend Application
+ * @fileoverview Exam Player Component for NexPrepAI Frontend Application
  * @description Advanced Angular component responsible for delivering comprehensive online examination
  * experience with real-time progress tracking, multi-language support, question navigation,
  * auto-save functionality, and sophisticated timer management.
@@ -10,7 +10,7 @@
  * @requires @angular/router
  * @requires TestService
  * @requires rxjs
- * @author NexPrep Development Team
+ * @author NexPrepAI Development Team
  * @since 1.0.0
  */
 

@@ -1,6 +1,6 @@
 {
-  "id": "nexprep-local",
-  "name": "NexPrep Local Dev",
+  "id": "nexprepai-local",
+  "name": "NexPrepAI Local Dev",
   "values": [
     {
       "key": "token",

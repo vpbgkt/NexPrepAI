@@ -2,7 +2,7 @@
 
 ## 🎯 Project Completion Status: ✅ COMPLETE
 
-This document provides a comprehensive technical summary of the mathematical equation and image upload system implementation for the NexPrep exam platform.
+This document provides a comprehensive technical summary of the mathematical equation and image upload system implementation for the NexPrepAI exam platform.
 
 ## 📋 Implementation Overview
 

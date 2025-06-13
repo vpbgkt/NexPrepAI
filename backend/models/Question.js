@@ -1,6 +1,6 @@
 // models/Question.js
 // -------------------------------------------------------
-// Mongoose schema for questions used in NexPrep.
+// Mongoose schema for questions used in NexPrepAI.
 // Matches the "Question Data Standard v1.0" (Swagger schema).
 // -------------------------------------------------------
 const mongoose = require('mongoose');

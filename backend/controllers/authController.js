@@ -2,7 +2,7 @@
  * @fileoverview Authentication Controller
  * 
  * This module handles user authentication, authorization, and referral system functionality 
- * for the NexPrep backend. It provides comprehensive authentication services including 
+ * for the NexPrepAI backend. It provides comprehensive authentication services including 
  * traditional email/password registration and login, Firebase-based social authentication,
  * and a complete referral system with reward processing.
  * 
@@ -24,7 +24,7 @@
  * - JWT token generation for session management
  * - User profile management and linking
  * 
- * @author NexPrep Development Team
+ * @author NexPrepAI Development Team
  * @version 2.0.0
  */
 

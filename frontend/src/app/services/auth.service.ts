@@ -1,5 +1,5 @@
 /**
- * @fileoverview Authentication service for NexPrep platform providing comprehensive user authentication,
+ * @fileoverview Authentication service for NexPrepAI platform providing comprehensive user authentication,
  * authorization, and session management capabilities. Supports traditional email/password login,
  * Firebase authentication integration, user registration, and secure token-based sessions.
  * 
@@ -14,7 +14,7 @@
  * - Referral system integration
  * 
  * @version 1.0.0
- * @author NexPrep Development Team
+ * @author NexPrepAI Development Team
  * @since 2023
  */
 
@@ -85,7 +85,7 @@ interface FirebaseSignInResponse {
  * @class AuthService
  * @description Core authentication service managing user sessions, login/logout operations,
  * and integration with Firebase authentication. Handles secure token storage, role-based
- * access control, and user profile management across the NexPrep platform.
+ * access control, and user profile management across the NexPrepAI platform.
  * 
  * @implements Injectable
  * 

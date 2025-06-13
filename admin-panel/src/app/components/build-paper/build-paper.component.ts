@@ -1,5 +1,5 @@
 /**
- * @fileoverview Build Paper Component for NexPrep Admin Panel
+ * @fileoverview Build Paper Component for NexPrepAI Admin Panel
  * @description Advanced component for creating and managing test series with comprehensive
  * question selection, section management, and exam configuration capabilities.
  * @module BuildPaperComponent
@@ -13,7 +13,7 @@
  * @requires ExamStreamService
  * @requires ExamPaperService
  * @requires ExamShiftService
- * @author NexPrep Development Team
+ * @author NexPrepAI Development Team
  * @since 1.0.0
  */
 
@@ -50,7 +50,7 @@ import { HighlightPipe } from '../../pipes/highlight.pipe'; // Assuming pipe is 
 
 /**
  * @class BuildPaperComponent
- * @description Advanced Angular component for creating and managing test series in the NexPrep admin panel.
+ * @description Advanced Angular component for creating and managing test series in the NexPrepAI admin panel.
  * Provides comprehensive functionality for:
  * - Creating multi-section test papers with configurable parameters
  * - Advanced question selection with real-time search and filtering

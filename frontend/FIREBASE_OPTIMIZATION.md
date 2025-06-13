@@ -1,10 +1,10 @@
-# Firebase Optimization Guide for NexPrep
+# Firebase Optimization Guide for NexPrepAI
 
-This guide provides recommendations to optimize your Firebase configuration for the NexPrep application.
+This guide provides recommendations to optimize your Firebase configuration for the NexPrepAI application.
 
 ## Current Firebase Authentication Methods
 
-The NexPrep application currently uses the following Firebase authentication methods:
+The NexPrepAI application currently uses the following Firebase authentication methods:
 - Email/Password authentication
 - Google Sign-In
 

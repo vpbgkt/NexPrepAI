@@ -335,7 +335,7 @@ async function runTests() {
   try {
     // Connect to test database
     if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/nexprep-test');
+      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/nexprepai-test');
       console.log('Connected to test database');
     }
     
