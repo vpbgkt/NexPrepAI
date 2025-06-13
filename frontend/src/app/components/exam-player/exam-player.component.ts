@@ -26,6 +26,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { TestService, StartTestResponse } from '../../services/test.service'; // Ensure StartTestResponse is imported
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators'; // Import takeUntil
 import { Subject, interval } from 'rxjs'; // Import Subject and interval
+import { MathDisplayComponent } from '../math-display/math-display.component';
 
 /**
  * @interface QuestionOption
@@ -147,7 +148,7 @@ interface PlayerSection {
  */
 @Component({
     selector: 'app-exam-player',
-    imports: [CommonModule, ReactiveFormsModule],
+    imports: [CommonModule, ReactiveFormsModule, MathDisplayComponent],
     templateUrl: './exam-player.component.html'
 })
 export class ExamPlayerComponent implements OnInit, OnDestroy {

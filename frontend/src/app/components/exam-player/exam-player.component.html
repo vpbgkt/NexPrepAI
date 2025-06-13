@@ -42,12 +42,13 @@
             <div *ngIf="isCurrentQuestionByIndex(globalIdx) && currentQuestionDisplayData" 
                  [formGroupName]="globalIdx" 
                  class="max-w-4xl mx-auto">
-              
-              <!-- Question Text -->
-              <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4 leading-relaxed">
+                <!-- Question Text -->
+              <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">                <h2 class="text-lg font-semibold text-gray-900 mb-4 leading-relaxed">
                   Q{{ getGlobalQuestionNumber(currentSectionIndex, currentQuestionInSectionIndex) }}:
-                  {{ currentQuestionDisplayData.displayQuestionText }}
+                  <app-math-display                    [content]="currentQuestionDisplayData.displayQuestionText"
+                    [allowFormatting]="true"
+                    class="inline">
+                  </app-math-display>
                 </h2>
 
                 <!-- Question History -->
@@ -79,10 +80,13 @@
                              [value]="i" 
                              formControlName="selected"
                              (change)="onAnswerChange()"
-                             class="mt-1 text-primary-600 focus:ring-primary-500">
-                      <div class="flex-1">
+                             class="mt-1 text-primary-600 focus:ring-primary-500">                      <div class="flex-1">
                         <div class="font-medium text-gray-900 mb-1">{{ String.fromCharCode(65 + i) }})</div>
-                        <div class="text-gray-700">{{ option.text }}</div>
+                        <div class="text-gray-700">                          <app-math-display 
+                            [content]="option.text"
+                            [allowFormatting]="true">
+                          </app-math-display>
+                        </div>
                         <div *ngIf="option.img" class="mt-2">
                           <img [src]="option.img" alt="Option {{ String.fromCharCode(65 + i) }}" 
                                class="max-w-full h-auto rounded border">

@@ -1,6 +1,7 @@
 {
   "name": "admin-panel",
-  "version": "0.0.0",  "scripts": {
+  "version": "0.0.0",
+  "scripts": {
     "ng": "ng",
     "start": "ng serve --proxy-config proxy.conf.json",
     "serve:dev": "ng serve --proxy-config proxy.conf.json",
@@ -21,8 +22,10 @@
     "@fortawesome/fontawesome-free": "^6.7.2",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
+    "@types/katex": "^0.16.7",
     "chart.js": "^4.4.9",
     "file-saver": "^2.0.5",
+    "katex": "^0.16.22",
     "ng2-charts": "^8.0.0",
     "papaparse": "^5.5.2",
     "rxjs": "~7.8.0",

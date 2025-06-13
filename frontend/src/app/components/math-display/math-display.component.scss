@@ -1,0 +1,90 @@
+.math-content-container {
+  line-height: 1.6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  color: #333;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.math-display-mode {
+  text-align: center;
+  margin: 1em 0;
+}
+
+.math-inline-mode {
+  display: inline;
+}
+
+.math-content-container .katex {
+  font-size: 1.1em;
+}
+
+.math-content-container .katex-display {
+  margin: 0.5em 0;
+  text-align: center;
+}
+
+.math-content-container strong {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.math-content-container em {
+  font-style: italic;
+  color: #34495e;
+}
+
+.math-content-container ul {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.math-content-container li {
+  margin: 0.25em 0;
+  line-height: 1.4;
+}
+
+.math-error {
+  color: #e74c3c;
+  background-color: #fdf2f2;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
+  border: 1px solid #fecaca;
+}
+
+/* Responsive design for mobile devices */
+@media (max-width: 768px) {
+  .math-content-container {
+    font-size: 0.95em;
+  }
+
+  .math-content-container .katex {
+    font-size: 1em;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .math-content-container {
+    color: #000;
+  }
+
+  .math-content-container strong {
+    color: #000;
+  }
+
+  .math-error {
+    color: #8b0000;
+    background-color: #ffe6e6;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .math-content-container * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

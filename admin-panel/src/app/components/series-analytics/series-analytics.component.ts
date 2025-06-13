@@ -6,7 +6,7 @@ import { saveAs }             from 'file-saver';
 import { environment }        from '../../../environments/environment';
 
 import { ChartData, ChartOptions } from 'chart.js';
-import { NgChartsModule }          from 'ng2-charts';
+// import { NgChartsModule }          from 'ng2-charts';
 
 interface ScoreBin { _id: number; count: number; }
 interface SeriesAnalytics {
@@ -20,7 +20,7 @@ interface SeriesAnalytics {
   selector: 'app-series-analytics',
   templateUrl: './series-analytics.component.html',
   styleUrls: ['./series-analytics.component.scss'],
-  imports: [ CommonModule, NgChartsModule ]
+  imports: [ CommonModule ] // NgChartsModule temporarily disabled
 })
 export class SeriesAnalyticsComponent implements OnInit {
   seriesId = '';

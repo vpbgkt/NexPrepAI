@@ -14,12 +14,13 @@ import { HomeComponent } from './components/home/home.component'; // Import Home
 import { RewardsDashboardComponent } from './components/rewards-dashboard/rewards-dashboard.component'; // Import RewardsDashboardComponent
 import { AdminRewardsComponent } from './components/admin-rewards/admin-rewards.component'; // Import AdminRewardsComponent
 import { AccountActiveGuard } from './guards/account-active.guard'; // Corrected import: AccountActiveGuard
+import { MathTestComponent } from './components/math-test/math-test.component'; // Import MathTestComponent for testing
 
-export const routes: Routes = [
-  // Public student routes
+export const routes: Routes = [  // Public student routes
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { path: 'leaderboard/:seriesId', component: LeaderboardComponent }, // Public leaderboard route
+  { path: 'math-test', component: MathTestComponent }, // Math test component for testing
   
   // Student‐only pages
   { path: 'home', component: HomeComponent, canActivate: [studentGuard] }, // Added home route

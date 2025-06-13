@@ -1,6 +1,80 @@
 /* Import Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* Custom Mathematical Content Styling */
+.math-content-container {
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.math-display {
+  margin: 1rem 0;
+  text-align: center;
+  overflow-x: auto;
+}
+
+.math-inline {
+  display: inline;
+  white-space: nowrap;
+}
+
+/* Enhanced KaTeX styling */
+.katex {
+  font-size: 1.1em !important;
+}
+
+.katex-display {
+  margin: 1rem 0 !important;
+  text-align: center !important;
+}
+
+/* Math error styling */
+.math-error {
+  font-family: 'Courier New', monospace;
+  background-color: #fef2f2;
+  color: #dc2626;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid #fecaca;
+  font-size: 0.875rem;
+  display: inline-block;
+}
+
+/* Question text styling with math support */
+.question-text {
+  line-height: 1.7;
+  word-spacing: 0.05em;
+}
+
+.question-text .katex {
+  margin: 0 0.2em;
+}
+
+/* Option text styling with math support */
+.option-text {
+  line-height: 1.6;
+}
+
+.option-text .katex {
+  margin: 0 0.1em;
+}
+
+/* Responsive math scaling */
+@media (max-width: 640px) {
+  .katex {
+    font-size: 1em !important;
+  }
+  
+  .math-display {
+    margin: 0.75rem 0;
+    font-size: 0.95em;
+  }
+  
+  .math-content-container {
+    font-size: 0.95em;
+  }
+}
+
 /* NexPrep Frontend - Tailwind CSS Global Styles */
 @tailwind base;
 @tailwind components;
