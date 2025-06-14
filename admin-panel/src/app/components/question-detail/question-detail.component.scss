@@ -1,0 +1,72 @@
+// Question Detail Component Styles
+
+// Image hover effects
+.image-container {
+  transition: transform 0.2s ease-in-out;
+  
+  &:hover {
+    transform: scale(1.02);
+  }
+}
+
+// Modal backdrop
+.modal-backdrop {
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+// Modal content
+.modal-content {
+  animation: scaleIn 0.2s ease-in-out;
+}
+
+// Close button hover effect
+.close-button {
+  transition: all 0.2s ease-in-out;
+  
+  &:hover {
+    transform: scale(1.1);
+    background-color: rgba(0, 0, 0, 0.8);
+  }
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// Ensure images are clickable
+.clickable-image {
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  
+  &:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
+
+// Responsive modal adjustments
+@media (max-width: 768px) {
+  .modal-content {
+    margin: 1rem;
+    max-width: calc(100vw - 2rem);
+    max-height: calc(100vh - 2rem);
+  }
+}

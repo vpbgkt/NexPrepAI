@@ -200,23 +200,22 @@
               <div class="bg-white rounded-lg p-4 border border-gray-200">
                 <div [innerHTML]="trans.questionText" class="prose prose-sm max-w-none"></div>
               </div>
-            </div>
-
-            <!-- Question Images -->
+            </div>            <!-- Question Images -->
             <div *ngIf="trans.images && trans.images.length > 0" class="mb-6">
               <h4 class="text-sm font-medium text-gray-700 mb-2">Question Images</h4>
               <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div *ngFor="let imageUrl of trans.images; let imgIndex = index" 
-                     class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                     class="bg-white rounded-lg border border-gray-200 overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                     (click)="openImageModal(imageUrl)">
                   <div class="aspect-w-16 aspect-h-9">
                     <img [src]="imageUrl" 
                          [alt]="'Question image ' + (imgIndex + 1)"
-                         class="w-full h-48 object-contain bg-gray-50"
+                         class="w-full h-48 object-contain bg-gray-50 hover:opacity-90 transition-opacity"
                          (error)="onImageError($event)"
                          loading="lazy">
                   </div>
                   <div class="p-2 bg-gray-50">
-                    <p class="text-xs text-gray-600 truncate">Image {{ imgIndex + 1 }}</p>
+                    <p class="text-xs text-gray-600 truncate">Image {{ imgIndex + 1 }} (Click to zoom)</p>
                   </div>
                 </div>
               </div>
@@ -234,14 +233,15 @@
                   </span>
                   <div class="flex-1">
                     <div [innerHTML]="opt.text" class="prose prose-sm max-w-none mb-2"></div>
-                    
-                    <!-- Option Image -->
+                      <!-- Option Image -->
                     <div *ngIf="opt.img" class="mt-2">
                       <img [src]="opt.img" 
                            [alt]="'Option ' + (optIndex + 1) + ' image'"
-                           class="max-w-xs h-auto rounded-lg border border-gray-200 bg-gray-50"
+                           class="max-w-xs h-auto rounded-lg border border-gray-200 bg-gray-50 cursor-pointer hover:opacity-90 transition-opacity"
+                           (click)="openImageModal(opt.img)"
                            (error)="onImageError($event)"
-                           loading="lazy">
+                           loading="lazy"
+                           title="Click to zoom">
                     </div>
 
                     <span *ngIf="opt.isCorrect" 
@@ -308,5 +308,28 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Image Zoom Modal -->
+<div *ngIf="showImageModal" 
+     class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4 modal-backdrop"
+     (click)="onModalBackdropClick($event)">
+  <div class="relative max-w-full max-h-full modal-content">
+    <!-- Close Button -->
+    <button 
+      (click)="closeImageModal()"
+      class="absolute top-4 right-4 z-10 bg-black bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-70 transition-colors close-button"
+      aria-label="Close image">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+    
+    <!-- Zoomed Image -->
+    <img [src]="zoomedImage" 
+         class="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+         alt="Zoomed image"
+         (error)="onImageError($event)">
   </div>
 </div>

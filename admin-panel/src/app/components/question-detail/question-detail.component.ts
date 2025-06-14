@@ -36,7 +36,7 @@
  */
 
 // filepath: c:\Users\vpbgk\OneDrive\Desktop\project\NexPrepAI\admin-panel\src\app\components\question-detail\question-detail.component.ts
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { QuestionService } from '../../services/question.service';
 import { Question, PopulatedHierarchyField } from '../../models/question.model';
@@ -101,6 +101,20 @@ export class QuestionDetailComponent implements OnInit {
   errorMessage = '';
 
   /**
+   * @property {string | null} zoomedImage
+   * @description URL of the currently zoomed image, null when no image is zoomed
+   * @default null
+   */
+  zoomedImage: string | null = null;
+
+  /**
+   * @property {boolean} showImageModal
+   * @description Flag to control the visibility of the image zoom modal
+   * @default false
+   */
+  showImageModal = false;
+
+  /**
    * @constructor
    * @description Initializes the QuestionDetailComponent with required services
    * 
@@ -111,6 +125,7 @@ export class QuestionDetailComponent implements OnInit {
     private route: ActivatedRoute,
     private questionService: QuestionService
   ) {}
+
   /**
    * @method ngOnInit
    * @description Angular lifecycle hook that initializes the component and loads question data
@@ -359,5 +374,76 @@ export class QuestionDetailComponent implements OnInit {
     // img.src = 'assets/images/image-placeholder.png';
     
     console.warn('Failed to load image:', img.src);
+  }
+
+  /**
+   * @method openImageModal
+   * @description Opens the image zoom modal with the specified image
+   * @param {string} imageUrl - URL of the image to display in zoom mode
+   * @returns {void}
+   * 
+   * @description
+   * This method sets the image to be displayed in the zoom modal and shows the modal.
+   * Used when users click on images to view them in larger size.
+   * 
+   * @example
+   * ```html
+   * <img [src]="imageUrl" (click)="openImageModal(imageUrl)">
+   * ```
+   */
+  openImageModal(imageUrl: string): void {
+    this.zoomedImage = imageUrl;
+    this.showImageModal = true;
+    // Prevent body scrolling when modal is open
+    document.body.style.overflow = 'hidden';
+  }
+
+  /**
+   * @method closeImageModal
+   * @description Closes the image zoom modal
+   * @returns {void}
+   * 
+   * @description
+   * This method hides the image zoom modal and restores normal page scrolling.
+   * Can be triggered by clicking the close button, clicking outside the image, or pressing escape.
+   */
+  closeImageModal(): void {
+    this.showImageModal = false;
+    this.zoomedImage = null;
+    // Restore body scrolling
+    document.body.style.overflow = 'auto';
+  }
+
+  /**
+   * @method onModalBackdropClick
+   * @description Handles clicks on the modal backdrop to close the modal
+   * @param {Event} event - Click event
+   * @returns {void}
+   * 
+   * @description
+   * This method closes the modal when users click on the backdrop (outside the image).
+   * It checks if the click target is the backdrop element to prevent closing when clicking the image itself.
+   */
+  onModalBackdropClick(event: Event): void {
+    if (event.target === event.currentTarget) {
+      this.closeImageModal();
+    }
+  }
+
+  /**
+   * @method onKeyDown
+   * @description Handles keyboard events for the component
+   * @param {KeyboardEvent} event - Keyboard event
+   * @returns {void}
+   * 
+   * @description
+   * This method listens for keyboard events and handles:
+   * - Escape key: Closes the image zoom modal if it's open
+   */
+  @HostListener('document:keydown', ['$event'])
+  onKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Escape' && this.showImageModal) {
+      this.closeImageModal();
+    }
   }
 }
