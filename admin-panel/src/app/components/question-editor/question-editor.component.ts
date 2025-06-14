@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ImageUploadService, ImageUploadRequest } from '../../services/image-upload.service';
+import { MathDisplayComponent } from '../math-display/math-display.component';
 
 interface MathSymbol {
   symbol: string;
@@ -37,7 +38,7 @@ interface Topic {
 @Component({
   selector: 'app-question-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MathDisplayComponent],
   templateUrl: './question-editor.component.html',
   styleUrls: ['./question-editor.component.scss']
 })
