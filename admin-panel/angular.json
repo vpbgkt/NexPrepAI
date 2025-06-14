@@ -35,7 +35,9 @@
             ],
             "scripts": []
           },          "configurations": {
-            "production": {              "budgets": [
+            "production": {
+              "baseHref": "/admin/",
+              "budgets": [
                 {
                   "type": "initial",
                   "maximumWarning": "1.5MB",
