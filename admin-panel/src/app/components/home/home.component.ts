@@ -50,4 +50,17 @@ export class HomeComponent implements OnInit {
   navigateToAnalytics(): void {
     this.router.navigate(['/test-series']);
   }
+  /**
+   * @method startCascadeFlow
+   * @description Initiates the enhanced cascade hierarchy creation flow
+   * @returns {void}
+   * 
+   * @description
+   * This method starts the enhanced hierarchy creation flow by redirecting
+   * to the new hierarchy-flow component which handles existing/new options
+   * and provides better UX for building complete hierarchies.
+   */
+  startCascadeFlow(): void {
+    this.router.navigate(['/hierarchy-flow']);
+  }
 }

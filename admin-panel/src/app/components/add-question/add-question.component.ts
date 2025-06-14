@@ -22,6 +22,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule }              from '@angular/common';
 import { FormsModule, NgForm }       from '@angular/forms';
 import { RouterModule }              from '@angular/router';
+import { Router, ActivatedRoute }    from '@angular/router';
 
 import { BranchService }   from '../../services/branch.service';
 import { SubjectService }  from '../../services/subject.service';
@@ -30,7 +31,6 @@ import { SubtopicService } from '../../services/subtopic.service';
 import { QuestionService } from '../../services/question.service';
 import { ImageUploadService, ImageUploadRequest } from '../../services/image-upload.service';
 import { MathDisplayComponent } from '../math-display/math-display.component';
-import { Router }          from '@angular/router';
 import { AuthService }     from '../../services/auth.service'; // Added AuthService
 
 /**
@@ -104,7 +104,6 @@ interface LangPack { questionText: string; options: Option[]; explanations: Expl
   styleUrls  : ['./add-question.component.scss']
 })
 export class AddQuestionComponent implements OnInit {
-
   /* ───────── injected services ───────── */
   /** @private {BranchService} Service for educational branch management */
   private branchSrv   = inject(BranchService);
@@ -120,6 +119,8 @@ export class AddQuestionComponent implements OnInit {
   private imageUploadSrv = inject(ImageUploadService);
   /** @private {Router} Angular router for navigation between components */
   private router      = inject(Router);
+  /** @private {ActivatedRoute} Service for accessing route parameters and query params */
+  private route       = inject(ActivatedRoute);
   /** @private {AuthService} Service for authentication and user role management */ // Added
   private authService = inject(AuthService); // Added
 
@@ -237,16 +238,56 @@ export class AddQuestionComponent implements OnInit {
    *     this.branches = Array.isArray(data) ? data : data.branches || [];
    *   });
    * }
-   * ```
-   */
+   * ```   */
   ngOnInit() {
+    this.loadBranches();
+    this.handleQueryParameters();
+  }
+
+  /**
+   * @method loadBranches
+   * @description Loads available educational branches from the server
+   * @returns {void}
+   */
+  private loadBranches() {
     this.branchSrv.getBranches().subscribe({
       next: (data: any) => {
-        // Assuming data might be an array directly or an object like { branches: [] }        this.branches = Array.isArray(data) ? data : (data && data.branches ? data.branches : []);
+        // Assuming data might be an array directly or an object like { branches: [] }
+        this.branches = Array.isArray(data) ? data : (data && data.branches ? data.branches : []);
+        console.log('Branches loaded:', this.branches); // Debug log
       },
       error: (err: any) => {
+        console.error('Error loading branches:', err);
         this.branches = []; // Ensure branches is empty on error
       }
+    });
+  }
+  /**
+   * @method handleQueryParameters
+   * @description Handles pre-selection of hierarchy values from query parameters
+   * @returns {void}
+   */
+  private handleQueryParameters() {
+    this.route.queryParams.subscribe(params => {
+      if (params['branchId']) {
+        this.question.branchId = params['branchId'];
+        // Wait for branches to load then load subjects
+        setTimeout(() => this.onBranchChange(params['branchId']), 100);
+      }
+      if (params['subjectId']) {
+        this.question.subjectId = params['subjectId'];
+        setTimeout(() => this.onSubjectChange(params['subjectId']), 200);
+      }
+      if (params['topicId']) {
+        this.question.topicId = params['topicId'];
+        setTimeout(() => this.onTopicChange(params['topicId']), 300);
+      }
+      if (params['subtopicId']) {
+        this.question.subtopicId = params['subtopicId'];
+      }
+      
+      // Log for debugging
+      console.log('Query params received:', params);
     });
   }
   /* --- helpers --- */

@@ -1,0 +1,380 @@
+<!-- Enhanced Hierarchy Flow Component -->
+<div class="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 py-6 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-4xl mx-auto">
+    
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Create Complete Hierarchy</h1>
+      <p class="text-gray-600">Build your educational content structure step by step</p>
+    </div>
+
+    <!-- Progress Steps -->
+    <div class="mb-8">
+      <div class="flex items-center justify-center">
+        <div class="flex items-center space-x-4">
+          <div *ngFor="let step of steps; let i = index" class="flex items-center">
+            <!-- Step Circle -->
+            <div class="flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors duration-200"
+                 [class]="step.completed ? 'bg-green-500 border-green-500 text-white' : 
+                         currentStep === step.step ? 'bg-blue-500 border-blue-500 text-white' : 
+                         'bg-white border-gray-300 text-gray-500'">
+              <svg *ngIf="step.completed" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span *ngIf="!step.completed">{{ step.step }}</span>
+            </div>
+            
+            <!-- Step Label -->
+            <div class="ml-3 text-sm font-medium"
+                 [class]="step.completed ? 'text-green-600' : 
+                         currentStep === step.step ? 'text-blue-600' : 'text-gray-500'">
+              {{ step.name }}
+              <div *ngIf="step.completed && step.data" class="text-xs text-gray-600">
+                {{ step.data.name }}
+              </div>
+            </div>
+            
+            <!-- Arrow -->
+            <div *ngIf="i < steps.length - 1" class="ml-4 flex-1 h-0.5 bg-gray-300 w-12"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="errorMessage" class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+      <div class="flex">
+        <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z"></path>
+        </svg>
+        <div class="ml-3">
+          <p class="text-sm text-red-800">{{ errorMessage }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Card -->
+    <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+      
+      <!-- Step 1: Branch -->
+      <div *ngIf="currentStep === 1" class="space-y-6">
+        <div class="border-b border-gray-200 pb-4">
+          <h2 class="text-xl font-semibold text-gray-900">Step 1: Select or Create Branch</h2>
+          <p class="text-gray-600 mt-1">Choose an existing branch or create a new one</p>
+        </div>        <!-- Branch Mode Toggle -->
+        <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+          <label class="flex items-center">
+            <input type="radio" [(ngModel)]="useExistingBranch" [value]="true" name="branchMode" class="mr-2">
+            <span class="text-sm font-medium">Use Existing Branch</span>
+            <span *ngIf="branches.length > 0" class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+              {{ branches.length }} available
+            </span>
+          </label>
+          <label class="flex items-center">
+            <input type="radio" [(ngModel)]="useExistingBranch" [value]="false" name="branchMode" class="mr-2">
+            <span class="text-sm font-medium">Create New Branch</span>
+          </label>
+        </div>
+
+        <!-- Smart Suggestion for Single Branch -->
+        <div *ngIf="branches.length === 1 && !useExistingBranch" 
+             class="flex items-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <div class="flex-1">
+            <p class="text-sm text-blue-800">
+              💡 Only one branch exists: <strong>"{{ branches[0].name }}"</strong>
+            </p>
+            <button (click)="useExistingBranch = true; selectedBranchId = branches[0]._id" 
+                    class="text-xs text-blue-600 hover:text-blue-800 underline mt-1">
+              Click to use this branch
+            </button>
+          </div>
+        </div>
+
+        <!-- Existing Branch Selection -->
+        <div *ngIf="useExistingBranch" class="space-y-4">
+          <label class="block text-sm font-medium text-gray-700">Select Branch</label>
+          <select [(ngModel)]="selectedBranchId" 
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">-- Select Branch --</option>
+            <option *ngFor="let branch of branches" [value]="branch._id">
+              {{ branch.name }}
+            </option>
+          </select>
+        </div>        <!-- New Branch Creation -->
+        <div *ngIf="!useExistingBranch" class="space-y-4">
+          <label class="block text-sm font-medium text-gray-700">Branch Name</label>
+          <input type="text" 
+                 [(ngModel)]="branchName" 
+                 (input)="onBranchNameChange()"
+                 placeholder="Enter branch name (e.g., Engineering, Medical)"
+                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          
+          <!-- Real-time Similar Branches Suggestion -->
+          <div *ngIf="similarBranches.length > 0 && branchName && !checkBranchExists()" 
+               class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="flex items-start">
+              <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <div class="flex-1">
+                <p class="text-sm text-blue-800 font-medium mb-2">💡 Similar branches found:</p>
+                <div class="space-y-1">
+                  <div *ngFor="let branch of similarBranches.slice(0, 3)" 
+                       class="flex items-center justify-between text-sm">
+                    <span class="text-blue-700">"{{ branch.name }}"</span>
+                    <button (click)="useExistingBranch = true; selectedBranchId = branch._id; branchName = ''" 
+                            class="text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded transition-colors">
+                      Use this
+                    </button>
+                  </div>
+                </div>
+                <p class="text-xs text-blue-600 mt-2">Click "Use this" to select an existing branch instead</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Duplicate Warning -->
+          <div *ngIf="branchName && checkBranchExists()" 
+               class="flex items-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <svg class="w-5 h-5 text-yellow-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z"></path>
+            </svg>
+            <div class="flex-1">
+              <p class="text-sm text-yellow-800">
+                ⚠️ Branch "{{ branchName }}" already exists. You'll be prompted to use the existing one.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 1 Actions -->
+        <div class="flex justify-between pt-4">
+          <button (click)="cancel()" 
+                  class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+            Cancel
+          </button>
+          <button (click)="handleBranchStep()" 
+                  [disabled]="(!useExistingBranch && !branchName.trim()) || (useExistingBranch && !selectedBranchId) || isLoading"
+                  class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+            <span *ngIf="isLoading">Creating...</span>
+            <span *ngIf="!isLoading">Continue to Subject</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Subject -->
+      <div *ngIf="currentStep === 2" class="space-y-6">
+        <div class="border-b border-gray-200 pb-4">
+          <h2 class="text-xl font-semibold text-gray-900">Step 2: Select or Create Subject</h2>
+          <p class="text-gray-600 mt-1">Add a subject under "{{ hierarchyData.branchName }}"</p>
+        </div>        <!-- Subject Mode Toggle -->
+        <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+          <label class="flex items-center">
+            <input type="radio" [(ngModel)]="useExistingSubject" [value]="true" name="subjectMode" class="mr-2">
+            <span class="text-sm font-medium">Use Existing Subject</span>
+            <span *ngIf="subjects.length > 0" class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+              {{ subjects.length }} available
+            </span>
+          </label>
+          <label class="flex items-center">
+            <input type="radio" [(ngModel)]="useExistingSubject" [value]="false" name="subjectMode" class="mr-2">
+            <span class="text-sm font-medium">Create New Subject</span>
+          </label>
+        </div>
+
+        <!-- Smart Suggestion for Single Subject -->
+        <div *ngIf="subjects.length === 1 && !useExistingSubject" 
+             class="flex items-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <div class="flex-1">
+            <p class="text-sm text-blue-800">
+              💡 Only one subject exists under this branch: <strong>"{{ subjects[0].name }}"</strong>
+            </p>
+            <button (click)="useExistingSubject = true; selectedSubjectId = subjects[0]._id" 
+                    class="text-xs text-blue-600 hover:text-blue-800 underline mt-1">
+              Click to use this subject
+            </button>
+          </div>
+        </div>
+
+        <!-- Existing Subject Selection -->
+        <div *ngIf="useExistingSubject" class="space-y-4">
+          <label class="block text-sm font-medium text-gray-700">Select Subject</label>
+          <select [(ngModel)]="selectedSubjectId" 
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">-- Select Subject --</option>
+            <option *ngFor="let subject of subjects" [value]="subject._id">
+              {{ subject.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- New Subject Creation -->
+        <div *ngIf="!useExistingSubject" class="space-y-4">
+          <label class="block text-sm font-medium text-gray-700">Subject Name</label>
+          <input type="text" 
+                 [(ngModel)]="subjectName" 
+                 placeholder="Enter subject name (e.g., Mathematics, Physics)"
+                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          
+          <!-- Duplicate Warning -->
+          <div *ngIf="subjectName && subjects.length > 0 && checkSubjectExists()" 
+               class="flex items-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <svg class="w-5 h-5 text-yellow-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z"></path>
+            </svg>
+            <p class="text-sm text-yellow-800">
+              Subject "{{ subjectName }}" already exists under this branch.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 2 Actions -->
+        <div class="flex justify-between pt-4">
+          <button (click)="currentStep = 1" 
+                  class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+            Back to Branch
+          </button>
+          <button (click)="handleSubjectStep()" 
+                  [disabled]="(!useExistingSubject && !subjectName.trim()) || (useExistingSubject && !selectedSubjectId) || isLoading"
+                  class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+            <span *ngIf="isLoading">Creating...</span>
+            <span *ngIf="!isLoading">Continue to Topic</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 3: Topic -->
+      <div *ngIf="currentStep === 3" class="space-y-6">
+        <div class="border-b border-gray-200 pb-4">
+          <h2 class="text-xl font-semibold text-gray-900">Step 3: Select or Create Topic</h2>
+          <p class="text-gray-600 mt-1">Add a topic under "{{ hierarchyData.subjectName }}"</p>
+        </div>        <!-- Topic Mode Toggle -->
+        <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+          <label class="flex items-center">
+            <input type="radio" [(ngModel)]="useExistingTopic" [value]="true" name="topicMode" class="mr-2">
+            <span class="text-sm font-medium">Use Existing Topic</span>
+            <span *ngIf="topics.length > 0" class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+              {{ topics.length }} available
+            </span>
+          </label>
+          <label class="flex items-center">
+            <input type="radio" [(ngModel)]="useExistingTopic" [value]="false" name="topicMode" class="mr-2">
+            <span class="text-sm font-medium">Create New Topic</span>
+          </label>
+        </div>
+
+        <!-- Smart Suggestion for Single Topic -->
+        <div *ngIf="topics.length === 1 && !useExistingTopic" 
+             class="flex items-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <div class="flex-1">
+            <p class="text-sm text-blue-800">
+              💡 Only one topic exists under this subject: <strong>"{{ topics[0].name }}"</strong>
+            </p>
+            <button (click)="useExistingTopic = true; selectedTopicId = topics[0]._id" 
+                    class="text-xs text-blue-600 hover:text-blue-800 underline mt-1">
+              Click to use this topic
+            </button>
+          </div>
+        </div>
+
+        <!-- Existing Topic Selection -->
+        <div *ngIf="useExistingTopic" class="space-y-4">
+          <label class="block text-sm font-medium text-gray-700">Select Topic</label>
+          <select [(ngModel)]="selectedTopicId" 
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">-- Select Topic --</option>
+            <option *ngFor="let topic of topics" [value]="topic._id">
+              {{ topic.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- New Topic Creation -->
+        <div *ngIf="!useExistingTopic" class="space-y-4">
+          <label class="block text-sm font-medium text-gray-700">Topic Name</label>
+          <input type="text" 
+                 [(ngModel)]="topicName" 
+                 placeholder="Enter topic name (e.g., Algebra, Mechanics)"
+                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          
+          <!-- Duplicate Warning -->
+          <div *ngIf="topicName && topics.length > 0 && checkTopicExists()" 
+               class="flex items-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <svg class="w-5 h-5 text-yellow-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z"></path>
+            </svg>
+            <p class="text-sm text-yellow-800">
+              Topic "{{ topicName }}" already exists under this subject.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 3 Actions -->
+        <div class="flex justify-between pt-4">
+          <button (click)="currentStep = 2" 
+                  class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+            Back to Subject
+          </button>
+          <button (click)="handleTopicStep()" 
+                  [disabled]="(!useExistingTopic && !topicName.trim()) || (useExistingTopic && !selectedTopicId) || isLoading"
+                  class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+            <span *ngIf="isLoading">Creating...</span>
+            <span *ngIf="!isLoading">Continue to Subtopic</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 4: Subtopic -->
+      <div *ngIf="currentStep === 4" class="space-y-6">
+        <div class="border-b border-gray-200 pb-4">
+          <h2 class="text-xl font-semibold text-gray-900">Step 4: Create Subtopic</h2>
+          <p class="text-gray-600 mt-1">Add a subtopic under "{{ hierarchyData.topicName }}"</p>
+        </div>
+
+        <!-- Subtopic Creation -->
+        <div class="space-y-4">
+          <label class="block text-sm font-medium text-gray-700">Subtopic Name</label>
+          <input type="text" 
+                 [(ngModel)]="subtopicName" 
+                 placeholder="Enter subtopic name (e.g., Linear Equations, Newton's Laws)"
+                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          
+          <!-- Hierarchy Summary -->
+          <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 class="text-sm font-medium text-blue-900 mb-2">Complete Hierarchy Preview:</h4>
+            <div class="text-sm text-blue-800 space-y-1">
+              <div>📁 Branch: <strong>{{ hierarchyData.branchName }}</strong></div>
+              <div>📚 Subject: <strong>{{ hierarchyData.subjectName }}</strong></div>
+              <div>📖 Topic: <strong>{{ hierarchyData.topicName }}</strong></div>
+              <div>📄 Subtopic: <strong>{{ subtopicName || 'To be created...' }}</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4 Actions -->
+        <div class="flex justify-between pt-4">
+          <button (click)="currentStep = 3" 
+                  class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+            Back to Topic
+          </button>
+          <button (click)="handleSubtopicStep()" 
+                  [disabled]="!subtopicName.trim() || isLoading"
+                  class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+            <span *ngIf="isLoading">Creating...</span>
+            <span *ngIf="!isLoading">Complete Hierarchy</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

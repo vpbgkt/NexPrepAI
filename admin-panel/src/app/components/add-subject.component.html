@@ -1,20 +1,48 @@
 <!-- Modern Add Subject Form with Tailwind CSS -->
 <div class="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 py-6 px-4 sm:px-6 lg:px-8">
   <div class="max-w-md mx-auto">
+    
+    <!-- Cascade Flow Breadcrumb -->
+    <div *ngIf="cascadeFlow" class="mb-6 bg-white rounded-lg shadow-md p-4 border-l-4 border-green-500">
+      <h3 class="text-sm font-semibold text-gray-800 mb-2 flex items-center">
+        <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        Hierarchy Creation Flow - Step 2 of 4
+      </h3>
+      <nav class="text-xs">
+        <ol class="flex items-center space-x-2">
+          <li class="flex items-center text-green-600">
+            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+            </svg>
+            <strong>{{hierarchyData.branchName}}</strong>
+          </li>
+          <li class="text-gray-400">→</li>
+          <li class="text-blue-600 font-medium">Add Subject</li>
+          <li class="text-gray-400">→</li>
+          <li class="text-gray-400">Add Topic</li>
+          <li class="text-gray-400">→</li>
+          <li class="text-gray-400">Add Subtopic</li>
+        </ol>
+      </nav>
+    </div>
+
     <!-- Form Header -->
     <div class="text-center mb-8">
       <h2 class="text-3xl font-bold text-gray-900 mb-2">Add New Subject</h2>
-      <p class="text-gray-600">Create a new subject for your curriculum</p>
+      <p class="text-gray-600" *ngIf="!cascadeFlow">Create a new subject for your curriculum</p>
+      <p class="text-gray-600" *ngIf="cascadeFlow">Add a subject under <strong>{{hierarchyData.branchName}}</strong></p>
     </div>
 
     <!-- Form Card -->
     <div class="bg-white rounded-2xl shadow-lg p-8">
       <form #subjectForm="ngForm" (ngSubmit)="submitSubject(subjectForm)" class="space-y-6">
-        
-        <!-- Branch Selection -->
+          <!-- Branch Selection -->
         <div class="form-group">
           <label for="branch" class="block text-sm font-semibold text-gray-700 mb-2">
             Select Branch <span class="text-red-500">*</span>
+            <span *ngIf="cascadeFlow" class="ml-2 text-xs text-green-600 font-medium">(Pre-selected from cascade)</span>
           </label>
           <div class="relative">
             <select
@@ -23,7 +51,10 @@
               required
               [(ngModel)]="selectedBranchId"
               ngModel
-              class="form-select w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors appearance-none bg-white"
+              [disabled]="cascadeFlow"
+              [class]="cascadeFlow ? 
+                'form-select w-full px-4 py-3 border border-green-300 rounded-lg bg-green-50 text-green-800 cursor-not-allowed' :
+                'form-select w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors appearance-none bg-white'"
             >
               <option value="">-- Select Branch --</option>
               <option value="none">None</option>

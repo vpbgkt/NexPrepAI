@@ -36,6 +36,7 @@ import { AddExamPaperComponent }  from './components/exam-paper/add-exam-paper/a
 import { ExamShiftListComponent } from './components/exam-shift/exam-shift-list/exam-shift-list.component';
 import { AddExamShiftComponent }  from './components/exam-shift/add-exam-shift/add-exam-shift.component';
 
+import { HierarchyFlowComponent }    from './components/hierarchy-flow/hierarchy-flow.component';
 import { UserManagementComponent } from './components/user-management/user-management.component'; // Import the new UserManagementComponent
 
 import { AdminGuard }   from './guards/admin.guard';
@@ -78,8 +79,8 @@ export const routes: Routes = [
       { path: 'question-editor',      component: QuestionEditorComponent }, // NEW: Enhanced question editor with math and image support
       { path: 'questions/edit/:id',   component: EditQuestionComponent },
       { path: 'questions/:id/view',   component: QuestionDetailComponent, canActivate: [AdminGuard] }, // ADDED
-      { path: 'questions/review',     component: QuestionReviewComponent, canActivate: [superadminGuard] }, // Protected by superadminGuard
-      // Hierarchy CRUD
+      { path: 'questions/review',     component: QuestionReviewComponent, canActivate: [superadminGuard] }, // Protected by superadminGuard      // Hierarchy CRUD
+      { path: 'hierarchy-flow',  component: HierarchyFlowComponent }, // Enhanced hierarchy creation flow
       { path: 'branches',       component: HomeComponent, data: { hierarchySection: 'branches' } },
       { path: 'branches/new',   component: AddBranchComponent },
       { path: 'subjects',       component: HomeComponent, data: { hierarchySection: 'subjects' } },

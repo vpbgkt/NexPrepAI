@@ -1,7 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { BranchService } from '../../services/branch.service';
 
 @Component({
@@ -11,18 +11,28 @@ import { BranchService } from '../../services/branch.service';
   templateUrl: './add-branch.component.html',
   styleUrls: ['./add-branch.component.scss']
 })
-export class AddBranchComponent {
+export class AddBranchComponent implements OnInit {
 
   // Holds the new branch name entered by admin
   branchName = '';
 
   // Manages UI loading state
   isLoading = false;
+  
+  // Cascade flow properties
+  cascadeFlow = false;
 
   constructor(
     private branchService: BranchService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
+  ngOnInit(): void {
+    // Check for cascade flow parameters
+    this.route.queryParams.subscribe(params => {
+      this.cascadeFlow = params['cascade'] === 'true';
+    });
+  }
 
   // Called on form submission
   addBranch(form: NgForm) {
@@ -32,11 +42,25 @@ export class AddBranchComponent {
     }
 
     this.isLoading = true;
-
     this.branchService.createBranch(this.branchName).subscribe({
-      next: () => {
-        alert('Branch created successfully!');
-        this.router.navigate(['/questions']);
+      next: (response) => {
+        console.log('✅ Branch created successfully:', response);
+        
+        if (this.cascadeFlow) {
+          // 🚀 Redirect to Add Subject with branch data for cascade flow
+          this.router.navigate(['/subjects/new'], {
+            queryParams: {
+              branchId: response._id || response.id,
+              branchName: response.name,
+              cascade: 'true',
+              step: 'subject'
+            }
+          });
+        } else {
+          // Normal flow - redirect to questions
+          alert('Branch created successfully!');
+          this.router.navigate(['/questions']);
+        }
       },
       error: (error) => {
         console.error('Error creating branch:', error);

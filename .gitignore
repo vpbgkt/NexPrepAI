@@ -133,6 +133,10 @@ build/
 dist/
 out/
 
+# Admin panel build files (should not be committed)
+backend/public/admin/
+backend/public/admin/**
+
 # Database
 *.sqlite
 *.db

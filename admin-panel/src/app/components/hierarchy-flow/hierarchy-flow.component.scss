@@ -1,0 +1,56 @@
+// Hierarchy Flow Component Styles
+
+.step-container {
+  transition: all 0.3s ease-in-out;
+}
+
+.step-circle {
+  transition: all 0.2s ease-in-out;
+}
+
+.step-circle.active {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.step-circle.completed {
+  transform: scale(1.05);
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+}
+
+.warning-box {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.form-input:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.btn-primary {
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-primary:disabled {
+  transform: none;
+  box-shadow: none;
+}
+
+.hierarchy-preview {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+}
