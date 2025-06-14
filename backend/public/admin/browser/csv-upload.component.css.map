@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/app/components/csv-upload/csv-upload.component.scss"],
-  "sourcesContent": ["/**\r\n * @fileoverview CSV Upload Component Styles\r\n * @description Minimal SCSS for CSV upload component using Tailwind CSS\r\n * \r\n * @author NexPrep Development Team\r\n * @since 1.0.0\r\n */\r\n\r\n/* Enhanced hover effects for upload area */\r\n.border-dashed:hover {\r\n  background-color: rgba(59, 130, 246, 0.02);\r\n}\r\n  "],
-  "mappings": ";AASA,CAAA,aAAA;AACE,oBAAA,KAAA,EAAA,EAAA,GAAA,EAAA,GAAA,EAAA;;",
-  "names": []
-}

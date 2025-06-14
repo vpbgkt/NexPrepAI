@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/app/components/exam-stream/add-exam-stream/add-exam-stream.component.scss"],
-  "sourcesContent": ["/**\r\n * @fileoverview Add Exam Stream Component Styles\r\n * @description Minimal SCSS for add exam stream component using Tailwind CSS\r\n * \r\n * @author NexPrep Development Team\r\n * @since 1.0.0\r\n */\r\n\r\n/* Custom focus styles for form elements */\r\n.form-group select:focus,\r\n.form-group input:focus {\r\n  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);\r\n}\r\n\r\n/* Enhanced button hover animation */\r\nbutton[type=\"submit\"]:hover:not(:disabled) {\r\n  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);\r\n}\r\n"],
-  "mappings": ";AASA,CAAA,WAAA,MAAA;AAAA,CAAA,WAAA,KAAA;AAEE,cAAA,EAAA,EAAA,EAAA,IAAA,KAAA,EAAA,EAAA,GAAA,EAAA,GAAA,EAAA;;AAIF,MAAA,CAAA,YAAA,MAAA,KAAA;AACE,cAAA,EAAA,KAAA,KAAA,KAAA,EAAA,EAAA,GAAA,EAAA,GAAA,EAAA;;",
-  "names": []
-}

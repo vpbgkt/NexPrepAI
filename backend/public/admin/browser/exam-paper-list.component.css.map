@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/app/components/exam-paper/exam-paper-list/exam-paper-list.component.scss"],
-  "sourcesContent": ["/**\r\n * @fileoverview Exam Paper List Component Styles\r\n * @description Minimal SCSS for exam paper list component using Tailwind CSS\r\n * \r\n * @author NexPrep Development Team\r\n * @since 1.0.0\r\n */\r\n\r\n/* Smooth scrolling for tables */\r\n.overflow-x-auto {\r\n  scrollbar-width: thin;\r\n  scrollbar-color: #cbd5e0 #f7fafc;\r\n}\r\n\r\n.overflow-x-auto::-webkit-scrollbar {\r\n  height: 6px;\r\n}\r\n\r\n.overflow-x-auto::-webkit-scrollbar-track {\r\n  background: #f7fafc;\r\n  border-radius: 3px;\r\n}\r\n\r\n.overflow-x-auto::-webkit-scrollbar-thumb {\r\n  background: #cbd5e0;\r\n  border-radius: 3px;\r\n}\r\n\r\n.overflow-x-auto::-webkit-scrollbar-thumb:hover {\r\n  background: #a0aec0;\r\n}"],
-  "mappings": ";AASA,CAAA;AACE,mBAAA;AACA,mBAAA,QAAA;;AAGF,CALA,eAKA;AACE,UAAA;;AAGF,CATA,eASA;AACE,cAAA;AACA,iBAAA;;AAGF,CAdA,eAcA;AACE,cAAA;AACA,iBAAA;;AAGF,CAnBA,eAmBA,yBAAA;AACE,cAAA;;",
-  "names": []
-}

@@ -1,1 +1,355 @@
-<p>question-editor works!</p>
+<div class="question-editor-container">
+  <div class="editor-header">
+    <h2 class="editor-title">Question Editor</h2>
+    <div class="editor-actions">
+      <button type="button" 
+              class="btn btn-outline" 
+              (click)="togglePreview()">
+        <span class="material-icons-outlined">{{ showPreview ? 'edit' : 'preview' }}</span>
+        {{ showPreview ? 'Edit' : 'Preview' }}
+      </button>
+      <button type="button" 
+              class="btn btn-primary" 
+              (click)="saveQuestion()"
+              [disabled]="!isValid()">
+        <span class="material-icons-outlined">save</span>
+        Save Question
+      </button>
+    </div>
+  </div>
+
+  <div class="editor-content" [class.preview-mode]="showPreview">
+      <!-- Edit Mode -->
+    <div *ngIf="!showPreview" class="edit-mode">
+      
+      <!-- Subject Hierarchy - Step 1 -->
+      <div class="editor-section hierarchy-section">
+        <label class="section-label">
+          <span class="material-icons-outlined">account_tree</span>
+          Subject Hierarchy (Required for Image Categorization)
+        </label>
+        <div class="hierarchy-grid">
+          <div class="field-group">
+            <label class="field-label">Branch *</label>
+            <select class="form-select" [(ngModel)]="selectedBranchId" (ngModelChange)="onBranchChange()">
+              <option value="">Select Branch</option>
+              <option *ngFor="let branch of branches" [value]="branch._id">{{ branch.name }}</option>
+            </select>
+            <div *ngIf="!selectedBranchId" class="field-hint">Select branch first to enable image uploads</div>
+          </div>
+          
+          <div class="field-group">
+            <label class="field-label">Subject *</label>
+            <select class="form-select" [(ngModel)]="selectedSubjectId" (ngModelChange)="onSubjectChange()" [disabled]="!selectedBranchId">
+              <option value="">Select Subject</option>
+              <option *ngFor="let subject of filteredSubjects" [value]="subject._id">{{ subject.name }}</option>
+            </select>
+          </div>
+          
+          <div class="field-group">
+            <label class="field-label">Topic *</label>
+            <select class="form-select" [(ngModel)]="selectedTopicId" (ngModelChange)="onTopicChange()" [disabled]="!selectedSubjectId">
+              <option value="">Select Topic</option>
+              <option *ngFor="let topic of filteredTopics" [value]="topic._id">{{ topic.name }}</option>
+            </select>
+          </div>
+        </div>
+        <div *ngIf="isHierarchyComplete()" class="hierarchy-complete">
+          <span class="material-icons-outlined text-green-600">check_circle</span>
+          <span class="text-green-600">Hierarchy complete - Image uploads are now enabled</span>
+        </div>
+      </div>
+
+      <!-- Question Text Editor -->
+      <div class="editor-section">
+        <label class="section-label">Question Text</label>
+        <div class="textarea-container">
+          <textarea 
+            class="question-textarea"
+            [(ngModel)]="questionText"
+            placeholder="Enter your question text here. Use LaTeX for math: \(...\) for inline, \[...\] for display math"
+            rows="6">
+          </textarea>
+        </div>
+        
+        <!-- Mathematical Symbols Toolbar -->
+        <div class="math-toolbar">
+          <div class="toolbar-section">
+            <h4 class="toolbar-title">Greek Letters</h4>
+            <div class="symbol-grid">
+              <button *ngFor="let symbol of greekSymbols" 
+                      type="button"
+                      class="symbol-btn"
+                      (click)="insertSymbol(symbol.latex)"
+                      [title]="symbol.name">
+                {{ symbol.symbol }}
+              </button>
+            </div>
+          </div>
+          
+          <div class="toolbar-section">
+            <h4 class="toolbar-title">Operators</h4>
+            <div class="symbol-grid">
+              <button *ngFor="let symbol of operators" 
+                      type="button"
+                      class="symbol-btn"
+                      (click)="insertSymbol(symbol.latex)"
+                      [title]="symbol.name">
+                {{ symbol.symbol }}
+              </button>
+            </div>
+          </div>
+          
+          <div class="toolbar-section">
+            <h4 class="toolbar-title">Relations</h4>
+            <div class="symbol-grid">
+              <button *ngFor="let symbol of relations" 
+                      type="button"
+                      class="symbol-btn"
+                      (click)="insertSymbol(symbol.latex)"
+                      [title]="symbol.name">
+                {{ symbol.symbol }}
+              </button>
+            </div>
+          </div>
+          
+          <div class="toolbar-section">
+            <h4 class="toolbar-title">Common Expressions</h4>
+            <div class="expression-grid">
+              <button *ngFor="let expr of commonExpressions" 
+                      type="button"
+                      class="expression-btn"
+                      (click)="insertSymbol(expr.latex)"
+                      [title]="expr.description">
+                {{ expr.display }}
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Text Formatting Tools -->
+        <div class="formatting-toolbar">
+          <h4 class="toolbar-title">Text Formatting</h4>
+          <div class="formatting-buttons">
+            <button type="button" 
+                    class="format-btn" 
+                    (click)="applyFormatting('bold')"
+                    title="Bold">
+              <strong>B</strong>
+            </button>
+            <button type="button" 
+                    class="format-btn" 
+                    (click)="applyFormatting('italic')"
+                    title="Italic">
+              <em>I</em>
+            </button>
+            <button type="button" 
+                    class="format-btn" 
+                    (click)="applyFormatting('bullet')"
+                    title="Bullet Point">
+              <span class="material-icons-outlined">format_list_bulleted</span>
+            </button>
+          </div>        </div>
+      </div>
+
+      <!-- Question Image Upload -->
+      <div class="editor-section">
+        <label class="section-label">
+          <span class="material-icons-outlined">image</span>
+          Question Image (Optional)
+        </label>
+        <div class="image-upload-container">
+          <div class="upload-area" [class.disabled]="!isHierarchyComplete()">
+            <input type="file" 
+                   id="questionImage" 
+                   class="file-input" 
+                   (change)="onQuestionImageSelected($event)"
+                   accept="image/png,image/jpeg,image/jpg,image/gif"
+                   [disabled]="!isHierarchyComplete()">
+            <label for="questionImage" class="file-label" [class.disabled]="!isHierarchyComplete()">
+              <span class="material-icons-outlined">cloud_upload</span>
+              <span *ngIf="!questionImageFile">Choose Question Image</span>
+              <span *ngIf="questionImageFile">{{ questionImageFile.name }}</span>
+            </label>
+            <div *ngIf="!isHierarchyComplete()" class="upload-disabled-message">
+              Complete subject hierarchy to enable image upload
+            </div>
+          </div>
+          
+          <!-- Upload Status -->
+          <div *ngIf="questionImageFile" class="upload-status">
+            <div *ngIf="questionImageUploadStatus === 'uploading'" class="status-uploading">
+              <span class="material-icons-outlined spinning">sync</span>
+              Uploading question image...
+            </div>
+            <div *ngIf="questionImageUploadStatus === 'success'" class="status-success">
+              <span class="material-icons-outlined">check_circle</span>
+              Question image uploaded successfully
+            </div>
+            <div *ngIf="questionImageUploadStatus === 'error'" class="status-error">
+              <span class="material-icons-outlined">error</span>
+              Failed to upload question image. <button type="button" class="retry-btn" (click)="retryQuestionImageUpload()">Retry</button>
+            </div>
+          </div>
+          
+          <!-- Image Preview -->
+          <div *ngIf="questionImagePreviewUrl" class="image-preview">
+            <img [src]="questionImagePreviewUrl" alt="Question Image Preview" class="preview-image">
+            <button type="button" class="remove-image-btn" (click)="removeQuestionImage()">
+              <span class="material-icons-outlined">close</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Options Editor -->
+      <div class="editor-section">
+        <label class="section-label">Answer Options</label>
+        <div class="options-container">
+          <div *ngFor="let option of options; let i = index" class="option-editor">
+            <div class="option-header">
+              <span class="option-label">Option {{ String.fromCharCode(65 + i) }}</span>
+              <div class="option-controls">
+                <label class="checkbox-label">
+                  <input type="radio" 
+                         name="correctAnswer" 
+                         [value]="i"
+                         [(ngModel)]="correctAnswerIndex">
+                  <span class="checkmark"></span>
+                  Correct Answer
+                </label>
+                <button type="button" 
+                        class="btn-icon btn-danger" 
+                        (click)="removeOption(i)"
+                        [disabled]="options.length <= 2"
+                        title="Remove Option">
+                  <span class="material-icons-outlined">delete</span>
+                </button>
+              </div>
+            </div>            <textarea 
+              class="option-textarea"
+              [(ngModel)]="option.text"
+              placeholder="Enter option text (LaTeX supported)"
+              rows="2">
+            </textarea>
+            
+            <!-- Option Image Upload -->
+            <div class="option-image-upload">
+              <div class="upload-area small" [class.disabled]="!isHierarchyComplete()">
+                <input type="file" 
+                       [id]="'optionImage' + i" 
+                       class="file-input" 
+                       (change)="onOptionImageSelected($event, i)"
+                       accept="image/png,image/jpeg,image/jpg,image/gif"
+                       [disabled]="!isHierarchyComplete()">
+                <label [for]="'optionImage' + i" class="file-label small" [class.disabled]="!isHierarchyComplete()">
+                  <span class="material-icons-outlined">image</span>
+                  <span *ngIf="!option.imageFile">Add Image</span>
+                  <span *ngIf="option.imageFile">{{ option.imageFile.name }}</span>
+                </label>
+              </div>
+              
+              <!-- Option Image Upload Status -->
+              <div *ngIf="option.imageFile" class="upload-status small">
+                <div *ngIf="option.uploadStatus === 'uploading'" class="status-uploading">
+                  <span class="material-icons-outlined spinning">sync</span>
+                  Uploading...
+                </div>
+                <div *ngIf="option.uploadStatus === 'success'" class="status-success">
+                  <span class="material-icons-outlined">check_circle</span>
+                  Uploaded
+                </div>
+                <div *ngIf="option.uploadStatus === 'error'" class="status-error">
+                  <span class="material-icons-outlined">error</span>
+                  Failed <button type="button" class="retry-btn" (click)="retryOptionImageUpload(i)">Retry</button>
+                </div>
+              </div>
+              
+              <!-- Option Image Preview -->
+              <div *ngIf="option.imagePreviewUrl" class="image-preview small">
+                <img [src]="option.imagePreviewUrl" alt="Option Image Preview" class="preview-image">
+                <button type="button" class="remove-image-btn" (click)="removeOptionImage(i)">
+                  <span class="material-icons-outlined">close</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <button type="button" 
+                  class="btn btn-outline add-option-btn" 
+                  (click)="addOption()"
+                  [disabled]="options.length >= 6">
+            <span class="material-icons-outlined">add</span>
+            Add Option
+          </button>
+        </div>
+      </div>      <!-- Question Metadata -->
+      <div class="editor-section">
+        <label class="section-label">Additional Details</label>
+        <div class="metadata-grid">
+          <div class="field-group">
+            <label class="field-label">Difficulty</label>
+            <select class="form-select" [(ngModel)]="difficulty">
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
+          
+          <div class="field-group">
+            <label class="field-label">Points</label>
+            <input type="number" 
+                   class="form-input" 
+                   [(ngModel)]="points" 
+                   min="1" 
+                   max="10">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview Mode -->
+    <div *ngIf="showPreview" class="preview-mode">
+      <div class="preview-container">
+        <h3 class="preview-title">Question Preview</h3>
+          <div class="preview-question">
+          <div class="question-content">
+            <app-math-display 
+              [content]="questionText" 
+              [allowFormatting]="true"
+              class="question-text">
+            </app-math-display>
+          </div>
+          
+          <div class="preview-options">
+            <div *ngFor="let option of options; let i = index" 
+                 class="preview-option"
+                 [class.correct-option]="i === correctAnswerIndex">
+              <div class="option-indicator">
+                <span class="option-letter">{{ String.fromCharCode(65 + i) }}</span>
+                <span *ngIf="i === correctAnswerIndex" class="correct-badge">✓ Correct</span>
+              </div>
+              <div class="option-content">
+                <app-math-display 
+                  [content]="option.text" 
+                  [allowFormatting]="true">
+                </app-math-display>
+              </div>
+            </div>
+          </div>
+          
+          <div class="preview-metadata">
+            <div class="metadata-item">
+              <span class="metadata-label">Difficulty:</span>
+              <span class="metadata-value">{{ difficulty }}</span>
+            </div>
+            <div class="metadata-item">
+              <span class="metadata-label">Points:</span>
+              <span class="metadata-value">{{ points }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

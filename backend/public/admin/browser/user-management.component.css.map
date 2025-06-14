@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/app/components/user-management/user-management.component.scss"],
-  "sourcesContent": ["/* \r\n * User Management Component - Converted to Tailwind CSS\r\n * All styles are now handled by Tailwind utility classes in the HTML template\r\n * This file is kept minimal for any component-specific custom styles\r\n */\r\n\r\n/* Custom animations or transitions that aren't easily achieved with Tailwind */\r\n.user-avatar-transition {\r\n  @apply transition-all duration-200 ease-in-out;\r\n}\r\n\r\n/* Custom focus styles for form inputs (if needed beyond Tailwind defaults) */\r\n.enhanced-focus {\r\n  @apply focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50;\r\n}\r\n"],
-  "mappings": ";AAQE,CAAA;AAAA,uBAAA;AAAA,uBAAA;AAAA,8BAAA,aAAA,GAAA,EAAA,CAAA,EAAA,GAAA,EAAA;AAAA;AAKA,CAAA,cAAA;AAAA,2BAAA,IAAA,iBAAA,EAAA,EAAA,EAAA,IAAA,wBAAA,IAAA;AAAA,oBAAA,IAAA,iBAAA,EAAA,EAAA,EAAA,KAAA,IAAA,EAAA,IAAA,yBAAA,IAAA;AAAA;IAAA,IAAA,wBAAA;IAAA,IAAA,iBAAA;IAAA,IAAA,WAAA,EAAA,EAAA,EAAA;AAAA,mBAAA,IAAA,GAAA,IAAA,IAAA,EAAA,IAAA,iBAAA,EAAA;AAAA,qBAAA;AAAA;",
-  "names": []
-}
