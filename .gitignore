@@ -103,6 +103,14 @@ logs
 .env.production.local
 backend/.env
 
+# Environment files
+.env
+.env.prod
+.env.dev
+backend/.env
+backend/.env.prod
+backend/.env.dev
+
 # IDEs and editors
 .vscode/
 .idea/
