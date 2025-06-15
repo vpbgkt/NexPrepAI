@@ -189,36 +189,59 @@ export class AddQuestionComponent implements OnInit {
   /** @property {Map<string, string>} uploadProgress - Upload progress for each image */
   uploadProgress = new Map<string, string>();  /** @property {Map<string, string>} previewUrls - Preview URLs for selected files */
   previewUrls = new Map<string, string>();
-
   // Mathematical symbols for toolbar
   greekSymbols = [
-    { symbol: 'α', latex: '\\alpha', name: 'alpha' },
-    { symbol: 'β', latex: '\\beta', name: 'beta' },
-    { symbol: 'γ', latex: '\\gamma', name: 'gamma' },
-    { symbol: 'δ', latex: '\\delta', name: 'delta' },
-    { symbol: 'ε', latex: '\\epsilon', name: 'epsilon' },
-    { symbol: 'π', latex: '\\pi', name: 'pi' },
-    { symbol: 'λ', latex: '\\lambda', name: 'lambda' },
-    { symbol: 'μ', latex: '\\mu', name: 'mu' },
-    { symbol: 'σ', latex: '\\sigma', name: 'sigma' },
-    { symbol: 'θ', latex: '\\theta', name: 'theta' },
-    { symbol: 'Ω', latex: '\\Omega', name: 'Omega' },
-    { symbol: 'Δ', latex: '\\Delta', name: 'Delta' }
+    { symbol: 'α', latex: '\\alpha', name: 'Alpha' },
+    { symbol: 'β', latex: '\\beta', name: 'Beta' },
+    { symbol: 'γ', latex: '\\gamma', name: 'Gamma' },
+    { symbol: 'δ', latex: '\\delta', name: 'Delta' },
+    { symbol: 'ε', latex: '\\epsilon', name: 'Epsilon' },
+    { symbol: 'θ', latex: '\\theta', name: 'Theta' },
+    { symbol: 'λ', latex: '\\lambda', name: 'Lambda' },
+    { symbol: 'μ', latex: '\\mu', name: 'Mu' },
+    { symbol: 'π', latex: '\\pi', name: 'Pi' },
+    { symbol: 'σ', latex: '\\sigma', name: 'Sigma' },
+    { symbol: 'φ', latex: '\\phi', name: 'Phi' },
+    { symbol: 'ω', latex: '\\omega', name: 'Omega' }
   ];
 
   operators = [
-    { symbol: '≤', latex: '\\leq', name: 'less than or equal' },
-    { symbol: '≥', latex: '\\geq', name: 'greater than or equal' },
-    { symbol: '≠', latex: '\\neq', name: 'not equal' },
-    { symbol: '∞', latex: '\\infty', name: 'infinity' },
-    { symbol: '∑', latex: '\\sum', name: 'sum' },
-    { symbol: '∏', latex: '\\prod', name: 'product' },
-    { symbol: '∫', latex: '\\int', name: 'integral' },
-    { symbol: '√', latex: '\\sqrt{}', name: 'square root' },
-    { symbol: '±', latex: '\\pm', name: 'plus minus' },
-    { symbol: '∈', latex: '\\in', name: 'element of' },
-    { symbol: '⊂', latex: '\\subset', name: 'subset' },
-    { symbol: '∀', latex: '\\forall', name: 'for all' }
+    { symbol: '±', latex: '\\pm', name: 'Plus-minus' },
+    { symbol: '×', latex: '\\times', name: 'Times' },
+    { symbol: '÷', latex: '\\div', name: 'Division' },
+    { symbol: '≠', latex: '\\neq', name: 'Not equal' },
+    { symbol: '≤', latex: '\\leq', name: 'Less than or equal' },
+    { symbol: '≥', latex: '\\geq', name: 'Greater than or equal' },
+    { symbol: '∞', latex: '\\infty', name: 'Infinity' },
+    { symbol: '√', latex: '\\sqrt{}', name: 'Square root' },
+    { symbol: '∑', latex: '\\sum', name: 'Sum' },
+    { symbol: '∫', latex: '\\int', name: 'Integral' }
+  ];
+
+  relations = [
+    { symbol: '≈', latex: '\\approx', name: 'Approximately' },
+    { symbol: '≡', latex: '\\equiv', name: 'Equivalent' },
+    { symbol: '∈', latex: '\\in', name: 'Element of' },
+    { symbol: '∉', latex: '\\notin', name: 'Not element of' },
+    { symbol: '⊂', latex: '\\subset', name: 'Subset' },
+    { symbol: '⊃', latex: '\\supset', name: 'Superset' },
+    { symbol: '∪', latex: '\\cup', name: 'Union' },
+    { symbol: '∩', latex: '\\cap', name: 'Intersection' }
+  ];
+
+  commonExpressions = [
+    { display: 'x²', latex: 'x^2', description: 'X squared' },
+    { display: 'x³', latex: 'x^3', description: 'X cubed' },
+    { display: '2ⁿ', latex: '2^n', description: '2 to the power n' },
+    { display: 'aⁿ', latex: 'a^n', description: 'A to the power n' },
+    { display: 'x₁', latex: 'x_1', description: 'X subscript 1' },
+    { display: '½', latex: '\\frac{1}{2}', description: 'One half' },
+    { display: '¼', latex: '\\frac{1}{4}', description: 'One quarter' },
+    { display: '¾', latex: '\\frac{3}{4}', description: 'Three quarters' },
+    { display: 'a/b', latex: '\\frac{a}{b}', description: 'General fraction' },
+    { display: '∛x', latex: '\\sqrt[3]{x}', description: 'Cube root of x' },
+    { display: 'log₂', latex: '\\log_2', description: 'Log base 2' },
+    { display: 'eˣ', latex: 'e^x', description: 'E to the power x' }
   ];
 
   /* ───────────────────────────────────── */

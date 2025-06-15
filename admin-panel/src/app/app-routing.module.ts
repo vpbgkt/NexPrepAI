@@ -14,7 +14,6 @@ import { SeriesAnalyticsComponent }  from './components/series-analytics/series-
 import { QuestionListComponent }      from './components/question-list/question-list.component';
 import { AddQuestionComponent }       from './components/add-question/add-question.component';
 import { EditQuestionComponent }      from './components/edit-question/edit-question.component';
-import { QuestionEditorComponent }    from './components/question-editor/question-editor.component';
 import { QuestionDetailComponent }    from './components/question-detail/question-detail.component'; // ADDED
 import { QuestionReviewComponent }    from './components/question-review/question-review.component'; // Import the review component
 
@@ -76,7 +75,6 @@ export const routes: Routes = [
       { path: 'build-paper',          component: BuildPaperComponent },      // Question bank
       { path: 'questions',            component: QuestionListComponent },
       { path: 'add-question',         component: AddQuestionComponent },
-      { path: 'question-editor',      component: QuestionEditorComponent }, // NEW: Enhanced question editor with math and image support
       { path: 'questions/edit/:id',   component: EditQuestionComponent },
       { path: 'questions/:id/view',   component: QuestionDetailComponent, canActivate: [AdminGuard] }, // ADDED
       { path: 'questions/review',     component: QuestionReviewComponent, canActivate: [superadminGuard] }, // Protected by superadminGuard      // Hierarchy CRUD

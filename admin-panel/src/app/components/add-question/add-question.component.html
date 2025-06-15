@@ -176,8 +176,7 @@
               </div>
             </div>
 
-            <!-- Mathematical Symbols Toolbar -->
-            <div class="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <!-- Mathematical Symbols Toolbar -->            <div class="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
               <h4 class="text-sm font-medium text-gray-700 mb-2">📐 Mathematical Symbols</h4>
               
               <div class="space-y-3">
@@ -205,6 +204,34 @@
                       (click)="insertSymbol(symbol.latex)"
                       [title]="symbol.name">
                       {{ symbol.symbol }}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <h5 class="text-xs font-medium text-gray-600 mb-1">Relations</h5>
+                  <div class="flex flex-wrap gap-1">
+                    <button 
+                      *ngFor="let symbol of relations" 
+                      type="button"
+                      class="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                      (click)="insertSymbol(symbol.latex)"
+                      [title]="symbol.name">
+                      {{ symbol.symbol }}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <h5 class="text-xs font-medium text-gray-600 mb-1">Common Expressions</h5>
+                  <div class="flex flex-wrap gap-1">
+                    <button 
+                      *ngFor="let expr of commonExpressions" 
+                      type="button"
+                      class="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-green-50 hover:border-green-300 transition-colors"
+                      (click)="insertSymbol(expr.latex)"
+                      [title]="expr.description">
+                      {{ expr.display }}
                     </button>
                   </div>
                 </div>
