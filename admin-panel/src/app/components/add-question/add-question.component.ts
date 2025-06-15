@@ -705,12 +705,10 @@ export class AddQuestionComponent implements OnInit {
         // Ensure options, explanations, and images are arrays
         pack.options = Array.isArray(pack.options) ? pack.options : [];
         pack.explanations = Array.isArray(pack.explanations) ? pack.explanations : [];
-        pack.images = Array.isArray(pack.images) ? pack.images : [];
-
-        return {
+        pack.images = Array.isArray(pack.images) ? pack.images : [];        return {
           lang: lang as LangCode,
           questionText: pack.questionText,
-          options: pack.options.filter(o => o.text && o.text.trim()), // Filter out empty options
+          options: pack.options.filter(o => (o.text && o.text.trim()) || (o.img && o.img.trim())), // Allow options with text OR image
           explanations: pack.explanations,
           images: pack.images.filter(img => img && img.trim() !== '') // Filter out empty image URLs
         };
