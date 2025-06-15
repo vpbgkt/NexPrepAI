@@ -70,12 +70,10 @@ const questionSchema = new Schema(
       type: [translationSchema],
       validate: v => Array.isArray(v) && v.length >= 1,
       required: true
-    },
-
-    // Removed marks and negativeMarks fields
+    },    // Removed marks and negativeMarks fields
     difficulty: {
       type: String,
-      enum: ['Easy', 'Medium', 'Hard', 'Not-mentioned'],
+      enum: ['Very Easy', 'Easy', 'Medium', 'Hard', 'Very Hard', 'Not-mentioned'],
       default: 'Medium'
     },
     type:          { type: String, enum: ['single', 'multiple', 'integer', 'matrix'], default: 'single' }, // NEW

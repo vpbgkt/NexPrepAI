@@ -84,8 +84,7 @@
 
   <!-- Difficulty -->
   <div>
-    <label for="difficulty">Difficulty:</label>
-    <select
+    <label for="difficulty">Difficulty:</label>    <select
       id="difficulty"
       name="difficulty"
       [(ngModel)]="question.difficulty"
@@ -93,9 +92,12 @@
       #diff="ngModel"
     >
       <option value="">Select Difficulty</option>
+      <option value="Very Easy">Very Easy</option>
       <option value="Easy">Easy</option>
       <option value="Medium">Medium</option>
       <option value="Hard">Hard</option>
+      <option value="Very Hard">Very Hard</option>
+      <option value="Not-mentioned">Not-mentioned</option>
     </select>
     <div *ngIf="diff.invalid && (diff.touched || form.submitted)" class="error">
       Difficulty is required.

@@ -18,7 +18,7 @@
  * @since 1.0.0
  */
 
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule }              from '@angular/common';
 import { FormsModule, NgForm }       from '@angular/forms';
 import { RouterModule }              from '@angular/router';
@@ -103,7 +103,7 @@ interface LangPack { questionText: string; options: Option[]; explanations: Expl
   templateUrl: './add-question.component.html',
   styleUrls  : ['./add-question.component.scss']
 })
-export class AddQuestionComponent implements OnInit {
+export class AddQuestionComponent implements OnInit, OnDestroy {
   /* ───────── injected services ───────── */
   /** @private {BranchService} Service for educational branch management */
   private branchSrv   = inject(BranchService);
@@ -172,6 +172,86 @@ export class AddQuestionComponent implements OnInit {
   topics:any[]=[]; 
   /** @property {any[]} subtopics - Available subtopics for the selected topic */
   subtopics:any[]=[];
+
+  // New properties for inline hierarchy creation
+  /** @property {string} branchSearchText - Search text for branch autocomplete */
+  branchSearchText: string = '';
+  /** @property {string} subjectSearchText - Search text for subject autocomplete */
+  subjectSearchText: string = '';
+  /** @property {string} topicSearchText - Search text for topic autocomplete */
+  topicSearchText: string = '';
+  /** @property {string} subtopicSearchText - Search text for subtopic autocomplete */
+  subtopicSearchText: string = '';
+
+  /** @property {any[]} filteredBranches - Filtered branches based on search */
+  filteredBranches: any[] = [];
+  /** @property {any[]} filteredSubjects - Filtered subjects based on search */
+  filteredSubjects: any[] = [];
+  /** @property {any[]} filteredTopics - Filtered topics based on search */
+  filteredTopics: any[] = [];
+  /** @property {any[]} filteredSubtopics - Filtered subtopics based on search */
+  filteredSubtopics: any[] = [];
+
+  /** @property {boolean} showBranchDropdown - Show/hide branch dropdown */
+  showBranchDropdown: boolean = false;
+  /** @property {boolean} showSubjectDropdown - Show/hide subject dropdown */
+  showSubjectDropdown: boolean = false;
+  /** @property {boolean} showTopicDropdown - Show/hide topic dropdown */
+  showTopicDropdown: boolean = false;
+  /** @property {boolean} showSubtopicDropdown - Show/hide subtopic dropdown */
+  showSubtopicDropdown: boolean = false;
+
+  /** @property {boolean} exactBranchMatch - Whether search text exactly matches existing branch */
+  exactBranchMatch: boolean = false;
+  /** @property {boolean} exactSubjectMatch - Whether search text exactly matches existing subject */
+  exactSubjectMatch: boolean = false;
+  /** @property {boolean} exactTopicMatch - Whether search text exactly matches existing topic */
+  exactTopicMatch: boolean = false;
+  /** @property {boolean} exactSubtopicMatch - Whether search text exactly matches existing subtopic */
+  exactSubtopicMatch: boolean = false;
+
+  /** @property {any} selectedBranch - Currently selected branch object */
+  selectedBranch: any = null;
+  /** @property {any} selectedSubject - Currently selected subject object */
+  selectedSubject: any = null;
+  /** @property {any} selectedTopic - Currently selected topic object */
+  selectedTopic: any = null;
+  /** @property {any} selectedSubtopic - Currently selected subtopic object */
+  selectedSubtopic: any = null;
+
+  /** @property {boolean} showCreateBranchForm - Show/hide create branch form */
+  showCreateBranchForm: boolean = false;
+  /** @property {boolean} showCreateSubjectForm - Show/hide create subject form */
+  showCreateSubjectForm: boolean = false;
+  /** @property {boolean} showCreateTopicForm - Show/hide create topic form */
+  showCreateTopicForm: boolean = false;
+  /** @property {boolean} showCreateSubtopicForm - Show/hide create subtopic form */
+  showCreateSubtopicForm: boolean = false;
+
+  /** @property {string} newBranchName - Name for new branch being created */
+  newBranchName: string = '';
+  /** @property {string} newSubjectName - Name for new subject being created */
+  newSubjectName: string = '';
+  /** @property {string} newTopicName - Name for new topic being created */
+  newTopicName: string = '';
+  /** @property {string} newSubtopicName - Name for new subtopic being created */
+  newSubtopicName: string = '';
+
+  /** @property {boolean} creatingBranch - Whether branch creation is in progress */
+  creatingBranch: boolean = false;
+  /** @property {boolean} creatingSubject - Whether subject creation is in progress */
+  creatingSubject: boolean = false;
+  /** @property {boolean} creatingTopic - Whether topic creation is in progress */
+  creatingTopic: boolean = false;
+  /** @property {boolean} creatingSubtopic - Whether subtopic creation is in progress */
+  creatingSubtopic: boolean = false;
+  
+  /** @property {string} alertMessage - Current alert message to display */
+  alertMessage: string = '';
+  /** @property {'success' | 'error' | 'warning' | ''} alertType - Type of alert */
+  alertType: 'success' | 'error' | 'warning' | '' = '';
+  /** @property {boolean} showAlert - Whether to show alert */
+  showAlert: boolean = false;
   
   /** @property {number} currentYear - Current year for question history tracking */
   currentYear = new Date().getFullYear();
@@ -265,6 +345,86 @@ export class AddQuestionComponent implements OnInit {
   ngOnInit() {
     this.loadBranches();
     this.handleQueryParameters();
+    this.addDocumentClickListener();
+  }
+
+  ngOnDestroy() {
+    this.removeDocumentClickListener();
+  }
+
+  /**
+   * @method addDocumentClickListener
+   * @description Adds click listener to close dropdowns when clicking outside
+   */
+  private addDocumentClickListener(): void {
+    this.documentClickListener = (event: Event) => {
+      const target = event.target as HTMLElement;
+      
+      // Check if click is outside any dropdown
+      if (!target.closest('.hierarchy-dropdown')) {
+        this.showBranchDropdown = false;
+        this.showSubjectDropdown = false;
+        this.showTopicDropdown = false;
+        this.showSubtopicDropdown = false;
+      }
+    };
+    
+    document.addEventListener('click', this.documentClickListener);
+  }
+
+  /**
+   * @method removeDocumentClickListener
+   * @description Removes document click listener
+   */
+  private removeDocumentClickListener(): void {
+    if (this.documentClickListener) {
+      document.removeEventListener('click', this.documentClickListener);
+    }
+  }
+
+  private documentClickListener: ((event: Event) => void) | null = null;
+
+  /* ───────── alert methods ───────── */
+  
+  /**
+   * @method showAlertMessage
+   * @description Shows an alert message with specified type
+   */
+  private showAlertMessage(message: string, type: 'success' | 'error' | 'warning'): void {
+    this.alertMessage = message;
+    this.alertType = type;
+    this.showAlert = true;
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      this.hideAlert();
+    }, 5000);
+  }
+
+  /**
+   * @method hideAlert
+   * @description Hides the current alert
+   */
+  hideAlert(): void {
+    this.showAlert = false;
+    this.alertMessage = '';
+    this.alertType = '';
+  }
+
+  /**
+   * @method showSuccessAlert
+   * @description Shows a success alert
+   */
+  private showSuccessAlert(message: string): void {
+    this.showAlertMessage(message, 'success');
+  }
+
+  /**
+   * @method showErrorAlert
+   * @description Shows an error alert
+   */
+  private showErrorAlert(message: string): void {
+    this.showAlertMessage(message, 'error');
   }
 
   /**
@@ -277,11 +437,13 @@ export class AddQuestionComponent implements OnInit {
       next: (data: any) => {
         // Assuming data might be an array directly or an object like { branches: [] }
         this.branches = Array.isArray(data) ? data : (data && data.branches ? data.branches : []);
+        this.filteredBranches = this.branches.slice(0, 10); // Initialize with first 10
         console.log('Branches loaded:', this.branches); // Debug log
       },
       error: (err: any) => {
         console.error('Error loading branches:', err);
         this.branches = []; // Ensure branches is empty on error
+        this.filteredBranches = [];
       }
     });
   }
@@ -538,8 +700,7 @@ export class AddQuestionComponent implements OnInit {
     const currentText = this.langPack.questionText || '';
     this.langPack.questionText = currentText + latex;
   }
-  /* --- cascades --- */
-  /**
+  /* --- cascades --- */  /**
    * @method onBranchChange
    * @description Handles educational branch selection change, triggering cascade updates
    * for dependent dropdown lists and resetting child selections.
@@ -553,14 +714,22 @@ export class AddQuestionComponent implements OnInit {
    * this.onBranchChange('branch_engineering_id');
    * // Loads subjects for engineering, clears subject/topic/subtopic selections
    * ```
-   */  onBranchChange(id:string){
+   */  
+  onBranchChange(id:string){
     this.question.branchId=id; this.subjects=this.topics=this.subtopics=[];
     this.question.subjectId=this.question.topicId=this.question.subtopicId='';
+    this.filteredSubjects = this.filteredTopics = this.filteredSubtopics = [];
+    
     // Only fetch subjects if a valid branch ID is selected (not "Not-mentioned" or empty)
-    if(id && id !== 'Not-mentioned') {      this.subjectSrv.getSubjects(id).subscribe({
-        next: (s) => this.subjects = s,
+    if(id && id !== 'Not-mentioned') {      
+      this.subjectSrv.getSubjects(id).subscribe({
+        next: (s) => {
+          this.subjects = s;
+          this.filteredSubjects = s.slice(0, 10); // Initialize with first 10
+        },
         error: (err) => {
           this.subjects = [];
+          this.filteredSubjects = [];
         }
       });
     }
@@ -583,11 +752,18 @@ export class AddQuestionComponent implements OnInit {
    */  onSubjectChange(id:string){
     this.question.subjectId=id; this.topics=this.subtopics=[];
     this.question.topicId=this.question.subtopicId='';
+    this.filteredTopics = this.filteredSubtopics = [];
+    
     // Only fetch topics if a valid subject ID is selected (not "Not-mentioned" or empty)
     if(id && id !== 'Not-mentioned') {
       this.topicSrv.getTopics(id).subscribe({
-        next: (t) => this.topics = t,        error: (err) => {
+        next: (t) => {
+          this.topics = t;
+          this.filteredTopics = t.slice(0, 10); // Initialize with first 10
+        },
+        error: (err) => {
           this.topics = [];
+          this.filteredTopics = [];
         }
       });
     }
@@ -609,11 +785,18 @@ export class AddQuestionComponent implements OnInit {
    * ```
    */  onTopicChange(id:string){
     this.question.topicId=id; this.subtopics=[]; this.question.subtopicId='';
+    this.filteredSubtopics = [];
+    
     // Only fetch subtopics if a valid topic ID is selected (not "Not-mentioned" or empty)
     if(id && id !== 'Not-mentioned') {
-      this.subtopicSrv.getSubtopics(id).subscribe({        next: (st) => this.subtopics = st,
+      this.subtopicSrv.getSubtopics(id).subscribe({
+        next: (st) => {
+          this.subtopics = st;
+          this.filteredSubtopics = st.slice(0, 10); // Initialize with first 10
+        },
         error: (err) => {
           this.subtopics = [];
+          this.filteredSubtopics = [];
         }
       });
     }
@@ -1002,5 +1185,466 @@ export class AddQuestionComponent implements OnInit {
         alert('Failed to delete image. Please try again.');
       }
     });
+  }
+
+  /* ───────── inline hierarchy creation methods ───────── */
+  
+  /**
+   * @method onBranchSearch
+   * @description Handles branch search input, filtering available branches and checking for exact matches
+   * @param {any} event - Input event containing search text
+   */
+  onBranchSearch(event: any): void {
+    const searchText = event.target.value.toLowerCase().trim();
+    this.branchSearchText = event.target.value;
+    
+    if (!searchText) {
+      this.filteredBranches = this.branches.slice(0, 10); // Show first 10
+      this.exactBranchMatch = false;
+      return;
+    }
+    
+    // Filter branches based on search text
+    this.filteredBranches = this.branches.filter(branch => 
+      branch.name.toLowerCase().includes(searchText)
+    ).slice(0, 10); // Limit to 10 results
+    
+    // Check for exact match
+    this.exactBranchMatch = this.branches.some(branch => 
+      branch.name.toLowerCase() === searchText
+    );
+  }
+
+  /**
+   * @method selectBranch
+   * @description Selects a branch and updates the UI accordingly
+   * @param {any} branch - Selected branch object
+   */
+  selectBranch(branch: any): void {
+    this.selectedBranch = branch;
+    this.branchSearchText = branch.name;
+    this.question.branchId = branch._id;
+    this.showBranchDropdown = false;
+    
+    // Load subjects for selected branch
+    this.onBranchChange(branch._id);
+    
+    // Clear dependent selections
+    this.clearSubjectSelection();
+  }
+
+  /**
+   * @method clearBranchSelection
+   * @description Clears branch selection and resets dependent data
+   */
+  clearBranchSelection(): void {
+    this.selectedBranch = null;
+    this.branchSearchText = '';
+    this.question.branchId = '';
+    this.subjects = [];
+    this.topics = [];
+    this.subtopics = [];
+    this.clearSubjectSelection();
+  }  /**
+   * @method createNewBranch
+   * @description Creates a new branch via the API
+   */
+  createNewBranch(): void {
+    if (!this.newBranchName.trim()) return;
+    
+    // Check if branch already exists (case-insensitive)
+    const branchExists = this.branches.some(branch => 
+      branch.name.toLowerCase() === this.newBranchName.trim().toLowerCase()
+    );
+    
+    if (branchExists) {
+      this.showErrorAlert(`Branch "${this.newBranchName.trim()}" already exists!`);
+      return;
+    }
+    
+    this.creatingBranch = true;
+    
+    this.branchSrv.createBranch(this.newBranchName.trim()).subscribe({
+      next: (newBranch: any) => {
+        // Add to branches list
+        this.branches.push(newBranch);
+        
+        // Auto-select the new branch
+        this.selectBranch(newBranch);
+        
+        // Reset form
+        this.cancelCreateBranch();
+        
+        // Show success message
+        this.showSuccessAlert(`Branch "${newBranch.name}" created successfully!`);
+        
+        console.log('Branch created successfully:', newBranch);
+      },
+      error: (error: any) => {
+        console.error('Error creating branch:', error);
+        this.creatingBranch = false;
+        
+        // Extract error message from response
+        let errorMessage = 'Failed to create branch';
+        if (error.error && error.error.message) {
+          errorMessage = error.error.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        this.showErrorAlert(errorMessage);
+      }
+    });
+  }
+
+  /**
+   * @method cancelCreateBranch
+   * @description Cancels branch creation and resets form
+   */
+  cancelCreateBranch(): void {
+    this.showCreateBranchForm = false;
+    this.newBranchName = '';
+    this.creatingBranch = false;
+  }
+
+  /**
+   * @method onSubjectSearch
+   * @description Handles subject search input
+   * @param {any} event - Input event containing search text
+   */
+  onSubjectSearch(event: any): void {
+    if (!this.selectedBranch) return;
+    
+    const searchText = event.target.value.toLowerCase().trim();
+    this.subjectSearchText = event.target.value;
+    
+    if (!searchText) {
+      this.filteredSubjects = this.subjects.slice(0, 10);
+      this.exactSubjectMatch = false;
+      return;
+    }
+    
+    this.filteredSubjects = this.subjects.filter(subject => 
+      subject.name.toLowerCase().includes(searchText)
+    ).slice(0, 10);
+    
+    this.exactSubjectMatch = this.subjects.some(subject => 
+      subject.name.toLowerCase() === searchText
+    );
+  }
+
+  /**
+   * @method selectSubject
+   * @description Selects a subject and updates the UI accordingly
+   * @param {any} subject - Selected subject object
+   */
+  selectSubject(subject: any): void {
+    this.selectedSubject = subject;
+    this.subjectSearchText = subject.name;
+    this.question.subjectId = subject._id;
+    this.showSubjectDropdown = false;
+    
+    // Load topics for selected subject
+    this.onSubjectChange(subject._id);
+    
+    // Clear dependent selections
+    this.clearTopicSelection();
+  }
+
+  /**
+   * @method clearSubjectSelection
+   * @description Clears subject selection and resets dependent data
+   */
+  clearSubjectSelection(): void {
+    this.selectedSubject = null;
+    this.subjectSearchText = '';
+    this.question.subjectId = '';
+    this.topics = [];
+    this.subtopics = [];
+    this.clearTopicSelection();
+  }
+  /**
+   * @method createNewSubject
+   * @description Creates a new subject via the API
+   */  createNewSubject(): void {
+    if (!this.newSubjectName.trim() || !this.selectedBranch) return;
+    
+    // Check if subject already exists (case-insensitive)
+    const subjectExists = this.subjects.some(subject => 
+      subject.name.toLowerCase() === this.newSubjectName.trim().toLowerCase()
+    );
+    
+    if (subjectExists) {
+      this.showErrorAlert(`Subject "${this.newSubjectName.trim()}" already exists in this branch!`);
+      return;
+    }
+    
+    this.creatingSubject = true;
+    
+    this.subjectSrv.createSubject(this.newSubjectName.trim(), this.selectedBranch._id).subscribe({
+      next: (newSubject: any) => {
+        // Add to subjects list
+        this.subjects.push(newSubject);
+        
+        // Auto-select the new subject
+        this.selectSubject(newSubject);
+        
+        // Reset form
+        this.cancelCreateSubject();
+        
+        // Show success message
+        this.showSuccessAlert(`Subject "${newSubject.name}" created successfully!`);
+        
+        console.log('Subject created successfully:', newSubject);
+      },
+      error: (error: any) => {
+        console.error('Error creating subject:', error);
+        this.creatingSubject = false;
+        
+        // Extract error message from response
+        let errorMessage = 'Failed to create subject';
+        if (error.error && error.error.message) {
+          errorMessage = error.error.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        this.showErrorAlert(errorMessage);
+      }
+    });
+  }
+
+  /**
+   * @method cancelCreateSubject
+   * @description Cancels subject creation and resets form
+   */
+  cancelCreateSubject(): void {
+    this.showCreateSubjectForm = false;
+    this.newSubjectName = '';
+    this.creatingSubject = false;
+  }
+
+  /**
+   * @method onTopicSearch
+   * @description Handles topic search input
+   * @param {any} event - Input event containing search text
+   */
+  onTopicSearch(event: any): void {
+    if (!this.selectedSubject) return;
+    
+    const searchText = event.target.value.toLowerCase().trim();
+    this.topicSearchText = event.target.value;
+    
+    if (!searchText) {
+      this.filteredTopics = this.topics.slice(0, 10);
+      this.exactTopicMatch = false;
+      return;
+    }
+    
+    this.filteredTopics = this.topics.filter(topic => 
+      topic.name.toLowerCase().includes(searchText)
+    ).slice(0, 10);
+    
+    this.exactTopicMatch = this.topics.some(topic => 
+      topic.name.toLowerCase() === searchText
+    );
+  }
+
+  /**
+   * @method selectTopic
+   * @description Selects a topic and updates the UI accordingly
+   * @param {any} topic - Selected topic object
+   */
+  selectTopic(topic: any): void {
+    this.selectedTopic = topic;
+    this.topicSearchText = topic.name;
+    this.question.topicId = topic._id;
+    this.showTopicDropdown = false;
+    
+    // Load subtopics for selected topic
+    this.onTopicChange(topic._id);
+    
+    // Clear dependent selections
+    this.clearSubtopicSelection();
+  }
+
+  /**
+   * @method clearTopicSelection
+   * @description Clears topic selection and resets dependent data
+   */
+  clearTopicSelection(): void {
+    this.selectedTopic = null;
+    this.topicSearchText = '';
+    this.question.topicId = '';
+    this.subtopics = [];
+    this.clearSubtopicSelection();
+  }
+  /**
+   * @method createNewTopic
+   * @description Creates a new topic via the API
+   */  createNewTopic(): void {
+    if (!this.newTopicName.trim() || !this.selectedSubject) return;
+    
+    // Check if topic already exists (case-insensitive)
+    const topicExists = this.topics.some(topic => 
+      topic.name.toLowerCase() === this.newTopicName.trim().toLowerCase()
+    );
+    
+    if (topicExists) {
+      this.showErrorAlert(`Topic "${this.newTopicName.trim()}" already exists in this subject!`);
+      return;
+    }
+    
+    this.creatingTopic = true;
+    
+    this.topicSrv.createTopic(this.newTopicName.trim(), this.selectedSubject._id).subscribe({
+      next: (newTopic: any) => {
+        // Add to topics list
+        this.topics.push(newTopic);
+        
+        // Auto-select the new topic
+        this.selectTopic(newTopic);
+        
+        // Reset form
+        this.cancelCreateTopic();
+        
+        // Show success message
+        this.showSuccessAlert(`Topic "${newTopic.name}" created successfully!`);
+        
+        console.log('Topic created successfully:', newTopic);
+      },
+      error: (error: any) => {
+        console.error('Error creating topic:', error);
+        this.creatingTopic = false;
+        
+        // Extract error message from response
+        let errorMessage = 'Failed to create topic';
+        if (error.error && error.error.message) {
+          errorMessage = error.error.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        this.showErrorAlert(errorMessage);
+      }
+    });
+  }
+
+  /**
+   * @method cancelCreateTopic
+   * @description Cancels topic creation and resets form
+   */
+  cancelCreateTopic(): void {
+    this.showCreateTopicForm = false;
+    this.newTopicName = '';
+    this.creatingTopic = false;
+  }
+
+  /**
+   * @method onSubtopicSearch
+   * @description Handles subtopic search input
+   * @param {any} event - Input event containing search text
+   */
+  onSubtopicSearch(event: any): void {
+    if (!this.selectedTopic) return;
+    
+    const searchText = event.target.value.toLowerCase().trim();
+    this.subtopicSearchText = event.target.value;
+    
+    if (!searchText) {
+      this.filteredSubtopics = this.subtopics.slice(0, 10);
+      this.exactSubtopicMatch = false;
+      return;
+    }
+    
+    this.filteredSubtopics = this.subtopics.filter(subtopic => 
+      subtopic.name.toLowerCase().includes(searchText)
+    ).slice(0, 10);
+    
+    this.exactSubtopicMatch = this.subtopics.some(subtopic => 
+      subtopic.name.toLowerCase() === searchText
+    );
+  }
+
+  /**
+   * @method selectSubtopic
+   * @description Selects a subtopic and updates the UI accordingly
+   * @param {any} subtopic - Selected subtopic object
+   */
+  selectSubtopic(subtopic: any): void {
+    this.selectedSubtopic = subtopic;
+    this.subtopicSearchText = subtopic.name;
+    this.question.subtopicId = subtopic._id;
+    this.showSubtopicDropdown = false;
+  }
+
+  /**
+   * @method clearSubtopicSelection
+   * @description Clears subtopic selection
+   */
+  clearSubtopicSelection(): void {
+    this.selectedSubtopic = null;
+    this.subtopicSearchText = '';
+    this.question.subtopicId = '';
+  }
+  /**
+   * @method createNewSubtopic
+   * @description Creates a new subtopic via the API
+   */  createNewSubtopic(): void {
+    if (!this.newSubtopicName.trim() || !this.selectedTopic) return;
+    
+    // Check if subtopic already exists (case-insensitive)
+    const subtopicExists = this.subtopics.some(subtopic => 
+      subtopic.name.toLowerCase() === this.newSubtopicName.trim().toLowerCase()
+    );
+    
+    if (subtopicExists) {
+      this.showErrorAlert(`Subtopic "${this.newSubtopicName.trim()}" already exists in this topic!`);
+      return;
+    }
+    
+    this.creatingSubtopic = true;
+    
+    this.subtopicSrv.createSubtopic(this.newSubtopicName.trim(), this.selectedTopic._id).subscribe({
+      next: (newSubtopic: any) => {
+        // Add to subtopics list
+        this.subtopics.push(newSubtopic);
+        
+        // Auto-select the new subtopic
+        this.selectSubtopic(newSubtopic);
+        
+        // Reset form
+        this.cancelCreateSubtopic();
+        
+        // Show success message
+        this.showSuccessAlert(`Subtopic "${newSubtopic.name}" created successfully!`);
+        
+        console.log('Subtopic created successfully:', newSubtopic);
+      },
+      error: (error: any) => {
+        console.error('Error creating subtopic:', error);
+        this.creatingSubtopic = false;
+        
+        // Extract error message from response
+        let errorMessage = 'Failed to create subtopic';
+        if (error.error && error.error.message) {
+          errorMessage = error.error.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        this.showErrorAlert(errorMessage);
+      }
+    });
+  }
+
+  /**
+   * @method cancelCreateSubtopic
+   * @description Cancels subtopic creation and resets form
+   */
+  cancelCreateSubtopic(): void {
+    this.showCreateSubtopicForm = false;
+    this.newSubtopicName = '';
+    this.creatingSubtopic = false;
   }
 }

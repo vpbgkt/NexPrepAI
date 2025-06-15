@@ -2,6 +2,38 @@
 <div class="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
   <div class="max-w-4xl mx-auto">
     
+    <!-- Alert Component -->
+    <div *ngIf="showAlert" 
+         [ngClass]="{
+           'bg-green-50 border-green-200 text-green-800': alertType === 'success',
+           'bg-red-50 border-red-200 text-red-800': alertType === 'error',
+           'bg-yellow-50 border-yellow-200 text-yellow-800': alertType === 'warning'
+         }"
+         class="mb-6 border rounded-lg p-4 shadow-sm">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center">
+          <!-- Success Icon -->
+          <svg *ngIf="alertType === 'success'" class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <!-- Error Icon -->
+          <svg *ngIf="alertType === 'error'" class="w-5 h-5 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+          </svg>
+          <!-- Warning Icon -->
+          <svg *ngIf="alertType === 'warning'" class="w-5 h-5 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+          </svg>
+          <span class="font-medium">{{ alertMessage }}</span>
+        </div>
+        <button type="button" (click)="hideAlert()" class="ml-4 inline-flex text-sm font-medium hover:opacity-75">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
     <!-- Page Header -->
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-gray-900 mb-2">Add New Question</h1>
@@ -48,99 +80,375 @@
           </h3>
           <p class="text-sm text-purple-700 mb-4">Complete this section first to enable image upload functionality</p>
           
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Branch -->
-            <div class="form-group">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">            <!-- Branch -->
+            <div class="form-group hierarchy-dropdown">
               <label class="block text-sm font-medium text-gray-700 mb-2">Branch *</label>
-              <div class="flex space-x-2">
-                <select
-                  name="branchId"
-                  [(ngModel)]="question.branchId"
-                  (change)="onBranchChange(question.branchId)"
-                  #br="ngModel"
-                  class="form-select flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="Not-mentioned">Not-mentioned</option>
-                  <option *ngFor="let b of branches" [value]="b._id">{{ b.name }}</option>
-                </select>
-                <button 
-                  type="button" 
-                  (click)="goToAddBranch()"
-                  class="btn-secondary px-3 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors whitespace-nowrap"
-                >
-                  + Add
-                </button>
+              <div class="space-y-2">
+                <div class="relative">
+                  <input
+                    name="branchSearch"
+                    type="text"
+                    [(ngModel)]="branchSearchText"
+                    (input)="onBranchSearch($event)"
+                    (focus)="showBranchDropdown = true"
+                    placeholder="Type to search branches or create new..."
+                    class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    autocomplete="off"
+                  />
+                  
+                  <!-- Branch Dropdown -->
+                  <div *ngIf="showBranchDropdown" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    <!-- Existing Branches -->
+                    <div *ngFor="let branch of filteredBranches" 
+                         (click)="selectBranch(branch)"
+                         class="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0">
+                      <div class="font-medium text-gray-900">{{ branch.name }}</div>
+                    </div>
+                    
+                    <!-- Create New Branch Option -->                    <div *ngIf="branchSearchText && !exactBranchMatch" 
+                         (click)="showCreateBranchForm = true; showBranchDropdown = false; newBranchName = branchSearchText"
+                         class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-t border-gray-200 bg-blue-25">
+                      <div class="flex items-center text-blue-700">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Create new branch: "{{ branchSearchText }}"
+                      </div>
+                    </div>
+                    
+                    <!-- No Results -->
+                    <div *ngIf="!filteredBranches.length && !branchSearchText" class="px-3 py-2 text-gray-500 text-center">
+                      Start typing to search branches...
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Create Branch Form -->
+                <div *ngIf="showCreateBranchForm" class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 class="font-medium text-blue-900 mb-3">Create New Branch</h4>
+                  <div class="space-y-3">
+                    <div>
+                      <label class="block text-sm font-medium text-blue-800 mb-1">Branch Name</label>
+                      <input
+                        type="text"
+                        [(ngModel)]="newBranchName"
+                        class="form-input w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter branch name"
+                      />
+                    </div>
+                    <div class="flex gap-2">
+                      <button
+                        type="button"
+                        (click)="createNewBranch()"
+                        [disabled]="!newBranchName.trim() || creatingBranch"
+                        class="btn btn-primary px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {{ creatingBranch ? 'Creating...' : 'Create Branch' }}
+                      </button>
+                      <button
+                        type="button"
+                        (click)="cancelCreateBranch()"
+                        class="btn btn-secondary px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Selected Branch Display -->
+                <div *ngIf="selectedBranch" class="p-2 bg-green-50 border border-green-200 rounded-lg">
+                  <div class="flex items-center justify-between">
+                    <span class="text-green-800 font-medium">✓ Selected: {{ selectedBranch.name }}</span>
+                    <button
+                      type="button"
+                      (click)="clearBranchSelection()"
+                      class="text-green-600 hover:text-green-800"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-
-            <!-- Subject -->
-            <div class="form-group">
+            </div>            <!-- Subject -->
+            <div class="form-group hierarchy-dropdown">
               <label class="block text-sm font-medium text-gray-700 mb-2">Subject *</label>
-              <div class="flex space-x-2">
-                <select
-                  name="subjectId"
-                  [(ngModel)]="question.subjectId"
-                  (change)="onSubjectChange(question.subjectId)"
-                  #su="ngModel"
-                  class="form-select flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="Not-mentioned">Not-mentioned</option>
-                  <option *ngFor="let s of subjects" [value]="s._id">{{ s.name }}</option>
-                </select>
-                <button 
-                  type="button" 
-                  (click)="goToAddSubject()"
-                  class="btn-secondary px-3 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors whitespace-nowrap"
-                >
-                  + Add
-                </button>
+              <div class="space-y-2">
+                <div class="relative">
+                  <input
+                    name="subjectSearch"
+                    type="text"
+                    [(ngModel)]="subjectSearchText"
+                    (input)="onSubjectSearch($event)"
+                    (focus)="showSubjectDropdown = true"
+                    [disabled]="!selectedBranch"
+                    placeholder="Select branch first, then type to search subjects..."
+                    class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100"
+                    autocomplete="off"
+                  />
+                  
+                  <!-- Subject Dropdown -->
+                  <div *ngIf="showSubjectDropdown && selectedBranch" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    <!-- Existing Subjects -->
+                    <div *ngFor="let subject of filteredSubjects" 
+                         (click)="selectSubject(subject)"
+                         class="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0">
+                      <div class="font-medium text-gray-900">{{ subject.name }}</div>
+                    </div>
+                    
+                    <!-- Create New Subject Option -->                    <div *ngIf="subjectSearchText && !exactSubjectMatch" 
+                         (click)="showCreateSubjectForm = true; showSubjectDropdown = false; newSubjectName = subjectSearchText"
+                         class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-t border-gray-200 bg-blue-25">
+                      <div class="flex items-center text-blue-700">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Create new subject: "{{ subjectSearchText }}"
+                      </div>
+                    </div>
+                    
+                    <!-- No Results -->
+                    <div *ngIf="!filteredSubjects.length && !subjectSearchText" class="px-3 py-2 text-gray-500 text-center">
+                      Start typing to search subjects...
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Create Subject Form -->
+                <div *ngIf="showCreateSubjectForm" class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 class="font-medium text-blue-900 mb-3">Create New Subject</h4>
+                  <div class="space-y-3">
+                    <div>
+                      <label class="block text-sm font-medium text-blue-800 mb-1">Subject Name</label>
+                      <input
+                        type="text"
+                        [(ngModel)]="newSubjectName"
+                        class="form-input w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter subject name"
+                      />
+                    </div>
+                    <div class="flex gap-2">
+                      <button
+                        type="button"
+                        (click)="createNewSubject()"
+                        [disabled]="!newSubjectName.trim() || creatingSubject"
+                        class="btn btn-primary px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {{ creatingSubject ? 'Creating...' : 'Create Subject' }}
+                      </button>
+                      <button
+                        type="button"
+                        (click)="cancelCreateSubject()"
+                        class="btn btn-secondary px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Selected Subject Display -->
+                <div *ngIf="selectedSubject" class="p-2 bg-green-50 border border-green-200 rounded-lg">
+                  <div class="flex items-center justify-between">
+                    <span class="text-green-800 font-medium">✓ Selected: {{ selectedSubject.name }}</span>
+                    <button
+                      type="button"
+                      (click)="clearSubjectSelection()"
+                      class="text-green-600 hover:text-green-800"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-
-            <!-- Topic -->
-            <div class="form-group">
+            </div>            <!-- Topic -->
+            <div class="form-group hierarchy-dropdown">
               <label class="block text-sm font-medium text-gray-700 mb-2">Topic *</label>
-              <div class="flex space-x-2">
-                <select
-                  name="topicId"
-                  [(ngModel)]="question.topicId"
-                  (change)="onTopicChange(question.topicId)"
-                  #to="ngModel"
-                  class="form-select flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="Not-mentioned">Not-mentioned</option>
-                  <option *ngFor="let t of topics" [value]="t._id">{{ t.name }}</option>
-                </select>
-                <button 
-                  type="button" 
-                  (click)="goToAddTopic()"
-                  class="btn-secondary px-3 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors whitespace-nowrap"
-                >
-                  + Add
-                </button>
+              <div class="space-y-2">
+                <div class="relative">
+                  <input
+                    name="topicSearch"
+                    type="text"
+                    [(ngModel)]="topicSearchText"
+                    (input)="onTopicSearch($event)"
+                    (focus)="showTopicDropdown = true"
+                    [disabled]="!selectedSubject"
+                    placeholder="Select subject first, then type to search topics..."
+                    class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100"
+                    autocomplete="off"
+                  />
+                  
+                  <!-- Topic Dropdown -->
+                  <div *ngIf="showTopicDropdown && selectedSubject" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    <!-- Existing Topics -->
+                    <div *ngFor="let topic of filteredTopics" 
+                         (click)="selectTopic(topic)"
+                         class="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0">
+                      <div class="font-medium text-gray-900">{{ topic.name }}</div>
+                    </div>
+                    
+                    <!-- Create New Topic Option -->                    <div *ngIf="topicSearchText && !exactTopicMatch" 
+                         (click)="showCreateTopicForm = true; showTopicDropdown = false; newTopicName = topicSearchText"
+                         class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-t border-gray-200 bg-blue-25">
+                      <div class="flex items-center text-blue-700">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Create new topic: "{{ topicSearchText }}"
+                      </div>
+                    </div>
+                    
+                    <!-- No Results -->
+                    <div *ngIf="!filteredTopics.length && !topicSearchText" class="px-3 py-2 text-gray-500 text-center">
+                      Start typing to search topics...
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Create Topic Form -->
+                <div *ngIf="showCreateTopicForm" class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 class="font-medium text-blue-900 mb-3">Create New Topic</h4>
+                  <div class="space-y-3">
+                    <div>
+                      <label class="block text-sm font-medium text-blue-800 mb-1">Topic Name</label>
+                      <input
+                        type="text"
+                        [(ngModel)]="newTopicName"
+                        class="form-input w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter topic name"
+                      />
+                    </div>
+                    <div class="flex gap-2">
+                      <button
+                        type="button"
+                        (click)="createNewTopic()"
+                        [disabled]="!newTopicName.trim() || creatingTopic"
+                        class="btn btn-primary px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {{ creatingTopic ? 'Creating...' : 'Create Topic' }}
+                      </button>
+                      <button
+                        type="button"
+                        (click)="cancelCreateTopic()"
+                        class="btn btn-secondary px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Selected Topic Display -->
+                <div *ngIf="selectedTopic" class="p-2 bg-green-50 border border-green-200 rounded-lg">
+                  <div class="flex items-center justify-between">
+                    <span class="text-green-800 font-medium">✓ Selected: {{ selectedTopic.name }}</span>
+                    <button
+                      type="button"
+                      (click)="clearTopicSelection()"
+                      class="text-green-600 hover:text-green-800"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-
-            <!-- Subtopic -->
-            <div class="form-group">
+            </div>            <!-- Subtopic -->
+            <div class="form-group hierarchy-dropdown">
               <label class="block text-sm font-medium text-gray-700 mb-2">Subtopic</label>
-              <div class="flex space-x-2">
-                <select
-                  name="subtopicId"
-                  [(ngModel)]="question.subtopicId"
-                  #st="ngModel"
-                  class="form-select flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="Not-mentioned">Not-mentioned</option>
-                  <option *ngFor="let st of subtopics" [value]="st._id">{{ st.name }}</option>
-                </select>
-                <button 
-                  type="button" 
-                  (click)="goToAddSubtopic()"
-                  class="btn-secondary px-3 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors whitespace-nowrap"
-                >
-                  + Add
-                </button>
+              <div class="space-y-2">
+                <div class="relative">
+                  <input
+                    name="subtopicSearch"
+                    type="text"
+                    [(ngModel)]="subtopicSearchText"
+                    (input)="onSubtopicSearch($event)"
+                    (focus)="showSubtopicDropdown = true"
+                    [disabled]="!selectedTopic"
+                    placeholder="Select topic first, then type to search subtopics..."
+                    class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100"
+                    autocomplete="off"
+                  />
+                  
+                  <!-- Subtopic Dropdown -->
+                  <div *ngIf="showSubtopicDropdown && selectedTopic" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    <!-- Existing Subtopics -->
+                    <div *ngFor="let subtopic of filteredSubtopics" 
+                         (click)="selectSubtopic(subtopic)"
+                         class="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0">
+                      <div class="font-medium text-gray-900">{{ subtopic.name }}</div>
+                    </div>
+                    
+                    <!-- Create New Subtopic Option -->                    <div *ngIf="subtopicSearchText && !exactSubtopicMatch" 
+                         (click)="showCreateSubtopicForm = true; showSubtopicDropdown = false; newSubtopicName = subtopicSearchText"
+                         class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-t border-gray-200 bg-blue-25">
+                      <div class="flex items-center text-blue-700">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Create new subtopic: "{{ subtopicSearchText }}"
+                      </div>
+                    </div>
+                    
+                    <!-- No Results -->
+                    <div *ngIf="!filteredSubtopics.length && !subtopicSearchText" class="px-3 py-2 text-gray-500 text-center">
+                      Start typing to search subtopics...
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Create Subtopic Form -->
+                <div *ngIf="showCreateSubtopicForm" class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 class="font-medium text-blue-900 mb-3">Create New Subtopic</h4>
+                  <div class="space-y-3">
+                    <div>
+                      <label class="block text-sm font-medium text-blue-800 mb-1">Subtopic Name</label>
+                      <input
+                        type="text"
+                        [(ngModel)]="newSubtopicName"
+                        class="form-input w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter subtopic name"
+                      />
+                    </div>
+                    <div class="flex gap-2">
+                      <button
+                        type="button"
+                        (click)="createNewSubtopic()"
+                        [disabled]="!newSubtopicName.trim() || creatingSubtopic"
+                        class="btn btn-primary px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {{ creatingSubtopic ? 'Creating...' : 'Create Subtopic' }}
+                      </button>
+                      <button
+                        type="button"
+                        (click)="cancelCreateSubtopic()"
+                        class="btn btn-secondary px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>                
+                <!-- Selected Subtopic Display -->
+                <div *ngIf="selectedSubtopic" class="p-2 bg-green-50 border border-green-200 rounded-lg">
+                  <div class="flex items-center justify-between">
+                    <span class="text-green-800 font-medium">✓ Selected: {{ selectedSubtopic.name }}</span>
+                    <button
+                      type="button"
+                      (click)="clearSubtopicSelection()"
+                      class="text-green-600 hover:text-green-800"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -674,17 +982,18 @@
 
             <!-- Difficulty -->
             <div class="form-group">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Difficulty</label>
-              <select
+              <label class="block text-sm font-medium text-gray-700 mb-2">Difficulty</label>              <select
                 name="difficulty"
                 [(ngModel)]="question.difficulty"
                 #diff="ngModel"
                 class="form-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               >
                 <option value="Not-mentioned">Not-mentioned</option>
+                <option value="Very Easy">Very Easy</option>
                 <option value="Easy">Easy</option>
                 <option value="Medium">Medium</option>
                 <option value="Hard">Hard</option>
+                <option value="Very Hard">Very Hard</option>
               </select>
             </div>
 

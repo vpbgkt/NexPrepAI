@@ -40,7 +40,7 @@ export interface Question {
   subTopic?: string | { $oid: string } | PopulatedHierarchyField; // Corrected casing
 
   translations: Translation[];
-  difficulty: '' | 'Easy' | 'Medium' | 'Hard';
+  difficulty: '' | 'Very Easy' | 'Easy' | 'Medium' | 'Hard' | 'Very Hard' | 'Not-mentioned';
   type?: string;
   explanations?: any[];
   questionHistory?: any[];
