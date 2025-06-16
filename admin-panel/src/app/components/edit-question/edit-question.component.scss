@@ -266,12 +266,99 @@ form > div:last-child { // Targeting the last div which usually holds save/cance
   border-top: 1px solid #eee; // Visual separation for action buttons
 }
 
+// Numerical Answer styling
+.numerical-answer-row {
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  
+  div {
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+  }
+}
+
+.help-text {
+  font-size: 0.9rem;
+  color: #666;
+  font-style: italic;
+  margin-top: 10px;
+}
+
+// Appearance History styling
+.history-item {
+  border: 1px solid #ddd;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  background-color: #fafafa;
+}
+
+.history-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: center;
+  
+  label {
+    margin-bottom: 0;
+    margin-right: 5px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+  
+  input[type="text"] {
+    flex: 1;
+    min-width: 200px;
+    max-width: 300px;
+  }
+  
+  input[type="number"] {
+    flex: 0;
+    min-width: 100px;
+    max-width: 120px;
+  }
+}
+
+.remove-history-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  
+  &:hover {
+    background-color: #c82333;
+  }
+}
+
 // Responsive adjustments (optional, can be expanded)
 @media (max-width: 768px) {
   .option-item .option-content,
   .explanation-item .explanation-controls {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .numerical-answer-row {
+    flex-direction: column;
+    
+    div {
+      min-width: 100%;
+    }
+  }
+    .history-controls {
+    flex-direction: column;
+    align-items: stretch;
+    
+    input[type="text"],
+    input[type="number"] {
+      max-width: 100%;
+    }
   }
 
   input[type="text"],

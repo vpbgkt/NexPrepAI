@@ -218,12 +218,13 @@
                   {{ q.status }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-sm">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+              <td class="px-6 py-4 text-sm">                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                       [ngClass]="{
+                        'bg-red-900 text-red-100': q.difficulty === 'Very Hard',
                         'bg-red-100 text-red-800': q.difficulty === 'Hard',
                         'bg-yellow-100 text-yellow-800': q.difficulty === 'Medium',
-                        'bg-green-100 text-green-800': q.difficulty === 'Easy'
+                        'bg-green-100 text-green-800': q.difficulty === 'Easy',
+                        'bg-green-200 text-green-900': q.difficulty === 'Very Easy'
                       }">
                   {{ q.difficulty }}
                 </span>

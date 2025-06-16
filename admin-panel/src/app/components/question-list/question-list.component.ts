@@ -97,7 +97,7 @@ export class QuestionListComponent implements OnInit {
   questionStatuses: string[] = ['Draft', 'Published', 'Archived', 'Pending Review']; 
   
   /** @property {string[]} Available difficulty levels for filtering */
-  difficultyLevels: string[] = ['Easy', 'Medium', 'Hard', 'Very Hard'];
+  difficultyLevels: string[] = ['Very Easy', 'Easy', 'Medium', 'Hard', 'Very Hard'];
 
   /** @property {Object} Current filter criteria for questions */
   filters = {

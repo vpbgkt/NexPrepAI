@@ -51,9 +51,24 @@ const translationSchema = new Schema({
   images        : [String],
   options       : {
     type : [optionSchema],
-    validate : v => Array.isArray(v) && v.length >= 2
+    validate : function(v) {
+      // For numerical questions, options are not required
+      if (this.parent().type === 'integer' || this.parent().type === 'numerical') {
+        return true;
+      }
+      // For other types, require at least 2 options
+      return Array.isArray(v) && v.length >= 2;
+    }
   },
-  explanations  : { type: [explanationSchema], default: [] }
+  explanations  : { type: [explanationSchema], default: [] },
+  // New field for numerical answers
+  numericalAnswer: {
+    minValue: { type: Number },
+    maxValue: { type: Number },
+    exactValue: { type: Number },
+    tolerance: { type: Number }, // For percentage-based tolerance
+    unit: { type: String, trim: true } // Optional unit like "m", "kg", etc.
+  }
 });
 
 // ---- Question schema --------------------------------------------------
@@ -70,15 +85,13 @@ const questionSchema = new Schema(
       type: [translationSchema],
       validate: v => Array.isArray(v) && v.length >= 1,
       required: true
-    },
-
-    // Removed marks and negativeMarks fields
+    },    // Removed marks and negativeMarks fields
     difficulty: {
       type: String,
-      enum: ['Easy', 'Medium', 'Hard', 'Not-mentioned'],
+      enum: ['Very Easy', 'Easy', 'Medium', 'Hard', 'Very Hard', 'Not-mentioned'],
       default: 'Medium'
     },
-    type:          { type: String, enum: ['single', 'multiple', 'integer', 'matrix'], default: 'single' }, // NEW
+    type:          { type: String, enum: ['single', 'multiple', 'integer', 'numerical', 'matrix'], default: 'single' }, // NEW - Added 'numerical' type
 
     explanations:  [explanationSchema],                               // NEW
     questionHistory: [{
@@ -106,9 +119,22 @@ const questionSchema = new Schema(
 /** 🆕  Array-level validator – at least ONE translation pack complete */
 questionSchema.path('translations').validate({
   validator(arr) {
-    return arr.some(p => p.questionText && p.options?.length >= 2);
+    return arr.some(p => {
+      const hasText = p.questionText && p.questionText.trim();
+      
+      // For numerical/integer questions, check if numerical answer is provided
+      if (this.type === 'integer' || this.type === 'numerical') {
+        return hasText && p.numericalAnswer && (
+          (p.numericalAnswer.minValue !== undefined && p.numericalAnswer.maxValue !== undefined) ||
+          p.numericalAnswer.exactValue !== undefined
+        );
+      }
+      
+      // For other types, require at least 2 options
+      return hasText && p.options?.length >= 2;
+    });
   },
-  message: 'At least one translation must contain text and two options.'
+  message: 'At least one translation must contain text and appropriate answer format.'
 });
 
 // ----- Hooks -----------------------------------------------------------

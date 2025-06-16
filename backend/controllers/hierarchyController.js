@@ -165,12 +165,13 @@ const getBranches = async (req, res) => {
  */
 const createSubject = async (req, res) => {
   try {
-    const { name, branchId } = req.body;
-    const subject = new Subject({ name, branch: branchId });
+    const { name, branch } = req.body;
+    const subject = new Subject({ name, branch });
     await subject.save();
     res.status(201).json(subject);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create subject' });
+    console.error('Error creating subject:', error);
+    res.status(500).json({ error: 'Failed to create subject', message: error.message });
   }
 };
 
@@ -265,12 +266,13 @@ const getSubjects = async (req, res) => {
  */
 const createTopic = async (req, res) => {
   try {
-    const { name, subjectId } = req.body;
-    const topic = new Topic({ name, subject: subjectId });
+    const { name, subject } = req.body;
+    const topic = new Topic({ name, subject });
     await topic.save();
     res.status(201).json(topic);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create topic' });
+    console.error('Error creating topic:', error);
+    res.status(500).json({ error: 'Failed to create topic', message: error.message });
   }
 };
 
@@ -366,12 +368,13 @@ const getTopics = async (req, res) => {
  */
 const createSubTopic = async (req, res) => {
   try {
-    const { name, topicId } = req.body;
-    const subtopic = new SubTopic({ name, topic: topicId });
+    const { name, topic } = req.body;
+    const subtopic = new SubTopic({ name, topic });
     await subtopic.save();
     res.status(201).json(subtopic);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create subtopic' });
+    console.error('Error creating subtopic:', error);
+    res.status(500).json({ error: 'Failed to create subtopic', message: error.message });
   }
 };
 

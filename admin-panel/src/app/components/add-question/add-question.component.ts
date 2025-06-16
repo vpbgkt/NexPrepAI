@@ -18,7 +18,7 @@
  * @since 1.0.0
  */
 
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule }              from '@angular/common';
 import { FormsModule, NgForm }       from '@angular/forms';
 import { RouterModule }              from '@angular/router';
@@ -49,6 +49,23 @@ type LangCode = 'en' | 'hi';
 interface Option   { text: string; img: string; isCorrect: boolean; }
 
 /**
+ * @interface NumericalAnswer
+ * @description Structure for numerical answer type questions
+ * @property {number} minValue - Minimum acceptable value for range answers
+ * @property {number} maxValue - Maximum acceptable value for range answers
+ * @property {number} exactValue - Exact value for single-value answers
+ * @property {number} tolerance - Tolerance percentage for exact answers
+ * @property {string} unit - Optional unit for the answer
+ */
+interface NumericalAnswer { 
+  minValue?: number; 
+  maxValue?: number; 
+  exactValue?: number; 
+  tolerance?: number; 
+  unit?: string; 
+}
+
+/**
  * @interface Explain
  * @description Structure for question explanations
  * @property {string} type - Type of explanation (text, image, video, etc.)
@@ -64,8 +81,9 @@ interface Explain  { type: string; label: string; content: string; }
  * @property {Option[]} options - Array of answer options for the question
  * @property {Explain[]} explanations - Array of explanations for the question
  * @property {string[]} [images] - Optional array of image URLs related to the question
+ * @property {NumericalAnswer} [numericalAnswer] - Numerical answer configuration for integer/numerical type questions
  */
-interface LangPack { questionText: string; options: Option[]; explanations: Explain[]; images?: string[]; }
+interface LangPack { questionText: string; options: Option[]; explanations: Explain[]; images?: string[]; numericalAnswer?: NumericalAnswer; }
 
 /**
  * @class AddQuestionComponent
@@ -103,7 +121,7 @@ interface LangPack { questionText: string; options: Option[]; explanations: Expl
   templateUrl: './add-question.component.html',
   styleUrls  : ['./add-question.component.scss']
 })
-export class AddQuestionComponent implements OnInit {
+export class AddQuestionComponent implements OnInit, OnDestroy {
   /* ───────── injected services ───────── */
   /** @private {BranchService} Service for educational branch management */
   private branchSrv   = inject(BranchService);
@@ -142,15 +160,16 @@ export class AddQuestionComponent implements OnInit {
    * @property {string[]} question.tags - Array of question tags for categorization
    * @property {number|undefined} question.recommendedTimeAllotment - Suggested time in minutes
    * @property {string} question.internalNotes - Internal notes for question management
-   */
-  question = {
+   */  question = {
     translations: <Record<LangCode, LangPack>>{
       en : { questionText: '', options: [ {text:'',img:'',isCorrect:false},
                                           {text:'',img:'',isCorrect:false} ],
-             explanations: [], images: [] }, // Initialize images
+             explanations: [], images: [], 
+             numericalAnswer: { minValue: undefined, maxValue: undefined, exactValue: undefined, tolerance: undefined, unit: '' } }, // Initialize numerical answer
       hi : { questionText: '', options: [ {text:'',img:'',isCorrect:false},
                                           {text:'',img:'',isCorrect:false} ],
-             explanations: [], images: [] }  // Initialize images
+             explanations: [], images: [],
+             numericalAnswer: { minValue: undefined, maxValue: undefined, exactValue: undefined, tolerance: undefined, unit: '' } }  // Initialize numerical answer
     },
     difficulty : '',
     type       : 'single',
@@ -172,6 +191,92 @@ export class AddQuestionComponent implements OnInit {
   topics:any[]=[]; 
   /** @property {any[]} subtopics - Available subtopics for the selected topic */
   subtopics:any[]=[];
+
+  // New properties for inline hierarchy creation
+  /** @property {string} branchSearchText - Search text for branch autocomplete */
+  branchSearchText: string = '';
+  /** @property {string} subjectSearchText - Search text for subject autocomplete */
+  subjectSearchText: string = '';
+  /** @property {string} topicSearchText - Search text for topic autocomplete */
+  topicSearchText: string = '';
+  /** @property {string} subtopicSearchText - Search text for subtopic autocomplete */
+  subtopicSearchText: string = '';
+
+  /** @property {any[]} filteredBranches - Filtered branches based on search */
+  filteredBranches: any[] = [];
+  /** @property {any[]} filteredSubjects - Filtered subjects based on search */
+  filteredSubjects: any[] = [];
+  /** @property {any[]} filteredTopics - Filtered topics based on search */
+  filteredTopics: any[] = [];
+  /** @property {any[]} filteredSubtopics - Filtered subtopics based on search */
+  filteredSubtopics: any[] = [];
+
+  /** @property {boolean} showBranchDropdown - Show/hide branch dropdown */
+  showBranchDropdown: boolean = false;
+  /** @property {boolean} showSubjectDropdown - Show/hide subject dropdown */
+  showSubjectDropdown: boolean = false;
+  /** @property {boolean} showTopicDropdown - Show/hide topic dropdown */
+  showTopicDropdown: boolean = false;
+  /** @property {boolean} showSubtopicDropdown - Show/hide subtopic dropdown */
+  showSubtopicDropdown: boolean = false;
+
+  /** @property {boolean} exactBranchMatch - Whether search text exactly matches existing branch */
+  exactBranchMatch: boolean = false;
+  /** @property {boolean} exactSubjectMatch - Whether search text exactly matches existing subject */
+  exactSubjectMatch: boolean = false;
+  /** @property {boolean} exactTopicMatch - Whether search text exactly matches existing topic */
+  exactTopicMatch: boolean = false;
+  /** @property {boolean} exactSubtopicMatch - Whether search text exactly matches existing subtopic */
+  exactSubtopicMatch: boolean = false;
+
+  /** @property {any} selectedBranch - Currently selected branch object */
+  selectedBranch: any = null;
+  /** @property {any} selectedSubject - Currently selected subject object */
+  selectedSubject: any = null;
+  /** @property {any} selectedTopic - Currently selected topic object */
+  selectedTopic: any = null;
+  /** @property {any} selectedSubtopic - Currently selected subtopic object */
+  selectedSubtopic: any = null;
+
+  /** @property {boolean} showCreateBranchForm - Show/hide create branch form */
+  showCreateBranchForm: boolean = false;
+  /** @property {boolean} showCreateSubjectForm - Show/hide create subject form */
+  showCreateSubjectForm: boolean = false;
+  /** @property {boolean} showCreateTopicForm - Show/hide create topic form */
+  showCreateTopicForm: boolean = false;
+  /** @property {boolean} showCreateSubtopicForm - Show/hide create subtopic form */
+  showCreateSubtopicForm: boolean = false;
+
+  /** @property {string} newBranchName - Name for new branch being created */
+  newBranchName: string = '';
+  /** @property {string} newSubjectName - Name for new subject being created */
+  newSubjectName: string = '';
+  /** @property {string} newTopicName - Name for new topic being created */
+  newTopicName: string = '';
+  /** @property {string} newSubtopicName - Name for new subtopic being created */
+  newSubtopicName: string = '';
+
+  /** @property {boolean} creatingBranch - Whether branch creation is in progress */
+  creatingBranch: boolean = false;
+  /** @property {boolean} creatingSubject - Whether subject creation is in progress */
+  creatingSubject: boolean = false;
+  /** @property {boolean} creatingTopic - Whether topic creation is in progress */
+  creatingTopic: boolean = false;
+  /** @property {boolean} creatingSubtopic - Whether subtopic creation is in progress */
+  creatingSubtopic: boolean = false;
+  
+  /** @property {string} alertMessage - Current alert message to display */
+  alertMessage: string = '';
+  /** @property {'success' | 'error' | 'warning' | ''} alertType - Type of alert */
+  alertType: 'success' | 'error' | 'warning' | '' = '';
+  /** @property {boolean} showAlert - Whether to show alert */
+  showAlert: boolean = false;
+  
+  /** @property {boolean} showMathSymbols - Whether to show mathematical symbols section */
+  showMathSymbols: boolean = false;
+  
+  /** @property {boolean[]} showOptionImageUpload - Array to track which option image uploads are visible */
+  showOptionImageUpload: boolean[] = [false, false, false, false, false]; // Support for 5 options
   
   /** @property {number} currentYear - Current year for question history tracking */
   currentYear = new Date().getFullYear();
@@ -189,36 +294,59 @@ export class AddQuestionComponent implements OnInit {
   /** @property {Map<string, string>} uploadProgress - Upload progress for each image */
   uploadProgress = new Map<string, string>();  /** @property {Map<string, string>} previewUrls - Preview URLs for selected files */
   previewUrls = new Map<string, string>();
-
   // Mathematical symbols for toolbar
   greekSymbols = [
-    { symbol: 'α', latex: '\\alpha', name: 'alpha' },
-    { symbol: 'β', latex: '\\beta', name: 'beta' },
-    { symbol: 'γ', latex: '\\gamma', name: 'gamma' },
-    { symbol: 'δ', latex: '\\delta', name: 'delta' },
-    { symbol: 'ε', latex: '\\epsilon', name: 'epsilon' },
-    { symbol: 'π', latex: '\\pi', name: 'pi' },
-    { symbol: 'λ', latex: '\\lambda', name: 'lambda' },
-    { symbol: 'μ', latex: '\\mu', name: 'mu' },
-    { symbol: 'σ', latex: '\\sigma', name: 'sigma' },
-    { symbol: 'θ', latex: '\\theta', name: 'theta' },
-    { symbol: 'Ω', latex: '\\Omega', name: 'Omega' },
-    { symbol: 'Δ', latex: '\\Delta', name: 'Delta' }
+    { symbol: 'α', latex: '\\alpha', name: 'Alpha' },
+    { symbol: 'β', latex: '\\beta', name: 'Beta' },
+    { symbol: 'γ', latex: '\\gamma', name: 'Gamma' },
+    { symbol: 'δ', latex: '\\delta', name: 'Delta' },
+    { symbol: 'ε', latex: '\\epsilon', name: 'Epsilon' },
+    { symbol: 'θ', latex: '\\theta', name: 'Theta' },
+    { symbol: 'λ', latex: '\\lambda', name: 'Lambda' },
+    { symbol: 'μ', latex: '\\mu', name: 'Mu' },
+    { symbol: 'π', latex: '\\pi', name: 'Pi' },
+    { symbol: 'σ', latex: '\\sigma', name: 'Sigma' },
+    { symbol: 'φ', latex: '\\phi', name: 'Phi' },
+    { symbol: 'ω', latex: '\\omega', name: 'Omega' }
   ];
 
   operators = [
-    { symbol: '≤', latex: '\\leq', name: 'less than or equal' },
-    { symbol: '≥', latex: '\\geq', name: 'greater than or equal' },
-    { symbol: '≠', latex: '\\neq', name: 'not equal' },
-    { symbol: '∞', latex: '\\infty', name: 'infinity' },
-    { symbol: '∑', latex: '\\sum', name: 'sum' },
-    { symbol: '∏', latex: '\\prod', name: 'product' },
-    { symbol: '∫', latex: '\\int', name: 'integral' },
-    { symbol: '√', latex: '\\sqrt{}', name: 'square root' },
-    { symbol: '±', latex: '\\pm', name: 'plus minus' },
-    { symbol: '∈', latex: '\\in', name: 'element of' },
-    { symbol: '⊂', latex: '\\subset', name: 'subset' },
-    { symbol: '∀', latex: '\\forall', name: 'for all' }
+    { symbol: '±', latex: '\\pm', name: 'Plus-minus' },
+    { symbol: '×', latex: '\\times', name: 'Times' },
+    { symbol: '÷', latex: '\\div', name: 'Division' },
+    { symbol: '≠', latex: '\\neq', name: 'Not equal' },
+    { symbol: '≤', latex: '\\leq', name: 'Less than or equal' },
+    { symbol: '≥', latex: '\\geq', name: 'Greater than or equal' },
+    { symbol: '∞', latex: '\\infty', name: 'Infinity' },
+    { symbol: '√', latex: '\\sqrt{}', name: 'Square root' },
+    { symbol: '∑', latex: '\\sum', name: 'Sum' },
+    { symbol: '∫', latex: '\\int', name: 'Integral' }
+  ];
+
+  relations = [
+    { symbol: '≈', latex: '\\approx', name: 'Approximately' },
+    { symbol: '≡', latex: '\\equiv', name: 'Equivalent' },
+    { symbol: '∈', latex: '\\in', name: 'Element of' },
+    { symbol: '∉', latex: '\\notin', name: 'Not element of' },
+    { symbol: '⊂', latex: '\\subset', name: 'Subset' },
+    { symbol: '⊃', latex: '\\supset', name: 'Superset' },
+    { symbol: '∪', latex: '\\cup', name: 'Union' },
+    { symbol: '∩', latex: '\\cap', name: 'Intersection' }
+  ];
+
+  commonExpressions = [
+    { display: 'x²', latex: 'x^2', description: 'X squared' },
+    { display: 'x³', latex: 'x^3', description: 'X cubed' },
+    { display: '2ⁿ', latex: '2^n', description: '2 to the power n' },
+    { display: 'aⁿ', latex: 'a^n', description: 'A to the power n' },
+    { display: 'x₁', latex: 'x_1', description: 'X subscript 1' },
+    { display: '½', latex: '\\frac{1}{2}', description: 'One half' },
+    { display: '¼', latex: '\\frac{1}{4}', description: 'One quarter' },
+    { display: '¾', latex: '\\frac{3}{4}', description: 'Three quarters' },
+    { display: 'a/b', latex: '\\frac{a}{b}', description: 'General fraction' },
+    { display: '∛x', latex: '\\sqrt[3]{x}', description: 'Cube root of x' },
+    { display: 'log₂', latex: '\\log_2', description: 'Log base 2' },
+    { display: 'eˣ', latex: 'e^x', description: 'E to the power x' }
   ];
 
   /* ───────────────────────────────────── */
@@ -238,59 +366,183 @@ export class AddQuestionComponent implements OnInit {
    *     this.branches = Array.isArray(data) ? data : data.branches || [];
    *   });
    * }
-   * ```   */
-  ngOnInit() {
-    this.loadBranches();
-    this.handleQueryParameters();
+   * ```   */  ngOnInit() {
+    // Load branches on component initialization
+    this.branchSrv.getBranches().subscribe({
+      next: (data: any) => {
+        this.branches = Array.isArray(data) ? data : data.branches || [];
+        console.log('Branches loaded:', this.branches);
+      },
+      error: (err) => {
+        console.error('Error loading branches:', err);
+        this.showErrorAlert('Failed to load branches');
+      }
+    });
+    
+    // Handle query parameters if any
+    console.log('Component initialized');
+    
+    this.addDocumentClickListener();
+  }
+
+  ngOnDestroy() {
+    this.removeDocumentClickListener();
   }
 
   /**
-   * @method loadBranches
-   * @description Loads available educational branches from the server
-   * @returns {void}
+   * @method addDocumentClickListener
+   * @description Adds click listener to close dropdowns when clicking outside
    */
-  private loadBranches() {
-    this.branchSrv.getBranches().subscribe({
-      next: (data: any) => {
-        // Assuming data might be an array directly or an object like { branches: [] }
-        this.branches = Array.isArray(data) ? data : (data && data.branches ? data.branches : []);
-        console.log('Branches loaded:', this.branches); // Debug log
-      },
-      error: (err: any) => {
-        console.error('Error loading branches:', err);
-        this.branches = []; // Ensure branches is empty on error
-      }
-    });
-  }
-  /**
-   * @method handleQueryParameters
-   * @description Handles pre-selection of hierarchy values from query parameters
-   * @returns {void}
-   */
-  private handleQueryParameters() {
-    this.route.queryParams.subscribe(params => {
-      if (params['branchId']) {
-        this.question.branchId = params['branchId'];
-        // Wait for branches to load then load subjects
-        setTimeout(() => this.onBranchChange(params['branchId']), 100);
-      }
-      if (params['subjectId']) {
-        this.question.subjectId = params['subjectId'];
-        setTimeout(() => this.onSubjectChange(params['subjectId']), 200);
-      }
-      if (params['topicId']) {
-        this.question.topicId = params['topicId'];
-        setTimeout(() => this.onTopicChange(params['topicId']), 300);
-      }
-      if (params['subtopicId']) {
-        this.question.subtopicId = params['subtopicId'];
-      }
+  private addDocumentClickListener(): void {
+    this.documentClickListener = (event: Event) => {
+      const target = event.target as HTMLElement;
       
-      // Log for debugging
-      console.log('Query params received:', params);
-    });
+      // Check if click is outside any dropdown
+      if (!target.closest('.hierarchy-dropdown')) {
+        this.showBranchDropdown = false;
+        this.showSubjectDropdown = false;
+        this.showTopicDropdown = false;
+        this.showSubtopicDropdown = false;
+      }
+    };
+    
+    document.addEventListener('click', this.documentClickListener);
   }
-  /* --- helpers --- */
+
+  /**
+   * @method removeDocumentClickListener
+   * @description Removes document click listener
+   */
+  private removeDocumentClickListener(): void {
+    if (this.documentClickListener) {
+      document.removeEventListener('click', this.documentClickListener);
+    }
+  }
+
+  private documentClickListener: ((event: Event) => void) | null = null;
+
+  /* ───────── alert methods ───────── */
+  
+  /**
+   * @method showAlertMessage
+   * @description Shows an alert message with specified type
+   */
+  private showAlertMessage(message: string, type: 'success' | 'error' | 'warning'): void {
+    this.alertMessage = message;
+    this.alertType = type;
+    this.showAlert = true;
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      this.hideAlert();
+    }, 5000);
+  }
+
+  /**
+   * @method hideAlert
+   * @description Hides the current alert
+   */
+  hideAlert(): void {
+    this.showAlert = false;
+    this.alertMessage = '';
+    this.alertType = '';
+  }
+
+  /**
+   * @method showSuccessAlert
+   * @description Shows a success alert
+   */
+  private showSuccessAlert(message: string): void {
+    this.showAlertMessage(message, 'success');
+  }
+
+  /**
+   * @method showErrorAlert
+   * @description Shows an error alert
+   */
+  private showErrorAlert(message: string): void {
+    this.showAlertMessage(message, 'error');
+  }
+
+  /**
+   * @method toggleMathSymbols
+   * @description Toggles the visibility of the mathematical symbols section
+   */
+  toggleMathSymbols(): void {
+    this.showMathSymbols = !this.showMathSymbols;
+  }
+
+  /**
+   * @method toggleOptionImageUpload
+   * @description Toggles the visibility of option image upload for a specific option
+   * @param {number} index - Index of the option to toggle image upload for
+   */
+  toggleOptionImageUpload(index: number): void {
+    if (index >= 0 && index < this.showOptionImageUpload.length) {
+      this.showOptionImageUpload[index] = !this.showOptionImageUpload[index];
+    }
+  }
+
+  /**
+   * @method resetForm
+   * @description Resets the entire form and scrolls to top
+   */
+  resetForm(): void {
+    // Reset the question object to initial state
+    this.question = {
+      difficulty: 'Not-mentioned',
+      type: '',
+      status: 'draft',
+      branchId: '',
+      subjectId: '',
+      topicId: '',
+      subtopicId: '',
+      tags: [],
+      recommendedTimeAllotment: undefined,
+      internalNotes: '',
+      translations: {
+        en: { questionText: '', options: [], explanations: [], images: [], numericalAnswer: { minValue: 0, maxValue: 0, unit: '' } },
+        hi: { questionText: '', options: [], explanations: [], images: [], numericalAnswer: { minValue: 0, maxValue: 0, unit: '' } }
+      }
+    };
+
+    // Reset selections
+    this.selectedBranch = null;
+    this.selectedSubject = null;
+    this.selectedTopic = null;
+    this.selectedSubtopic = null;
+
+    // Reset search texts
+    this.branchSearchText = '';
+    this.subjectSearchText = '';
+    this.topicSearchText = '';
+    this.subtopicSearchText = '';
+
+    // Reset visibility states
+    this.showMathSymbols = false;
+    this.showOptionImageUpload = [false, false, false, false, false];
+
+    // Reset appearance history
+    this.histList = [];
+    this.histEntry = { examName: '', year: this.currentYear };
+
+    // Reset tags
+    this.tagsInputString = '';
+
+    // Reset file uploads
+    this.selectedFiles.clear();
+    this.uploadStatuses.clear();
+    this.uploadProgress.clear();
+    this.previewUrls.clear();
+
+    // Switch to English
+    this.currentLang = 'en';
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* ───────── lang switch ───────── */
   /**
    * @method switchLanguage
    * @description Switches the active language for question editing interface.
@@ -324,18 +576,25 @@ export class AddQuestionComponent implements OnInit {
    * // Add new option to current language
    * this.langPack.options.push({text: 'New option', img: '', isCorrect: false});
    * ```
-   */
-  get langPack():LangPack{ // REMOVED private keyword
+   */  get langPack():LangPack{ // REMOVED private keyword
     // Ensure the langPack for the current language exists and has images initialized
     if (!this.question.translations[this.currentLang]) {
       this.question.translations[this.currentLang] = {
         questionText: '',
         options: [{text:'',img:'',isCorrect:false}, {text:'',img:'',isCorrect:false}],
         explanations: [],
-        images: []
-      };
-    } else if (!this.question.translations[this.currentLang].images) {
-      this.question.translations[this.currentLang].images = [];
+        images: [],
+        numericalAnswer: { minValue: undefined, maxValue: undefined, exactValue: undefined, tolerance: undefined, unit: '' }      };
+    } else {
+      // Ensure existing langPacks have required properties
+      if (!this.question.translations[this.currentLang].images) {
+        this.question.translations[this.currentLang].images = [];
+      }
+      if (!this.question.translations[this.currentLang].numericalAnswer) {
+        this.question.translations[this.currentLang].numericalAnswer = { 
+          minValue: undefined, maxValue: undefined, exactValue: undefined, tolerance: undefined, unit: '' 
+        };
+      }
     }
     return this.question.translations[this.currentLang];
   }
@@ -515,8 +774,7 @@ export class AddQuestionComponent implements OnInit {
     const currentText = this.langPack.questionText || '';
     this.langPack.questionText = currentText + latex;
   }
-  /* --- cascades --- */
-  /**
+  /* --- cascades --- */  /**
    * @method onBranchChange
    * @description Handles educational branch selection change, triggering cascade updates
    * for dependent dropdown lists and resetting child selections.
@@ -530,14 +788,22 @@ export class AddQuestionComponent implements OnInit {
    * this.onBranchChange('branch_engineering_id');
    * // Loads subjects for engineering, clears subject/topic/subtopic selections
    * ```
-   */  onBranchChange(id:string){
+   */  
+  onBranchChange(id:string){
     this.question.branchId=id; this.subjects=this.topics=this.subtopics=[];
     this.question.subjectId=this.question.topicId=this.question.subtopicId='';
+    this.filteredSubjects = this.filteredTopics = this.filteredSubtopics = [];
+    
     // Only fetch subjects if a valid branch ID is selected (not "Not-mentioned" or empty)
-    if(id && id !== 'Not-mentioned') {      this.subjectSrv.getSubjects(id).subscribe({
-        next: (s) => this.subjects = s,
+    if(id && id !== 'Not-mentioned') {      
+      this.subjectSrv.getSubjects(id).subscribe({
+        next: (s) => {
+          this.subjects = s;
+          this.filteredSubjects = s.slice(0, 10); // Initialize with first 10
+        },
         error: (err) => {
           this.subjects = [];
+          this.filteredSubjects = [];
         }
       });
     }
@@ -560,11 +826,18 @@ export class AddQuestionComponent implements OnInit {
    */  onSubjectChange(id:string){
     this.question.subjectId=id; this.topics=this.subtopics=[];
     this.question.topicId=this.question.subtopicId='';
+    this.filteredTopics = this.filteredSubtopics = [];
+    
     // Only fetch topics if a valid subject ID is selected (not "Not-mentioned" or empty)
     if(id && id !== 'Not-mentioned') {
       this.topicSrv.getTopics(id).subscribe({
-        next: (t) => this.topics = t,        error: (err) => {
+        next: (t) => {
+          this.topics = t;
+          this.filteredTopics = t.slice(0, 10); // Initialize with first 10
+        },
+        error: (err) => {
           this.topics = [];
+          this.filteredTopics = [];
         }
       });
     }
@@ -586,11 +859,18 @@ export class AddQuestionComponent implements OnInit {
    * ```
    */  onTopicChange(id:string){
     this.question.topicId=id; this.subtopics=[]; this.question.subtopicId='';
+    this.filteredSubtopics = [];
+    
     // Only fetch subtopics if a valid topic ID is selected (not "Not-mentioned" or empty)
     if(id && id !== 'Not-mentioned') {
-      this.subtopicSrv.getSubtopics(id).subscribe({        next: (st) => this.subtopics = st,
+      this.subtopicSrv.getSubtopics(id).subscribe({
+        next: (st) => {
+          this.subtopics = st;
+          this.filteredSubtopics = st.slice(0, 10); // Initialize with first 10
+        },
         error: (err) => {
           this.subtopics = [];
+          this.filteredSubtopics = [];
         }
       });
     }
@@ -628,18 +908,31 @@ export class AddQuestionComponent implements OnInit {
    * // 4. Filter out empty content
    * // 5. Submit to backend via QuestionService
    * ```
-   */
-  submit(form: NgForm) {
+   */  submit(form: NgForm) {
+    console.log('Form submitted. Form valid:', form.valid);
+    console.log('Form errors:', form.form.errors);
+    console.log('Form controls:', Object.keys(form.form.controls).map(key => ({
+      name: key,
+      valid: form.form.controls[key].valid,
+      errors: form.form.controls[key].errors
+    })));
+    
     if (form.invalid) {
+      console.log('Form is invalid, not submitting');
       form.control.markAllAsTouched();
       return;
     }
 
     // ----- build payload -------------------------------------------------
     const baseLang = 'en';              // or pick from a settings service
+      // Create a deep copy of the question object to avoid modifying the original state directly
+    const questionCopy = JSON.parse(JSON.stringify(this.question));    console.log('Question type:', questionCopy.type);
+    console.log('Question translations before processing:', questionCopy.translations);
     
-    // Create a deep copy of the question object to avoid modifying the original state directly
-    const questionCopy = JSON.parse(JSON.stringify(this.question));
+    // Debug current language pack specifically
+    const currentLangPack = questionCopy.translations[this.currentLang];
+    console.log('Current language pack:', currentLangPack);
+    console.log('Current numerical answer:', currentLangPack?.numericalAnswer);
 
     // Determine status based on user role
     const currentUserRole = this.authService.getUserRole();
@@ -673,9 +966,7 @@ export class AddQuestionComponent implements OnInit {
     // If your backend expects a root-level questionText or options for the base language,
     // you would set them here. e.g.:
     // payload.questionText  = questionCopy.translations[baseLang]?.questionText || '';
-    // payload.options       = questionCopy.translations[baseLang]?.options || [];
-
-    // 2️⃣ Process translations
+    // payload.options       = questionCopy.translations[baseLang]?.options || [];    // 2️⃣ Process translations
     const filledTranslations = Object.entries(questionCopy.translations)
       .map(([lang, packUntyped]) => {
         const pack = packUntyped as LangPack; // Assert type here
@@ -683,27 +974,107 @@ export class AddQuestionComponent implements OnInit {
         pack.options = Array.isArray(pack.options) ? pack.options : [];
         pack.explanations = Array.isArray(pack.explanations) ? pack.explanations : [];
         pack.images = Array.isArray(pack.images) ? pack.images : [];
-
-        return {
+        
+        const translation: any = {
           lang: lang as LangCode,
           questionText: pack.questionText,
-          options: pack.options.filter(o => o.text && o.text.trim()), // Filter out empty options
           explanations: pack.explanations,
           images: pack.images.filter(img => img && img.trim() !== '') // Filter out empty image URLs
-        };
-      })
-      .filter(p => p.questionText && p.questionText.trim() && p.options.length >= 2); // Ensure question text and at least 2 options
+        };        // Handle different question types
+        if (questionCopy.type === 'integer') {
+          // For integer questions, include numerical answer instead of options
+          if (pack.numericalAnswer) {
+            translation.numericalAnswer = {
+              minValue: Number(pack.numericalAnswer.minValue),
+              maxValue: Number(pack.numericalAnswer.maxValue),
+              unit: pack.numericalAnswer.unit?.trim() || undefined
+            };
+          }
+          // Don't include options for integer questions
+          translation.options = [];
+        } else {
+          // For multiple choice questions, include options
+          translation.options = pack.options.filter(o => (o.text && o.text.trim()) || (o.img && o.img.trim())); // Allow options with text OR image
+        }
 
+        return translation;      })
+      .filter(p => {
+        console.log('Processing translation:', p.lang, p);
+        
+        // Basic validation: must have question text
+        if (!p.questionText || !p.questionText.trim()) {
+          console.log('Translation filtered out: missing question text', p);
+          return false;
+        }
+        
+        // Type-specific validation
+        if (questionCopy.type === 'integer') {
+          // For integer questions, require valid numerical answer
+          const numericalAnswer = p.numericalAnswer;
+          console.log('Checking numerical answer for', p.lang, ':', numericalAnswer);
+          
+          if (!numericalAnswer) {
+            console.log('No numerical answer object found');
+            return false;
+          }
+          
+          const minVal = numericalAnswer.minValue;
+          const maxVal = numericalAnswer.maxValue;
+          console.log('Min/Max values:', minVal, maxVal, 'Types:', typeof minVal, typeof maxVal);
+          
+          // More lenient validation - just check if we have valid numbers
+          const minValid = minVal !== undefined && minVal !== null && minVal !== '' && !isNaN(Number(minVal));
+          const maxValid = maxVal !== undefined && maxVal !== null && maxVal !== '' && !isNaN(Number(maxVal));
+          
+          console.log('Validation results:', { minValid, maxValid });
+          
+          if (!minValid || !maxValid) {
+            console.log('Translation filtered out: invalid numerical answer', {
+              lang: p.lang,
+              numericalAnswer,
+              minValue: minVal,
+              maxValue: maxVal,
+              minValid,
+              maxValid
+            });
+            return false;
+          }
+          
+          return true;
+        } else {
+          // For multiple choice questions, require at least 2 options
+          if (p.options.length < 2) {
+            console.log('Translation filtered out: insufficient options', p);
+            return false;
+          }
+          return true;
+        }
+      });
+
+    console.log('Final translations being sent:', filledTranslations);
     payload.translations = filledTranslations;
     
     // 3️⃣ clean up empty arrays (optional hygiene)
-    // if (!payload.options?.length)       delete payload.options; // If options were at root
+    // if (!payload.options?.length)       delete payload.options; // If options were at root    // ----- POST ----------------------------------------------------------
+    if (filledTranslations.length === 0) {
+      alert('Error: No valid translations found. Please check that all required fields are filled correctly.');
+      console.error('No translations passed validation');
+      return;
+    }
 
-    // ----- POST ----------------------------------------------------------
-    this.questionSrv.addQuestion(payload)
+    console.log('Sending payload:', payload);    this.questionSrv.addQuestion(payload)
         .subscribe({
-          next: () => alert('Saved!'),
-          error: (err: any) => alert('Save failed: ' + err.message)
+          next: () => {
+            this.showSuccessAlert('Question successfully saved to database!');
+            // Auto-reset form after 2 seconds
+            setTimeout(() => {
+              this.resetForm();
+            }, 2000);
+          },
+          error: (err: any) => {
+            console.error('Error details:', err);
+            this.showErrorAlert('Save failed: ' + err.message);
+          }
         });
   }
   /* quick-nav */
@@ -981,5 +1352,501 @@ export class AddQuestionComponent implements OnInit {
         alert('Failed to delete image. Please try again.');
       }
     });
+  }
+
+  /* ───────── inline hierarchy creation methods ───────── */
+  
+  /**
+   * @method onBranchSearch
+   * @description Handles branch search input, filtering available branches and checking for exact matches
+   * @param {any} event - Input event containing search text
+   */
+  onBranchSearch(event: any): void {
+    const searchText = event.target.value.toLowerCase().trim();
+    this.branchSearchText = event.target.value;
+    
+    if (!searchText) {
+      this.filteredBranches = this.branches.slice(0, 10); // Show first 10
+      this.exactBranchMatch = false;
+      return;
+    }
+    
+    // Filter branches based on search text
+    this.filteredBranches = this.branches.filter(branch => 
+      branch.name.toLowerCase().includes(searchText)
+    ).slice(0, 10); // Limit to 10 results
+    
+    // Check for exact match
+    this.exactBranchMatch = this.branches.some(branch => 
+      branch.name.toLowerCase() === searchText
+    );
+  }
+
+  /**
+   * @method selectBranch
+   * @description Selects a branch and updates the UI accordingly
+   * @param {any} branch - Selected branch object
+   */
+  selectBranch(branch: any): void {
+    this.selectedBranch = branch;
+    this.branchSearchText = branch.name;
+    this.question.branchId = branch._id;
+    this.showBranchDropdown = false;
+    
+    // Load subjects for selected branch
+    this.onBranchChange(branch._id);
+    
+    // Clear dependent selections
+    this.clearSubjectSelection();
+  }
+
+  /**
+   * @method clearBranchSelection
+   * @description Clears branch selection and resets dependent data
+   */
+  clearBranchSelection(): void {
+    this.selectedBranch = null;
+    this.branchSearchText = '';
+    this.question.branchId = '';
+    this.subjects = [];
+    this.topics = [];
+    this.subtopics = [];
+    this.clearSubjectSelection();
+  }  /**
+   * @method createNewBranch
+   * @description Creates a new branch via the API
+   */
+  createNewBranch(): void {
+    if (!this.newBranchName.trim()) return;
+    
+    // Check if branch already exists (case-insensitive)
+    const branchExists = this.branches.some(branch => 
+      branch.name.toLowerCase() === this.newBranchName.trim().toLowerCase()
+    );
+    
+    if (branchExists) {
+      this.showErrorAlert(`Branch "${this.newBranchName.trim()}" already exists!`);
+      return;
+    }
+    
+    this.creatingBranch = true;
+    
+    this.branchSrv.createBranch(this.newBranchName.trim()).subscribe({
+      next: (newBranch: any) => {
+        // Add to branches list
+        this.branches.push(newBranch);
+        
+        // Auto-select the new branch
+        this.selectBranch(newBranch);
+        
+        // Reset form
+        this.cancelCreateBranch();
+        
+        // Show success message
+        this.showSuccessAlert(`Branch "${newBranch.name}" created successfully!`);
+        
+        console.log('Branch created successfully:', newBranch);
+      },
+      error: (error: any) => {
+        console.error('Error creating branch:', error);
+        this.creatingBranch = false;
+        
+        // Extract error message from response
+        let errorMessage = 'Failed to create branch';
+        if (error.error && error.error.message) {
+          errorMessage = error.error.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        this.showErrorAlert(errorMessage);
+      }
+    });
+  }
+
+  /**
+   * @method cancelCreateBranch
+   * @description Cancels branch creation and resets form
+   */
+  cancelCreateBranch(): void {
+    this.showCreateBranchForm = false;
+    this.newBranchName = '';
+    this.creatingBranch = false;
+  }
+
+  /**
+   * @method onSubjectSearch
+   * @description Handles subject search input
+   * @param {any} event - Input event containing search text
+   */
+  onSubjectSearch(event: any): void {
+    if (!this.selectedBranch) return;
+    
+    const searchText = event.target.value.toLowerCase().trim();
+    this.subjectSearchText = event.target.value;
+    
+    if (!searchText) {
+      this.filteredSubjects = this.subjects.slice(0, 10);
+      this.exactSubjectMatch = false;
+      return;
+    }
+    
+    this.filteredSubjects = this.subjects.filter(subject => 
+      subject.name.toLowerCase().includes(searchText)
+    ).slice(0, 10);
+    
+    this.exactSubjectMatch = this.subjects.some(subject => 
+      subject.name.toLowerCase() === searchText
+    );
+  }
+
+  /**
+   * @method selectSubject
+   * @description Selects a subject and updates the UI accordingly
+   * @param {any} subject - Selected subject object
+   */
+  selectSubject(subject: any): void {
+    this.selectedSubject = subject;
+    this.subjectSearchText = subject.name;
+    this.question.subjectId = subject._id;
+    this.showSubjectDropdown = false;
+    
+    // Load topics for selected subject
+    this.onSubjectChange(subject._id);
+    
+    // Clear dependent selections
+    this.clearTopicSelection();
+  }
+
+  /**
+   * @method clearSubjectSelection
+   * @description Clears subject selection and resets dependent data
+   */
+  clearSubjectSelection(): void {
+    this.selectedSubject = null;
+    this.subjectSearchText = '';
+    this.question.subjectId = '';
+    this.topics = [];
+    this.subtopics = [];
+    this.clearTopicSelection();
+  }
+  /**
+   * @method createNewSubject
+   * @description Creates a new subject via the API
+   */  createNewSubject(): void {
+    if (!this.newSubjectName.trim() || !this.selectedBranch) return;
+    
+    // Check if subject already exists (case-insensitive)
+    const subjectExists = this.subjects.some(subject => 
+      subject.name.toLowerCase() === this.newSubjectName.trim().toLowerCase()
+    );
+    
+    if (subjectExists) {
+      this.showErrorAlert(`Subject "${this.newSubjectName.trim()}" already exists in this branch!`);
+      return;
+    }
+    
+    this.creatingSubject = true;
+    
+    this.subjectSrv.createSubject(this.newSubjectName.trim(), this.selectedBranch._id).subscribe({
+      next: (newSubject: any) => {
+        // Add to subjects list
+        this.subjects.push(newSubject);
+        
+        // Auto-select the new subject
+        this.selectSubject(newSubject);
+        
+        // Reset form
+        this.cancelCreateSubject();
+        
+        // Show success message
+        this.showSuccessAlert(`Subject "${newSubject.name}" created successfully!`);
+        
+        console.log('Subject created successfully:', newSubject);
+      },
+      error: (error: any) => {
+        console.error('Error creating subject:', error);
+        this.creatingSubject = false;
+        
+        // Extract error message from response
+        let errorMessage = 'Failed to create subject';
+        if (error.error && error.error.message) {
+          errorMessage = error.error.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        this.showErrorAlert(errorMessage);
+      }
+    });
+  }
+
+  /**
+   * @method cancelCreateSubject
+   * @description Cancels subject creation and resets form
+   */
+  cancelCreateSubject(): void {
+    this.showCreateSubjectForm = false;
+    this.newSubjectName = '';
+    this.creatingSubject = false;
+  }
+
+  /**
+   * @method onTopicSearch
+   * @description Handles topic search input
+   * @param {any} event - Input event containing search text
+   */
+  onTopicSearch(event: any): void {
+    if (!this.selectedSubject) return;
+    
+    const searchText = event.target.value.toLowerCase().trim();
+    this.topicSearchText = event.target.value;
+    
+    if (!searchText) {
+      this.filteredTopics = this.topics.slice(0, 10);
+      this.exactTopicMatch = false;
+      return;
+    }
+    
+    this.filteredTopics = this.topics.filter(topic => 
+      topic.name.toLowerCase().includes(searchText)
+    ).slice(0, 10);
+    
+    this.exactTopicMatch = this.topics.some(topic => 
+      topic.name.toLowerCase() === searchText
+    );
+  }
+
+  /**
+   * @method selectTopic
+   * @description Selects a topic and updates the UI accordingly
+   * @param {any} topic - Selected topic object
+   */
+  selectTopic(topic: any): void {
+    this.selectedTopic = topic;
+    this.topicSearchText = topic.name;
+    this.question.topicId = topic._id;
+    this.showTopicDropdown = false;
+    
+    // Load subtopics for selected topic
+    this.onTopicChange(topic._id);
+    
+    // Clear dependent selections
+    this.clearSubtopicSelection();
+  }
+
+  /**
+   * @method clearTopicSelection
+   * @description Clears topic selection and resets dependent data
+   */
+  clearTopicSelection(): void {
+    this.selectedTopic = null;
+    this.topicSearchText = '';
+    this.question.topicId = '';
+    this.subtopics = [];
+    this.clearSubtopicSelection();
+  }
+  /**
+   * @method createNewTopic
+   * @description Creates a new topic via the API
+   */  createNewTopic(): void {
+    if (!this.newTopicName.trim() || !this.selectedSubject) return;
+    
+    // Check if topic already exists (case-insensitive)
+    const topicExists = this.topics.some(topic => 
+      topic.name.toLowerCase() === this.newTopicName.trim().toLowerCase()
+    );
+    
+    if (topicExists) {
+      this.showErrorAlert(`Topic "${this.newTopicName.trim()}" already exists in this subject!`);
+      return;
+    }
+    
+    this.creatingTopic = true;
+    
+    this.topicSrv.createTopic(this.newTopicName.trim(), this.selectedSubject._id).subscribe({
+      next: (newTopic: any) => {
+        // Add to topics list
+        this.topics.push(newTopic);
+        
+        // Auto-select the new topic
+        this.selectTopic(newTopic);
+        
+        // Reset form
+        this.cancelCreateTopic();
+        
+        // Show success message
+        this.showSuccessAlert(`Topic "${newTopic.name}" created successfully!`);
+        
+        console.log('Topic created successfully:', newTopic);
+      },
+      error: (error: any) => {
+        console.error('Error creating topic:', error);
+        this.creatingTopic = false;
+        
+        // Extract error message from response
+        let errorMessage = 'Failed to create topic';
+        if (error.error && error.error.message) {
+          errorMessage = error.error.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        this.showErrorAlert(errorMessage);
+      }
+    });
+  }
+
+  /**
+   * @method cancelCreateTopic
+   * @description Cancels topic creation and resets form
+   */
+  cancelCreateTopic(): void {
+    this.showCreateTopicForm = false;
+    this.newTopicName = '';
+    this.creatingTopic = false;
+  }
+
+  /**
+   * @method onSubtopicSearch
+   * @description Handles subtopic search input
+   * @param {any} event - Input event containing search text
+   */
+  onSubtopicSearch(event: any): void {
+    if (!this.selectedTopic) return;
+    
+    const searchText = event.target.value.toLowerCase().trim();
+    this.subtopicSearchText = event.target.value;
+    
+    if (!searchText) {
+      this.filteredSubtopics = this.subtopics.slice(0, 10);
+      this.exactSubtopicMatch = false;
+      return;
+    }
+    
+    this.filteredSubtopics = this.subtopics.filter(subtopic => 
+      subtopic.name.toLowerCase().includes(searchText)
+    ).slice(0, 10);
+    
+    this.exactSubtopicMatch = this.subtopics.some(subtopic => 
+      subtopic.name.toLowerCase() === searchText
+    );
+  }
+
+  /**
+   * @method selectSubtopic
+   * @description Selects a subtopic and updates the UI accordingly
+   * @param {any} subtopic - Selected subtopic object
+   */
+  selectSubtopic(subtopic: any): void {
+    this.selectedSubtopic = subtopic;
+    this.subtopicSearchText = subtopic.name;
+    this.question.subtopicId = subtopic._id;
+    this.showSubtopicDropdown = false;
+  }
+
+  /**
+   * @method clearSubtopicSelection
+   * @description Clears subtopic selection
+   */
+  clearSubtopicSelection(): void {
+    this.selectedSubtopic = null;
+    this.subtopicSearchText = '';
+    this.question.subtopicId = '';
+  }
+  /**
+   * @method createNewSubtopic
+   * @description Creates a new subtopic via the API
+   */  createNewSubtopic(): void {
+    if (!this.newSubtopicName.trim() || !this.selectedTopic) return;
+    
+    // Check if subtopic already exists (case-insensitive)
+    const subtopicExists = this.subtopics.some(subtopic => 
+      subtopic.name.toLowerCase() === this.newSubtopicName.trim().toLowerCase()
+    );
+    
+    if (subtopicExists) {
+      this.showErrorAlert(`Subtopic "${this.newSubtopicName.trim()}" already exists in this topic!`);
+      return;
+    }
+    
+    this.creatingSubtopic = true;
+    
+    this.subtopicSrv.createSubtopic(this.newSubtopicName.trim(), this.selectedTopic._id).subscribe({
+      next: (newSubtopic: any) => {
+        // Add to subtopics list
+        this.subtopics.push(newSubtopic);
+        
+        // Auto-select the new subtopic
+        this.selectSubtopic(newSubtopic);
+        
+        // Reset form
+        this.cancelCreateSubtopic();
+        
+        // Show success message
+        this.showSuccessAlert(`Subtopic "${newSubtopic.name}" created successfully!`);
+        
+        console.log('Subtopic created successfully:', newSubtopic);
+      },
+      error: (error: any) => {
+        console.error('Error creating subtopic:', error);
+        this.creatingSubtopic = false;
+        
+        // Extract error message from response
+        let errorMessage = 'Failed to create subtopic';
+        if (error.error && error.error.message) {
+          errorMessage = error.error.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        this.showErrorAlert(errorMessage);
+      }
+    });
+  }
+
+  /**
+   * @method cancelCreateSubtopic
+   * @description Cancels subtopic creation and resets form
+   */
+  cancelCreateSubtopic(): void {
+    this.showCreateSubtopicForm = false;
+    this.newSubtopicName = '';
+    this.creatingSubtopic = false;
+  }
+
+  /**
+   * @method debugNumericalAnswer
+   * @description Debug method to check current numerical answer state
+   */
+  debugNumericalAnswer() {
+    console.log('Current question type:', this.question.type);
+    console.log('Current language:', this.currentLang);
+    console.log('Current numerical answer:', this.question.translations[this.currentLang].numericalAnswer);
+    console.log('Min value type:', typeof this.question.translations[this.currentLang].numericalAnswer?.minValue);
+    console.log('Max value type:', typeof this.question.translations[this.currentLang].numericalAnswer?.maxValue);
+  }
+
+  /**
+   * @method onQuestionTypeChange
+   * @description Handle question type change and initialize numerical answer for integer questions
+   */
+  onQuestionTypeChange() {
+    if (this.question.type === 'integer') {
+      // Initialize numerical answer for all languages when type changes to integer
+      Object.keys(this.question.translations).forEach(lang => {
+        if (!this.question.translations[lang as LangCode].numericalAnswer) {
+          this.question.translations[lang as LangCode].numericalAnswer = {
+            minValue: undefined,
+            maxValue: undefined,
+            exactValue: undefined,
+            tolerance: undefined,
+            unit: ''
+          };
+        }
+      });
+    }
+    console.log('Question type changed to:', this.question.type);
+    console.log('Numerical answer initialized:', this.question.translations[this.currentLang].numericalAnswer);
   }
 }

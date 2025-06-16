@@ -175,14 +175,22 @@ exports.addQuestion = async (req, res) => {
     // 1️⃣  clean up incoming array (or object -> array)
     let packs = Array.isArray(req.body.translations)
                 ? req.body.translations
-                : Object.values(req.body.translations || {});
-
-    // throw away packs that are obviously blank
-    packs = packs.filter(p =>
-      p.questionText?.trim() &&
-      Array.isArray(p.options) &&
-      p.options.filter(o => o.text?.trim()).length >= 2
-    );
+                : Object.values(req.body.translations || {});    // throw away packs that are obviously blank
+    packs = packs.filter(p => {
+      // Basic requirement: must have question text
+      if (!p.questionText?.trim()) return false;
+      
+      // For integer/numerical questions, check for numerical answer instead of options
+      if (qType === 'integer' || qType === 'numerical') {
+        return p.numericalAnswer && 
+               p.numericalAnswer.minValue !== undefined && 
+               p.numericalAnswer.maxValue !== undefined;
+      }
+      
+      // For other question types, require at least 2 options
+      return Array.isArray(p.options) &&
+             p.options.filter(o => o.text?.trim()).length >= 2;
+    });
 
     /* packs currently looks like [{ questionText:'...', options:[…] }, …]   */
     /* ensure every block carries an explicit lang tag                      */
@@ -203,28 +211,42 @@ exports.addQuestion = async (req, res) => {
       return res.status(400).json({ message:'Need at least one filled language' });
 
     // 2️⃣  choose the first pack as the "mirror" for quick queries  
-    const [primary] = packs;         // could be en or hi
-
-    /* ---------- 4. validate options ----------------------------- */
-    // `packs` is already an array that contains every non-empty language pack.
+    const [primary] = packs;         // could be en or hi    /* ---------- 4. validate options/answers -------------------- */    // `packs` is already an array that contains every non-empty language pack.
     // The first element is English if it was present – otherwise the next
     // available language (e.g. Hindi-only submissions).
     const primaryLangPack = packs[0];
 
-    const baseOpts = primaryLangPack.options || [];
+    // Initialize baseCorrect for use later in question creation
+    let baseCorrect = [];
 
-    if (baseOpts.length < 2)
-      return res.status(400).json({ message:'At least two options are required.' });
+    // Validation differs based on question type
+    if (qType === 'integer' || qType === 'numerical') {
+      // For numerical questions, validate numerical answer
+      const numericalAnswer = primaryLangPack.numericalAnswer;
+      if (!numericalAnswer || 
+          numericalAnswer.minValue === undefined || 
+          numericalAnswer.maxValue === undefined) {
+        return res.status(400).json({ message:'Numerical answer with min/max values is required for integer questions.' });
+      }
+      // For numerical questions, no correct options
+      baseCorrect = [];
+    } else {
+      // For multiple choice questions, validate options
+      const baseOpts = primaryLangPack.options || [];
 
-    const baseCorrect = baseOpts
-      .map((o,idx)=>o.isCorrect?idx:-1)
-      .filter(i=>i>=0);
+      if (baseOpts.length < 2)
+        return res.status(400).json({ message:'At least two options are required.' });
 
-    if (qType==='single' && baseCorrect.length!==1)
-      return res.status(400).json({ message:'Single-correct must have exactly one correct option.' });
+      baseCorrect = baseOpts
+        .map((o,idx)=>o.isCorrect?idx:-1)
+        .filter(i=>i>=0);
 
-    if ((qType==='multiple'||qType==='matrix') && baseCorrect.length<2)
-      return res.status(400).json({ message:'Multiple / matrix must have 2+ correct options.' });
+      if (qType==='single' && baseCorrect.length!==1)
+        return res.status(400).json({ message:'Single-correct must have exactly one correct option.' });
+
+      if ((qType==='multiple'||qType==='matrix') && baseCorrect.length<2)
+        return res.status(400).json({ message:'Multiple / matrix must have 2+ correct options.' });
+    }
 
     /* ---------- 5. resolve hierarchy IDs ------------------------ */
     const branch   = await resolveId(Branch  , branchId);

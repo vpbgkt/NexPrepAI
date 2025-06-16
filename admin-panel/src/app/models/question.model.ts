@@ -20,6 +20,7 @@ export interface Translation {
   images?: string[];
   options: Option[];
   explanations?: Explanation[]; // UPDATED to use Explanation interface
+  numericalAnswer?: NumericalAnswer; // ADDED for numerical question types
 }
 
 // ADDED: Interface for populated hierarchical fields
@@ -40,7 +41,7 @@ export interface Question {
   subTopic?: string | { $oid: string } | PopulatedHierarchyField; // Corrected casing
 
   translations: Translation[];
-  difficulty: '' | 'Easy' | 'Medium' | 'Hard';
+  difficulty: '' | 'Very Easy' | 'Easy' | 'Medium' | 'Hard' | 'Very Hard' | 'Not-mentioned';
   type?: string;
   explanations?: any[];
   questionHistory?: any[];
@@ -77,4 +78,14 @@ export interface Question {
   // subject?: { _id: string; name: string }; // Covered by main subject object
   // topic?: { _id: string; name: string }; // Covered by main topic object
   // subtopic?: { _id: string; name: string }; // Covered by main subTopic object
+}
+
+// ADDED: Interface for numerical answers (NAT - Numerical Answer Type)
+export interface NumericalAnswer {
+  _id?: { $oid: string } | string;
+  minValue?: number;
+  maxValue?: number;
+  exactValue?: number;
+  tolerance?: number; // For percentage-based tolerance
+  unit?: string; // Optional unit like "m", "kg", etc.
 }
