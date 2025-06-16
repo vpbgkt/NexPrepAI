@@ -12,11 +12,15 @@ const examShiftSchema = new Schema({
     type: String,
     required: true,   // e.g. 'shift-1', 'shift-2', or 'Q-3'
     trim: true
-  },
-  name: {
+  },  name: {
     type: String,
     required: true,   // human-readable e.g. 'Shift 1', 'Q-3'
     trim: true
+  },
+  description: {
+    type: String,
+    trim: true,
+    default: null
   },
   createdBy: {
     type: Schema.Types.ObjectId,

@@ -19,9 +19,22 @@ const examPaperSchema = new Schema({
     type: String,
     required: true,
     trim: true
-  },
-  year: {
+  },  year: {
     type: Number,
+    default: null
+  },
+  durationMinutes: {
+    type: Number,
+    default: null,
+    min: 0
+  },
+  passingCriteria: {
+    type: String,
+    trim: true,
+    default: null
+  },
+  examDate: {
+    type: Date,
     default: null
   },
   createdBy: {
