@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { Router, RouterModule } from '@angular/router';
 import { ExamStreamService } from '../../../services/exam-stream.service';
 import { ExamFamilyService, ExamFamily } from '../../../services/exam-family.service';
+import { ExamLevelService, ExamLevel } from '../../../services/exam-level.service';
 
 @Component({
   standalone: true,
@@ -15,24 +16,61 @@ import { ExamFamilyService, ExamFamily } from '../../../services/exam-family.ser
 export class AddExamStreamComponent implements OnInit {
   form!: FormGroup;
   families: ExamFamily[] = [];
+  levels: ExamLevel[] = [];
 
   constructor(
     private fb: FormBuilder,
     private svc: ExamStreamService,
     private familySvc: ExamFamilyService,
+    private levelSvc: ExamLevelService,
     private router: Router
-  ) {}
-
-  ngOnInit() {
+  ) {}  ngOnInit() {
     // 1. Build the form
     this.form = this.fb.group({
       family: ['', Validators.required],
-      code:   ['', Validators.required],
-      name:   ['', Validators.required]
+      level: ['', Validators.required], // Changed from levelId to level
+      code: [''], // Made optional - will auto-generate if empty
+      name: ['', Validators.required],
+      conductingAuthority: [''],
+      region: [''],
+      language: ['English'], // Default to English
+      status: ['Active'], // Default to Active
+      description: ['']
     });
 
     // 2. Load families for the dropdown
     this.familySvc.getAll().subscribe(data => this.families = data);
+
+    // 3. When family changes, load levels for that family
+    this.form.get('family')?.valueChanges.subscribe(familyId => {
+      this.levels = [];
+      this.form.get('level')?.reset(''); // Changed from levelId to level
+      if (familyId) {
+        this.levelSvc.getByFamily(familyId).subscribe(levels => this.levels = levels);
+      }
+    });
+
+    // 4. Auto-generate code from name if code is empty
+    this.form.get('name')?.valueChanges.subscribe(name => {
+      const codeControl = this.form.get('code');
+      if (name && (!codeControl?.value || codeControl?.value.trim() === '')) {
+        const autoCode = this.generateCodeFromName(name);
+        codeControl?.setValue(autoCode);
+      }
+    });  }
+
+  /**
+   * Generate a code from name by converting to lowercase, 
+   * replacing spaces with hyphens, and removing special characters
+   */
+  private generateCodeFromName(name: string): string {
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
   }
 
   onSubmit() {

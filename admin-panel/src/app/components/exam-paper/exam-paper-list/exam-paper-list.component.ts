@@ -14,8 +14,15 @@ export class ExamPaperListComponent implements OnInit {
   papers: ExamPaper[] = [];
 
   constructor(private svc: ExamPaperService) {}
-
   ngOnInit() {
     this.svc.getAll().subscribe(data => this.papers = data);
+  }
+
+  getFamilyName(family: string | { _id: string; name: string; code: string }): string {
+    return typeof family === 'object' ? family.name : family;
+  }
+
+  getStreamName(stream: string | { _id: string; name: string; code: string }): string {
+    return typeof stream === 'object' ? stream.name : stream;
   }
 }

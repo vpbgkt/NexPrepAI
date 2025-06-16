@@ -71,7 +71,10 @@ const ExamPaper = require('../models/ExamPaper');
  */
 exports.getPapers = async (req, res) => {
   try {
-    const papers = await ExamPaper.find();
+    const papers = await ExamPaper.find()
+      .populate('family', 'code name')
+      .populate('stream', 'code name')
+      .sort('name');
     res.json(papers);
   } catch (err) {
     console.error('Error fetching papers:', err);
@@ -266,21 +269,51 @@ exports.getByFamily = async (req, res) => {
  */
 exports.createPaper = async (req, res) => {
   try {
-    const { family, stream, code, name, description } = req.body;
+    const { 
+      family, 
+      stream, 
+      code, 
+      name, 
+      year,
+      durationMinutes,
+      passingCriteria,
+      examDate,
+      description 
+    } = req.body;
+
+    // Debug logging
+    console.log('Creating paper with data:', {
+      family, stream, code, name, year, durationMinutes, passingCriteria, examDate, description
+    });
+    console.log('Year type:', typeof year, 'Year value:', year);
 
     // Pull creator ID from the verified token
     const createdBy = req.user.userId;
 
-    const paper = new ExamPaper({
+    // Auto-generate code if not provided
+    let paperCode = code;
+    if (!paperCode || paperCode.trim() === '') {
+      paperCode = name
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+        .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+    }    // Convert year to number if it's a string, handle empty strings
+    const paperYear = year && year !== '' ? parseInt(year, 10) : null;
+    const paperDuration = durationMinutes && durationMinutes !== '' ? parseInt(durationMinutes, 10) : null;    const paper = new ExamPaper({
       family,
       stream,
-      code,
+      code: paperCode,
       name,
-      description,
+      year: paperYear,
+      durationMinutes: paperDuration,
+      passingCriteria: passingCriteria && passingCriteria.trim() !== '' ? passingCriteria : null,
+      examDate: examDate && examDate.trim() !== '' ? examDate : null,
+      description: description && description.trim() !== '' ? description : null,
       createdBy
-    });
-
-    await paper.save();
+    });await paper.save();
     res.status(201).json(paper);
 
   } catch (err) {

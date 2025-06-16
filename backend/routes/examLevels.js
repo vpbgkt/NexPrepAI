@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken, requireRole } = require('../middleware/verifyToken');
+const { verifyToken, requireRoles } = require('../middleware/verifyToken');
 const {
   getLevels,
   getLevelsByFamily,
@@ -21,7 +21,7 @@ router.get('/', verifyToken, (req, res, next) => {
 // Alternative route for family filtering (explicit)
 router.get('/by-family', verifyToken, getLevelsByFamily);
 
-// POST new level (Admin only)
-router.post('/', verifyToken, requireRole('admin'), createLevel);
+// POST new level (Admin and Super Admin allowed)
+router.post('/', verifyToken, requireRoles(['admin', 'super admin', 'superadmin']), createLevel);
 
 module.exports = router;

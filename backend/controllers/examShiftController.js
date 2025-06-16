@@ -62,7 +62,9 @@ const ExamShift = require('../models/ExamShift');
  */
 exports.getShifts = async (req, res) => {
   try {
-    const shifts = await ExamShift.find().sort('code');
+    const shifts = await ExamShift.find()
+      .populate('paper', 'code name')
+      .sort('code');
     res.json(shifts);
   } catch (err) {
     console.error('Error fetching exam shifts:', err);

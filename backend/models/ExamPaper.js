@@ -4,15 +4,20 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const examPaperSchema = new Schema({
+  family: {
+    type: Schema.Types.ObjectId,
+    ref: 'ExamFamily',
+    required: true,
+    index: true
+  },
   stream: {
     type: Schema.Types.ObjectId,
     ref: 'ExamStream',
     required: true,
     index: true
-  },
-  code: {
+  },code: {
     type: String,
-    required: true,
+    required: false,  // Make optional since we'll auto-generate
     trim: true
   },
   name: {

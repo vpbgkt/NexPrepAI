@@ -181,10 +181,22 @@ exports.createStream = async (req, res) => {
     
     const createdBy = req.user.userId;
     
+    // Auto-generate code if not provided
+    let streamCode = code;
+    if (!streamCode || streamCode.trim() === '') {
+      streamCode = name
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+        .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+    }
+    
     const stream = new ExamStream({ 
       family, 
       level,
-      code: code.toUpperCase(), 
+      code: streamCode.toUpperCase(), 
       name, 
       conductingAuthority,
       region,

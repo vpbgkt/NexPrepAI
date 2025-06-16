@@ -11,8 +11,8 @@
 
     <!-- Form Section -->
     <div class="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 lg:p-8">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
-        <!-- Family Selection -->        <div class="form-group">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">        <!-- Family Selection -->
+        <div class="form-group">
           <label for="family" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
             <i class="fas fa-users text-purple-500"></i>
             Family
@@ -24,22 +24,33 @@
             <option value="" disabled>Select Family</option>
             <option *ngFor="let f of families" [value]="f._id">{{ f.name }}</option>
           </select>
-        </div>
-
-        <!-- Code Input -->
+        </div>        <!-- Level Selection -->
+        <div class="form-group">
+          <label for="level" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-layer-group text-emerald-500"></i>
+            Exam Level
+          </label>
+          <select 
+            id="level" 
+            formControlName="level"
+            [disabled]="!levels.length"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 bg-white appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e')] bg-no-repeat bg-right-4 bg-[length:1em] disabled:bg-gray-100 disabled:cursor-not-allowed">
+            <option value="" disabled>Select Level</option>
+            <option *ngFor="let l of levels" [value]="l._id">{{ l.name }} ({{ l.code }})</option>
+          </select>
+        </div>        <!-- Code Input -->
         <div class="form-group">
           <label for="code" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
             <i class="fas fa-code text-green-500"></i>
-            Code
+            Code (Optional)
+            <span class="text-xs text-gray-500 font-normal">(Auto-generated from name if left empty)</span>
           </label>
           <input 
             id="code" 
             formControlName="code" 
-            placeholder="e.g. medical-stream"
+            placeholder="e.g. medical-stream (auto-generated if empty)"
             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 placeholder-gray-400" />
-        </div>
-
-        <!-- Name Input -->
+        </div><!-- Name Input -->
         <div class="form-group">
           <label for="name" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
             <i class="fas fa-tag text-indigo-500"></i>
@@ -50,6 +61,78 @@
             formControlName="name" 
             placeholder="Stream Name"
             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 placeholder-gray-400" />
+        </div>
+
+        <!-- Conducting Authority Input -->
+        <div class="form-group">
+          <label for="conductingAuthority" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-university text-amber-500"></i>
+            Conducting Authority
+          </label>
+          <input 
+            id="conductingAuthority" 
+            formControlName="conductingAuthority" 
+            placeholder="e.g. NTA, UPSC, RPSC, IIT, IBPS"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 placeholder-gray-400" />
+        </div>
+
+        <!-- Region/State Input -->
+        <div class="form-group">
+          <label for="region" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-map-marker-alt text-red-500"></i>
+            Region/State
+          </label>
+          <input 
+            id="region" 
+            formControlName="region" 
+            placeholder="e.g. All-India, Rajasthan, MP, UP, International"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 placeholder-gray-400" />
+        </div>
+
+        <!-- Language Selection -->
+        <div class="form-group">
+          <label for="language" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-language text-pink-500"></i>
+            Language
+          </label>
+          <select 
+            id="language" 
+            formControlName="language"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 bg-white appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e')] bg-no-repeat bg-right-4 bg-[length:1em]">
+            <option value="" disabled>Select Language</option>
+            <option value="English">English</option>
+            <option value="Hindi">Hindi</option>
+            <option value="Multilingual">Multilingual</option>
+          </select>
+        </div>
+
+        <!-- Status Selection -->
+        <div class="form-group">
+          <label for="status" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-toggle-on text-green-500"></i>
+            Status
+          </label>
+          <select 
+            id="status" 
+            formControlName="status"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 bg-white appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e')] bg-no-repeat bg-right-4 bg-[length:1em]">
+            <option value="Active">Active</option>
+            <option value="Archived">Archived</option>
+          </select>
+        </div>
+
+        <!-- Description Input -->
+        <div class="form-group">
+          <label for="description" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-align-left text-gray-500"></i>
+            Description
+          </label>
+          <textarea 
+            id="description" 
+            formControlName="description" 
+            rows="3"
+            placeholder="Optional details about this exam stream..."
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 placeholder-gray-400 resize-vertical"></textarea>
         </div>
 
         <!-- Submit Button -->

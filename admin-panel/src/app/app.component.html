@@ -131,19 +131,24 @@
             </button>
             <!-- Exams Dropdown Menu -->
             <div *ngIf="activeDropdown === 'exam-structure'" 
-                 class="absolute top-full left-0 mt-1 w-48 bg-white rounded-lg shadow-medium border border-gray-200 py-1 z-50">
-              <a routerLink="/exam-families" 
+                 class="absolute top-full left-0 mt-1 w-48 bg-white rounded-lg shadow-medium border border-gray-200 py-1 z-50">              <a routerLink="/exam-families" 
                  routerLinkActive="bg-primary-50 text-primary-700"
                  (click)="closeDropdown()"
                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
                 Exam Families
+              </a>
+              <a routerLink="/exam-levels" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeDropdown()"
+                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                Exam Levels
               </a>
               <a routerLink="/exam-streams" 
                  routerLinkActive="bg-primary-50 text-primary-700"
                  (click)="closeDropdown()"
                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
                 Exam Streams
-              </a>              <a routerLink="/exam-papers" 
+              </a><a routerLink="/exam-papers" 
                  routerLinkActive="bg-primary-50 text-primary-700"
                  (click)="closeDropdown()"
                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200">
@@ -343,12 +348,17 @@
               <i class="fas fa-chevron-down text-sm transition-transform duration-200" 
                  [class.rotate-180]="activeDropdown === 'exam-structure'"></i>
             </button>
-            <div *ngIf="activeDropdown === 'exam-structure'" class="pl-10 space-y-1">
-              <a routerLink="/exam-families" 
+            <div *ngIf="activeDropdown === 'exam-structure'" class="pl-10 space-y-1">              <a routerLink="/exam-families" 
                  routerLinkActive="bg-primary-50 text-primary-700"
                  (click)="closeMobileMenu()"
                  class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
                 Exam Families
+              </a>
+              <a routerLink="/exam-levels" 
+                 routerLinkActive="bg-primary-50 text-primary-700"
+                 (click)="closeMobileMenu()"
+                 class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200">
+                Exam Levels
               </a>
               <a routerLink="/exam-streams" 
                  routerLinkActive="bg-primary-50 text-primary-700"

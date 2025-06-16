@@ -14,8 +14,15 @@ export class ExamStreamListComponent implements OnInit {
   streams: ExamStream[] = [];
 
   constructor(private svc: ExamStreamService) {}
-
   ngOnInit() {
     this.svc.getAll().subscribe(data => this.streams = data);
+  }
+
+  getFamilyName(family: string | { _id: string; name: string; code: string }): string {
+    return typeof family === 'object' ? family.name : family;
+  }
+
+  getLevelName(level: string | { _id: string; name: string; code: string }): string {
+    return typeof level === 'object' ? level.name : level;
   }
 }

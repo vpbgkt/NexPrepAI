@@ -7,28 +7,17 @@ const examLevelSchema = new Schema({
     ref: 'ExamFamily',
     required: true,
     index: true
-  },
-  code: {
+  },  code: {
     type: String,
     required: true,
     unique: true,
     trim: true,
-    uppercase: true,
-    enum: ['UG', 'PG', 'DOC', 'DIP', '10+2', 'GRAD', 'SCH']
+    uppercase: true
   },
   name: {
     type: String,
     required: true,
-    trim: true,
-    enum: [
-      'UG', 
-      'PG', 
-      'Doctorate', 
-      'Diploma', 
-      '10+2 Level', 
-      'Graduate Level', 
-      'School Level'
-    ]
+    trim: true
   },
   description: {
     type: String,

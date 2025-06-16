@@ -26,12 +26,12 @@ export class AddExamShiftComponent implements OnInit {
     private router: Router
   ) {}
 
-  ngOnInit() {
-    // 1️⃣ Build the form
+  ngOnInit() {    // 1️⃣ Build the form
     this.form = this.fb.group({
       paper: ['', Validators.required],
-      code:  ['', Validators.required],
-      name:  ['', Validators.required]
+      code: ['', Validators.required],
+      name: ['', Validators.required],
+      description: ['']
     });
 
     // 2️⃣ Load Papers for dropdown

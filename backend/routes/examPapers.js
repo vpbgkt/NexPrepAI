@@ -1,5 +1,5 @@
 const express = require('express');
-const { verifyToken } = require('../middleware/verifyToken');
+const { verifyToken, requireRoles } = require('../middleware/verifyToken');
 const {
   getPapers,
   getByStream,
@@ -22,6 +22,6 @@ router.get('/', verifyToken, (req, res, next) => {
   }
 });
 
-router.post('/', verifyToken, createPaper);
+router.post('/', verifyToken, requireRoles(['admin', 'super admin', 'superadmin']), createPaper);
 
 module.exports = router;

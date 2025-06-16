@@ -13,10 +13,9 @@ const examStreamSchema = new Schema({
     ref: 'ExamLevel', 
     required: true,
     index: true
-  },
-  code: { 
+  },  code: { 
     type: String, 
-    required: true, 
+    required: false,  // Make optional since we'll auto-generate
     trim: true,
     uppercase: true
   },
@@ -27,13 +26,13 @@ const examStreamSchema = new Schema({
   },
   conductingAuthority: {
     type: String,
-    required: true,
+    required: false,  // Make optional
     trim: true
     // Examples: NTA, UPSC, RPSC, IIT, IBPS, CBSE, ICSE, etc.
   },
   region: {
     type: String,
-    required: true,
+    required: false,  // Make optional
     trim: true,
     default: 'All-India'
     // Examples: All-India, Rajasthan, MP, UP, International, etc.

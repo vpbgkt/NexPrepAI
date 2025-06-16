@@ -1,0 +1,44 @@
+/**
+ * @fileoverview Add Exam Level Component Styles
+ * @description Minimal SCSS for add exam level component using Tailwind CSS
+ * 
+ * @author NexPrep Development Team
+ * @since 1.0.0
+ */
+
+/* Smooth scrolling for forms */
+.form-group {
+  scroll-margin-top: 1rem;
+}
+
+/* Custom focus styles for better accessibility */
+:host ::ng-deep input:focus,
+:host ::ng-deep select:focus,
+:host ::ng-deep textarea:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+/* Smooth transitions for form elements */
+:host ::ng-deep input,
+:host ::ng-deep select,
+:host ::ng-deep textarea {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Custom validation styling */
+:host ::ng-deep .ng-invalid.ng-touched {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}

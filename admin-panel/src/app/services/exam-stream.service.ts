@@ -5,9 +5,15 @@ import { environment } from '../../environments/environment';
 
 export interface ExamStream {
   _id: string;
-  family: string;  // ObjectId of the ExamFamily
-  code: string;
+  family: string | { _id: string; name: string; code: string };  // Can be populated or just ObjectId
+  level: string | { _id: string; name: string; code: string };   // Can be populated or just ObjectId
+  code?: string;   // Optional, can be auto-generated
   name: string;
+  conductingAuthority?: string;
+  region?: string;
+  language?: string;
+  status?: string;
+  description?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -25,9 +31,28 @@ export class ExamStreamService {
   getByFamily(familyId: string): Observable<ExamStream[]> {
     return this.http.get<ExamStream[]>(this.base, { params: { family: familyId } });
   }
+  /** List streams filtered by level */
+  getByLevel(levelId: string): Observable<ExamStream[]> {
+    return this.http.get<ExamStream[]>(this.base, { params: { level: levelId } });
+  }
+
+  /** Get a single stream by ID */
+  getById(id: string): Observable<ExamStream> {
+    return this.http.get<ExamStream>(`${this.base}/${id}`);
+  }
 
   /** Create a new stream */
   create(stream: Partial<ExamStream>): Observable<ExamStream> {
     return this.http.post<ExamStream>(this.base, stream);
+  }
+
+  /** Update an existing stream */
+  update(id: string, stream: Partial<ExamStream>): Observable<ExamStream> {
+    return this.http.put<ExamStream>(`${this.base}/${id}`, stream);
+  }
+
+  /** Delete a stream */
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/${id}`);
   }
 }

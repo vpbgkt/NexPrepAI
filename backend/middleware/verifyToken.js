@@ -48,8 +48,22 @@ function requireRole(role) {
   };
 }
 
-// 3. Export both functions
+// 3. requireRoles factory checks req.user.role against multiple allowed roles
+function requireRoles(allowedRoles) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Forbidden: insufficient privileges' });
+    }
+    next();
+  };
+}
+
+// 4. Export both functions
 module.exports = {
   verifyToken,
-  requireRole
+  requireRole,
+  requireRoles
 };

@@ -5,11 +5,15 @@ import { environment } from '../../environments/environment';
 
 export interface ExamPaper {
   _id: string;
-  family: string;   // ExamFamily _id
-  stream: string;   // ExamStream _id
-  code: string;
+  family: string | { _id: string; name: string; code: string };   // Can be populated or just ObjectId
+  stream: string | { _id: string; name: string; code: string };   // Can be populated or just ObjectId
+  code?: string;    // Optional, can be auto-generated
   name: string;
   description?: string;
+  year?: number;
+  durationMinutes?: number;
+  passingCriteria?: string;
+  examDate?: Date;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -37,8 +41,23 @@ export class ExamPaperService {
     });
   }
 
+  /** Get a single paper by ID */
+  getById(id: string): Observable<ExamPaper> {
+    return this.http.get<ExamPaper>(`${this.base}/${id}`);
+  }
+
   /** Create new paper */
   create(paper: Partial<ExamPaper>): Observable<ExamPaper> {
     return this.http.post<ExamPaper>(this.base, paper);
+  }
+
+  /** Update an existing paper */
+  update(id: string, paper: Partial<ExamPaper>): Observable<ExamPaper> {
+    return this.http.put<ExamPaper>(`${this.base}/${id}`, paper);
+  }
+
+  /** Delete a paper */
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/${id}`);
   }
 }

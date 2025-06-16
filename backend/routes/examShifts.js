@@ -1,6 +1,6 @@
 const express           = require('express');
 const router            = express.Router();
-const { verifyToken, requireRole } = require('../middleware/verifyToken');
+const { verifyToken, requireRoles } = require('../middleware/verifyToken');
 const {
   getShifts,
   getShiftsByPaper,
@@ -13,7 +13,7 @@ router.get('/', verifyToken, getShifts);
 // List shifts for a paper
 router.get('/by-paper', verifyToken, getShiftsByPaper);
 
-// Create (admin only)
-router.post('/', verifyToken, requireRole('admin'), createShift);
+// Create (admin and super admin allowed)
+router.post('/', verifyToken, requireRoles(['admin', 'super admin', 'superadmin']), createShift);
 
 module.exports = router;

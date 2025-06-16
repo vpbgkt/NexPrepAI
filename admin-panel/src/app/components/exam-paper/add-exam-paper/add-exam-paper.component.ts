@@ -32,14 +32,17 @@ export class AddExamPaperComponent implements OnInit {
     private streamSvc: ExamStreamService,
     private router: Router
   ) {}
-
   ngOnInit() {
     // Build form
     this.form = this.fb.group({
       family: ['', Validators.required],
       stream: ['', Validators.required],
-      code:   ['', Validators.required],
-      name:   ['', Validators.required],
+      code: [''], // Made optional - will auto-generate if empty
+      name: ['', Validators.required],
+      year: [''],
+      durationMinutes: [''],
+      passingCriteria: [''],
+      examDate: [''],
       description: ['']
     });
 
@@ -53,6 +56,28 @@ export class AddExamPaperComponent implements OnInit {
       this.streamSvc.getByFamily(familyId)
         .subscribe(s => this.streams = s);
     });
+
+    // Auto-generate code from name if code is empty
+    this.form.get('name')?.valueChanges.subscribe(name => {
+      const codeControl = this.form.get('code');
+      if (name && (!codeControl?.value || codeControl?.value.trim() === '')) {
+        const autoCode = this.generateCodeFromName(name);
+        codeControl?.setValue(autoCode);
+      }
+    });  }
+
+  /**
+   * Generate a code from name by converting to lowercase, 
+   * replacing spaces with hyphens, and removing special characters
+   */
+  private generateCodeFromName(name: string): string {
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
   }
 
   onSubmit() {

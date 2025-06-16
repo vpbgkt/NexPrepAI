@@ -1,7 +1,7 @@
 // backend/routes/examStreams.js
 const express     = require('express');
 const router      = express.Router();
-const { verifyToken, requireRole } = require('../middleware/verifyToken');
+const { verifyToken, requireRoles } = require('../middleware/verifyToken');
 const {
   getStreams,
   getByFamily,
@@ -27,7 +27,7 @@ router.get('/', verifyToken, (req, res, next) => {
 router.get('/by-level', verifyToken, getByLevel);
 router.get('/by-family', verifyToken, getByFamily);
 
-// POST new stream (Admin only)
-router.post('/', verifyToken, requireRole('admin'), createStream);
+// POST new stream (Admin and Super Admin allowed)
+router.post('/', verifyToken, requireRoles(['admin', 'super admin', 'superadmin']), createStream);
 
 module.exports = router;
