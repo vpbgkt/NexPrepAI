@@ -26,15 +26,63 @@
 const ExamStream = require('../models/ExamStream');
 
 /**
- * Get exam streams filtered by family
+ * Get exam streams filtered by level
+ * 
+ * @route GET /api/examStreams?level=<levelId>
+ * @access Public
+ * 
+ * @description Retrieves all exam streams associated with a specific exam level.
+ * This endpoint is essential for the hierarchical navigation of exams, allowing
+ * users to see available streams when they select a particular exam level.
+ * Results are sorted alphabetically by name for consistent user experience.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.query - Query parameters
+ * @param {string} req.query.level - Exam level ObjectId (required)
+ * @param {Object} res - Express response object
+ * 
+ * @returns {Array} JSON array of exam stream objects
+ * @returns {string} returns[]._id - Exam stream unique identifier
+ * @returns {string} returns[].family - Associated exam family ObjectId
+ * @returns {string} returns[].level - Associated exam level ObjectId (matches query)
+ * @returns {string} returns[].code - Exam stream code
+ * @returns {string} returns[].name - Exam stream display name
+ * @returns {string} returns[].conductingAuthority - Conducting authority
+ * @returns {string} returns[].region - Region/state
+ * @returns {string} returns[].language - Language
+ * @returns {string} returns[].status - Status (Active/Archived)
+ * @returns {string} returns[].description - Optional description
+ * @returns {string} returns[].createdBy - Creator user ID
+ * @returns {Date} returns[].createdAt - Creation timestamp
+ * @returns {Date} returns[].updatedAt - Last update timestamp
+ * 
+ * @throws {400} Missing level query parameter
+ * @throws {500} Server error during data retrieval
+ */
+exports.getByLevel = async (req, res) => {
+  try {
+    const { level } = req.query;
+    if (!level) return res.status(400).json({ message: 'level query required' });
+    const list = await ExamStream.find({ level, status: 'Active' })
+      .populate('family', 'code name')
+      .populate('level', 'code name')
+      .sort('name');
+    res.json(list);
+  } catch (err) {
+    console.error('Error loading streams by level:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+/**
+ * Get exam streams filtered by family (legacy support)
  * 
  * @route GET /api/examStreams?family=<familyId>
  * @access Public
  * 
  * @description Retrieves all exam streams associated with a specific exam family.
- * This endpoint is essential for the hierarchical navigation of exams, allowing
- * users to see available streams when they select a particular exam family.
- * Results are sorted alphabetically by name for consistent user experience.
+ * This endpoint maintains backward compatibility while the hierarchy transitions
+ * to use levels. Results include all active streams within the family.
  * 
  * @param {Object} req - Express request object
  * @param {Object} req.query - Query parameters
@@ -42,38 +90,18 @@ const ExamStream = require('../models/ExamStream');
  * @param {Object} res - Express response object
  * 
  * @returns {Array} JSON array of exam stream objects
- * @returns {string} returns[]._id - Exam stream unique identifier
- * @returns {string} returns[].family - Associated exam family ObjectId (matches query)
- * @returns {string} returns[].code - Exam stream code
- * @returns {string} returns[].name - Exam stream display name
- * @returns {string} returns[].createdBy - Creator user ID
- * @returns {Date} returns[].createdAt - Creation timestamp
- * @returns {Date} returns[].updatedAt - Last update timestamp
- * 
- * @throws {400} Missing family query parameter
- * @throws {500} Server error during data retrieval
- * 
- * @example
- * // Request: GET /api/examStreams?family=64f8a1b2c3d4e5f6a7b8c9d1
- * // Response with family-filtered streams
- * [
- *   {
- *     "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
- *     "family": "64f8a1b2c3d4e5f6a7b8c9d1",
- *     "code": "JEE_MAIN",
- *     "name": "JEE Main",
- *     "createdAt": "2024-01-01T00:00:00.000Z"
- *   }
- * ]
  */
 exports.getByFamily = async (req, res) => {
   try {
     const { family } = req.query;
     if (!family) return res.status(400).json({ message: 'family query required' });
-    const list = await ExamStream.find({ family }).sort('name');
+    const list = await ExamStream.find({ family, status: 'Active' })
+      .populate('family', 'code name')
+      .populate('level', 'code name')
+      .sort('name');
     res.json(list);
   } catch (err) {
-    console.error('Error loading streams:', err);
+    console.error('Error loading streams by family:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -84,40 +112,21 @@ exports.getByFamily = async (req, res) => {
  * @route GET /api/examStreams
  * @access Public
  * 
- * @description Retrieves all exam streams from the database without any filtering.
- * This endpoint provides a complete list of all available exam streams across
- * all families in the system, useful for administrative purposes and system
- * overview.
+ * @description Retrieves all active exam streams from the database with populated
+ * references to family and level. This endpoint provides a complete list of all
+ * available exam streams across all families and levels in the system.
  * 
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  * 
- * @returns {Array} JSON array of exam stream objects
- * @returns {string} returns[]._id - Exam stream unique identifier
- * @returns {string} returns[].family - Associated exam family ObjectId
- * @returns {string} returns[].code - Exam stream code
- * @returns {string} returns[].name - Exam stream display name
- * @returns {string} returns[].createdBy - Creator user ID
- * @returns {Date} returns[].createdAt - Creation timestamp
- * @returns {Date} returns[].updatedAt - Last update timestamp
- * 
- * @throws {500} Server error during data retrieval
- * 
- * @example
- * // Response with all exam streams
- * [
- *   {
- *     "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
- *     "family": "64f8a1b2c3d4e5f6a7b8c9d1",
- *     "code": "JEE_MAIN",
- *     "name": "JEE Main",
- *     "createdAt": "2024-01-01T00:00:00.000Z"
- *   }
- * ]
+ * @returns {Array} JSON array of exam stream objects with populated references
  */
 exports.getStreams = async (req, res) => {
   try {
-    const streams = await ExamStream.find();
+    const streams = await ExamStream.find({ status: 'Active' })
+      .populate('family', 'code name')
+      .populate('level', 'code name')
+      .sort('name');
     res.json(streams);
   } catch (err) {
     console.error('Error fetching streams:', err);
@@ -131,58 +140,68 @@ exports.getStreams = async (req, res) => {
  * @route POST /api/examStreams
  * @access Private/Admin
  * 
- * @description Creates a new exam stream in the system within a specific exam family.
- * Exam streams help organize exams into logical categories or tracks within a
- * broader examination family. The creator's user ID is automatically extracted
- * from the authenticated JWT token for audit trail purposes.
+ * @description Creates a new exam stream in the system within a specific exam level.
+ * Exam streams help organize exams into logical categories with detailed classification
+ * including conducting authority, region, language, and status information.
  * 
  * @param {Object} req - Express request object
  * @param {Object} req.body - Request body containing stream data
  * @param {string} req.body.family - Associated exam family ObjectId
- * @param {string} req.body.code - Unique exam stream code (e.g., "JEE_MAIN", "NEET")
+ * @param {string} req.body.level - Associated exam level ObjectId
+ * @param {string} req.body.code - Unique exam stream code
  * @param {string} req.body.name - Exam stream display name
+ * @param {string} req.body.conductingAuthority - Conducting authority (e.g., NTA, UPSC)
+ * @param {string} [req.body.region] - Region/state (defaults to 'All-India')
+ * @param {string} [req.body.language] - Language (defaults to 'English')
+ * @param {string} [req.body.status] - Status (defaults to 'Active')
+ * @param {string} [req.body.description] - Optional description
  * @param {Object} req.user - Authenticated user object from JWT middleware
  * @param {string} req.user.userId - Creator's user ID
  * @param {Object} res - Express response object
  * 
  * @returns {Object} JSON object with created exam stream data
- * @returns {string} returns._id - Generated exam stream unique identifier
- * @returns {string} returns.family - Associated exam family ObjectId
- * @returns {string} returns.code - Exam stream code
- * @returns {string} returns.name - Exam stream display name
- * @returns {string} returns.createdBy - Creator user ID
- * @returns {Date} returns.createdAt - Creation timestamp
- * @returns {Date} returns.updatedAt - Last update timestamp
  * 
  * @throws {400} Invalid request data or validation errors
  * @throws {401} Unauthorized access (missing or invalid JWT token)
  * @throws {500} Server error during stream creation
- * 
- * @example
- * // Request body
- * {
- *   "family": "64f8a1b2c3d4e5f6a7b8c9d1",
- *   "code": "JEE_MAIN",
- *   "name": "JEE Main"
- * }
- * 
- * // Response
- * {
- *   "_id": "64f8a1b2c3d4e5f6a7b8c9d0",
- *   "family": "64f8a1b2c3d4e5f6a7b8c9d1",
- *   "code": "JEE_MAIN",
- *   "name": "JEE Main",
- *   "createdBy": "64f8a1b2c3d4e5f6a7b8c9d2",
- *   "createdAt": "2024-01-01T00:00:00.000Z",
- *   "updatedAt": "2024-01-01T00:00:00.000Z"
- * }
  */
 exports.createStream = async (req, res) => {
   try {
-    const { family, code, name } = req.body;
+    const { 
+      family, 
+      level, 
+      code, 
+      name, 
+      conductingAuthority,
+      region = 'All-India',
+      language = 'English',
+      status = 'Active',
+      description = ''
+    } = req.body;
+    
     const createdBy = req.user.userId;
-    const stream = new ExamStream({ family, code, name, createdBy });
+    
+    const stream = new ExamStream({ 
+      family, 
+      level,
+      code: code.toUpperCase(), 
+      name, 
+      conductingAuthority,
+      region,
+      language,
+      status,
+      description,
+      createdBy 
+    });
+    
     await stream.save();
+    
+    // Populate references before returning
+    await stream.populate([
+      { path: 'family', select: 'code name' },
+      { path: 'level', select: 'code name' }
+    ]);
+    
     res.status(201).json(stream);
   } catch (err) {
     console.error('Error creating stream:', err);

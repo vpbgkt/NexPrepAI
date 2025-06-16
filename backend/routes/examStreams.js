@@ -1,17 +1,20 @@
 // backend/routes/examStreams.js
 const express     = require('express');
 const router      = express.Router();
-// Destructure verifyToken from the middleware export
-const { verifyToken } = require('../middleware/verifyToken');
+const { verifyToken, requireRole } = require('../middleware/verifyToken');
 const {
   getStreams,
   getByFamily,
+  getByLevel,
   createStream
 } = require('../controllers/examStreamController');
 
-// Modified GET route to handle both all streams and streams filtered by family
+// Modified GET route to handle streams with different filters
 router.get('/', verifyToken, (req, res, next) => {
-  if (req.query.family) {
+  if (req.query.level) {
+    // If 'level' query parameter exists, delegate to getByLevel controller
+    getByLevel(req, res, next);
+  } else if (req.query.family) {
     // If 'family' query parameter exists, delegate to getByFamily controller
     getByFamily(req, res, next);
   } else {
@@ -20,8 +23,11 @@ router.get('/', verifyToken, (req, res, next) => {
   }
 });
 
-// POST new stream
-// e.g. POST /api/examStreams
-router.post('/', verifyToken, createStream);
+// Alternative routes for explicit filtering
+router.get('/by-level', verifyToken, getByLevel);
+router.get('/by-family', verifyToken, getByFamily);
+
+// POST new stream (Admin only)
+router.post('/', verifyToken, requireRole('admin'), createStream);
 
 module.exports = router;
