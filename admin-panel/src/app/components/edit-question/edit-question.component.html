@@ -39,47 +39,78 @@
     </div>
     <button type="button" (click)="addQuestionImage()">+ Add Question Image URL</button>
   </div>
-
-  <!-- Options -->
-  <div *ngFor="let opt of question.options; let i = index" class="form-section option-item">
-    <label>Option {{ i + 1 }}:</label>
-    <div class="option-content">
-      <input
-        type="text"
-        [(ngModel)]="question.options[i].text"
-        name="option{{i}}"
-        required
-        placeholder="Option text"
-        style="flex-grow: 1; margin-right: 10px;"
-      />
-      <label class="checkbox-label">
+  <!-- Options (only for non-NAT questions) -->
+  <div *ngIf="!isNumericalQuestionType()">
+    <div *ngFor="let opt of question.options; let i = index" class="form-section option-item">
+      <label>Option {{ i + 1 }}:</label>
+      <div class="option-content">
         <input
-          type="checkbox"
-          [(ngModel)]="question.options[i].isCorrect"
-          name="correct{{i}}"
+          type="text"
+          [(ngModel)]="question.options[i].text"
+          name="option{{i}}"
+          required
+          placeholder="Option text"
+          style="flex-grow: 1; margin-right: 10px;"
         />
-        Correct
-      </label>
-      <!-- Option Image -->
-      <div class="option-image-section" style="margin-left: 20px;">
-        <img [src]="opt.img" alt="Option {{i+1}} Image" *ngIf="opt.img" style="max-width: 70px; max-height: 70px; margin-right: 5px;">
-        <input type="text" [(ngModel)]="question.options[i].img" name="optionImage{{i}}" placeholder="Option Image URL" style="margin-right: 5px;">
-        <button type="button" (click)="removeOptionImage(i)" *ngIf="opt.img">Clear Img</button>
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            [(ngModel)]="question.options[i].isCorrect"
+            name="correct{{i}}"
+          />
+          Correct
+        </label>
+        <!-- Option Image -->
+        <div class="option-image-section" style="margin-left: 20px;">
+          <img [src]="opt.img" alt="Option {{i+1}} Image" *ngIf="opt.img" style="max-width: 70px; max-height: 70px; margin-right: 5px;">
+          <input type="text" [(ngModel)]="question.options[i].img" name="optionImage{{i}}" placeholder="Option Image URL" style="margin-right: 5px;">
+          <button type="button" (click)="removeOptionImage(i)" *ngIf="opt.img">Clear Img</button>
+        </div>
+        <button type="button"
+                (click)="removeOption(i)"
+                [disabled]="question.options.length <= 2"
+                class="remove-option-btn">
+          Remove Option
+        </button>
       </div>
-      <button type="button"
-              (click)="removeOption(i)"
-              [disabled]="question.options.length <= 2"
-              class="remove-option-btn">
-        Remove Option
+    </div>
+
+    <!-- Add new option button -->
+    <div>
+      <button type="button" (click)="addOption()">
+        + Add Option
       </button>
     </div>
   </div>
 
-  <!-- Add new option button -->
-  <div>
-    <button type="button" (click)="addOption()">
-      + Add Option
-    </button>
+  <!-- Numerical Answer (for NAT questions) -->
+  <div *ngIf="isNumericalQuestionType()" class="form-section">
+    <h4>Numerical Answer Range</h4>
+    <div class="numerical-answer-row">
+      <div>
+        <label for="minValue">Minimum Value:</label>
+        <input
+          type="number"
+          id="minValue"
+          name="minValue"
+          [(ngModel)]="question.numericalAnswer!.minValue"
+          placeholder="Enter minimum value"
+          step="any"
+        />
+      </div>
+      <div style="margin-left: 20px;">
+        <label for="maxValue">Maximum Value:</label>
+        <input
+          type="number"
+          id="maxValue"
+          name="maxValue"
+          [(ngModel)]="question.numericalAnswer!.maxValue"
+          placeholder="Enter maximum value"
+          step="any"
+        />
+      </div>
+    </div>
+    <p class="help-text">For single value answers, enter the same value in both min and max fields.</p>
   </div>
 
   <!-- Difficulty -->
@@ -232,7 +263,6 @@
       placeholder="e.g., 300"
     />
   </div>
-
   <!-- Internal Notes -->
   <div>
     <label for="internalNotes">Internal Notes/Author Comments:</label>
@@ -243,6 +273,64 @@
       rows="3"
       placeholder="Internal notes or comments for this question..."
     ></textarea>
+  </div>  <!-- Appearance History -->
+  <div class="form-section">
+    <h4>Question Appearance History</h4>
+    
+    <div class="bg-gray-50 rounded-lg p-4">      <!-- Input Section -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Exam Title</label>
+          <input
+            name="histTitle"
+            type="text"
+            placeholder="e.g., Computer Science and Information Technology (CS-1) (Forenoon)"
+            [(ngModel)]="histEntry.title"
+            class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
+          <input
+            name="histYear"
+            type="number"
+            [min]="1900"
+            [max]="currentYear"
+            [(ngModel)]="histEntry.year"
+            placeholder="2024"
+            class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <div class="flex items-end">
+          <button 
+            type="button" 
+            (click)="addAppearanceHistory()"
+            class="btn-primary w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Add Entry
+          </button>
+        </div>
+      </div>
+      
+      <!-- History List Display -->
+      <div *ngIf="question.appearanceHistory && question.appearanceHistory.length" class="space-y-2">
+        <h4 class="text-sm font-medium text-gray-700 mb-2">Previous Appearances:</h4>        <div class="space-y-1">
+          <div *ngFor="let h of question.appearanceHistory; let histIndex = index" 
+               class="flex items-center justify-between bg-white px-3 py-2 rounded border">
+            <span class="text-sm text-gray-700">{{ h.title || h.examName }} — {{ h.askedAt ? (h.askedAt | date:'yyyy') : h.year }}</span>
+            <button type="button" 
+                    (click)="removeAppearanceHistory(histIndex)" 
+                    class="text-red-600 hover:text-red-800 text-sm font-medium">
+              Remove
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <p *ngIf="!question.appearanceHistory || !question.appearanceHistory.length" class="text-sm text-gray-500 italic">
+        No appearance history recorded yet.
+      </p>
+    </div>
   </div>
 
   <!-- Explanation (optional) -->

@@ -21,7 +21,7 @@ import { FormsModule, NgForm } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { QuestionService } from '../../services/question.service';
-import { Question, PopulatedHierarchyField, Translation, Option as QuestionOption, Explanation } from '../../models/question.model'; // IMPORT Question model AND Explanation model
+import { Question, PopulatedHierarchyField, Translation, Option as QuestionOption, Explanation, NumericalAnswer } from '../../models/question.model'; // Import NumericalAnswer
 
 /**
  * @interface QuestionEditForm
@@ -32,6 +32,8 @@ import { Question, PopulatedHierarchyField, Translation, Option as QuestionOptio
  * @property {string} [subTopicId] - Subtopic identifier within topic
  * @property {string} [questionText] - Current language question text
  * @property {QuestionOption[]} options - Answer options for the question
+ * @property {NumericalAnswer} [numericalAnswer] - Numerical answer for NAT questions
+ * @property {any[]} [appearanceHistory] - History of question appearances
  */
 interface QuestionEditForm extends Partial<Question> {
   branchId?: string;
@@ -40,6 +42,8 @@ interface QuestionEditForm extends Partial<Question> {
   subTopicId?: string;
   questionText?: string;
   options: QuestionOption[];
+  numericalAnswer?: NumericalAnswer;
+  appearanceHistory?: any[];
 }
 
 /**
@@ -90,20 +94,25 @@ export class EditQuestionComponent implements OnInit {  /** @private {QuestionSe
    * @property {QuestionEditForm} Main question object for editing
    * @description Extended question interface with additional UI-specific properties
    * for form binding and hierarchy management
-   */
-  question: QuestionEditForm = {
+   */  question: QuestionEditForm = {
     translations: [],
     difficulty: '',
     options: [{ text: '', isCorrect: false }, { text: '', isCorrect: false }],
-    type: 'MCQ', // Default type
+    type: 'single', // Default type
     status: 'Draft', // Default status
     tags: [], // Initialize new field
     recommendedTimeAllotment: undefined, // Initialize new field
-    internalNotes: '' // Initialize new field
+    internalNotes: '', // Initialize new field
+    numericalAnswer: { minValue: undefined, maxValue: undefined }, // Initialize NAT support
+    appearanceHistory: [] // Initialize appearance history
   };
-
   /** @property {string} String representation of tags for form input binding */
   tagsInputString: string = '';
+  /** @property {Object} histEntry - Template for new question history entry */
+  histEntry = { title: '', year: new Date().getFullYear() };
+  
+  /** @property {number} currentYear - Current year for validation */
+  currentYear = new Date().getFullYear();
 
   /** @property {any[]} Available educational branches for selection */
   branches: any[] = [];
@@ -145,9 +154,8 @@ export class EditQuestionComponent implements OnInit {  /** @private {QuestionSe
     }
     return [];
   }
-
   /** @property {string[]} Available question types for selection */
-  questionTypes: string[] = ['MCQ', 'SA', 'LA', 'FITB', 'Matrix', 'single', 'multiple'];
+  questionTypes: string[] = ['single', 'multiple', 'integer', 'matrix'];
   /** @property {string[]} Available question status options for workflow management */
   questionStatuses: string[] = ['Draft', 'Published', 'Archived', 'Pending Review', 'active', 'inactive'];
 
@@ -219,9 +227,7 @@ export class EditQuestionComponent implements OnInit {  /** @private {QuestionSe
           } else {
             // If data.translations is null or undefined, make it an empty array before spreading.
             data.translations = [];
-          }
-
-          this.question = {
+          }          this.question = {
             ...data,
             branchId: this.getHierarchicalId(data.branch),
             subjectId: this.getHierarchicalId(data.subject),
@@ -231,8 +237,15 @@ export class EditQuestionComponent implements OnInit {  /** @private {QuestionSe
             questionText: '',
             tags: data.tags || [], // Load tags
             recommendedTimeAllotment: data.recommendedTimeAllotment, // Load time
-            internalNotes: data.internalNotes || '' // Load notes
+            internalNotes: data.internalNotes || '', // Load notes
+            numericalAnswer: data.translations?.[0]?.numericalAnswer || { minValue: undefined, maxValue: undefined }, // Load NAT data
+            appearanceHistory: data.questionHistory || [] // Load appearance history
           };
+
+          // Debug: Log appearance history data
+          console.log('[EditQuestionComponent] Loaded question data:', data);
+          console.log('[EditQuestionComponent] Question history from data:', data.questionHistory);
+          console.log('[EditQuestionComponent] Final appearanceHistory:', this.question.appearanceHistory);
 
           if (data.type) this.question.type = data.type;
           if (data.status) this.question.status = data.status;
@@ -295,17 +308,18 @@ export class EditQuestionComponent implements OnInit {  /** @private {QuestionSe
         }
       });
     } else { // Creating a new question
-      console.log('[EditQuestionComponent] ngOnInit: No ID found, initializing for new question.');
-      this.question = {
+      console.log('[EditQuestionComponent] ngOnInit: No ID found, initializing for new question.');      this.question = {
         translations: [{ lang: 'en', questionText: '', options: [{text:'', isCorrect:false},{text:'', isCorrect:false}], explanations: [{ type: 'text', content: '' }], images: [] /* images initialized */ }],
         difficulty: '',
         questionText: '',
         options: [{text:'', isCorrect:false},{text:'', isCorrect:false}],
-        type: 'MCQ',
+        type: 'single',
         status: 'Draft',
         tags: [], // Initialize for new question
         recommendedTimeAllotment: undefined, // Initialize for new question
         internalNotes: '', // Initialize for new question
+        numericalAnswer: { minValue: undefined, maxValue: undefined }, // Initialize NAT support
+        appearanceHistory: [], // Initialize appearance history
         // Initialize other necessary fields from Question model if not covered by Partial<Question>
         branch: undefined, // Or appropriate default
         subject: undefined,
@@ -517,11 +531,19 @@ export class EditQuestionComponent implements OnInit {  /** @private {QuestionSe
    */
   switchLanguage(lang: string): void {
     const newIndex = this.question.translations?.findIndex(t => t.lang === lang);
-    if (newIndex !== undefined && newIndex !== -1) {
-      // Save current flat data to the old language's translation object
+    if (newIndex !== undefined && newIndex !== -1) {      // Save current flat data to the old language's translation object
       const oldTranslation = this.question.translations![this.currentTranslationIndex];
       oldTranslation.questionText = this.question.questionText || '';
-      oldTranslation.options = this.question.options || [];
+      
+      // Handle options vs numerical answers based on question type
+      if (this.isNumericalQuestionType()) {
+        oldTranslation.options = []; // Clear options for NAT questions
+        oldTranslation.numericalAnswer = this.question.numericalAnswer; // Set numerical answer
+      } else {
+        oldTranslation.options = this.question.options || [];
+        oldTranslation.numericalAnswer = undefined; // Clear numerical answer for non-NAT questions
+      }
+      
       oldTranslation.explanations = this.currentTranslationExplanations.map(ex => ({ // Map to full Explanation structure
         type: ex.type || 'text',
         label: ex.label,
@@ -544,10 +566,17 @@ export class EditQuestionComponent implements OnInit {  /** @private {QuestionSe
       newTranslation.explanations.forEach(ex => {
         if(!ex.type) ex.type = 'text';
         if(ex.content === undefined) ex.content = '';
-      });
-
-      this.question.questionText = newTranslation.questionText;
-      this.question.options = newTranslation.options;
+      });      this.question.questionText = newTranslation.questionText;
+      
+      // Load options or numerical answer based on question type and translation data
+      if (this.isNumericalQuestionType()) {
+        this.question.numericalAnswer = newTranslation.numericalAnswer || { minValue: undefined, maxValue: undefined };
+        this.question.options = []; // Clear options for NAT questions
+      } else {
+        this.question.options = newTranslation.options || [{ text: '', isCorrect: false }, { text: '', isCorrect: false }];
+        this.question.numericalAnswer = { minValue: undefined, maxValue: undefined }; // Clear numerical answer for non-NAT questions
+      }
+      
       // UPDATED: Load full explanation structure
       this.currentTranslationExplanations = newTranslation.explanations.map(ex => ({
         type: ex.type || 'text',
@@ -689,8 +718,53 @@ export class EditQuestionComponent implements OnInit {  /** @private {QuestionSe
   removeOptionImage(optionIndex: number): void {
     if (this.question && this.question.options && this.question.options[optionIndex]) {
       this.question.options[optionIndex].img = '';
+    }  }
+
+  /**
+   * @method isNumericalQuestionType
+   * @description Checks if the current question type requires numerical answers
+   * @returns {boolean} True if the question type is integer/NAT
+   */
+  isNumericalQuestionType(): boolean {
+    return this.question.type === 'integer';
+  }  /**
+   * @method addAppearanceHistory
+   * @description Adds a new appearance history entry from histEntry to question.appearanceHistory
+   * @returns {void}
+   */
+  addAppearanceHistory(): void {
+    console.log('[EditQuestionComponent] Adding appearance history:', this.histEntry);
+    
+    if (!this.question.appearanceHistory) {
+      this.question.appearanceHistory = [];
+    }
+    
+    if (this.histEntry.title.trim()) {
+      // Convert to database format: title and askedAt (date from year)
+      const newEntry = {
+        title: this.histEntry.title,
+        askedAt: new Date(this.histEntry.year, 0, 1).toISOString() // January 1st of the year
+      };
+      this.question.appearanceHistory.push(newEntry);
+      console.log('[EditQuestionComponent] Updated appearanceHistory:', this.question.appearanceHistory);
+      this.histEntry = { title: '', year: this.currentYear };
+    } else {
+      console.log('[EditQuestionComponent] Cannot add empty exam title');
     }
   }
+
+  /**
+   * @method removeAppearanceHistory
+   * @description Removes an appearance history entry
+   * @param {number} index - Index of the history entry to remove
+   * @returns {void}
+   */
+  removeAppearanceHistory(index: number): void {
+    if (this.question.appearanceHistory && this.question.appearanceHistory.length > 0) {
+      this.question.appearanceHistory.splice(index, 1);
+    }
+  }
+
   /**
    * @method save
    * @description Saves the question by validating form data and sending to backend service
@@ -716,14 +790,21 @@ export class EditQuestionComponent implements OnInit {  /** @private {QuestionSe
     if (form.invalid) {
       form.control.markAllAsTouched();
       return;
-    }
-
-    // Ensure the current translation in this.question.translations is updated
+    }    // Ensure the current translation in this.question.translations is updated
     // from the flat form-bound properties (questionText, options, explanation)
     if (this.question.translations && this.question.translations[this.currentTranslationIndex]) {
       const translationToUpdate = this.question.translations[this.currentTranslationIndex];
       translationToUpdate.questionText = this.question.questionText || '';
-      translationToUpdate.options = this.question.options || [];
+      
+      // Handle options vs numerical answers based on question type
+      if (this.isNumericalQuestionType()) {
+        translationToUpdate.options = []; // Clear options for NAT questions
+        translationToUpdate.numericalAnswer = this.question.numericalAnswer; // Set numerical answer
+      } else {
+        translationToUpdate.options = this.question.options || [];
+        translationToUpdate.numericalAnswer = undefined; // Clear numerical answer for non-NAT questions
+      }
+      
       // UPDATED: Handle explanations array with full structure
       translationToUpdate.explanations = this.currentTranslationExplanations.map(ex => ({
         type: ex.type || 'text',
@@ -743,11 +824,11 @@ export class EditQuestionComponent implements OnInit {  /** @private {QuestionSe
       subTopic: this.question.subTopicId, // CORRECTED: subTopic
       type: this.question.type, // Ensure type and status are part of the form and this.question
       status: this.question.status,
-      // REMOVED: version: this.question.version, // Let backend handle version increment
-      // ADDED: New fields to payload
+      // REMOVED: version: this.question.version, // Let backend handle version increment      // ADDED: New fields to payload
       tags: this.question.tags,
       recommendedTimeAllotment: this.question.recommendedTimeAllotment,
-      internalNotes: this.question.internalNotes
+      internalNotes: this.question.internalNotes,
+      questionHistory: this.question.appearanceHistory // Add appearance history to payload
     };
     
     if (this.id) { // If updating, include _id in payload if backend expects it, otherwise service handles it via URL

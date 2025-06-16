@@ -49,6 +49,23 @@ type LangCode = 'en' | 'hi';
 interface Option   { text: string; img: string; isCorrect: boolean; }
 
 /**
+ * @interface NumericalAnswer
+ * @description Structure for numerical answer type questions
+ * @property {number} minValue - Minimum acceptable value for range answers
+ * @property {number} maxValue - Maximum acceptable value for range answers
+ * @property {number} exactValue - Exact value for single-value answers
+ * @property {number} tolerance - Tolerance percentage for exact answers
+ * @property {string} unit - Optional unit for the answer
+ */
+interface NumericalAnswer { 
+  minValue?: number; 
+  maxValue?: number; 
+  exactValue?: number; 
+  tolerance?: number; 
+  unit?: string; 
+}
+
+/**
  * @interface Explain
  * @description Structure for question explanations
  * @property {string} type - Type of explanation (text, image, video, etc.)
@@ -64,8 +81,9 @@ interface Explain  { type: string; label: string; content: string; }
  * @property {Option[]} options - Array of answer options for the question
  * @property {Explain[]} explanations - Array of explanations for the question
  * @property {string[]} [images] - Optional array of image URLs related to the question
+ * @property {NumericalAnswer} [numericalAnswer] - Numerical answer configuration for integer/numerical type questions
  */
-interface LangPack { questionText: string; options: Option[]; explanations: Explain[]; images?: string[]; }
+interface LangPack { questionText: string; options: Option[]; explanations: Explain[]; images?: string[]; numericalAnswer?: NumericalAnswer; }
 
 /**
  * @class AddQuestionComponent
@@ -142,15 +160,16 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
    * @property {string[]} question.tags - Array of question tags for categorization
    * @property {number|undefined} question.recommendedTimeAllotment - Suggested time in minutes
    * @property {string} question.internalNotes - Internal notes for question management
-   */
-  question = {
+   */  question = {
     translations: <Record<LangCode, LangPack>>{
       en : { questionText: '', options: [ {text:'',img:'',isCorrect:false},
                                           {text:'',img:'',isCorrect:false} ],
-             explanations: [], images: [] }, // Initialize images
+             explanations: [], images: [], 
+             numericalAnswer: { minValue: undefined, maxValue: undefined, exactValue: undefined, tolerance: undefined, unit: '' } }, // Initialize numerical answer
       hi : { questionText: '', options: [ {text:'',img:'',isCorrect:false},
                                           {text:'',img:'',isCorrect:false} ],
-             explanations: [], images: [] }  // Initialize images
+             explanations: [], images: [],
+             numericalAnswer: { minValue: undefined, maxValue: undefined, exactValue: undefined, tolerance: undefined, unit: '' } }  // Initialize numerical answer
     },
     difficulty : '',
     type       : 'single',
@@ -509,18 +528,25 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
    * // Add new option to current language
    * this.langPack.options.push({text: 'New option', img: '', isCorrect: false});
    * ```
-   */
-  get langPack():LangPack{ // REMOVED private keyword
+   */  get langPack():LangPack{ // REMOVED private keyword
     // Ensure the langPack for the current language exists and has images initialized
     if (!this.question.translations[this.currentLang]) {
       this.question.translations[this.currentLang] = {
         questionText: '',
         options: [{text:'',img:'',isCorrect:false}, {text:'',img:'',isCorrect:false}],
         explanations: [],
-        images: []
-      };
-    } else if (!this.question.translations[this.currentLang].images) {
-      this.question.translations[this.currentLang].images = [];
+        images: [],
+        numericalAnswer: { minValue: undefined, maxValue: undefined, exactValue: undefined, tolerance: undefined, unit: '' }      };
+    } else {
+      // Ensure existing langPacks have required properties
+      if (!this.question.translations[this.currentLang].images) {
+        this.question.translations[this.currentLang].images = [];
+      }
+      if (!this.question.translations[this.currentLang].numericalAnswer) {
+        this.question.translations[this.currentLang].numericalAnswer = { 
+          minValue: undefined, maxValue: undefined, exactValue: undefined, tolerance: undefined, unit: '' 
+        };
+      }
     }
     return this.question.translations[this.currentLang];
   }
@@ -834,18 +860,31 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
    * // 4. Filter out empty content
    * // 5. Submit to backend via QuestionService
    * ```
-   */
-  submit(form: NgForm) {
+   */  submit(form: NgForm) {
+    console.log('Form submitted. Form valid:', form.valid);
+    console.log('Form errors:', form.form.errors);
+    console.log('Form controls:', Object.keys(form.form.controls).map(key => ({
+      name: key,
+      valid: form.form.controls[key].valid,
+      errors: form.form.controls[key].errors
+    })));
+    
     if (form.invalid) {
+      console.log('Form is invalid, not submitting');
       form.control.markAllAsTouched();
       return;
     }
 
     // ----- build payload -------------------------------------------------
     const baseLang = 'en';              // or pick from a settings service
+      // Create a deep copy of the question object to avoid modifying the original state directly
+    const questionCopy = JSON.parse(JSON.stringify(this.question));    console.log('Question type:', questionCopy.type);
+    console.log('Question translations before processing:', questionCopy.translations);
     
-    // Create a deep copy of the question object to avoid modifying the original state directly
-    const questionCopy = JSON.parse(JSON.stringify(this.question));
+    // Debug current language pack specifically
+    const currentLangPack = questionCopy.translations[this.currentLang];
+    console.log('Current language pack:', currentLangPack);
+    console.log('Current numerical answer:', currentLangPack?.numericalAnswer);
 
     // Determine status based on user role
     const currentUserRole = this.authService.getUserRole();
@@ -879,35 +918,110 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
     // If your backend expects a root-level questionText or options for the base language,
     // you would set them here. e.g.:
     // payload.questionText  = questionCopy.translations[baseLang]?.questionText || '';
-    // payload.options       = questionCopy.translations[baseLang]?.options || [];
-
-    // 2️⃣ Process translations
+    // payload.options       = questionCopy.translations[baseLang]?.options || [];    // 2️⃣ Process translations
     const filledTranslations = Object.entries(questionCopy.translations)
       .map(([lang, packUntyped]) => {
         const pack = packUntyped as LangPack; // Assert type here
         // Ensure options, explanations, and images are arrays
         pack.options = Array.isArray(pack.options) ? pack.options : [];
         pack.explanations = Array.isArray(pack.explanations) ? pack.explanations : [];
-        pack.images = Array.isArray(pack.images) ? pack.images : [];        return {
+        pack.images = Array.isArray(pack.images) ? pack.images : [];
+        
+        const translation: any = {
           lang: lang as LangCode,
           questionText: pack.questionText,
-          options: pack.options.filter(o => (o.text && o.text.trim()) || (o.img && o.img.trim())), // Allow options with text OR image
           explanations: pack.explanations,
           images: pack.images.filter(img => img && img.trim() !== '') // Filter out empty image URLs
-        };
-      })
-      .filter(p => p.questionText && p.questionText.trim() && p.options.length >= 2); // Ensure question text and at least 2 options
+        };        // Handle different question types
+        if (questionCopy.type === 'integer') {
+          // For integer questions, include numerical answer instead of options
+          if (pack.numericalAnswer) {
+            translation.numericalAnswer = {
+              minValue: Number(pack.numericalAnswer.minValue),
+              maxValue: Number(pack.numericalAnswer.maxValue),
+              unit: pack.numericalAnswer.unit?.trim() || undefined
+            };
+          }
+          // Don't include options for integer questions
+          translation.options = [];
+        } else {
+          // For multiple choice questions, include options
+          translation.options = pack.options.filter(o => (o.text && o.text.trim()) || (o.img && o.img.trim())); // Allow options with text OR image
+        }
 
+        return translation;      })
+      .filter(p => {
+        console.log('Processing translation:', p.lang, p);
+        
+        // Basic validation: must have question text
+        if (!p.questionText || !p.questionText.trim()) {
+          console.log('Translation filtered out: missing question text', p);
+          return false;
+        }
+        
+        // Type-specific validation
+        if (questionCopy.type === 'integer') {
+          // For integer questions, require valid numerical answer
+          const numericalAnswer = p.numericalAnswer;
+          console.log('Checking numerical answer for', p.lang, ':', numericalAnswer);
+          
+          if (!numericalAnswer) {
+            console.log('No numerical answer object found');
+            return false;
+          }
+          
+          const minVal = numericalAnswer.minValue;
+          const maxVal = numericalAnswer.maxValue;
+          console.log('Min/Max values:', minVal, maxVal, 'Types:', typeof minVal, typeof maxVal);
+          
+          // More lenient validation - just check if we have valid numbers
+          const minValid = minVal !== undefined && minVal !== null && minVal !== '' && !isNaN(Number(minVal));
+          const maxValid = maxVal !== undefined && maxVal !== null && maxVal !== '' && !isNaN(Number(maxVal));
+          
+          console.log('Validation results:', { minValid, maxValid });
+          
+          if (!minValid || !maxValid) {
+            console.log('Translation filtered out: invalid numerical answer', {
+              lang: p.lang,
+              numericalAnswer,
+              minValue: minVal,
+              maxValue: maxVal,
+              minValid,
+              maxValid
+            });
+            return false;
+          }
+          
+          return true;
+        } else {
+          // For multiple choice questions, require at least 2 options
+          if (p.options.length < 2) {
+            console.log('Translation filtered out: insufficient options', p);
+            return false;
+          }
+          return true;
+        }
+      });
+
+    console.log('Final translations being sent:', filledTranslations);
     payload.translations = filledTranslations;
     
     // 3️⃣ clean up empty arrays (optional hygiene)
-    // if (!payload.options?.length)       delete payload.options; // If options were at root
+    // if (!payload.options?.length)       delete payload.options; // If options were at root    // ----- POST ----------------------------------------------------------
+    if (filledTranslations.length === 0) {
+      alert('Error: No valid translations found. Please check that all required fields are filled correctly.');
+      console.error('No translations passed validation');
+      return;
+    }
 
-    // ----- POST ----------------------------------------------------------
+    console.log('Sending payload:', payload);
     this.questionSrv.addQuestion(payload)
         .subscribe({
           next: () => alert('Saved!'),
-          error: (err: any) => alert('Save failed: ' + err.message)
+          error: (err: any) => {
+            console.error('Error details:', err);
+            alert('Save failed: ' + err.message);
+          }
         });
   }
   /* quick-nav */
@@ -1646,5 +1760,40 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
     this.showCreateSubtopicForm = false;
     this.newSubtopicName = '';
     this.creatingSubtopic = false;
+  }
+
+  /**
+   * @method debugNumericalAnswer
+   * @description Debug method to check current numerical answer state
+   */
+  debugNumericalAnswer() {
+    console.log('Current question type:', this.question.type);
+    console.log('Current language:', this.currentLang);
+    console.log('Current numerical answer:', this.question.translations[this.currentLang].numericalAnswer);
+    console.log('Min value type:', typeof this.question.translations[this.currentLang].numericalAnswer?.minValue);
+    console.log('Max value type:', typeof this.question.translations[this.currentLang].numericalAnswer?.maxValue);
+  }
+
+  /**
+   * @method onQuestionTypeChange
+   * @description Handle question type change and initialize numerical answer for integer questions
+   */
+  onQuestionTypeChange() {
+    if (this.question.type === 'integer') {
+      // Initialize numerical answer for all languages when type changes to integer
+      Object.keys(this.question.translations).forEach(lang => {
+        if (!this.question.translations[lang as LangCode].numericalAnswer) {
+          this.question.translations[lang as LangCode].numericalAnswer = {
+            minValue: undefined,
+            maxValue: undefined,
+            exactValue: undefined,
+            tolerance: undefined,
+            unit: ''
+          };
+        }
+      });
+    }
+    console.log('Question type changed to:', this.question.type);
+    console.log('Numerical answer initialized:', this.question.translations[this.currentLang].numericalAnswer);
   }
 }
