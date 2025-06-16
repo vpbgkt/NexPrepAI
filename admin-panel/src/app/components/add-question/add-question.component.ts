@@ -272,6 +272,12 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
   /** @property {boolean} showAlert - Whether to show alert */
   showAlert: boolean = false;
   
+  /** @property {boolean} showMathSymbols - Whether to show mathematical symbols section */
+  showMathSymbols: boolean = false;
+  
+  /** @property {boolean[]} showOptionImageUpload - Array to track which option image uploads are visible */
+  showOptionImageUpload: boolean[] = [false, false, false, false, false]; // Support for 5 options
+  
   /** @property {number} currentYear - Current year for question history tracking */
   currentYear = new Date().getFullYear();
 
@@ -360,10 +366,22 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
    *     this.branches = Array.isArray(data) ? data : data.branches || [];
    *   });
    * }
-   * ```   */
-  ngOnInit() {
-    this.loadBranches();
-    this.handleQueryParameters();
+   * ```   */  ngOnInit() {
+    // Load branches on component initialization
+    this.branchSrv.getBranches().subscribe({
+      next: (data: any) => {
+        this.branches = Array.isArray(data) ? data : data.branches || [];
+        console.log('Branches loaded:', this.branches);
+      },
+      error: (err) => {
+        console.error('Error loading branches:', err);
+        this.showErrorAlert('Failed to load branches');
+      }
+    });
+    
+    // Handle query parameters if any
+    console.log('Component initialized');
+    
     this.addDocumentClickListener();
   }
 
@@ -447,54 +465,84 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * @method loadBranches
-   * @description Loads available educational branches from the server
-   * @returns {void}
+   * @method toggleMathSymbols
+   * @description Toggles the visibility of the mathematical symbols section
    */
-  private loadBranches() {
-    this.branchSrv.getBranches().subscribe({
-      next: (data: any) => {
-        // Assuming data might be an array directly or an object like { branches: [] }
-        this.branches = Array.isArray(data) ? data : (data && data.branches ? data.branches : []);
-        this.filteredBranches = this.branches.slice(0, 10); // Initialize with first 10
-        console.log('Branches loaded:', this.branches); // Debug log
-      },
-      error: (err: any) => {
-        console.error('Error loading branches:', err);
-        this.branches = []; // Ensure branches is empty on error
-        this.filteredBranches = [];
-      }
-    });
+  toggleMathSymbols(): void {
+    this.showMathSymbols = !this.showMathSymbols;
   }
+
   /**
-   * @method handleQueryParameters
-   * @description Handles pre-selection of hierarchy values from query parameters
-   * @returns {void}
+   * @method toggleOptionImageUpload
+   * @description Toggles the visibility of option image upload for a specific option
+   * @param {number} index - Index of the option to toggle image upload for
    */
-  private handleQueryParameters() {
-    this.route.queryParams.subscribe(params => {
-      if (params['branchId']) {
-        this.question.branchId = params['branchId'];
-        // Wait for branches to load then load subjects
-        setTimeout(() => this.onBranchChange(params['branchId']), 100);
-      }
-      if (params['subjectId']) {
-        this.question.subjectId = params['subjectId'];
-        setTimeout(() => this.onSubjectChange(params['subjectId']), 200);
-      }
-      if (params['topicId']) {
-        this.question.topicId = params['topicId'];
-        setTimeout(() => this.onTopicChange(params['topicId']), 300);
-      }
-      if (params['subtopicId']) {
-        this.question.subtopicId = params['subtopicId'];
-      }
-      
-      // Log for debugging
-      console.log('Query params received:', params);
-    });
+  toggleOptionImageUpload(index: number): void {
+    if (index >= 0 && index < this.showOptionImageUpload.length) {
+      this.showOptionImageUpload[index] = !this.showOptionImageUpload[index];
+    }
   }
-  /* --- helpers --- */
+
+  /**
+   * @method resetForm
+   * @description Resets the entire form and scrolls to top
+   */
+  resetForm(): void {
+    // Reset the question object to initial state
+    this.question = {
+      difficulty: 'Not-mentioned',
+      type: '',
+      status: 'draft',
+      branchId: '',
+      subjectId: '',
+      topicId: '',
+      subtopicId: '',
+      tags: [],
+      recommendedTimeAllotment: undefined,
+      internalNotes: '',
+      translations: {
+        en: { questionText: '', options: [], explanations: [], images: [], numericalAnswer: { minValue: 0, maxValue: 0, unit: '' } },
+        hi: { questionText: '', options: [], explanations: [], images: [], numericalAnswer: { minValue: 0, maxValue: 0, unit: '' } }
+      }
+    };
+
+    // Reset selections
+    this.selectedBranch = null;
+    this.selectedSubject = null;
+    this.selectedTopic = null;
+    this.selectedSubtopic = null;
+
+    // Reset search texts
+    this.branchSearchText = '';
+    this.subjectSearchText = '';
+    this.topicSearchText = '';
+    this.subtopicSearchText = '';
+
+    // Reset visibility states
+    this.showMathSymbols = false;
+    this.showOptionImageUpload = [false, false, false, false, false];
+
+    // Reset appearance history
+    this.histList = [];
+    this.histEntry = { examName: '', year: this.currentYear };
+
+    // Reset tags
+    this.tagsInputString = '';
+
+    // Reset file uploads
+    this.selectedFiles.clear();
+    this.uploadStatuses.clear();
+    this.uploadProgress.clear();
+    this.previewUrls.clear();
+
+    // Switch to English
+    this.currentLang = 'en';
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* ───────── lang switch ───────── */
   /**
    * @method switchLanguage
    * @description Switches the active language for question editing interface.
@@ -1014,13 +1062,18 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
       return;
     }
 
-    console.log('Sending payload:', payload);
-    this.questionSrv.addQuestion(payload)
+    console.log('Sending payload:', payload);    this.questionSrv.addQuestion(payload)
         .subscribe({
-          next: () => alert('Saved!'),
+          next: () => {
+            this.showSuccessAlert('Question successfully saved to database!');
+            // Auto-reset form after 2 seconds
+            setTimeout(() => {
+              this.resetForm();
+            }, 2000);
+          },
           error: (err: any) => {
             console.error('Error details:', err);
-            alert('Save failed: ' + err.message);
+            this.showErrorAlert('Save failed: ' + err.message);
           }
         });
   }
