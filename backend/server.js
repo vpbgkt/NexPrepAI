@@ -73,6 +73,7 @@ app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/examFamilies', require('./routes/examFamilies'));
 app.use('/api/examLevels', require('./routes/examLevels'));
+app.use('/api/examBranches', require('./routes/examBranches'));
 app.use('/api/examStreams', require('./routes/examStreams'));
 app.use('/api/examPapers', require('./routes/examPapers'));
 app.use('/api/examShifts', require('./routes/examShifts'));

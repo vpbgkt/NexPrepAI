@@ -7,6 +7,7 @@ export interface ExamStream {
   _id: string;
   family: string | { _id: string; name: string; code: string };  // Can be populated or just ObjectId
   level: string | { _id: string; name: string; code: string };   // Can be populated or just ObjectId
+  branch: string | { _id: string; name: string; code: string };  // Can be populated or just ObjectId
   code?: string;   // Optional, can be auto-generated
   name: string;
   conductingAuthority?: string;
@@ -26,14 +27,19 @@ export class ExamStreamService {
   getAll(): Observable<ExamStream[]> {
     return this.http.get<ExamStream[]>(this.base);
   }
-
   /** List streams filtered by family (optional) */
   getByFamily(familyId: string): Observable<ExamStream[]> {
     return this.http.get<ExamStream[]>(this.base, { params: { family: familyId } });
   }
+  
   /** List streams filtered by level */
   getByLevel(levelId: string): Observable<ExamStream[]> {
     return this.http.get<ExamStream[]>(this.base, { params: { level: levelId } });
+  }
+
+  /** List streams filtered by branch */
+  getByBranch(branchId: string): Observable<ExamStream[]> {
+    return this.http.get<ExamStream[]>(this.base, { params: { branch: branchId } });
   }
 
   /** Get a single stream by ID */

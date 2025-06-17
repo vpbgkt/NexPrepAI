@@ -26,25 +26,26 @@
 const ExamStream = require('../models/ExamStream');
 
 /**
- * Get exam streams filtered by level
+ * Get exam streams filtered by branch
  * 
- * @route GET /api/examStreams?level=<levelId>
+ * @route GET /api/examStreams?branch=<branchId>
  * @access Public
  * 
- * @description Retrieves all exam streams associated with a specific exam level.
+ * @description Retrieves all exam streams associated with a specific exam branch.
  * This endpoint is essential for the hierarchical navigation of exams, allowing
- * users to see available streams when they select a particular exam level.
+ * users to see available streams when they select a particular exam branch.
  * Results are sorted alphabetically by name for consistent user experience.
  * 
  * @param {Object} req - Express request object
  * @param {Object} req.query - Query parameters
- * @param {string} req.query.level - Exam level ObjectId (required)
+ * @param {string} req.query.branch - Exam branch ObjectId (required)
  * @param {Object} res - Express response object
  * 
  * @returns {Array} JSON array of exam stream objects
  * @returns {string} returns[]._id - Exam stream unique identifier
  * @returns {string} returns[].family - Associated exam family ObjectId
- * @returns {string} returns[].level - Associated exam level ObjectId (matches query)
+ * @returns {string} returns[].level - Associated exam level ObjectId
+ * @returns {string} returns[].branch - Associated exam branch ObjectId (matches query)
  * @returns {string} returns[].code - Exam stream code
  * @returns {string} returns[].name - Exam stream display name
  * @returns {string} returns[].conductingAuthority - Conducting authority
@@ -56,8 +57,41 @@ const ExamStream = require('../models/ExamStream');
  * @returns {Date} returns[].createdAt - Creation timestamp
  * @returns {Date} returns[].updatedAt - Last update timestamp
  * 
- * @throws {400} Missing level query parameter
+ * @throws {400} Missing branch query parameter
  * @throws {500} Server error during data retrieval
+ */
+exports.getByBranch = async (req, res) => {
+  try {
+    const { branch } = req.query;
+    if (!branch) return res.status(400).json({ message: 'branch query required' });
+    const list = await ExamStream.find({ branch, status: 'Active' })
+      .populate('family', 'code name')
+      .populate('level', 'code name')
+      .populate('branch', 'code name')
+      .sort('name');
+    res.json(list);
+  } catch (err) {
+    console.error('Error loading streams by branch:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+/**
+ * Get exam streams filtered by level
+ * 
+ * @route GET /api/examStreams?level=<levelId>
+ * @access Public
+ * 
+ * @description Retrieves all exam streams associated with a specific exam level.
+ * This endpoint provides backward compatibility and aggregated view of streams
+ * across all branches within a level.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.query - Query parameters
+ * @param {string} req.query.level - Exam level ObjectId (required)
+ * @param {Object} res - Express response object
+ * 
+ * @returns {Array} JSON array of exam stream objects
  */
 exports.getByLevel = async (req, res) => {
   try {
@@ -66,6 +100,7 @@ exports.getByLevel = async (req, res) => {
     const list = await ExamStream.find({ level, status: 'Active' })
       .populate('family', 'code name')
       .populate('level', 'code name')
+      .populate('branch', 'code name')
       .sort('name');
     res.json(list);
   } catch (err) {
@@ -98,6 +133,7 @@ exports.getByFamily = async (req, res) => {
     const list = await ExamStream.find({ family, status: 'Active' })
       .populate('family', 'code name')
       .populate('level', 'code name')
+      .populate('branch', 'code name')
       .sort('name');
     res.json(list);
   } catch (err) {
@@ -126,6 +162,7 @@ exports.getStreams = async (req, res) => {
     const streams = await ExamStream.find({ status: 'Active' })
       .populate('family', 'code name')
       .populate('level', 'code name')
+      .populate('branch', 'code name')
       .sort('name');
     res.json(streams);
   } catch (err) {
@@ -169,7 +206,8 @@ exports.createStream = async (req, res) => {
   try {
     const { 
       family, 
-      level, 
+      level,
+      branch, 
       code, 
       name, 
       conductingAuthority,
@@ -196,6 +234,7 @@ exports.createStream = async (req, res) => {
     const stream = new ExamStream({ 
       family, 
       level,
+      branch,
       code: streamCode.toUpperCase(), 
       name, 
       conductingAuthority,
@@ -211,7 +250,8 @@ exports.createStream = async (req, res) => {
     // Populate references before returning
     await stream.populate([
       { path: 'family', select: 'code name' },
-      { path: 'level', select: 'code name' }
+      { path: 'level', select: 'code name' },
+      { path: 'branch', select: 'code name' }
     ]);
     
     res.status(201).json(stream);

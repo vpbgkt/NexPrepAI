@@ -17,12 +17,15 @@ export class ExamStreamListComponent implements OnInit {
   ngOnInit() {
     this.svc.getAll().subscribe(data => this.streams = data);
   }
-
   getFamilyName(family: string | { _id: string; name: string; code: string }): string {
     return typeof family === 'object' ? family.name : family;
   }
 
   getLevelName(level: string | { _id: string; name: string; code: string }): string {
     return typeof level === 'object' ? level.name : level;
+  }
+
+  getBranchName(branch: string | { _id: string; name: string; code: string }): string {
+    return typeof branch === 'object' ? branch.name : branch;
   }
 }

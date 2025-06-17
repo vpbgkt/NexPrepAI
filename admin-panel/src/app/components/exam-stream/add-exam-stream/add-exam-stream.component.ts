@@ -5,6 +5,7 @@ import { Router, RouterModule } from '@angular/router';
 import { ExamStreamService } from '../../../services/exam-stream.service';
 import { ExamFamilyService, ExamFamily } from '../../../services/exam-family.service';
 import { ExamLevelService, ExamLevel } from '../../../services/exam-level.service';
+import { ExamBranchService, ExamBranch } from '../../../services/exam-branch.service';
 
 @Component({
   standalone: true,
@@ -17,18 +18,21 @@ export class AddExamStreamComponent implements OnInit {
   form!: FormGroup;
   families: ExamFamily[] = [];
   levels: ExamLevel[] = [];
+  branches: ExamBranch[] = [];
 
   constructor(
     private fb: FormBuilder,
     private svc: ExamStreamService,
     private familySvc: ExamFamilyService,
     private levelSvc: ExamLevelService,
+    private branchSvc: ExamBranchService,
     private router: Router
   ) {}  ngOnInit() {
     // 1. Build the form
     this.form = this.fb.group({
       family: ['', Validators.required],
-      level: ['', Validators.required], // Changed from levelId to level
+      level: ['', Validators.required],
+      branch: ['', Validators.required],
       code: [''], // Made optional - will auto-generate if empty
       name: ['', Validators.required],
       conductingAuthority: [''],
@@ -44,9 +48,20 @@ export class AddExamStreamComponent implements OnInit {
     // 3. When family changes, load levels for that family
     this.form.get('family')?.valueChanges.subscribe(familyId => {
       this.levels = [];
-      this.form.get('level')?.reset(''); // Changed from levelId to level
+      this.branches = [];
+      this.form.get('level')?.reset('');
+      this.form.get('branch')?.reset('');
       if (familyId) {
         this.levelSvc.getByFamily(familyId).subscribe(levels => this.levels = levels);
+      }
+    });
+
+    // 4. When level changes, load branches for that level
+    this.form.get('level')?.valueChanges.subscribe(levelId => {
+      this.branches = [];
+      this.form.get('branch')?.reset('');
+      if (levelId) {
+        this.branchSvc.getByLevel(levelId).subscribe(branches => this.branches = branches);
       }
     });
 

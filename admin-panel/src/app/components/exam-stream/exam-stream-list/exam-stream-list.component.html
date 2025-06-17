@@ -26,10 +26,13 @@
         <table class="w-full">          <thead>
             <tr class="bg-gradient-to-r from-gray-800 to-gray-900 text-white">
               <th class="px-6 py-4 text-left font-semibold">
-                <i class="fas fa-users mr-2"></i>Family ID
+                <i class="fas fa-users mr-2"></i>Family
               </th>
               <th class="px-6 py-4 text-left font-semibold">
-                <i class="fas fa-layer-group mr-2"></i>Level ID
+                <i class="fas fa-layer-group mr-2"></i>Level
+              </th>
+              <th class="px-6 py-4 text-left font-semibold">
+                <i class="fas fa-code-branch mr-2"></i>Branch
               </th>
               <th class="px-6 py-4 text-left font-semibold">
                 <i class="fas fa-code mr-2"></i>Code
@@ -54,11 +57,19 @@
           <tbody>            <tr *ngFor="let s of streams; let i = index" 
                 class="border-b border-gray-100 hover:bg-gray-50 transition-colors duration-200"
                 [class.bg-gray-50]="i % 2 === 1">
-              <td class="px-6 py-4 text-gray-700 font-medium">                <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-semibold">
+              <td class="px-6 py-4 text-gray-700 font-medium">
+                <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-semibold">
                   {{ getFamilyName(s.family) }}
                 </span>
-              </td>              <td class="px-6 py-4 text-gray-700 font-medium">                <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+              </td>
+              <td class="px-6 py-4 text-gray-700 font-medium">
+                <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
                   {{ getLevelName(s.level) }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-gray-700 font-medium">
+                <span class="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-semibold">
+                  {{ getBranchName(s.branch) }}
                 </span>
               </td>
               <td class="px-6 py-4">

@@ -38,7 +38,23 @@
             <option value="" disabled>Select Level</option>
             <option *ngFor="let l of levels" [value]="l._id">{{ l.name }} ({{ l.code }})</option>
           </select>
-        </div>        <!-- Code Input -->
+        </div>
+
+        <!-- Branch Selection -->
+        <div class="form-group">
+          <label for="branch" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-code-branch text-orange-500"></i>
+            Exam Branch
+          </label>
+          <select 
+            id="branch" 
+            formControlName="branch"
+            [disabled]="!branches.length"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 bg-white appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e')] bg-no-repeat bg-right-4 bg-[length:1em] disabled:bg-gray-100 disabled:cursor-not-allowed">
+            <option value="" disabled>Select Branch</option>
+            <option *ngFor="let b of branches" [value]="b._id">{{ b.name }} ({{ b.code }})</option>
+          </select>
+        </div><!-- Code Input -->
         <div class="form-group">
           <label for="code" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
             <i class="fas fa-code text-green-500"></i>

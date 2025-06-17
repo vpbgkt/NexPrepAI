@@ -6,12 +6,16 @@ const {
   getStreams,
   getByFamily,
   getByLevel,
+  getByBranch,
   createStream
 } = require('../controllers/examStreamController');
 
 // Modified GET route to handle streams with different filters
 router.get('/', verifyToken, (req, res, next) => {
-  if (req.query.level) {
+  if (req.query.branch) {
+    // If 'branch' query parameter exists, delegate to getByBranch controller
+    getByBranch(req, res, next);
+  } else if (req.query.level) {
     // If 'level' query parameter exists, delegate to getByLevel controller
     getByLevel(req, res, next);
   } else if (req.query.family) {
@@ -24,6 +28,7 @@ router.get('/', verifyToken, (req, res, next) => {
 });
 
 // Alternative routes for explicit filtering
+router.get('/by-branch', verifyToken, getByBranch);
 router.get('/by-level', verifyToken, getByLevel);
 router.get('/by-family', verifyToken, getByFamily);
 

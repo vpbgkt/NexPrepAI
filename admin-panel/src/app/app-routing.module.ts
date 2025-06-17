@@ -29,6 +29,9 @@ import { AddExamFamilyComponent }    from './components/exam-family/add-exam-fam
 import { ExamLevelListComponent } from './components/exam-level/exam-level-list/exam-level-list.component';
 import { AddExamLevelComponent }  from './components/exam-level/add-exam-level/add-exam-level.component';
 
+import { ExamBranchListComponent } from './components/exam-branch/exam-branch-list/exam-branch-list.component';
+import { AddExamBranchComponent }  from './components/exam-branch/add-exam-branch/add-exam-branch.component';
+
 import { ExamStreamListComponent } from './components/exam-stream/exam-stream-list/exam-stream-list.component';
 import { AddExamStreamComponent }  from './components/exam-stream/add-exam-stream/add-exam-stream.component';
 
@@ -92,11 +95,13 @@ export const routes: Routes = [
       { path: 'subtopics/new',  component: AddSubtopicComponent },
       { path: 'csv-import',     component: CsvUploadComponent },      // Exam Families
       { path: 'exam-families',      component: ExamFamilyListComponent },
-      { path: 'exam-families/new',  component: AddExamFamilyComponent },
-
-      // Exam Levels
+      { path: 'exam-families/new',  component: AddExamFamilyComponent },      // Exam Levels
       { path: 'exam-levels',      component: ExamLevelListComponent },
       { path: 'exam-levels/new',  component: AddExamLevelComponent },
+
+      // Exam Branches
+      { path: 'exam-branches',     component: ExamBranchListComponent },
+      { path: 'exam-branches/new', component: AddExamBranchComponent },
 
       // Exam Streams
       { path: 'exam-streams',     component: ExamStreamListComponent },

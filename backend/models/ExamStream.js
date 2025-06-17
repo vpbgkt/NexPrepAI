@@ -13,7 +13,13 @@ const examStreamSchema = new Schema({
     ref: 'ExamLevel', 
     required: true,
     index: true
-  },  code: { 
+  },
+  branch: { 
+    type: Schema.Types.ObjectId, 
+    ref: 'ExamBranch', 
+    required: true,
+    index: true
+  },code: { 
     type: String, 
     required: false,  // Make optional since we'll auto-generate
     trim: true,
@@ -62,8 +68,8 @@ const examStreamSchema = new Schema({
   }
 }, { timestamps: true });
 
-// Prevent duplicate code per level
-examStreamSchema.index({ level: 1, code: 1 }, { unique: true });
+// Prevent duplicate code per branch
+examStreamSchema.index({ branch: 1, code: 1 }, { unique: true });
 
 module.exports =
   mongoose.models.ExamStream ||

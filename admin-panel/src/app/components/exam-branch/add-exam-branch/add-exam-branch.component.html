@@ -1,0 +1,85 @@
+<div class="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-100 p-4 lg:p-6">
+  <div class="max-w-4xl mx-auto">
+    <!-- Header Section -->
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 mb-8">
+      <h2 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
+        <i class="fas fa-plus-circle text-emerald-500"></i>
+        Add Exam Branch
+      </h2>
+      <p class="text-gray-600 mt-2">Create a new exam branch within a level category</p>
+    </div>
+
+    <!-- Form Section -->
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 lg:p-8">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-6">
+        
+        <!-- Level Selection -->
+        <div class="form-group">
+          <label for="level" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-layer-group text-emerald-500"></i>
+            Exam Level
+          </label>
+          <select 
+            id="level" 
+            formControlName="level"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 bg-white appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e')] bg-no-repeat bg-right-4 bg-[length:1em]">
+            <option value="" disabled>Select Level</option>
+            <option *ngFor="let l of levels" [value]="l._id">{{ l.name }} ({{ l.code }})</option>
+          </select>
+        </div>
+
+        <!-- Code Input -->
+        <div class="form-group">
+          <label for="code" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-code text-green-500"></i>
+            Code (Optional)
+            <span class="text-xs text-gray-500 font-normal">(Auto-generated from name if left empty)</span>
+          </label>
+          <input 
+            id="code" 
+            formControlName="code" 
+            placeholder="e.g. engineering-branch (auto-generated if empty)"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 placeholder-gray-400" />
+        </div>
+
+        <!-- Name Input -->
+        <div class="form-group">
+          <label for="name" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-tag text-teal-500"></i>
+            Branch Name
+          </label>
+          <input 
+            id="name" 
+            formControlName="name" 
+            placeholder="e.g. Engineering, Medical, Commerce"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 placeholder-gray-400" />
+        </div>
+
+        <!-- Description Input -->
+        <div class="form-group">
+          <label for="description" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-align-left text-gray-500"></i>
+            Description
+          </label>
+          <textarea 
+            id="description" 
+            formControlName="description" 
+            rows="3"
+            placeholder="Optional details about this exam branch..."
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 placeholder-gray-400 resize-vertical"></textarea>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-end pt-4">
+          <button 
+            type="submit" 
+            [disabled]="form.invalid"
+            class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center gap-2">
+            <i class="fas fa-save"></i>
+            Save Branch
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
