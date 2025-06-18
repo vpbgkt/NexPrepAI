@@ -63,10 +63,9 @@ const testSeriesSchema = new Schema({
   randomizeSectionOrder: { type: Boolean, default: false }, // Whether to randomize the order of sections
   enablePublicLeaderboard: { type: Boolean, default: true }, // Changed default to true
 
-  maxAttempts: { type: Number, default: 1 },
-  mode: {
+  maxAttempts: { type: Number, default: 1 },  mode: {
     type: String,
-    enum: ['practice', 'live'],
+    enum: ['practice', 'live', 'strict'],
     default: 'practice'
   },
   startAt: {
