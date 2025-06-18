@@ -111,35 +111,34 @@ exports.getQuestionLeaderboard = async (req, res) => {
         $match: {
           'admin.role': { $in: ['admin', 'superadmin'] }
         }
-      },
-      {
+      },      {
         $project: {
           adminId: '$_id',
           adminName: '$admin.name',
           adminUsername: '$admin.username',
+          email: '$admin.email', // Add email field
           adminRole: '$admin.role',
-          questionCount: 1,
+          count: '$questionCount', // Rename to 'count' to match frontend
           latestQuestion: 1
         }
       },
       { $sort: { questionCount: -1, latestQuestion: -1 } }
     ]);
-    
-    // Add ranking
-    const leaderboard = leaderboardData.map((entry, index) => ({
-      rank: index + 1,
-      ...entry
-    }));
-    
-    // Calculate total questions in period
+      // Calculate total questions in period
     const totalQuestions = await Question.countDocuments(matchCriteria);
     
-    res.json({
+    // Add ranking and percentage
+    const leaderboard = leaderboardData.map((entry, index) => ({
+      rank: index + 1,
+      ...entry,
+      percentage: totalQuestions > 0 ? Math.round((entry.count / totalQuestions) * 100) : 0
+    }));
+      res.json({
       success: true,
       data: {
         leaderboard,
         period,
-        totalQuestions,
+        totalCount: totalQuestions, // Change field name to match frontend
         dateRange: startDate ? {
           from: startDate,
           to: new Date()
@@ -209,35 +208,34 @@ exports.getExamPaperLeaderboard = async (req, res) => {
         $match: {
           'admin.role': { $in: ['admin', 'superadmin'] }
         }
-      },
-      {
+      },      {
         $project: {
           adminId: '$_id',
           adminName: '$admin.name',
           adminUsername: '$admin.username',
+          email: '$admin.email', // Add email field
           adminRole: '$admin.role',
-          examPaperCount: 1,
+          count: '$examPaperCount', // Rename to 'count' to match frontend
           latestExamPaper: 1
         }
       },
       { $sort: { examPaperCount: -1, latestExamPaper: -1 } }
     ]);
-    
-    // Add ranking
-    const leaderboard = leaderboardData.map((entry, index) => ({
-      rank: index + 1,
-      ...entry
-    }));
-    
-    // Calculate total exam papers in period
+      // Calculate total exam papers in period
     const totalExamPapers = await ExamPaper.countDocuments(matchCriteria);
     
-    res.json({
+    // Add ranking and percentage
+    const leaderboard = leaderboardData.map((entry, index) => ({
+      rank: index + 1,
+      ...entry,
+      percentage: totalExamPapers > 0 ? Math.round((entry.count / totalExamPapers) * 100) : 0
+    }));
+      res.json({
       success: true,
       data: {
         leaderboard,
         period,
-        totalExamPapers,
+        totalCount: totalExamPapers, // Change field name to match frontend
         dateRange: startDate ? {
           from: startDate,
           to: new Date()
