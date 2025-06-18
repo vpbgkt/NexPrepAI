@@ -130,6 +130,118 @@
             </div>
           </div>
         </div>
+      </div>      <!-- Hierarchy Selection Card -->
+      <div class="bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden">
+        <div class="bg-gradient-to-r from-warning-50 to-success-50 px-6 py-4 border-b border-gray-100">
+          <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+            <svg class="w-6 h-6 mr-2 text-warning-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+            </svg>
+            Exam Hierarchy Selection
+          </h2>
+        </div>
+        <div class="p-6 space-y-6">          <!-- Hierarchy Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Family -->
+            <div>
+              <label for="family" class="block text-sm font-medium text-gray-700 mb-2">Exam Family</label>              <select 
+                #familySelect 
+                id="family"
+                formControlName="family" 
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white hover:border-gray-400"
+              >
+                <option value="">Select Family</option>
+                <option *ngFor="let f of families" [value]="f._id">{{ f.name }}</option>
+              </select>
+              <p *ngIf="!families.length" class="mt-2 text-sm text-orange-600 bg-orange-50 p-3 rounded-lg">
+                Families not available or list is empty.
+              </p>
+            </div>
+
+            <!-- Level -->
+            <div>
+              <label for="level" class="block text-sm font-medium text-gray-700 mb-2">Exam Level</label>
+              <select 
+                #levelSelect 
+                id="level"
+                formControlName="level" 
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white hover:border-gray-400"
+              >
+                <option value="">Select Level</option>
+                <option *ngFor="let l of levels" [value]="l._id">{{ l.name }}</option>
+              </select>
+              <p *ngIf="seriesForm.get('family')?.value && !levels.length" class="mt-2 text-sm text-orange-600 bg-orange-50 p-3 rounded-lg">
+                Levels not available for the selected family or list is empty.
+              </p>
+            </div>
+
+            <!-- Branch -->
+            <div>
+              <label for="branch" class="block text-sm font-medium text-gray-700 mb-2">Exam Branch</label>
+              <select 
+                #branchSelect 
+                id="branch"
+                formControlName="branch" 
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white hover:border-gray-400"
+              >
+                <option value="">Select Branch</option>
+                <option *ngFor="let b of branches" [value]="b._id">{{ b.name }}</option>
+              </select>
+              <p *ngIf="seriesForm.get('level')?.value && !branches.length" class="mt-2 text-sm text-orange-600 bg-orange-50 p-3 rounded-lg">
+                Branches not available for the selected level or list is empty.
+              </p>
+            </div>
+
+            <!-- Stream -->
+            <div>
+              <label for="stream" class="block text-sm font-medium text-gray-700 mb-2">Exam Stream</label>              <select 
+                #streamSelect 
+                id="stream"
+                formControlName="stream" 
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white hover:border-gray-400"
+              >
+                <option value="">Select Stream</option>
+                <option *ngFor="let s of streams" [value]="s._id">{{ s.name }}</option>
+              </select>
+              <p *ngIf="seriesForm.get('branch')?.value && !streams.length" class="mt-2 text-sm text-orange-600 bg-orange-50 p-3 rounded-lg">
+                Streams not available for the selected branch or list is empty.
+              </p>
+            </div>
+
+            <!-- Paper -->
+            <div>
+              <label for="paper" class="block text-sm font-medium text-gray-700 mb-2">Exam Paper</label>              <select 
+                #paperSelect 
+                id="paper"
+                formControlName="paper" 
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white hover:border-gray-400"
+              >
+                <option value="">Select Paper</option>
+                <option *ngFor="let p of papers" [value]="p._id">
+                  {{ p.name }}<ng-container *ngIf="p.code"> ({{ p.code }})</ng-container>
+                </option>
+              </select>
+              <p *ngIf="seriesForm.get('stream')?.value && !papers.length" class="mt-2 text-sm text-orange-600 bg-orange-50 p-3 rounded-lg">
+                Papers not available for the selected stream or list is empty.
+              </p>
+            </div>
+
+            <!-- Shift/Variant -->
+            <div>
+              <label for="shift" class="block text-sm font-medium text-gray-700 mb-2">Exam Shift</label>              <select 
+                #shiftSelect 
+                id="shift"
+                formControlName="shift" 
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white hover:border-gray-400"
+              >
+                <option value="">Select Shift</option>
+                <option *ngFor="let v of shifts" [value]="v._id">{{ v.name }}</option>
+              </select>
+              <p *ngIf="seriesForm.get('paper')?.value && !shifts.length" class="mt-2 text-sm text-blue-600 bg-blue-50 p-3 rounded-lg">
+                No shifts available for this paper. A default "Main Shift" will be created automatically.
+              </p>
+            </div>          </div>
+        </div>
       </div>
 
       <!-- Configuration Options Card -->
@@ -171,95 +283,6 @@
                 Enable Public Leaderboard
               </label>
             </div>
-          </div>        </div>
-      </div>
-
-      <!-- Hierarchy Selection Card -->
-      <div class="bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden">
-        <div class="bg-gradient-to-r from-warning-50 to-success-50 px-6 py-4 border-b border-gray-100">
-          <h2 class="text-xl font-semibold text-gray-900 flex items-center">
-            <svg class="w-6 h-6 mr-2 text-warning-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-            </svg>
-            Exam Hierarchy Selection
-          </h2>
-        </div>
-        <div class="p-6 space-y-6">
-          <!-- Hierarchy Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Family -->
-            <div>
-              <label for="family" class="block text-sm font-medium text-gray-700 mb-2">Exam Family</label>
-              <select 
-                #familySelect 
-                id="family"
-                formControlName="family" 
-                (change)="onFamilyChange(familySelect.value)"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white hover:border-gray-400"
-              >
-                <option value="">Select Family</option>
-                <option *ngFor="let f of families" [value]="f._id">{{ f.name }}</option>
-              </select>
-              <p *ngIf="!families.length" class="mt-2 text-sm text-orange-600 bg-orange-50 p-3 rounded-lg">
-                Families not available or list is empty.
-              </p>
-            </div>
-
-            <!-- Stream -->
-            <div>
-              <label for="stream" class="block text-sm font-medium text-gray-700 mb-2">Exam Stream</label>
-              <select 
-                #streamSelect 
-                id="stream"
-                formControlName="stream" 
-                (change)="onStreamChange(streamSelect.value)"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white hover:border-gray-400"
-              >
-                <option value="">Select Stream</option>
-                <option *ngFor="let s of streams" [value]="s._id">{{ s.name }}</option>
-              </select>
-              <p *ngIf="seriesForm.get('family')?.value && !streams.length" class="mt-2 text-sm text-orange-600 bg-orange-50 p-3 rounded-lg">
-                Streams not available for the selected family or list is empty.
-              </p>
-            </div>
-
-            <!-- Paper -->
-            <div>
-              <label for="paper" class="block text-sm font-medium text-gray-700 mb-2">Exam Paper</label>
-              <select 
-                #paperSelect 
-                id="paper"
-                formControlName="paper" 
-                (change)="onPaperChange(paperSelect.value)"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white hover:border-gray-400"
-              >
-                <option value="">Select Paper</option>
-                <option *ngFor="let p of papers" [value]="p._id">
-                  {{ p.name }}<ng-container *ngIf="p.code"> ({{ p.code }})</ng-container>
-                </option>
-              </select>
-              <p *ngIf="seriesForm.get('stream')?.value && !papers.length" class="mt-2 text-sm text-orange-600 bg-orange-50 p-3 rounded-lg">
-                Papers not available for the selected stream or list is empty.
-              </p>
-            </div>
-
-            <!-- Shift/Variant -->
-            <div>
-              <label for="shift" class="block text-sm font-medium text-gray-700 mb-2">Exam Shift</label>
-              <select 
-                #shiftSelect 
-                id="shift"
-                formControlName="shift" 
-                (change)="onShiftChange(shiftSelect.value)"
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white hover:border-gray-400"
-              >
-                <option value="">Select Shift</option>
-                <option *ngFor="let v of shifts" [value]="v._id">{{ v.name }}</option>
-              </select>
-              <p *ngIf="seriesForm.get('paper')?.value && !shifts.length" class="mt-2 text-sm text-blue-600 bg-blue-50 p-3 rounded-lg">
-                No shifts available for this paper. A default "Main Shift" will be created automatically.
-              </p>
-            </div>
           </div>
         </div>
       </div>
@@ -294,10 +317,8 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                   </svg>
                 </button>
-              </div>
-
-              <!-- Section Configuration -->
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              </div>              <!-- Section Configuration -->
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 <!-- Section Title -->
                 <div>
                   <label for="sectionTitle-{{i}}" class="block text-sm font-medium text-gray-700 mb-2">Section Title</label>
@@ -321,6 +342,30 @@
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
                     placeholder="Section order"
                   />
+                </div>                <!-- Question Indexing -->
+                <div>
+                  <label for="questionIndexing-{{i}}" class="block text-sm font-medium text-gray-700 mb-2">Question Numbering</label>
+                  <select 
+                    id="questionIndexing-{{i}}"
+                    formControlName="questionIndexing"
+                    [disabled]="i === 0"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+                    [class.bg-gray-100]="i === 0"
+                  >
+                    <option value="continue">Continue from previous section</option>
+                    <option value="reset">Reset to start from 1</option>
+                  </select>
+                  <p class="mt-1 text-xs text-gray-500">
+                    <span *ngIf="i === 0">
+                      First section always starts from: 1
+                    </span>
+                    <span *ngIf="i > 0 && secCtrl.get('questionIndexing')?.value === 'continue'">
+                      Questions start from: {{ getQuestionStartIndex(i) }}
+                    </span>
+                    <span *ngIf="i > 0 && secCtrl.get('questionIndexing')?.value === 'reset'">
+                      Questions start from: 1
+                    </span>
+                  </p>
                 </div>
               </div>
 
@@ -337,19 +382,39 @@
                     Randomize Question Order in Section
                   </label>
                 </div>
-              </div>
-
-              <!-- Question Pool Configuration -->
+              </div>              <!-- Question Pool Configuration -->
               <div class="bg-white rounded-lg p-4 border border-gray-200 mb-6">
-                <h4 class="text-md font-semibold text-gray-900 mb-4 flex items-center">
-                  <svg class="w-5 h-5 mr-2 text-secondary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                  </svg>
-                  Question Pool Configuration
-                </h4>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <!-- Questions to Select from Pool -->
+                <!-- Toggle Header -->
+                <div class="flex items-center justify-between mb-4">
+                  <h4 class="text-md font-semibold text-gray-900 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-secondary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                    Question Pool Configuration
+                  </h4>
+                  
+                  <!-- Toggle Button -->
+                  <button
+                    type="button"
+                    (click)="togglePoolConfig(i)"
+                    class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200"
+                  >
+                    <span class="mr-1">{{ sectionPoolConfigVisible[i] ? 'Hide' : 'Show' }}</span>
+                    <svg 
+                      class="w-4 h-4 transition-transform duration-200" 
+                      [class.rotate-180]="sectionPoolConfigVisible[i]"
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </button>
+                </div>
+                  <!-- Pool Configuration Content (Collapsible) -->
+                <div *ngIf="sectionPoolConfigVisible[i]" class="space-y-4">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Questions to Select from Pool -->
                   <div>
                     <label for="questionsToSelectFromPool-{{i}}" class="block text-sm font-medium text-gray-700 mb-2">
                       Questions to Select from Pool
@@ -407,10 +472,12 @@
                       step="0.25"
                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
                       placeholder="Default negative marks"
-                    >
-                  </div>
+                    >                  </div>
                 </div>
-              </div>              <!-- Question Management Section -->
+                </div> <!-- End of collapsible content -->
+              </div> <!-- End of Question Pool Configuration -->
+              
+              <!-- Question Management Section -->
               <div formArrayName="questions" class="bg-white rounded-lg p-4 border border-gray-200">
                 <h4 class="text-md font-semibold text-gray-900 mb-4 flex items-center">
                   <svg class="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -419,52 +486,14 @@
                   Question Selection & Management
                 </h4>
 
-                <!-- Question Search Section -->
-                <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h5 class="text-sm font-semibold text-blue-900 mb-3 flex items-center">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                    Search Questions by Text
-                  </h5>
-                  <input
-                    type="text"
-                    [(ngModel)]="sectionSearchTerms[i]"
-                    (ngModelChange)="performSearch(i)"
-                    [ngModelOptions]="{standalone: true}"
-                    placeholder="Type to search questions..."
-                    class="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
-                  />
-                  
-                  <!-- Search Results -->
-                  <div *ngIf="sectionSearchResults[i] && sectionSearchResults[i].length > 0" class="mt-4">
-                    <h6 class="text-sm font-medium text-blue-900 mb-2">Search Results:</h6>
-                    <div class="space-y-2 max-h-64 overflow-y-auto">
-                      <div *ngFor="let q of sectionSearchResults[i]" class="flex items-center justify-between p-3 bg-white border border-blue-200 rounded-lg hover:border-blue-300 transition-colors">
-                        <span class="text-sm text-gray-700 flex-1 mr-3" [innerHTML]="(q.translations[0].questionText || q.questionText || 'Test Question Text Missing') | highlight:sectionSearchTerms[i]"></span>
-                        <button type="button" 
-                                (click)="addQuestionFromSearchResults(i, q)"
-                                class="px-3 py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 focus:ring-2 focus:ring-green-500 transition-colors duration-200">
-                          Add
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div *ngIf="sectionSearchTerms[i] && sectionSearchTerms[i].length > 2 && (!sectionSearchResults[i] || sectionSearchResults[i].length === 0)" class="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-700">
-                    No questions found matching your search.
-                  </div>
-                </div>
-
                 <!-- Question List -->
                 <div class="space-y-4">
                   <div *ngFor="let qCtrl of getQuestions(i).controls; let j = index" [formGroupName]="j" class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                    <div class="flex items-start justify-between mb-3">
-                      <h6 class="text-sm font-semibold text-gray-900 flex items-center">
+                    <div class="flex items-start justify-between mb-3">                      <h6 class="text-sm font-semibold text-gray-900 flex items-center">
                         <span class="bg-primary-100 text-primary-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-2">
-                          {{ j + 1 }}
+                          {{ getQuestionDisplayNumber(i, j) }}
                         </span>
-                        Question {{ j + 1 }}
+                        Question {{ getQuestionDisplayNumber(i, j) }}
                       </h6>
                       <button type="button" 
                               (click)="removeQuestion(i, j)"
@@ -547,8 +576,7 @@
                       class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors duration-200"
                     />
                   </div>
-                  
-                  <!-- Add Question Button -->
+                    <!-- Add Question Button -->
                   <button type="button" 
                           (click)="addQuestion(i)"
                           class="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 transition-colors duration-200 flex items-center justify-center">
@@ -557,6 +585,74 @@
                     </svg>
                     Add Question
                   </button>
+                </div>                <!-- Question Search Section -->
+                <div id="search-section-{{i}}" class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h5 class="text-sm font-semibold text-blue-900 mb-3 flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    Search Questions by Text
+                  </h5>
+                  
+                  <!-- Default Marks Configuration for Search Results -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-3 bg-white border border-blue-300 rounded-lg">
+                    <div>
+                      <label for="defaultSearchMarks-{{i}}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Default Marks for Added Questions
+                      </label>
+                      <input
+                        type="number"
+                        id="defaultSearchMarks-{{i}}"
+                        [(ngModel)]="sectionDefaultSearchMarks[i]"
+                        [ngModelOptions]="{standalone: true}"                        min="0"
+                        step="0.25"
+                        placeholder="1"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                      />
+                    </div>
+                    <div>
+                      <label for="defaultSearchNegativeMarks-{{i}}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Default Negative Marks
+                      </label>
+                      <input
+                        type="number"
+                        id="defaultSearchNegativeMarks-{{i}}"
+                        [(ngModel)]="sectionDefaultSearchNegativeMarks[i]"
+                        [ngModelOptions]="{standalone: true}"                        min="0"
+                        step="0.25"
+                        placeholder="0.33"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                      />
+                    </div>
+                  </div>
+                  
+                  <input
+                    type="text"
+                    [(ngModel)]="sectionSearchTerms[i]"
+                    (ngModelChange)="performSearch(i)"
+                    [ngModelOptions]="{standalone: true}"
+                    placeholder="Type to search questions..."
+                    class="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
+                  />
+                  
+                  <!-- Search Results -->
+                  <div *ngIf="sectionSearchResults[i] && sectionSearchResults[i].length > 0" class="mt-4">
+                    <h6 class="text-sm font-medium text-blue-900 mb-2">Search Results:</h6>
+                    <div class="space-y-2 max-h-64 overflow-y-auto">
+                      <div *ngFor="let q of sectionSearchResults[i]" class="flex items-center justify-between p-3 bg-white border border-blue-200 rounded-lg hover:border-blue-300 transition-colors">
+                        <span class="text-sm text-gray-700 flex-1 mr-3" [innerHTML]="(q.translations[0].questionText || q.questionText || 'Test Question Text Missing') | highlight:sectionSearchTerms[i]"></span>
+                        <button type="button" 
+                                (click)="addQuestionFromSearchResults(i, q)"
+                                class="px-3 py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 focus:ring-2 focus:ring-green-500 transition-colors duration-200">
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div *ngIf="sectionSearchTerms[i] && sectionSearchTerms[i].length > 2 && (!sectionSearchResults[i] || sectionSearchResults[i].length === 0)" class="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-700">
+                    No questions found matching your search.
+                  </div>
                 </div>
               </div>            </div>
           </div>

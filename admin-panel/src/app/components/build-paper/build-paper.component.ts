@@ -17,7 +17,7 @@
  * @since 1.0.0
  */
 
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule, FormsModule, AbstractControl } from '@angular/forms'; // MODIFIED: Added AbstractControl
 import { CommonModule } from '@angular/common';
 import { Subject, Subscription, combineLatest, merge } from 'rxjs'; // MODIFIED: Added combineLatest, merge
@@ -31,6 +31,16 @@ import {
   ExamFamilyService,
   ExamFamily
 } from '../../services/exam-family.service';
+
+import {
+  ExamLevelService,
+  ExamLevel
+} from '../../services/exam-level.service';
+
+import {
+  ExamBranchService,
+  ExamBranch
+} from '../../services/exam-branch.service';
 
 import {
   ExamStreamService,
@@ -87,17 +97,22 @@ import { HighlightPipe } from '../../pipes/highlight.pipe'; // Assuming pipe is 
   templateUrl: './build-paper.component.html',
   styleUrls: ['./build-paper.component.scss']
 })
-export class BuildPaperComponent implements OnInit, OnDestroy { // MODIFIED: Implements OnDestroy
+export class BuildPaperComponent implements OnInit, OnDestroy, AfterViewInit { // MODIFIED: Implements OnDestroy, AfterViewInit
   /** @property {FormGroup} Main reactive form for test series configuration */
   seriesForm!: FormGroup;
   
   /** @property {Question[]} Complete list of available questions */
   questionsList: Question[] = [];
-  
-  /** @property {ExamFamily[]} Available exam families (e.g., JEE, NEET, GATE) */
+    /** @property {ExamFamily[]} Available exam families (e.g., JEE, NEET, GATE) */
   families: ExamFamily[] = [];
   
-  /** @property {ExamStream[]} Available streams for selected family */
+  /** @property {ExamLevel[]} Available levels for selected family */
+  levels: ExamLevel[] = [];
+  
+  /** @property {ExamBranch[]} Available branches for selected level */
+  branches: ExamBranch[] = [];
+  
+  /** @property {ExamStream[]} Available streams for selected branch */
   streams:  ExamStream[] = [];
   
   /** @property {ExamPaper[]} Available papers for selected stream */
@@ -113,9 +128,17 @@ previewedQuestions: any[][] = [];
 
   /** @property {string[]} Search terms for each section's question search */
   sectionSearchTerms: string[] = [];
-  
   /** @property {Question[][]} Search results for each section's question search */
   sectionSearchResults: Question[][] = [];
+
+  /** @property {boolean[]} Toggle state for Question Pool Configuration section visibility per section */
+  sectionPoolConfigVisible: boolean[] = [];
+
+  /** @property {number[]} Default marks to apply when adding questions from search results per section */
+  sectionDefaultSearchMarks: number[] = [];
+
+  /** @property {number[]} Default negative marks to apply when adding questions from search results per section */
+  sectionDefaultSearchNegativeMarks: number[] = [];
 
   /** @private {Subject<string>[]} RxJS subjects for debouncing search input per section */
   private searchDebouncers: Subject<string>[] = []; // MODIFIED: Changed Subject<number> to Subject<string>
@@ -136,12 +159,13 @@ previewedQuestions: any[][] = [];
    * @param {ExamStreamService} streamService - Service for exam stream operations
    * @param {ExamPaperService} paperService - Service for exam paper operations
    * @param {ExamShiftService} shiftService - Service for exam shift operations
-   */
-  constructor(
+   */  constructor(
     private fb: FormBuilder,
     private tsService: TestSeriesService,
     private qService: QuestionService,
     private efService: ExamFamilyService,
+    private levelService: ExamLevelService,
+    private branchService: ExamBranchService,
     private streamService: ExamStreamService,
     private paperService: ExamPaperService,
     private shiftService: ExamShiftService
@@ -187,8 +211,20 @@ previewedQuestions: any[][] = [];
    * // 3. Set up cascade listeners for dropdowns
    * // 4. Initialize search functionality
    * ```
-   */
-  ngOnInit(): void {
+   */  ngOnInit(): void {
+    // Scroll to top of page on component initialization/page refresh
+    // Multiple approaches to ensure it works across different browsers and scenarios
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    
+    // Use setTimeout to ensure it runs after browser's scroll restoration
+    setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }, 0);
+    
     // Rebuilt FormGroup to remove negativeMark and examBody
     this.seriesForm = this.fb.group({
       title:     ['', Validators.required],
@@ -200,6 +236,8 @@ previewedQuestions: any[][] = [];
       startAt:   [null],
       endAt:     [null],
       family:    ['', Validators.required],
+      level:     [{value: '', disabled: true}, Validators.required],
+      branch:    [{value: '', disabled: true}, Validators.required],
       stream:    [{value: '', disabled: true}, Validators.required],
       paper:     [{value: '', disabled: true}, Validators.required],
       shift:     [{value: '', disabled: true}, Validators.required],
@@ -212,51 +250,135 @@ previewedQuestions: any[][] = [];
     this.efService.getAll().subscribe(f => {
       console.log('🗂️ Fetched families:', f);
       this.families = f;
-    });    // When family changes, load streams and reset dependent fields
+    });    // When family changes, load levels and reset dependent fields
     this.seriesForm.get('family')!.valueChanges.subscribe(familyId => {
       console.log('[BuildPaperComponent] Family selected. ID:', familyId);
 
       // Reset dependent form controls first
+      this.seriesForm.get('level')!.setValue(null, { emitEvent: false });
+      this.seriesForm.get('branch')!.setValue(null, { emitEvent: false });
       this.seriesForm.get('stream')!.setValue(null, { emitEvent: false });
       this.seriesForm.get('paper')!.setValue(null, { emitEvent: false });
       this.seriesForm.get('shift')!.setValue(null, { emitEvent: false });
-      console.log('[BuildPaperComponent] Dependent form controls (stream, paper, shift) reset.');
+      console.log('[BuildPaperComponent] Dependent form controls (level, branch, stream, paper, shift) reset.');
 
       // Clear data arrays for dropdown options
+      this.levels = [];
+      this.branches = [];
       this.streams = [];
       this.papers = [];
       this.shifts = [];
-      console.log('[BuildPaperComponent] Dependent data arrays (streams, papers, shifts) cleared.');
+      console.log('[BuildPaperComponent] Dependent data arrays cleared.');
       
-      // Ensure the paper and shift dropdowns are disabled
+      // Ensure the dependent dropdowns are disabled
+      this.seriesForm.get('level')?.disable();
+      this.seriesForm.get('branch')?.disable();
+      this.seriesForm.get('stream')?.disable();
       this.seriesForm.get('paper')?.disable();
-      this.seriesForm.get('shift')?.disable();      if (familyId && String(familyId).trim() !== '') { // Ensure familyId is not null, undefined, or empty string
-        console.log(`[BuildPaperComponent] Fetching streams for familyId: "${familyId}"`);
-        this.streamService.getByFamily(familyId).subscribe({
+      this.seriesForm.get('shift')?.disable();
+
+      if (familyId && String(familyId).trim() !== '') {
+        console.log(`[BuildPaperComponent] Fetching levels for familyId: "${familyId}"`);
+        this.levelService.getByFamily(familyId).subscribe({
+          next: levelsData => {
+            console.log('[BuildPaperComponent] Levels data received:', levelsData);
+            if (Array.isArray(levelsData)) {
+              this.levels = levelsData;
+              
+              // Enable the level dropdown if levels are available
+              if (this.levels.length > 0) {
+                this.seriesForm.get('level')?.enable();
+              }
+            }
+          },
+          error: err => {
+            console.error('[BuildPaperComponent] Error fetching levels:', err);
+          }
+        });
+      }
+    });
+
+    // When level changes, load branches and reset dependent fields
+    this.seriesForm.get('level')!.valueChanges.subscribe(levelId => {
+      console.log('[BuildPaperComponent] Level selected. ID:', levelId);
+
+      // Reset dependent form controls
+      this.seriesForm.get('branch')!.setValue(null, { emitEvent: false });
+      this.seriesForm.get('stream')!.setValue(null, { emitEvent: false });
+      this.seriesForm.get('paper')!.setValue(null, { emitEvent: false });
+      this.seriesForm.get('shift')!.setValue(null, { emitEvent: false });
+
+      // Clear data arrays
+      this.branches = [];
+      this.streams = [];
+      this.papers = [];
+      this.shifts = [];
+      
+      // Disable dependent dropdowns
+      this.seriesForm.get('branch')?.disable();
+      this.seriesForm.get('stream')?.disable();
+      this.seriesForm.get('paper')?.disable();
+      this.seriesForm.get('shift')?.disable();
+
+      if (levelId && String(levelId).trim() !== '') {
+        this.branchService.getByLevel(levelId).subscribe({
+          next: branchesData => {
+            console.log('[BuildPaperComponent] Branches data received:', branchesData);
+            if (Array.isArray(branchesData)) {
+              this.branches = branchesData;
+              
+              // Enable the branch dropdown if branches are available
+              if (this.branches.length > 0) {
+                this.seriesForm.get('branch')?.enable();
+              }
+            }
+          },
+          error: err => {
+            console.error('[BuildPaperComponent] Error fetching branches:', err);
+          }
+        });
+      }
+    });
+
+    // When branch changes, load streams and reset dependent fields
+    this.seriesForm.get('branch')!.valueChanges.subscribe(branchId => {
+      console.log('[BuildPaperComponent] Branch selected. ID:', branchId);
+
+      // Reset dependent form controls
+      this.seriesForm.get('stream')!.setValue(null, { emitEvent: false });
+      this.seriesForm.get('paper')!.setValue(null, { emitEvent: false });
+      this.seriesForm.get('shift')!.setValue(null, { emitEvent: false });
+
+      // Clear data arrays
+      this.streams = [];
+      this.papers = [];
+      this.shifts = [];
+      
+      // Disable dependent dropdowns
+      this.seriesForm.get('stream')?.disable();
+      this.seriesForm.get('paper')?.disable();
+      this.seriesForm.get('shift')?.disable();
+
+      if (branchId && String(branchId).trim() !== '') {
+        this.streamService.getByBranch(branchId).subscribe({
           next: streamsData => {
-            console.log('[BuildPaperComponent] Raw streams data received from service:', JSON.stringify(streamsData, null, 2));
+            console.log('[BuildPaperComponent] Streams data received:', streamsData);
             if (Array.isArray(streamsData)) {
               this.streams = streamsData;
-              console.log(`[BuildPaperComponent] this.streams populated. Count: ${this.streams.length}. First item (if any):`, this.streams.length > 0 ? this.streams[0] : 'empty');
               
               // Enable the stream dropdown if streams are available
               if (this.streams.length > 0) {
                 this.seriesForm.get('stream')?.enable();
               }
-            } else {
-              console.error('[BuildPaperComponent] streamsData is not an array:', streamsData);
-              this.streams = []; // Ensure streams is an array
             }
           },
           error: err => {
             console.error('[BuildPaperComponent] Error fetching streams:', err);
-            this.streams = []; // Clear streams on error
-          }
-        });
-      } else {
-        console.log('[BuildPaperComponent] familyId is null or empty. Not fetching streams. Dependent dropdowns will be empty.');
+          }        });
       }
-    });    // When stream changes, load papers
+    });
+
+    // When stream changes, load papers
     this.seriesForm.get('stream')!.valueChanges.subscribe(sid => {
       // Reset dependent form controls
       this.seriesForm.get('paper')!.setValue(null, { emitEvent: false });
@@ -357,8 +479,7 @@ previewedQuestions: any[][] = [];
    * // 2. Complete search debouncer subjects
    * // 3. Unsubscribe section interaction listeners
    * ```
-   */
-  ngOnDestroy(): void {
+   */  ngOnDestroy(): void {
     this.searchSubscriptions.forEach(sub => {
       if (sub) sub.unsubscribe();
     });
@@ -373,6 +494,20 @@ previewedQuestions: any[][] = [];
       if (sub) sub.unsubscribe();
     });
     this.sectionInteractionSubscriptions = [];
+  }
+
+  /**
+   * @method ngAfterViewInit
+   * @description Angular lifecycle hook called after view initialization.
+   * Ensures scroll to top happens after the view is fully rendered.
+   * 
+   * @returns {void}
+   */
+  ngAfterViewInit(): void {
+    // Additional scroll to top after view is initialized
+    setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }, 100);
   }
 
   /**
@@ -561,8 +696,7 @@ previewedQuestions: any[][] = [];
    * // - Marks configuration
    * // - Search and interaction setup
    * ```
-   */
-  addSection() {
+   */  addSection() {
     const sectionForm = this.fb.group({
       title: ['', Validators.required],
       order: [this.sections.length + 1, Validators.required],
@@ -571,14 +705,15 @@ previewedQuestions: any[][] = [];
       questionsToSelectFromPool: [0, Validators.min(0)], 
       defaultMarksForPooledQuestion: [1, Validators.min(0)], // ADDED
       defaultNegativeMarksForPooledQuestion: [0, Validators.min(0)], // ADDED
-      randomizeQuestionOrderInSection: [false]
-    });
-
-    this.sections.push(sectionForm);
+      randomizeQuestionOrderInSection: [false],
+      questionIndexing: ['continue'] // ADDED: 'continue' from previous section or 'reset' to start from 1
+    });    this.sections.push(sectionForm);
     const newIndex = this.sections.length - 1;
     this.previewedQuestions[newIndex] = [];
     this.sectionSearchTerms[newIndex] = '';
     this.sectionSearchResults[newIndex] = [];
+    this.sectionPoolConfigVisible[newIndex] = false; // Default to hidden    this.sectionDefaultSearchMarks[newIndex] = 1; // Default to 1 mark
+    this.sectionDefaultSearchNegativeMarks[newIndex] = 0.33; // Default to 0.33 negative marks
     this.setupSearchDebouncer(newIndex);
     this.setupSectionInteractionLogic(newIndex); // ADDED: Call to setup interaction logic for the new section
   }
@@ -602,15 +737,16 @@ previewedQuestions: any[][] = [];
    * // - Unsubscribe observables
    * // - Clean up preview data
    * ```
-   */
-  removeSection(i: number) {
+   */  removeSection(i: number) {
     this.sections.removeAt(i);
     this.sectionSearchTerms.splice(i, 1);
     this.sectionSearchResults.splice(i, 1);
     this.previewedQuestions.splice(i, 1);
+    this.sectionPoolConfigVisible.splice(i, 1); // Clean up toggle state
+    this.sectionDefaultSearchMarks.splice(i, 1); // Clean up default marks
+    this.sectionDefaultSearchNegativeMarks.splice(i, 1); // Clean up default negative marks
     if (this.searchSubscriptions[i]) {
-      this.searchSubscriptions[i].unsubscribe();
-    }
+      this.searchSubscriptions[i].unsubscribe();    }
     this.searchSubscriptions.splice(i, 1); // Remove from array to keep indices aligned
 
     if (this.searchDebouncers[i]) {
@@ -619,9 +755,75 @@ previewedQuestions: any[][] = [];
     this.searchDebouncers.splice(i, 1); // Remove from array
 
     if (this.sectionInteractionSubscriptions[i]) { // ADDED: Cleanup for interaction subscription
-      this.sectionInteractionSubscriptions[i].unsubscribe();
-    }
+      this.sectionInteractionSubscriptions[i].unsubscribe();    }
     this.sectionInteractionSubscriptions.splice(i, 1);
+  }
+
+  /**
+   * @method togglePoolConfig
+   * @description Toggles the visibility of the Question Pool Configuration section for a specific section.
+   * 
+   * @param {number} sectionIndex - Index of the section to toggle
+   * @returns {void}
+   * 
+   * @example
+   * ```typescript
+   * // Toggle pool config visibility for section 0
+   * this.togglePoolConfig(0);
+   * ```
+   */
+  togglePoolConfig(sectionIndex: number): void {
+    this.sectionPoolConfigVisible[sectionIndex] = !this.sectionPoolConfigVisible[sectionIndex];
+  }
+
+  /**
+   * @method getQuestionStartIndex
+   * @description Calculates the starting question number for a section based on its indexing setting.
+   * 
+   * @param {number} sectionIndex - Index of the section
+   * @returns {number} The starting question number for this section
+   * 
+   * @example
+   * ```typescript
+   * // Section 0: always starts from 1
+   * // Section 1 with 'reset': starts from 1
+   * // Section 1 with 'continue': starts from (previous section question count + 1)
+   * const startIndex = this.getQuestionStartIndex(1);
+   * ```
+   */
+  getQuestionStartIndex(sectionIndex: number): number {
+    if (sectionIndex === 0) {
+      return 1; // First section always starts from 1
+    }
+
+    const currentSection = this.sections.at(sectionIndex);
+    const indexingMode = currentSection?.get('questionIndexing')?.value;
+
+    if (indexingMode === 'reset') {
+      return 1; // Reset numbering to start from 1
+    }
+
+    // Continue from previous section
+    let totalPreviousQuestions = 0;
+    for (let i = 0; i < sectionIndex; i++) {
+      const sectionQuestions = this.getQuestions(i);
+      const poolQuestions = this.sections.at(i)?.get('questionsToSelectFromPool')?.value || 0;
+      totalPreviousQuestions += Math.max(sectionQuestions.length, poolQuestions);
+    }
+
+    return totalPreviousQuestions + 1;
+  }
+
+  /**
+   * @method getQuestionDisplayNumber
+   * @description Gets the display number for a specific question in a section.
+   * 
+   * @param {number} sectionIndex - Index of the section
+   * @param {number} questionIndex - Index of the question within the section
+   * @returns {number} The display number for this question
+   */
+  getQuestionDisplayNumber(sectionIndex: number, questionIndex: number): number {
+    return this.getQuestionStartIndex(sectionIndex) + questionIndex;
   }
 
   /**
@@ -773,8 +975,7 @@ previewedQuestions: any[][] = [];
       lines.forEach(id => {
         this.getQuestions(secIndex).push(this.fb.group({
           question: [id, Validators.required],
-          marks:    [1, [Validators.required, Validators.min(0)]],
-          negativeMarks: [0, [Validators.required, Validators.min(0)]]
+          marks:    [1, [Validators.required, Validators.min(0)]]
         }));
       });
     };
@@ -1163,22 +1364,24 @@ previewedQuestions: any[][] = [];
    * // - Adds to preview data
    * // - Clears search results
    * ```
-   */
-  addQuestionFromSearchResults(secIndex: number, questionToAdd: Question) {
+   */  addQuestionFromSearchResults(secIndex: number, questionToAdd: Question) {
     const sectionGroup = this.sections.at(secIndex) as FormGroup;
     if (sectionGroup.get('questions')?.disabled) {
       // console.log(`Section ${secIndex}: Cannot add from search results, pool mode is active.`);
       alert('Cannot add question from search results when question pool is active or manual entry is disabled for this section.');
       return;
-    }
-    const questionsArray = this.getQuestions(secIndex);
+    }    const questionsArray = this.getQuestions(secIndex);
     const newIndex = questionsArray.length;
+
+    // Use default marks if set, otherwise fallback to 1 and 0
+    const defaultMarks = this.sectionDefaultSearchMarks[secIndex] || 1;
+    const defaultNegativeMarks = this.sectionDefaultSearchNegativeMarks[secIndex] || 0;
 
     questionsArray.push(this.fb.group({
       // MODIFIED: Use helper to ensure string ID is stored
       question: [this.getQuestionIdString(questionToAdd._id), Validators.required],
-      marks: [1, [Validators.required, Validators.min(0)]],
-      negativeMarks: [0, [Validators.required, Validators.min(0)]]
+      marks: [defaultMarks, [Validators.required, Validators.min(0)]],
+      negativeMarks: [defaultNegativeMarks, [Validators.required, Validators.min(0)]]
     }));
 
     this.previewedQuestions[secIndex] = this.previewedQuestions[secIndex] || [];
@@ -1190,7 +1393,24 @@ previewedQuestions: any[][] = [];
     // Manually trigger the debouncer with an empty string to clear results via performSearch
     if (this.searchDebouncers[secIndex]) {
       this.searchDebouncers[secIndex].next('');
-    }
+    }    // Auto-scroll to keep the search section visible with reduced scroll distance
+    setTimeout(() => {
+      const searchElement = document.getElementById(`search-section-${secIndex}`);
+      if (searchElement) {
+        const elementRect = searchElement.getBoundingClientRect();
+        const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const elementTop = elementRect.top + currentScrollTop;
+        
+        // Reduce scroll distance by 50% - scroll to a position where element is 50% down from top
+        const viewportHeight = window.innerHeight;
+        const targetScrollPosition = elementTop - (viewportHeight * 0.5);
+        
+        window.scrollTo({
+          top: Math.max(0, targetScrollPosition),
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
   }
   /**
    * @private
@@ -1255,9 +1475,7 @@ previewedQuestions: any[][] = [];
           }
         }
       }
-    }
-
-    console.log(`Total questions in test series: ${totalQuestions}, minimum required: ${minQuestions}`);
+    }    console.log(`Total questions in test series: ${totalQuestions}, minimum required: ${minQuestions}`);
     return totalQuestions >= minQuestions;
   }
 }
