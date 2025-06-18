@@ -455,10 +455,28 @@ previewedQuestions: any[][] = [];
       } else {
         console.log('[BuildPaperComponent] paperId is null or empty. Not fetching shifts.');
       }
-    });
-
-    // Load your question bank
+    });    // Load your question bank
     this.qService.getAll().subscribe(q => this.questionsList = q);
+
+    // Handle mode changes to dynamically update validators for startAt and endAt
+    this.seriesForm.get('mode')!.valueChanges.subscribe(mode => {
+      const startAtControl = this.seriesForm.get('startAt');
+      const endAtControl = this.seriesForm.get('endAt');
+      
+      if (mode === 'live') {
+        // Make startAt and endAt required for live mode
+        startAtControl?.setValidators([Validators.required]);
+        endAtControl?.setValidators([Validators.required]);
+      } else {
+        // Remove required validation for practice mode
+        startAtControl?.clearValidators();
+        endAtControl?.clearValidators();
+      }
+      
+      // Update validity status
+      startAtControl?.updateValueAndValidity();
+      endAtControl?.updateValueAndValidity();
+    });
 
     // Debounce search input
     // MODIFIED: setupSearchDebouncer and setupSectionInteractionLogic will be called in addSection
