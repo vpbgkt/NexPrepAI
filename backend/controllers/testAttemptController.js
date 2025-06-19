@@ -280,56 +280,76 @@ exports.startTest = async (req, res) => {
       processedLayout.map(async sec => ({
         title: sec.title,
         order: sec.order,
-        questions: await Promise.all(
-          (sec.questions || []).map(async q => { // q is an item from processedLayout.section.questions
+        questions: await Promise.all(          (sec.questions || []).map(async q => { // q is an item from processedLayout.section.questions
             const doc = await Question.findById(q.question)
-              .select('questionText translations type difficulty questionHistory options')
-              .lean();
-
-            let questionText = ''; 
+              .select('questionText translations type difficulty questionHistory options numericalAnswer')
+              .lean();            let questionText = ''; 
             let options = [];      
             let translations = []; 
-
-            if (doc) {
+            let numericalAnswer = null;            if (doc) {
               translations = doc.translations || [];
               
-              // Improved logic for sourcing questionText and options
+              // Filter out empty options from translations for all question types
+              translations = translations.map(translation => ({
+                ...translation,
+                options: translation.options ? translation.options.filter(opt => opt.text && opt.text.trim() !== '') : []
+              }));
+              
+              // Extract numerical answer from translations for NAT questions
+              if (doc.type === 'numerical' || doc.type === 'integer') {
+                const englishTranslation = translations.find(t => t.lang === 'en');
+                const firstAvailableTranslation = translations.length > 0 ? translations[0] : null;
+                
+                if (englishTranslation?.numericalAnswer) {
+                  numericalAnswer = englishTranslation.numericalAnswer;
+                } else if (firstAvailableTranslation?.numericalAnswer) {
+                  numericalAnswer = firstAvailableTranslation.numericalAnswer;
+                }
+              }
+                // Improved logic for sourcing questionText and options
               const englishTranslation = translations.find(t => t.lang === 'en');
               const firstAvailableTranslation = translations.length > 0 ? translations[0] : null;
               
               if (englishTranslation?.questionText) {
                 questionText = englishTranslation.questionText;
-                if (englishTranslation.options && Array.isArray(englishTranslation.options)) {
-                  options = englishTranslation.options.map(opt => ({
-                    text: opt.text,
-                    img: opt.img || null,
-                    isCorrect: opt.isCorrect,
-                    _id: opt._id ? opt._id.toString() : undefined
-                  }));
+                // Only process options for non-NAT questions
+                if (doc.type !== 'numerical' && doc.type !== 'integer' && englishTranslation.options && Array.isArray(englishTranslation.options)) {
+                  options = englishTranslation.options
+                    .filter(opt => opt.text && opt.text.trim() !== '') // Filter out empty text options
+                    .map(opt => ({
+                      text: opt.text,
+                      img: opt.img || null,
+                      isCorrect: opt.isCorrect,
+                      _id: opt._id ? opt._id.toString() : undefined
+                    }));
                 }
               } else if (firstAvailableTranslation?.questionText) {
                 questionText = firstAvailableTranslation.questionText;
-                if (firstAvailableTranslation.options && Array.isArray(firstAvailableTranslation.options)) {
-                  options = firstAvailableTranslation.options.map(opt => ({
+                // Only process options for non-NAT questions
+                if (doc.type !== 'numerical' && doc.type !== 'integer' && firstAvailableTranslation.options && Array.isArray(firstAvailableTranslation.options)) {
+                  options = firstAvailableTranslation.options
+                    .filter(opt => opt.text && opt.text.trim() !== '') // Filter out empty text options
+                    .map(opt => ({
+                      text: opt.text,
+                      img: opt.img || null,
+                      isCorrect: opt.isCorrect,
+                      _id: opt._id ? opt._id.toString() : undefined
+                    }));
+                }
+              }              // Fallback to root document fields if translations don't have the data
+              if (!questionText && doc.questionText) {
+                questionText = doc.questionText;
+              }
+              // Only process fallback options for non-NAT questions
+              if (doc.type !== 'numerical' && doc.type !== 'integer' && options.length === 0 && doc.options && Array.isArray(doc.options)) {
+                options = doc.options
+                  .filter(opt => opt.text && opt.text.trim() !== '') // Filter out empty text options
+                  .map(opt => ({
                     text: opt.text,
                     img: opt.img || null,
                     isCorrect: opt.isCorrect,
                     _id: opt._id ? opt._id.toString() : undefined
                   }));
-                }
-              }
-              
-              // Fallback to root document fields if translations don't have the data
-              if (!questionText && doc.questionText) {
-                questionText = doc.questionText;
-              }
-              if (options.length === 0 && doc.options && Array.isArray(doc.options)) {
-                options = doc.options.map(opt => ({
-                  text: opt.text,
-                  img: opt.img || null,
-                  isCorrect: opt.isCorrect,
-                  _id: opt._id ? opt._id.toString() : undefined
-                }));
               }
             } else {
               console.warn(`[${userId}] StartTest: Question with ID ${q.question} not found in DB.`);
@@ -344,7 +364,8 @@ exports.startTest = async (req, res) => {
               options:      options,
               type:         doc?.type,
               difficulty:   doc?.difficulty,
-              questionHistory: doc?.questionHistory || []
+              questionHistory: doc?.questionHistory || [],
+              numericalAnswer: numericalAnswer // Add numerical answer for NAT questions
             };
           })
         )
@@ -459,10 +480,9 @@ exports.submitAttempt = async (req, res) => {
       });
     }
 
-    const questionIdsFromAttempt = Array.from(attemptQuestionsMap.keys());
-    const masterQuestions = await Question.find({ '_id': { $in: questionIdsFromAttempt } })
-                                          .select('translations type options') // Ensure options are selected for correct answer check
-                                          .lean(); 
+    const questionIdsFromAttempt = Array.from(attemptQuestionsMap.keys());    const masterQuestions = await Question.find({ '_id': { $in: questionIdsFromAttempt } })
+                                          .select('translations type options numericalAnswer') // Include numericalAnswer for NAT questions
+                                          .lean();
     
     const masterQuestionsMap = new Map(masterQuestions.map(qDoc => [qDoc._id.toString(), qDoc]));    console.log(`--- Starting Grade Calculation for Attempt: ${attemptId} ---`);    console.log(`User ID: ${userId}`);
     // console.log(`Raw responses from client (length ${responses.length}):`, JSON.stringify(responses, null, 2));
@@ -564,9 +584,14 @@ exports.submitAttempt = async (req, res) => {
               console.log(`[DEBUG ${attemptId}] User response for ${questionId}:`, JSON.stringify(userResponseForThisSlot, null, 2));
               console.log(`[DEBUG ${attemptId}] Master question data for ${questionId}:`, JSON.stringify(masterQuestionData, null, 2));
             }
-            // #### END DEBUG LOGGING ####
+            // #### END DEBUG LOGGING ####            // Check if question was attempted - for NAT questions check numericalAnswer, for others check selected
+            const isNATQuestion = masterQuestionData.type === 'integer' || masterQuestionData.type === 'numerical';
+            const questionAttempted = userResponseForThisSlot && (
+              (isNATQuestion && userResponseForThisSlot.numericalAnswer !== undefined && userResponseForThisSlot.numericalAnswer !== null) ||
+              (!isNATQuestion && normalizedSelectedArray.length > 0)
+            );
 
-            if (userResponseForThisSlot && normalizedSelectedArray.length > 0) { // Check normalizedSelectedArray
+            if (questionAttempted) {
               // User attempted this question
               // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
               if (questionId === debugQuestionId) {
@@ -651,14 +676,73 @@ exports.submitAttempt = async (req, res) => {
                 } else { 
                     earnedForThisSlot = 0;
                     statusForThisSlot = selectedOptionTextsForMSQ.length > 0 ? 'incorrect' : 'not-attempted';
-                }
-              } else if (masterQuestionData.type === 'integer') {
-                const selectedAnswerText = String(userResponseForThisSlot.selected[0]);
-                if (correctOptionTexts.includes(selectedAnswerText)) {
-                  earnedForThisSlot = qMarks;
-                  statusForThisSlot = 'correct';
+                }              } else if (masterQuestionData.type === 'integer' || masterQuestionData.type === 'numerical') {
+                // Handle Numerical Answer Type (NAT) questions
+                // For NAT questions, get the answer from numericalAnswer field, not selected
+                const studentAnswer = parseFloat(userResponseForThisSlot.numericalAnswer);
+                
+                console.log(`[NAT_DEBUG] Question ${questionId}: Student answered = ${studentAnswer}, type = ${typeof studentAnswer}`);
+                
+                if (studentAnswer !== undefined && studentAnswer !== null && !isNaN(studentAnswer)) {
+                  // Get numerical answer from translations
+                  let numericalAnswer = null;
+                  const defaultTranslation = masterQuestionData.translations?.find(t => t.lang === 'en');
+                  
+                  if (defaultTranslation?.numericalAnswer) {
+                    numericalAnswer = defaultTranslation.numericalAnswer;
+                  }
+                  
+                  console.log(`[NAT_DEBUG] Question ${questionId}: Correct answer data =`, JSON.stringify(numericalAnswer, null, 2));
+                  
+                  if (numericalAnswer) {
+                    let isCorrect = false;
+                    let debugInfo = '';
+                    
+                    // Check exact value with tolerance
+                    if (numericalAnswer.exactValue !== undefined && numericalAnswer.exactValue !== null) {
+                      const exactValue = parseFloat(numericalAnswer.exactValue);
+                      if (numericalAnswer.tolerance && numericalAnswer.tolerance > 0) {
+                        const tolerance = (exactValue * numericalAnswer.tolerance) / 100;
+                        const minValue = exactValue - tolerance;
+                        const maxValue = exactValue + tolerance;
+                        isCorrect = studentAnswer >= minValue && studentAnswer <= maxValue;
+                        debugInfo = `exactValue=${exactValue}, tolerance=${numericalAnswer.tolerance}%, range=[${minValue}, ${maxValue}]`;
+                      } else {
+                        // Use small epsilon for floating point comparison
+                        isCorrect = Math.abs(studentAnswer - exactValue) < 0.001;
+                        debugInfo = `exactValue=${exactValue}, epsilon=0.001`;
+                      }
+                    }
+                    
+                    // Check range (if exact value check didn't pass or wasn't defined)
+                    if (!isCorrect && numericalAnswer.minValue !== undefined && numericalAnswer.maxValue !== undefined) {
+                      const minValue = parseFloat(numericalAnswer.minValue);
+                      const maxValue = parseFloat(numericalAnswer.maxValue);
+                      
+                      // Handle potential reversed min/max values (e.g., "5 to 3" should be "3 to 5")
+                      const actualMin = Math.min(minValue, maxValue);
+                      const actualMax = Math.max(minValue, maxValue);
+                      
+                      isCorrect = studentAnswer >= actualMin && studentAnswer <= actualMax;
+                      debugInfo = `range: original=[${minValue}, ${maxValue}], corrected=[${actualMin}, ${actualMax}]`;
+                    }
+                    
+                    console.log(`[NAT_DEBUG] Question ${questionId}: ${debugInfo}, studentAnswer=${studentAnswer}, isCorrect=${isCorrect}`);
+                    
+                    if (isCorrect) {
+                      earnedForThisSlot = qMarks;
+                      statusForThisSlot = 'correct';
+                    } else {
+                      earnedForThisSlot = 0; // NAT questions typically have no negative marking
+                      statusForThisSlot = 'incorrect';
+                    }
+                  } else {
+                    console.warn(`No numerical answer found for NAT question ${questionId}`);
+                    earnedForThisSlot = 0;
+                    statusForThisSlot = 'incorrect';
+                  }
                 } else {
-                  earnedForThisSlot = -qNegativeMarks;
+                  earnedForThisSlot = 0;
                   statusForThisSlot = 'incorrect';
                 }
               }
@@ -680,12 +764,12 @@ exports.submitAttempt = async (req, res) => {
             if (questionId === debugQuestionId) {
               console.log(`[DEBUG ${attemptId}] Final status for ${questionId}: ${statusForThisSlot}, Earned: ${earnedForThisSlot}. Pushing to processedResponses.`);
             }
-            
-            // #### END DEBUG LOGGING ####
-              processedResponses.push({
+              // #### END DEBUG LOGGING ####
+            processedResponses.push({
               question: questionId,
               questionInstanceKey: questionInstanceKey, // Add the composite key for matching in review
               selected: normalizedSelectedArray, // Use normalized array
+              numericalAnswer: userResponseForThisSlot?.numericalAnswer, // Include numerical answer for NAT questions
               earned: earnedForThisSlot,
               status: statusForThisSlot,
               timeSpent: userResponseForThisSlot?.timeSpent || 0,
@@ -757,32 +841,102 @@ exports.submitAttempt = async (req, res) => {
 };
 
 /**
- * Legacy Submit Test Endpoint (Deprecated)
+ * Submit Test Attempt Endpoint
  * 
- * Simple submission endpoint without grading logic.
- * Maintained for backward compatibility.
+ * Grades and saves a completed test attempt with automatic scoring.
+ * Handles multiple choice, single choice, numerical (NAT), and various question types.
+ * Preserves enhanced review data (time spent, attempts, flags, confidence).
  * 
- * @route POST /api/tests/:attemptId/submit-legacy
- * @deprecated Use submitAttempt instead for proper grading
- * @param {string} req.params.attemptId - Test attempt ID
- * @param {Array} req.body.responses - Student responses
- * @returns {Object} Success message
+ * @route POST /api/tests/:attemptId/submit
+ * @access Private (Students only)
+ * @param {string} req.params.attemptId - Test attempt ID to submit
+ * @param {Array} req.body.responses - Student responses with enhanced data
+ * @returns {Object} Submission result with score and breakdown
  */
 exports.submitTest = async (req, res) => {
   try {
     const { attemptId } = req.params;
-    const { responses } = req.body; // array of { question, selected }    const attempt = await TestAttempt.findById(attemptId);
+    const { responses } = req.body; // array of { question, selected, timeSpent, etc. }
+
+    const attempt = await TestAttempt.findById(attemptId).populate('series');
     if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
 
-    attempt.responses = responses.map(r => ({
-      question: r.question,
-      selected: r.selected
-    }));
+    if (attempt.status !== 'in-progress') {
+      return res.status(400).json({ message: 'Test is not in progress' });
+    }
+
+    // Process and score responses
+    const scoredResponses = await Promise.all(
+      responses.map(async (resp) => {
+        // Find the question details from the attempt sections
+        let questionDetails = null;
+        for (const section of attempt.sections) {
+          questionDetails = section.questions.find(q => q.question.toString() === resp.question);
+          if (questionDetails) break;
+        }
+
+        if (!questionDetails) {
+          console.warn(`Question ${resp.question} not found in attempt sections`);
+          return {
+            question: resp.question,
+            selected: resp.selected || [],
+            earned: 0,
+            status: 'incorrect',
+            timeSpent: resp.timeSpent || 0,
+            attempts: resp.attempts || 1,
+            flagged: resp.flagged || false,
+            confidence: resp.confidence
+          };
+        }
+
+        // Score the response based on question type
+        const { earned, status } = scoreQuestion(questionDetails, resp.selected);
+
+        return {
+          question: resp.question,
+          questionInstanceKey: resp.questionInstanceKey,
+          selected: resp.selected || [],
+          earned: earned,
+          status: status,
+          timeSpent: resp.timeSpent || 0,
+          attempts: resp.attempts || 1,
+          flagged: resp.flagged || false,
+          confidence: resp.confidence,
+          visitedAt: resp.visitedAt,
+          lastModifiedAt: resp.lastModifiedAt
+        };
+      })
+    );
+
+    // Calculate total score
+    const totalScore = scoredResponses.reduce((sum, resp) => sum + (resp.earned || 0), 0);
+    const maxScore = attempt.sections.reduce((sum, section) => 
+      sum + section.questions.reduce((sectionSum, q) => sectionSum + (q.marks || 1), 0), 0
+    );
+    const percentage = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
+
+    // Update attempt with final results
+    attempt.responses = scoredResponses;
+    attempt.score = totalScore;
+    attempt.maxScore = maxScore;
+    attempt.percentage = percentage;
+    attempt.status = 'completed';
     attempt.submittedAt = new Date();
+
     await attempt.save();
 
-    res.json({ message: 'Submitted successfully' });
+    res.json({ 
+      message: 'Test submitted successfully',
+      score: totalScore,
+      maxScore: maxScore,
+      percentage: percentage.toFixed(2),
+      totalQuestions: scoredResponses.length,
+      correct: scoredResponses.filter(r => r.status === 'correct').length,
+      incorrect: scoredResponses.filter(r => r.status === 'incorrect').length,
+      unanswered: scoredResponses.filter(r => r.status === 'unanswered').length
+    });
   } catch (err) {
+    console.error('Error in submitTest:', err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -833,6 +987,7 @@ exports.saveProgress = async (req, res) => {
         question: resp.question,
         questionInstanceKey: resp.questionInstanceKey,
         selected: currentSelected, // Use the processed currentSelected
+        numericalAnswer: resp.numericalAnswer, // FIXED: Include numerical answer for NAT questions
         timeSpent: resp.timeSpent,
         attempts: resp.attempts,
         flagged: resp.flagged,
@@ -1268,19 +1423,18 @@ exports.getProgress = async (req, res) => {
       status: 'in-progress'
     })
     .populate('series', 'title duration') // Populate series title and duration
-    .select('+sections.questions.options +responses.selected')
+    .select('+sections.questions.options +responses.selected +responses.numericalAnswer')
     .lean();
 
     if (!attempt) {
       return res.json({}); // No in-progress attempt found
-    }
-
-    // Ensure responses include the 'selected' field.
+    }    // Ensure responses include the 'selected' field and numericalAnswer for NAT questions.
     // The .lean() and .select() above should handle this, but as a safeguard:
     const responsesWithSelected = attempt.responses.map(r => ({
       question: r.question,
       questionInstanceKey: r.questionInstanceKey,
       selected: r.selected, // Ensure this is populated
+      numericalAnswer: r.numericalAnswer, // Include numerical answer for NAT questions
       timeSpent: r.timeSpent,
       attempts: r.attempts,
       flagged: r.flagged,
@@ -1379,53 +1533,85 @@ exports.getEnhancedReview = async (req, res) => {
                     }
 
                     // Debug logging to help identify the issue
-                    console.log(`[getEnhancedReview] Question ${questionData.question.toString()}: response found = ${!!response}, response.selected = ${response?.selected}, status = ${response?.status}`);
-
-                    let userSelectedOptionTexts = [];
+                    console.log(`[getEnhancedReview] Question ${questionData.question.toString()}: response found = ${!!response}, response.selected = ${response?.selected}, status = ${response?.status}`);                    let userSelectedOptionTexts = [];
                     let correctOptionTexts = [];
                     let actualCorrectOptionIds = [];
+                    let userNumericalAnswer = null;
+                    let correctNumericalAnswer = null;
 
-                    // Determine the source of options (e.g., from the first translation or root)
-                    // Ensure options are always an array, even if empty.
-                    const optionsSourceForDisplay = (fullQuestion.translations && fullQuestion.translations.length > 0 && fullQuestion.translations[0].options 
-                                                      ? fullQuestion.translations[0].options 
-                                                      : fullQuestion.options) || [];                    // Get user's selected option texts
-                    if (response?.selected && optionsSourceForDisplay.length > 0) {
-                        // Handle both string and array formats for response.selected
-                        const selectedArray = Array.isArray(response.selected) 
-                            ? response.selected 
-                            : [response.selected];
+                    // Handle different question types
+                    if (fullQuestion.type === 'integer' || fullQuestion.type === 'numerical') {
+                        // For NAT questions, handle numerical answers
+                        userNumericalAnswer = response?.numericalAnswer || null;
                         
-                        userSelectedOptionTexts = selectedArray.map(selectedIndex => {
-                            const idx = parseInt(String(selectedIndex), 10);
-                            if (idx >= 0 && idx < optionsSourceForDisplay.length) {
-                                return optionsSourceForDisplay[idx].text;
+                        // Get correct numerical answer from the question
+                        const numericalAnswerData = (fullQuestion.translations && fullQuestion.translations.length > 0 && fullQuestion.translations[0].numericalAnswer)
+                                                   ? fullQuestion.translations[0].numericalAnswer
+                                                   : fullQuestion.numericalAnswer;
+                          if (numericalAnswerData) {
+                            if (numericalAnswerData.exactValue !== undefined && numericalAnswerData.exactValue !== null) {
+                                correctNumericalAnswer = numericalAnswerData.exactValue;
+                            } else if (numericalAnswerData.minValue !== undefined && numericalAnswerData.maxValue !== undefined) {
+                                // For range-based answers, correct the range if needed and show it
+                                const minValue = parseFloat(numericalAnswerData.minValue);
+                                const maxValue = parseFloat(numericalAnswerData.maxValue);
+                                const actualMin = Math.min(minValue, maxValue);
+                                const actualMax = Math.max(minValue, maxValue);
+                                correctNumericalAnswer = `${actualMin} to ${actualMax}`;
                             }
-                            return 'Invalid Selection Index'; // Should ideally not happen
-                        }).filter(text => text !== 'Invalid Selection Index');
-                    }
+                        }
+                    } else {
+                        // For option-based questions (single, multiple, matrix)
+                        // Determine the source of options (e.g., from the first translation or root)
+                        // Ensure options are always an array, even if empty.
+                        const optionsSourceForDisplay = (fullQuestion.translations && fullQuestion.translations.length > 0 && fullQuestion.translations[0].options 
+                                                          ? fullQuestion.translations[0].options 
+                                                          : fullQuestion.options) || [];
 
-                    // Get correct option texts and IDs
-                    if (optionsSourceForDisplay.length > 0) {
-                        optionsSourceForDisplay.forEach(opt => {
-                            if (opt.isCorrect) {
-                                correctOptionTexts.push(opt.text);
-                                if (opt._id) {
-                                    actualCorrectOptionIds.push(opt._id.toString());
+                        // Get user's selected option texts
+                        if (response?.selected && optionsSourceForDisplay.length > 0) {
+                            // Handle both string and array formats for response.selected
+                            const selectedArray = Array.isArray(response.selected) 
+                                ? response.selected 
+                                : [response.selected];
+                            
+                            userSelectedOptionTexts = selectedArray.map(selectedIndex => {
+                                const idx = parseInt(String(selectedIndex), 10);
+                                if (idx >= 0 && idx < optionsSourceForDisplay.length) {
+                                    return optionsSourceForDisplay[idx].text;
                                 }
-                            }
-                        });
+                                return 'Invalid Selection Index'; // Should ideally not happen
+                            }).filter(text => text !== 'Invalid Selection Index');
+                        }
+
+                        // Get correct option texts and IDs
+                        if (optionsSourceForDisplay.length > 0) {
+                            optionsSourceForDisplay.forEach(opt => {
+                                if (opt.isCorrect) {
+                                    correctOptionTexts.push(opt.text);
+                                    if (opt._id) {
+                                        actualCorrectOptionIds.push(opt._id.toString());
+                                    }
+                                }
+                            });
+                        }
                     }
-                    
-                    const questionTextForDisplay = (fullQuestion.translations && fullQuestion.translations.length > 0 && fullQuestion.translations[0].questionText)
+                      const questionTextForDisplay = (fullQuestion.translations && fullQuestion.translations.length > 0 && fullQuestion.translations[0].questionText)
                                                    ? fullQuestion.translations[0].questionText
                                                    : (fullQuestion.questionText || 'Question text not available');
 
+                    // Determine options source for display (only for option-based questions)
+                    const optionsSourceForDisplay = (fullQuestion.type === 'integer' || fullQuestion.type === 'numerical') 
+                        ? [] 
+                        : ((fullQuestion.translations && fullQuestion.translations.length > 0 && fullQuestion.translations[0].options 
+                           ? fullQuestion.translations[0].options 
+                           : fullQuestion.options) || []);
 
                     detailedQuestions.push({
                         questionId: fullQuestion._id.toString(),
                         questionText: questionTextForDisplay,
-                        // Send all options for display, ensuring _id is a string
+                        type: fullQuestion.type, // Add question type for frontend handling
+                        // Send all options for display, ensuring _id is a string (empty for NAT questions)
                         options: optionsSourceForDisplay.map(opt => ({ 
                             text: opt.text, 
                             _id: opt._id ? opt._id.toString() : undefined,
@@ -1441,12 +1627,18 @@ exports.getEnhancedReview = async (req, res) => {
                             topic: fullQuestion.topic?.name,
                             subTopic: fullQuestion.subTopic?.name
                         },
-                        tags: fullQuestion.tags || [],                          // Response data
+                        tags: fullQuestion.tags || [],
+                        
+                        // Response data
                         selectedAnswerIndices: response?.selected || [], // User's raw selection (indices)
                         selectedAnswer: response?.selected ? (Array.isArray(response.selected) ? response.selected : [response.selected]) : [], // Frontend expects this field for option highlighting
                         userSelectedOptionTexts: userSelectedOptionTexts, // User's selected option text(s)
                         correctOptionTexts: correctOptionTexts,         // Correct option text(s)
                         actualCorrectOptionIds: actualCorrectOptionIds, // Correct option ID(s)
+                        
+                        // NAT-specific data
+                        userNumericalAnswer: userNumericalAnswer, // User's numerical answer for NAT questions
+                        correctNumericalAnswer: correctNumericalAnswer, // Correct numerical answer for NAT questions
                         
                         earned: response?.earned || 0,
                         status: response?.status || 'unanswered', // Status from submitAttempt
@@ -1457,7 +1649,9 @@ exports.getEnhancedReview = async (req, res) => {
                         flagged: response?.flagged || false,
                         confidence: response?.confidence,
                         visitedAt: response?.visitedAt,
-                        lastModifiedAt: response?.lastModifiedAt,                        // Analysis
+                        lastModifiedAt: response?.lastModifiedAt,
+                        
+                        // Analysis
                         isCorrect: response?.status === 'correct', // Determine correctness based on status
                         marks: questionData.marks || 1 // Marks for the question in this attempt
                     });
@@ -1984,4 +2178,160 @@ async function analyzeWeaknesses(attempt, userId) {
     focusAreas,
     nextSteps
   };
+}
+
+/**
+ * Score a single question based on its type and student response
+ * @param {Object} questionDetails - Question details from attempt
+ * @param {Array|String|Number} selected - Student's selected answer(s)
+ * @returns {Object} - { earned: number, status: string }
+ */
+function scoreQuestion(questionDetails, selected) {
+  const marks = questionDetails.marks || 1;
+  const negativeMarks = questionDetails.negativeMarks || 0;
+  const questionType = questionDetails.type;
+
+  // Handle unanswered questions
+  if (!selected || selected === '' || (Array.isArray(selected) && selected.length === 0)) {
+    return { earned: 0, status: 'unanswered' };
+  }
+
+  try {
+    switch (questionType) {
+      case 'single': // Single correct option
+        return scoreSingleChoice(questionDetails, selected, marks, negativeMarks);
+      
+      case 'multiple': // Multiple correct options
+        return scoreMultipleChoice(questionDetails, selected, marks, negativeMarks);
+      
+      case 'numerical':
+      case 'integer': // Numerical Answer Type (NAT)
+        return scoreNumerical(questionDetails, selected, marks, negativeMarks);
+      
+      case 'matrix': // Matrix match type
+        return scoreMatrix(questionDetails, selected, marks, negativeMarks);
+      
+      default:
+        console.warn(`Unknown question type: ${questionType}`);
+        return { earned: 0, status: 'incorrect' };
+    }
+  } catch (error) {
+    console.error(`Error scoring question ${questionDetails.question}:`, error);
+    return { earned: 0, status: 'incorrect' };
+  }
+}
+
+/**
+ * Score single choice question
+ */
+function scoreSingleChoice(questionDetails, selected, marks, negativeMarks) {
+  const selectedOption = Array.isArray(selected) ? selected[0] : selected;
+  
+  // Find correct option from translations or fallback options
+  let correctOptions = [];
+  
+  if (questionDetails.translations && questionDetails.translations.length > 0) {
+    const englishTranslation = questionDetails.translations.find(t => t.lang === 'en') || questionDetails.translations[0];
+    if (englishTranslation.options) {
+      correctOptions = englishTranslation.options.filter(opt => opt.isCorrect).map(opt => opt._id || opt.text);
+    }
+  } else if (questionDetails.options) {
+    correctOptions = questionDetails.options.filter(opt => opt.isCorrect).map(opt => opt._id || opt.text);
+  }
+
+  if (correctOptions.includes(selectedOption)) {
+    return { earned: marks, status: 'correct' };
+  } else {
+    return { earned: -negativeMarks, status: 'incorrect' };
+  }
+}
+
+/**
+ * Score multiple choice question  
+ */
+function scoreMultipleChoice(questionDetails, selected, marks, negativeMarks) {
+  const selectedOptions = Array.isArray(selected) ? selected : [selected];
+  
+  // Find correct options from translations or fallback options
+  let correctOptions = [];
+  
+  if (questionDetails.translations && questionDetails.translations.length > 0) {
+    const englishTranslation = questionDetails.translations.find(t => t.lang === 'en') || questionDetails.translations[0];
+    if (englishTranslation.options) {
+      correctOptions = englishTranslation.options.filter(opt => opt.isCorrect).map(opt => opt._id || opt.text);
+    }
+  } else if (questionDetails.options) {
+    correctOptions = questionDetails.options.filter(opt => opt.isCorrect).map(opt => opt._id || opt.text);
+  }
+
+  // Check if selected options exactly match correct options
+  const sortedSelected = [...selectedOptions].sort();
+  const sortedCorrect = [...correctOptions].sort();
+  
+  if (JSON.stringify(sortedSelected) === JSON.stringify(sortedCorrect)) {
+    return { earned: marks, status: 'correct' };
+  } else {
+    return { earned: -negativeMarks, status: 'incorrect' };
+  }
+}
+
+/**
+ * Score numerical answer type (NAT) question
+ */
+function scoreNumerical(questionDetails, selected, marks, negativeMarks) {
+  const studentAnswer = parseFloat(Array.isArray(selected) ? selected[0] : selected);
+  
+  if (isNaN(studentAnswer)) {
+    return { earned: 0, status: 'incorrect' };
+  }
+
+  // Get numerical answer from translations or fallback
+  let numericalAnswer = questionDetails.numericalAnswer;
+  
+  if (!numericalAnswer && questionDetails.translations && questionDetails.translations.length > 0) {
+    const englishTranslation = questionDetails.translations.find(t => t.lang === 'en') || questionDetails.translations[0];
+    numericalAnswer = englishTranslation.numericalAnswer;
+  }
+
+  if (!numericalAnswer) {
+    console.warn(`No numerical answer found for question ${questionDetails.question}`);
+    return { earned: 0, status: 'incorrect' };
+  }
+
+  // Check exact value
+  if (numericalAnswer.exactValue !== undefined) {
+    if (numericalAnswer.tolerance && numericalAnswer.tolerance > 0) {
+      // Check with tolerance (percentage-based)
+      const tolerance = (numericalAnswer.exactValue * numericalAnswer.tolerance) / 100;
+      const minValue = numericalAnswer.exactValue - tolerance;
+      const maxValue = numericalAnswer.exactValue + tolerance;
+      
+      if (studentAnswer >= minValue && studentAnswer <= maxValue) {
+        return { earned: marks, status: 'correct' };
+      }
+    } else {
+      // Exact match
+      if (Math.abs(studentAnswer - numericalAnswer.exactValue) < 0.001) { // Small epsilon for floating point comparison
+        return { earned: marks, status: 'correct' };
+      }
+    }
+  }
+  
+  // Check range
+  if (numericalAnswer.minValue !== undefined && numericalAnswer.maxValue !== undefined) {
+    if (studentAnswer >= numericalAnswer.minValue && studentAnswer <= numericalAnswer.maxValue) {
+      return { earned: marks, status: 'correct' };
+    }
+  }
+
+  return { earned: 0, status: 'incorrect' }; // NAT questions typically have no negative marking
+}
+
+/**
+ * Score matrix match question (placeholder - implement based on your matrix format)
+ */
+function scoreMatrix(questionDetails, selected, marks, negativeMarks) {
+  // Implement matrix scoring logic based on your specific matrix format
+  // This is a placeholder implementation
+  return { earned: 0, status: 'incorrect' };
 }

@@ -22,9 +22,8 @@ export interface TestSeries {
   /** Unique identifier for the test series */
   _id: string;
   /** Display title of the test series */
-  title: string;
-  /** Test mode determining availability and behavior */
-  mode:       'official' | 'practice' | 'live';  // ★
+  title: string;  /** Test mode determining availability and behavior */
+  mode:       'official' | 'practice' | 'live' | 'strict';  // ★ Added 'strict' mode
   /** Maximum number of attempts allowed per user */
   maxAttempts: number;                           // ★
   /** Test availability start time (ISO date string) */
@@ -34,8 +33,7 @@ export interface TestSeries {
   /** Academic year for the test */
   year?: number;
   /** Whether to show public leaderboard */
-  enablePublicLeaderboard?: boolean; // Added this field
-  /** Exam family information */
+  enablePublicLeaderboard?: boolean; // Added this field  /** Exam family information */
   family: {
     /** Family unique identifier */
     _id: string;
@@ -60,6 +58,15 @@ export interface TestSeries {
     /** Paper display name */
     name: string;
     /** Paper code */
+    code: string;
+  };
+  /** Exam shift information */
+  shift?: {
+    /** Shift unique identifier */
+    _id: string;
+    /** Shift display name */
+    name: string;
+    /** Shift code */
     code: string;
   };
   // any other fields you need

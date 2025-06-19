@@ -19,6 +19,12 @@ interface GroupedTests {
     selector: 'app-test-list',
     templateUrl: './test-list.component.html',
     styleUrls: [],
+    styles: [`
+      .badge-official { @apply bg-blue-100 text-blue-800; }
+      .badge-practice { @apply bg-green-100 text-green-800; }
+      .badge-live { @apply bg-red-100 text-red-800; }
+      .badge-strict { @apply bg-purple-100 text-purple-800; }
+    `],
     imports: [CommonModule, RouterModule]
 })
 export class TestListComponent implements OnInit {
@@ -139,41 +145,38 @@ export class TestListComponent implements OnInit {
     }
     this.router.navigate(['/exam', s._id]);
   }
-
   // Disable only for 'live' tests outside their window OR if student account is expired
   isSeriesDisabled(s: TestSeries): boolean {
     if (this.authService.getRole() === 'student' && this.isAccountExpired) {
       return true;
     }
-    if (s.mode !== 'live') {
-      // practice & official always enabled (unless account expired)
-      return false;
+    if (s.mode === 'live') {
+      const start = new Date(s.startAt);
+      const end   = new Date(s.endAt);
+      return this.now < start || this.now > end;
     }
-    const start = new Date(s.startAt);
-    const end   = new Date(s.endAt);
-    return this.now < start || this.now > end;
+    // practice, official, and strict modes are always enabled (unless account expired)
+    return false;
   }
-
   // Only 'live' tests have reasons to disable, or account expiry
   getDisabledReason(s: TestSeries): string {
     if (this.authService.getRole() === 'student' && this.isAccountExpired) {
       return 'Your account has expired. Please renew your subscription.';
     }
-    if (s.mode !== 'live') {
-      return '';
+    if (s.mode === 'live') {
+      const start = new Date(s.startAt);
+      const end   = new Date(s.endAt);
+      if (this.now < start) return 'Not started yet';
+      if (this.now > end)   return 'Test has ended';
     }
-    const start = new Date(s.startAt);
-    const end   = new Date(s.endAt);
-    if (this.now < start) return 'Not started yet';
-    if (this.now > end)   return 'Test has ended';
     return '';
-  }
-  // CSS class for badges
+  }  // CSS class for badges
   modeClass(mode: string): string {
     return {
       official:  'badge-official',
       practice:  'badge-practice',
-      live:      'badge-live'
+      live:      'badge-live',
+      strict:    'badge-strict'
     }[mode] || '';
   }
 
@@ -199,5 +202,10 @@ export class TestListComponent implements OnInit {
         history.pushState(null, '', '#family-' + familyId);
       }
     }
+  }
+
+  // Check if any tests in the group are live mode
+  hasLiveTests(tests: TestSeries[]): boolean {
+    return tests.some(test => test.mode === 'live');
   }
 }

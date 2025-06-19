@@ -34,6 +34,7 @@ const attemptResponseItemSchema = new mongoose.Schema({
   question: { type: String, required: true }, // Storing question ID as string, as currently done
   questionInstanceKey: { type: String }, // Composite key for matching with randomized questions
   selected: mongoose.Schema.Types.Mixed,
+  numericalAnswer: { type: Number }, // Add numerical answer field for NAT questions
   earned: { type: Number }, // Made optional, will be populated by submitAttempt
   status: { type: String }, // Made optional, will be populated by submitAttempt
   
@@ -43,7 +44,8 @@ const attemptResponseItemSchema = new mongoose.Schema({
   flagged: { type: Boolean, default: false }, // Whether question was flagged for review
   confidence: { type: Number, min: 1, max: 5 }, // Confidence level (1-5 scale)
   visitedAt: { type: Date }, // When the question was first visited
-  lastModifiedAt: { type: Date } // When the answer was last changed
+  lastModifiedAt: { type: Date }, // When the answer was last changed
+  review: { type: Boolean, default: false } // Add review field
 }, { _id: false });
 
 const responseSchema = new Schema({
@@ -60,6 +62,14 @@ const attemptTranslationSchema = new Schema({
   questionText: { type: String, required: true },
   images: [String], // Array of image URLs for the question translation
   options: [attemptOptionSchema], // Array of options for this translation, using the schema defined above
+  // Add numerical answer support for NAT questions
+  numericalAnswer: {
+    minValue: { type: Number },
+    maxValue: { type: Number },
+    exactValue: { type: Number },
+    tolerance: { type: Number }, // For percentage-based tolerance
+    unit: { type: String, trim: true } // Optional unit like "m", "kg", etc.
+  },
   // explanations: [anySchemaOrType], // Placeholder if explanations are needed later
   _id: false
 });
@@ -84,8 +94,16 @@ const detailedQuestionSchema = new Schema({
     // isCorrect: Boolean, // Correctness is part of the source Question model.
     _id: false
   }],
-  type:         { type: String }, // e.g., 'MCQ', 'MSQ', 'NAT'
-  difficulty:   { type: String }  // e.g., 'Easy', 'Medium', 'Hard'
+  type:         { type: String }, // e.g., 'MCQ', 'MSQ', 'NAT', 'numerical', 'integer'
+  difficulty:   { type: String }, // e.g., 'Easy', 'Medium', 'Hard'
+  // Add numerical answer support for NAT questions
+  numericalAnswer: {
+    minValue: { type: Number },
+    maxValue: { type: Number },
+    exactValue: { type: Number },
+    tolerance: { type: Number }, // For percentage-based tolerance
+    unit: { type: String, trim: true } // Optional unit like "m", "kg", etc.
+  }
 });
 
 const sectionSchema = new Schema({

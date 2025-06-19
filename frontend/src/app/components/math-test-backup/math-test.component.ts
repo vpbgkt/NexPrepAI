@@ -1,11 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MathDisplayComponent } from '../math-display/math-display.component';
+// import { MathDisplayComponent } from '../math-display/math-display.component';
 
 @Component({
   selector: 'app-math-test',
   standalone: true,
-  imports: [CommonModule, MathDisplayComponent],
+  imports: [CommonModule], // MathDisplayComponent
   templateUrl: './math-test.component.html',
   styleUrl: './math-test.component.scss'
 })

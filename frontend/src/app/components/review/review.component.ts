@@ -71,6 +71,8 @@ interface QuestionReview {
   questionId: string;
   /** Question text content */
   questionText: string;
+  /** Question type (single, multiple, integer, numerical, matrix) */
+  type?: string;
   /** Available answer options */
   options: { _id?: string; id?: string; text: string; [key: string]: any }[];
   /** Answer explanations */
@@ -124,6 +126,12 @@ interface QuestionReview {
   actualCorrectOptionIds?: string[];
   /** Indices of selected answers */
   selectedAnswerIndices?: number[];
+  
+  // NAT-specific properties
+  /** User's numerical answer for NAT questions */
+  userNumericalAnswer?: number | null;
+  /** Correct numerical answer for NAT questions */
+  correctNumericalAnswer?: number | string | null;
 }
 
 /**

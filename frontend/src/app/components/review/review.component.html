@@ -259,10 +259,8 @@
 
             <!-- Question Content -->
             <div class="space-y-6">
-              <h4 class="text-lg font-medium" [innerHTML]="currentQuestion.questionText"></h4>
-
-              <!-- Options Display -->
-              <div class="space-y-3">
+              <h4 class="text-lg font-medium" [innerHTML]="currentQuestion.questionText"></h4>              <!-- Options Display (for option-based questions) -->
+              <div *ngIf="currentQuestion.type !== 'integer' && currentQuestion.type !== 'numerical'" class="space-y-3">
                 <div *ngFor="let option of currentQuestion.options; let j = index" 
                   class="p-3 rounded-lg border"
                   [ngClass]="{
@@ -292,18 +290,37 @@
                 </div>
               </div>
 
-              <!-- Answer Summary -->
+              <!-- NAT Question Display (for numerical answer type questions) -->
+              <div *ngIf="currentQuestion.type === 'integer' || currentQuestion.type === 'numerical'" class="space-y-4">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div class="text-sm font-medium text-blue-800 mb-2">Numerical Answer Type (NAT) Question</div>
+                  <div class="text-sm text-blue-600">This question requires a numerical answer instead of selecting from options.</div>
+                </div>
+              </div><!-- Answer Summary -->
               <div class="bg-gray-50 p-4 rounded-lg space-y-3">
                 <div>
                   <strong class="text-gray-700">Your Answer:</strong>
                   <div class="mt-1">
-                    <ng-container *ngIf="currentQuestion.status === 'unanswered' || !(currentQuestion.userSelectedOptionTexts && currentQuestion.userSelectedOptionTexts.length > 0)">
-                      <span class="text-gray-500">Not Attempted</span>
+                    <!-- For NAT Questions (integer/numerical) -->
+                    <ng-container *ngIf="currentQuestion.type === 'integer' || currentQuestion.type === 'numerical'">
+                      <ng-container *ngIf="currentQuestion.userNumericalAnswer !== null && currentQuestion.userNumericalAnswer !== undefined">
+                        <span class="font-mono text-lg">{{ currentQuestion.userNumericalAnswer }}</span>
+                      </ng-container>
+                      <ng-container *ngIf="currentQuestion.userNumericalAnswer === null || currentQuestion.userNumericalAnswer === undefined">
+                        <span class="text-gray-500">Not Attempted</span>
+                      </ng-container>
                     </ng-container>
-                    <ng-container *ngIf="currentQuestion.status !== 'unanswered' && currentQuestion.userSelectedOptionTexts && currentQuestion.userSelectedOptionTexts.length > 0">
-                      <span *ngFor="let userAnswerText of currentQuestion.userSelectedOptionTexts; let last = last">
-                        <span [innerHTML]="userAnswerText"></span>{{ !last ? ', ' : '' }}
-                      </span>
+                    
+                    <!-- For Option-based Questions (single/multiple/matrix) -->
+                    <ng-container *ngIf="currentQuestion.type !== 'integer' && currentQuestion.type !== 'numerical'">
+                      <ng-container *ngIf="currentQuestion.status === 'unanswered' || !(currentQuestion.userSelectedOptionTexts && currentQuestion.userSelectedOptionTexts.length > 0)">
+                        <span class="text-gray-500">Not Attempted</span>
+                      </ng-container>
+                      <ng-container *ngIf="currentQuestion.status !== 'unanswered' && currentQuestion.userSelectedOptionTexts && currentQuestion.userSelectedOptionTexts.length > 0">
+                        <span *ngFor="let userAnswerText of currentQuestion.userSelectedOptionTexts; let last = last">
+                          <span [innerHTML]="userAnswerText"></span>{{ !last ? ', ' : '' }}
+                        </span>
+                      </ng-container>
                     </ng-container>
                   </div>
                 </div>
@@ -311,12 +328,25 @@
                 <div>
                   <strong class="text-gray-700">Correct Answer:</strong>
                   <div class="mt-1">
-                    <span *ngIf="currentQuestion.correctOptionTexts && currentQuestion.correctOptionTexts.length > 0; else noCorrectAnswerText">
-                      <span *ngFor="let correctAnswerText of currentQuestion.correctOptionTexts; let last = last">
-                        <span [innerHTML]="correctAnswerText"></span>{{ !last ? ', ' : '' }}
+                    <!-- For NAT Questions (integer/numerical) -->
+                    <ng-container *ngIf="currentQuestion.type === 'integer' || currentQuestion.type === 'numerical'">
+                      <ng-container *ngIf="currentQuestion.correctNumericalAnswer !== null && currentQuestion.correctNumericalAnswer !== undefined">
+                        <span class="font-mono text-lg text-green-600">{{ currentQuestion.correctNumericalAnswer }}</span>
+                      </ng-container>
+                      <ng-container *ngIf="currentQuestion.correctNumericalAnswer === null || currentQuestion.correctNumericalAnswer === undefined">
+                        <span class="text-gray-500">Not Available</span>
+                      </ng-container>
+                    </ng-container>
+                    
+                    <!-- For Option-based Questions (single/multiple/matrix) -->
+                    <ng-container *ngIf="currentQuestion.type !== 'integer' && currentQuestion.type !== 'numerical'">
+                      <span *ngIf="currentQuestion.correctOptionTexts && currentQuestion.correctOptionTexts.length > 0; else noCorrectAnswerText">
+                        <span *ngFor="let correctAnswerText of currentQuestion.correctOptionTexts; let last = last">
+                          <span [innerHTML]="correctAnswerText"></span>{{ !last ? ', ' : '' }}
+                        </span>
                       </span>
-                    </span>
-                    <ng-template #noCorrectAnswerText><span class="text-gray-500">Not Available</span></ng-template>
+                      <ng-template #noCorrectAnswerText><span class="text-gray-500">Not Available</span></ng-template>
+                    </ng-container>
                   </div>
                 </div>
               </div>

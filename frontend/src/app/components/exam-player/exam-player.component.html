@@ -71,18 +71,23 @@
                       </ng-container>
                     </div>
                   </ng-container>
-                </div>
-
-                <!-- Options -->
-                <div *ngIf="currentQuestionDisplayData.displayOptions" class="space-y-3">
+                </div>                <!-- Options for Single Choice and Multiple Choice Questions -->
+                <div *ngIf="currentQuestionDisplayData.displayOptions && (getCurrentQuestionType() === 'single' || getCurrentQuestionType() === 'multiple')" class="space-y-3">
                   <div *ngFor="let option of currentQuestionDisplayData.displayOptions; let i = index" 
-                       class="relative">                    <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-200">                      <input type="radio" 
+                       class="relative">
+                    
+                    <!-- Single Choice Questions (Radio buttons) -->
+                    <label *ngIf="getCurrentQuestionType() === 'single'" 
+                           class="flex items-start gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-200">
+                      <input type="radio" 
                              [value]="i" 
                              formControlName="selected"
                              (change)="onAnswerChange()"
-                             class="mt-1 text-primary-600 focus:ring-primary-500">                      <div class="flex-1">
+                             class="mt-1 text-primary-600 focus:ring-primary-500">
+                      <div class="flex-1">
                         <div class="font-medium text-gray-900 mb-1">{{ String.fromCharCode(65 + i) }})</div>
-                        <div class="text-gray-700">                          <app-math-display 
+                        <div class="text-gray-700">
+                          <app-math-display 
                             [content]="option.text"
                             [allowFormatting]="true">
                           </app-math-display>
@@ -93,6 +98,52 @@
                         </div>
                       </div>
                     </label>
+                      <!-- Multiple Choice Questions (Checkboxes) -->
+                    <label *ngIf="getCurrentQuestionType() === 'multiple'" 
+                           class="flex items-start gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-200">                      <input type="checkbox" 
+                             [checked]="isMSQOptionSelected(i)"
+                             (change)="onMSQChange(i, $event)"
+                             class="mt-1 text-primary-600 focus:ring-primary-500 rounded">
+                      <div class="flex-1">
+                        <div class="font-medium text-gray-900 mb-1">{{ String.fromCharCode(65 + i) }})</div>
+                        <div class="text-gray-700">
+                          <app-math-display 
+                            [content]="option.text"
+                            [allowFormatting]="true">
+                          </app-math-display>
+                        </div>
+                        <div *ngIf="option.img" class="mt-2">
+                          <img [src]="option.img" alt="Option {{ String.fromCharCode(65 + i) }}" 
+                               class="max-w-full h-auto rounded border">
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Numerical Answer Input for NAT Questions -->
+                <div *ngIf="getCurrentQuestionType() === 'integer' || getCurrentQuestionType() === 'numerical'" class="space-y-3">
+                  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                      Enter your numerical answer:
+                    </label>                    <div class="flex items-center gap-3">                      <input type="number" 
+                             [value]="getNumericalAnswer()"
+                             (input)="onNATChange($event)"
+                             placeholder="Enter numerical value"
+                             step="any"
+                             class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-lg font-mono">                      <div *ngIf="currentQuestionDisplayData.numericalAnswer?.unit" 
+                           class="text-gray-600 font-medium">
+                        {{ currentQuestionDisplayData.numericalAnswer?.unit }}
+                      </div>
+                    </div>                    <!-- Hint for answer format -->
+                    <div class="mt-2 text-xs text-gray-500">
+                      <span *ngIf="currentQuestionDisplayData.numericalAnswer?.unit">
+                        Answer should be in {{ currentQuestionDisplayData.numericalAnswer?.unit }}
+                      </span>
+                      <span *ngIf="!currentQuestionDisplayData.numericalAnswer?.unit">
+                        Enter your numerical answer
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>              <!-- Additional Controls -->

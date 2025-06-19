@@ -56,6 +56,8 @@ interface QuestionTranslation {
   images?: string[];
   /** Translated options */
   options: QuestionOption[];
+  /** Numerical answer configuration for NAT questions */
+  numericalAnswer?: NumericalAnswer;
 }
 
 /**
@@ -72,6 +74,23 @@ interface QuestionHistoryItem {
 }
 
 /**
+ * @interface NumericalAnswer
+ * @description Numerical answer configuration for NAT questions
+ */
+interface NumericalAnswer {
+  /** Minimum accepted value for range-based answers */
+  minValue?: number;
+  /** Maximum accepted value for range-based answers */
+  maxValue?: number;
+  /** Exact value for exact match answers */
+  exactValue?: number;
+  /** Tolerance percentage for approximate answers */
+  tolerance?: number;
+  /** Optional unit like "m", "kg", etc. */
+  unit?: string;
+}
+
+/**
  * @interface PlayerQuestion
  * @description Complete question data structure for exam player
  */
@@ -82,7 +101,7 @@ interface PlayerQuestion {
   translations: QuestionTranslation[];
   /** Marks awarded for correct answer */
   marks?: number;
-  /** Question type (single-choice, multiple-choice, etc.) */
+  /** Question type: 'single', 'multiple', 'integer', 'numerical', 'matrix' */
   type?: string;
   /** Question difficulty level */
   difficulty?: string;
@@ -96,6 +115,8 @@ interface PlayerQuestion {
   availableLanguages: string[];
   /** Original language used for display */
   originalLanguageForDisplay: string;
+  /** Numerical answer configuration for NAT questions */
+  numericalAnswer?: NumericalAnswer;
 }
 
 /**
@@ -577,26 +598,39 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
           // console.log(`[initializeQuestionControls] For QIK ${questionInstanceKey}: savedResponse.selected is:`, savedResponse.selected);
         } else {
           // console.log(`[initializeQuestionControls] For QIK ${questionInstanceKey}: No savedResponse found.`);
-        }
-
-        let selectedValueToSetInForm: any[] = [];
+        }        let selectedValueToSetInForm: any = null;
+        let numericalValueToSetInForm: any = null;
+        
         if (savedResponse && savedResponse.selected) {
-          // Ensure `selected` is an array, as expected by checkbox/radio groups or multi-select
-          selectedValueToSetInForm = Array.isArray(savedResponse.selected) ? savedResponse.selected : [savedResponse.selected];
+          selectedValueToSetInForm = savedResponse.selected;
         }
-        // Log the value that will be set in the form
-        // console.log(`[initializeQuestionControls] For QIK ${questionInstanceKey}: selectedValueToSetInForm for form is:`, selectedValueToSetInForm);
+          if (savedResponse && savedResponse.numericalAnswer !== undefined) {
+          numericalValueToSetInForm = savedResponse.numericalAnswer;
+        }// Determine the appropriate form control value based on question type
+        let finalSelectedValue: any = null;
+        let finalNumericalValue: any = null;
 
-        // For single-choice questions, the form control expects a single value, not an array.
-        // Extract the first item if the array is not empty, otherwise use null.
-        const finalValueForFormControl = selectedValueToSetInForm.length > 0 ? selectedValueToSetInForm[0] : null;
-        // console.log(`[initializeQuestionControls] For QIK ${questionInstanceKey}: finalValueForFormControl (single choice) is:`, finalValueForFormControl);
+        const questionType = question.type || 'single'; // Default to single choice
 
+        if (questionType === 'multiple') {
+          // MSQ: selected should be an array of option indices
+          finalSelectedValue = Array.isArray(selectedValueToSetInForm) ? selectedValueToSetInForm : [];
+        } else if (questionType === 'integer' || questionType === 'numerical') {
+          // NAT: numericalAnswer should be a number
+          finalNumericalValue = numericalValueToSetInForm;
+          finalSelectedValue = null; // No options for NAT
+        } else {
+          // Single choice: selected should be a single value
+          finalSelectedValue = Array.isArray(selectedValueToSetInForm) && selectedValueToSetInForm.length > 0 
+            ? selectedValueToSetInForm[0] 
+            : selectedValueToSetInForm;
+        }
 
         responsesArray.push(this.fb.group({
           question: [questionId], // Store the actual question ID
           questionInstanceKey: [questionInstanceKey], // Store the unique key for this instance
-          selected: [finalValueForFormControl], // Use the extracted single value or null
+          selected: [finalSelectedValue], // Varies by question type
+          numericalAnswer: [finalNumericalValue], // For NAT questions
           timeSpent: [savedResponse?.timeSpent || 0],
           attempts: [savedResponse?.attempts || 0],
           flagged: [savedResponse?.flagged || false],
@@ -728,9 +762,8 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
         this.autoSaveProgress('navigation');
       }
 
-      this.currentSectionIndex = sectionIdx;
-      this.currentQuestionInSectionIndex = questionInSectionIdx;
-      this.currentGlobalQuestionIndex = this.getGlobalIndex(this.currentSectionIndex, this.currentQuestionInSectionIndex); 
+      this.currentSectionIndex = sectionIdx;      this.currentQuestionInSectionIndex = questionInSectionIdx;
+      this.currentGlobalQuestionIndex = this.getGlobalIndex(this.currentSectionIndex, this.currentQuestionInSectionIndex);
       
       this.trackQuestionVisit(this.currentGlobalQuestionIndex);
       this.cd.detectChanges();
@@ -758,13 +791,10 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
     this.checkForChanges();
     if (this.hasUnsavedChanges) {
       this.autoSaveProgress('navigation');
-    }
-
-    if (this.currentQuestionInSectionIndex < this.sections[this.currentSectionIndex].questions.length - 1) {
+    }    if (this.currentQuestionInSectionIndex < this.sections[this.currentSectionIndex].questions.length - 1) {
       this.currentQuestionInSectionIndex++;
     } else if (this.currentSectionIndex < this.sections.length - 1) {
-      this.currentSectionIndex++;
-      this.currentQuestionInSectionIndex = 0;
+      this.currentSectionIndex++;      this.currentQuestionInSectionIndex = 0;
     } else {
       return;
     }
@@ -794,9 +824,7 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
     this.checkForChanges();
     if (this.hasUnsavedChanges) {
       this.autoSaveProgress('navigation');
-    }
-
-    if (this.currentQuestionInSectionIndex > 0) {
+    }    if (this.currentQuestionInSectionIndex > 0) {
       this.currentQuestionInSectionIndex--;
     } else if (this.currentSectionIndex > 0) {
       this.currentSectionIndex--;
@@ -1137,8 +1165,7 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
    * ```
    */
   get currentQuestionDisplayData(): PlayerQuestion | undefined {
-    const currentSection = this.sections[this.currentSectionIndex];
-    if (currentSection && currentSection.questions && currentSection.questions.length > this.currentQuestionInSectionIndex) {
+    const currentSection = this.sections[this.currentSectionIndex];    if (currentSection && currentSection.questions && currentSection.questions.length > this.currentQuestionInSectionIndex) {
       const questionData = currentSection.questions[this.currentQuestionInSectionIndex]; // Corrected typo here
       return questionData;
     }
@@ -1164,8 +1191,7 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
    * // Used in template: [class]="'status-' + getQuestionStatus(sIdx, qIdx)"
    * // Possible classes: status-answered, status-marked-for-review, etc.
    * ```
-   */
-  getQuestionStatus(sectionIdx: number, questionInSectionIdx: number): string {
+   */  getQuestionStatus(sectionIdx: number, questionInSectionIdx: number): string {
     const globalIndex = this.getGlobalIndex(sectionIdx, questionInSectionIdx);
     const formCtrl = this.responses.at(globalIndex);
     if (!formCtrl) return 'not-visited'; // Should not happen in normal flow
@@ -1177,8 +1203,26 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
 
     const isFlagged = formCtrl.get('flagged')?.value;
     const selectedValue = formCtrl.get('selected')?.value;
-    // An answer is present if selectedValue is not null (as null is used for unanswered)
-    const isAnswered = selectedValue !== null;
+    const numericalValue = formCtrl.get('numericalAnswer')?.value;
+    
+    // Determine if question is answered based on type
+    let isAnswered = false;
+    
+    // Get the question to determine its type
+    const section = this.sections[sectionIdx];
+    const question = section?.questions[questionInSectionIdx];
+    const questionType = question?.type || 'single';
+    
+    if (questionType === 'multiple') {
+      // MSQ: answered if at least one option is selected
+      isAnswered = Array.isArray(selectedValue) && selectedValue.length > 0;
+    } else if (questionType === 'integer' || questionType === 'numerical') {
+      // NAT: answered if numerical value is provided
+      isAnswered = numericalValue !== null && numericalValue !== undefined && numericalValue !== '';
+    } else {
+      // Single choice: answered if selected value is not null
+      isAnswered = selectedValue !== null && selectedValue !== undefined;
+    }
 
     if (isFlagged) {
       if (isAnswered) {
@@ -1386,8 +1430,7 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
       this.toggleQuestionFlag(this.currentGlobalQuestionIndex);
     }
   }
-  
-  /**
+    /**
    * @method clearResponse
    * @description Clears the response for the current question.
    */
@@ -1395,7 +1438,20 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
     if (this.currentGlobalQuestionIndex >= 0) {
       const formCtrl = this.responses.at(this.currentGlobalQuestionIndex) as FormGroup;
       if (formCtrl) {
-        formCtrl.get('selected')?.setValue(null);
+        const questionType = this.getCurrentQuestionType();
+        
+        if (questionType === 'multiple') {
+          // Clear MSQ selections (set to empty array)
+          formCtrl.get('selected')?.setValue([]);
+        } else if (questionType === 'integer' || questionType === 'numerical') {
+          // Clear NAT numerical answer
+          formCtrl.get('numericalAnswer')?.setValue(null);
+          formCtrl.get('selected')?.setValue(null);
+        } else {
+          // Clear single choice selection
+          formCtrl.get('selected')?.setValue(null);
+        }
+        
         formCtrl.get('lastModifiedAt')?.setValue(new Date().toISOString());
         this.cd.detectChanges();
       }
@@ -1537,6 +1593,78 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
         console.error('[AutoSave] Sync save failed:', error);
       }
     }
+  }  /**
+   * @method onMSQChange
+   * @description Handles multiple select question answer changes
+   * @param optionIndex - Index of the option that was checked/unchecked
+   * @param event - The change event from the checkbox
+   */
+  onMSQChange(optionIndex: number, event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const isChecked = target.checked;
+    const formCtrl = this.responses.at(this.currentGlobalQuestionIndex) as FormGroup;
+    const currentSelected = formCtrl.get('selected')?.value || [];
+    
+    let newSelected = [...currentSelected];
+    
+    if (isChecked) {
+      // Add the option if not already present
+      if (!newSelected.includes(optionIndex)) {
+        newSelected.push(optionIndex);
+      }
+    } else {
+      // Remove the option
+      newSelected = newSelected.filter(idx => idx !== optionIndex);
+    }
+    
+    formCtrl.get('selected')?.setValue(newSelected);
+    this.onAnswerChange();
+  }  /**
+   * @method onNATChange
+   * @description Handles numerical answer type question input changes
+   * @param event - The input event from the numerical input field
+   */  onNATChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const value = target.value;
+    const formCtrl = this.responses.at(this.currentGlobalQuestionIndex) as FormGroup;
+    const numValue = value ? parseFloat(value) : null;
+    
+    console.log(`[NAT_DEBUG_FRONTEND] Input value: "${value}", parsed: ${numValue}, type: ${typeof numValue}`);
+    
+    formCtrl.get('numericalAnswer')?.setValue(numValue);
+    formCtrl.get('selected')?.setValue(null); // Clear selected for NAT questions
+    this.onAnswerChange();
+  }
+
+  /**
+   * @method isMSQOptionSelected
+   * @description Checks if an MSQ option is currently selected
+   * @param optionIndex - Index of the option to check
+   * @returns Whether the option is selected
+   */
+  isMSQOptionSelected(optionIndex: number): boolean {
+    const formCtrl = this.responses.at(this.currentGlobalQuestionIndex) as FormGroup;
+    const selected = formCtrl.get('selected')?.value || [];
+    return Array.isArray(selected) && selected.includes(optionIndex);
+  }
+  /**
+   * @method getNumericalAnswer
+   * @description Gets the current numerical answer value for NAT questions
+   * @returns The current numerical answer or empty string
+   */
+  getNumericalAnswer(): string {
+    const formCtrl = this.responses.at(this.currentGlobalQuestionIndex) as FormGroup;
+    const value = formCtrl.get('numericalAnswer')?.value;
+    return value !== null && value !== undefined ? value.toString() : '';
+  }
+
+  /**
+   * @method getCurrentQuestionType
+   * @description Gets the type of the current question
+   * @returns The question type or 'single' as default
+   */
+  getCurrentQuestionType(): string {
+    return this.currentQuestionDisplayData?.type || 'single';
   }
 
   /**

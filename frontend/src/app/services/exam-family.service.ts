@@ -1,0 +1,43 @@
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
+
+export interface ExamFamily {
+  _id: string;
+  code?: string;
+  name: string;
+  description?: string;
+}
+
+@Injectable({ providedIn: 'root' })
+export class ExamFamilyService {
+  private base = `${environment.apiUrl}/examFamilies`;
+
+  constructor(private http: HttpClient) {}
+
+  /** Fetch all families */
+  getAll(): Observable<ExamFamily[]> {
+    return this.http.get<ExamFamily[]>(this.base);
+  }
+
+  /** Get a single family by ID */
+  getById(id: string): Observable<ExamFamily> {
+    return this.http.get<ExamFamily>(`${this.base}/${id}`);
+  }
+
+  /** Create a new family */
+  create(family: Partial<ExamFamily>): Observable<ExamFamily> {
+    return this.http.post<ExamFamily>(this.base, family);
+  }
+
+  /** Update an existing family */
+  update(id: string, family: Partial<ExamFamily>): Observable<ExamFamily> {
+    return this.http.put<ExamFamily>(`${this.base}/${id}`, family);
+  }
+
+  /** Delete a family */
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/${id}`);
+  }
+}
