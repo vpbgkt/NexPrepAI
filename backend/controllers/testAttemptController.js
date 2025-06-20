@@ -745,11 +745,10 @@ exports.submitAttempt = async (req, res) => {
                   earnedForThisSlot = 0;
                   statusForThisSlot = 'incorrect';
                 }
-              }
-            } else {
+              }            } else {
               // Genuinely not attempted by the user (no selected array or empty selected array for this questionId)
-              statusForThisSlot = 'not-attempted';
-              earnedForThisSlot = 0;            // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
+              statusForThisSlot = 'unanswered';
+              earnedForThisSlot = 0;// #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
               if (questionId === debugQuestionId) {
                 console.log(`[DEBUG ${attemptId}] Question ${questionId} marked NOT-ATTEMPTED. Earned: ${earnedForThisSlot}`);
               }

@@ -1,7 +1,6 @@
 <!-- Enhanced Review Page Template with Tailwind CSS -->
 <div class="min-h-screen bg-gray-50">
-  <!-- Loading State -->
-  <div *ngIf="loading" class="flex flex-col items-center justify-center min-h-screen">
+  <!-- Loading State -->  <div *ngIf="loading" class="flex flex-col items-center justify-center min-h-screen">
     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
     <p class="text-gray-600">Loading review data...</p>
   </div>
@@ -190,43 +189,72 @@
           </div>
         </div>
       </div>      <!-- Questions Tab -->
-      <div *ngIf="activeTab === 'questions'" class="space-y-6">
-        <!-- Question Filter -->
+      <div *ngIf="activeTab === 'questions'" class="space-y-6">        <!-- Question Filter -->
         <div class="bg-white p-4 rounded-lg shadow-md">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Filter Questions:</label>
-          <select [(ngModel)]="filterBy" class="form-select w-full md:w-auto">
-            <option value="all">All Questions</option>
-            <option value="correct">Correct Only</option>
-            <option value="incorrect">Incorrect Only</option>
-            <option value="flagged">Flagged Only</option>
-            <option value="unanswered">Unanswered Only</option>
-          </select>
+          <div class="flex flex-col gap-4">
+            <!-- Filter Section -->
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Filter Questions:</label>
+                <select [(ngModel)]="filterBy" class="form-select w-full md:w-auto">
+                  <option value="all">All Questions</option>
+                  <option value="correct">Correct Only</option>
+                  <option value="incorrect">Incorrect Only</option>
+                  <option value="flagged">Flagged Only</option>
+                  <option value="unanswered">Unanswered Only</option>
+                </select>
+              </div>
+            </div>
+            
+            <!-- Color Code Guidance -->
+            <div class="border-t pt-3">
+              <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                <span class="text-sm font-medium text-gray-700">Color Code Guide:</span>
+                <div class="flex flex-wrap gap-4 text-sm">
+                  <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
+                    <span class="text-gray-700 font-medium">Correct Answer</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
+                    <span class="text-gray-700 font-medium">Incorrect Answer</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 bg-yellow-100 border border-yellow-300 rounded"></div>
+                    <span class="text-gray-700 font-medium">Unanswered</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 bg-blue-100 border border-blue-300 rounded"></div>
+                    <span class="text-gray-700 font-medium">Currently Selected</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <!-- Question List -->
           <div class="bg-white rounded-lg shadow-md p-4 max-h-96 overflow-y-auto">
             <h3 class="text-lg font-semibold mb-4">Questions</h3>
-            <div class="space-y-2">
-              <div 
+            <div class="space-y-2">              <div 
                 *ngFor="let question of getFilteredQuestions(); let i = index"
                 (click)="goToQuestion(reviewData.questions.indexOf(question))"
                 class="p-3 rounded-lg border cursor-pointer transition-colors"
                 [ngClass]="{
-                  'border-green-200 bg-green-50': getQuestionStatus(question) === 'correct',
-                  'border-red-200 bg-red-50': getQuestionStatus(question) === 'incorrect',
-                  'border-gray-200 bg-gray-50': getQuestionStatus(question) === 'unanswered',
-                  'border-blue-200 bg-blue-50': currentQuestionIndex === reviewData.questions.indexOf(question)
+                  'border-green-200 bg-green-50 hover:bg-green-100': getQuestionStatus(question) === 'correct',
+                  'border-red-200 bg-red-50 hover:bg-red-100': getQuestionStatus(question) === 'incorrect',
+                  'border-yellow-200 bg-yellow-50 hover:bg-yellow-100': getQuestionStatus(question) === 'unanswered',
+                  'border-blue-300 bg-blue-100': currentQuestionIndex === reviewData.questions.indexOf(question)
                 }">
                 
                 <div class="flex items-center justify-between mb-2">
                   <span class="font-medium">Q{{ reviewData.questions.indexOf(question) + 1 }}</span>
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs px-2 py-1 rounded-full"
+                  <div class="flex items-center gap-2">                    <span class="text-xs px-2 py-1 rounded-full font-medium"
                       [ngClass]="{
                         'bg-green-100 text-green-800': getQuestionStatus(question) === 'correct',
                         'bg-red-100 text-red-800': getQuestionStatus(question) === 'incorrect',
-                        'bg-gray-100 text-gray-800': getQuestionStatus(question) === 'unanswered'
+                        'bg-yellow-100 text-yellow-800': getQuestionStatus(question) === 'unanswered'
                       }">
                       {{ getQuestionStatus(question) | titlecase }}
                     </span>
@@ -270,17 +298,14 @@
             <!-- Question Content -->
             <div class="space-y-6">
               <h4 class="text-lg font-medium" [innerHTML]="currentQuestion.questionText"></h4>              <!-- Options Display (for option-based questions) -->
-              <div *ngIf="currentQuestion.type !== 'integer' && currentQuestion.type !== 'numerical'" class="space-y-3">
-                <div *ngFor="let option of currentQuestion.options; let j = index" 
+              <div *ngIf="currentQuestion.type !== 'integer' && currentQuestion.type !== 'numerical'" class="space-y-3">                <div *ngFor="let option of currentQuestion.options; let j = index" 
                   class="p-3 rounded-lg border"
                   [ngClass]="{
-                    'border-blue-300 bg-blue-50': isOptionSelected(currentQuestion, String(j)) && isCorrectOption(currentQuestion, option._id),
+                    'border-green-300 bg-green-50': isCorrectOption(currentQuestion, option._id),
                     'border-red-300 bg-red-50': isOptionSelected(currentQuestion, String(j)) && !isCorrectOption(currentQuestion, option._id),
-                    'border-green-300 bg-green-50': !isOptionSelected(currentQuestion, String(j)) && isCorrectOption(currentQuestion, option._id),
                     'border-gray-200': !isOptionSelected(currentQuestion, String(j)) && !isCorrectOption(currentQuestion, option._id)
                   }">
-                  
-                  <div class="flex items-start gap-3">
+                    <div class="flex items-start gap-3">
                     <span class="font-medium">{{ String.fromCharCode(65 + j) }}.</span>
                     <span class="flex-1" [innerHTML]="option.text"></span>
                     
@@ -291,10 +316,6 @@
                     <span *ngIf="isOptionSelected(currentQuestion, String(j)) && !isCorrectOption(currentQuestion, option._id)" 
                       class="text-red-600 text-sm">
                       ❌ Your Pick (Incorrect)
-                    </span>
-                    <span *ngIf="!isOptionSelected(currentQuestion, String(j)) && isCorrectOption(currentQuestion, option._id)" 
-                      class="text-green-600 text-sm">
-                      ✔️ Correct Answer
                     </span>
                   </div>
                 </div>
