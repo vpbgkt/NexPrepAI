@@ -172,22 +172,26 @@ exports.startTest = async (req, res) => {
       if (series.endAt && now > series.endAt) {
         return res.status(403).json({ message: 'This test has ended.' });
       }
-    }
-
-    const existingCount = await TestAttempt.countDocuments({
+    }    // Count only COMPLETED attempts for limit checking (not in-progress)
+    const completedCount = await TestAttempt.countDocuments({
       student: req.user.userId,
-      series:  seriesId
+      series:  seriesId,
+      status: 'completed'
     });
-    if (series.maxAttempts && existingCount >= series.maxAttempts) { // Ensure series.maxAttempts is checked if it exists
+    if (series.maxAttempts && completedCount >= series.maxAttempts) {
       return res.status(429).json({
         message: `Max ${series.maxAttempts} attempts reached for this test.`
       });
     }
 
-    // NEW LOGIC: Delete all previous attempts for this user and series
-    // This ensures only the current attempt will be stored.
-    await TestAttempt.deleteMany({ student: userId, series: seriesId });
-    console.log(`[${userId}] Deleted previous attempts for series ${seriesId}`);
+    // Delete only IN-PROGRESS attempts (not submitted ones) for this user and series
+    // This ensures user can start fresh if they had an incomplete attempt
+    const deleteResult = await TestAttempt.deleteMany({ 
+      student: userId, 
+      series: seriesId, 
+      status: 'in-progress' 
+    });
+    console.log(`[${userId}] Deleted ${deleteResult.deletedCount} in-progress attempts for series ${seriesId}`);
 
     // pick a variant if available
     let selectedVariant = undefined;
@@ -381,13 +385,11 @@ exports.startTest = async (req, res) => {
     if (series.duration && series.duration > 0) {
       expiresAt = new Date(startedAt.getTime() + series.duration * 60 * 1000);
       remainingDurationSeconds = series.duration * 60;
-    }
-
-    // create the attempt
+    }    // create the attempt
     const attempt = new TestAttempt({
       series:      seriesId,
       student:     req.user.userId,
-      attemptNo:   existingCount + 1, // attemptNo reflects the sequence of tries
+      attemptNo:   completedCount + 1, // attemptNo reflects the sequence of tries
       variantCode: selectedVariant?.code,
       sections:    detailedSectionsForAttempt, // Store the detailed structure
       responses:   [],
