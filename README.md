@@ -128,5 +128,25 @@ Scorecard sharing via Email/WhatsApp
 Vishal Prajapat
 🔗 GitHub: @vpbgkt
 
-📄 License
-MIT License — feel free to use and expand it!
+📄 License & Usage Terms
+
+**Personal Use License**
+
+This project is available for **personal and educational use only**. You are free to:
+- ✅ Use the source code for personal learning and development
+- ✅ Modify and experiment with the code for educational purposes
+- ✅ Use it for academic projects and portfolio demonstrations
+- ✅ Contribute to the project through pull requests
+
+**Commercial Use Restrictions**
+
+You are **NOT permitted** to:
+- ❌ Sell this software or any derivative works
+- ❌ Use this code for commercial or business purposes
+- ❌ Redistribute this software for profit
+- ❌ Offer this as a paid service or product
+- ❌ Use this code in any commercial application without explicit written permission
+
+For commercial licensing inquiries, please contact the author.
+
+**Copyright © 2025 Vishal Prajapat. All rights reserved.**
