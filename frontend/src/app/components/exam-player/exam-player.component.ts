@@ -1691,4 +1691,71 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
     
     console.log('[AutoSave] Answer changed for question', this.currentGlobalQuestionIndex);
   }
+  /**
+   * @method getProgressStats
+   * @description Calculates exam progress statistics including attempted questions
+   * @returns Object with attempted and total question counts
+   */
+  getProgressStats(): { attempted: number; total: number } {
+    if (!this.sections || this.sections.length === 0) {
+      return { attempted: 0, total: 0 };
+    }
+
+    let attempted = 0;
+    let total = 0;
+
+    try {
+      this.sections.forEach((section, sectionIdx) => {
+        if (section && section.questions) {
+          section.questions.forEach((question, questionIdx) => {
+            total++;
+            const globalIdx = this.getGlobalIndex(sectionIdx, questionIdx);
+            
+            if (globalIdx < this.responses.length) {
+              const formCtrl = this.responses.at(globalIdx) as FormGroup;
+              
+              if (formCtrl) {
+                const questionType = question.type || 'single';
+                let isAttempted = false;
+
+                if (questionType === 'integer' || questionType === 'numerical') {
+                  // For NAT questions, check numericalAnswer
+                  const numericalAnswer = formCtrl.get('numericalAnswer')?.value;
+                  isAttempted = numericalAnswer !== null && numericalAnswer !== undefined && numericalAnswer !== '';
+                } else {
+                  // For MCQ/MSQ questions, check selected
+                  const selected = formCtrl.get('selected')?.value;
+                  isAttempted = selected !== null && selected !== undefined && 
+                               ((Array.isArray(selected) && selected.length > 0) || 
+                                (!Array.isArray(selected) && selected !== ''));
+                }
+
+                if (isAttempted) {
+                  attempted++;
+                }
+              }
+            }
+          });
+        }
+      });
+    } catch (error) {
+      console.error('Error calculating progress stats:', error);
+      return { attempted: 0, total: 0 };
+    }
+
+    console.log(`Progress Stats: ${attempted}/${total} attempted`);
+    return { attempted, total };
+  }
+
+  /**
+   * @method getTotalQuestions
+   * @description Gets the total number of questions across all sections
+   * @returns Total number of questions
+   */
+  getTotalQuestions(): number {
+    if (!this.sections || this.sections.length === 0) {
+      return 0;
+    }
+    return this.sections.reduce((total, section) => total + section.questions.length, 0);
+  }
 }

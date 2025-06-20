@@ -1544,4 +1544,67 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {  /** 
   retryLoadReviewData() {
     this.loadReviewData();
   }
+
+  /**
+   * @method getScoreMessage
+   * @description Returns appropriate message based on score percentage
+   * @returns {string} Score message
+   */
+  getScoreMessage(): string {
+    if (!this.reviewData?.attempt?.percentage) return '';
+    
+    const percentage = this.reviewData.attempt.percentage;
+    
+    if (percentage >= 80) {
+      return 'Congratulations! Excellent Performance!';
+    } else if (percentage >= 60) {
+      return 'Congratulations! Great Job!';
+    } else if (percentage >= 40) {
+      return 'Pass - Good Effort!';
+    } else {
+      return 'Keep Practicing - You Can Do Better!';
+    }
+  }
+
+  /**
+   * @method getScoreMessageColor
+   * @description Returns appropriate color class based on score percentage
+   * @returns {string} CSS color class
+   */
+  getScoreMessageColor(): string {
+    if (!this.reviewData?.attempt?.percentage) return 'text-gray-600';
+    
+    const percentage = this.reviewData.attempt.percentage;
+    
+    if (percentage >= 80) {
+      return 'text-green-700';
+    } else if (percentage >= 60) {
+      return 'text-green-600';
+    } else if (percentage >= 40) {
+      return 'text-blue-600';
+    } else {
+      return 'text-orange-600';
+    }
+  }
+
+  /**
+   * @method getScoreBadgeColor
+   * @description Returns appropriate background color class for score badge
+   * @returns {string} CSS background color class
+   */
+  getScoreBadgeColor(): string {
+    if (!this.reviewData?.attempt?.percentage) return 'bg-gray-100';
+    
+    const percentage = this.reviewData.attempt.percentage;
+    
+    if (percentage >= 80) {
+      return 'bg-green-100';
+    } else if (percentage >= 60) {
+      return 'bg-green-50';
+    } else if (percentage >= 40) {
+      return 'bg-blue-50';
+    } else {
+      return 'bg-orange-50';
+    }
+  }
 }
