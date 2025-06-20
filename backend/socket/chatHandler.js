@@ -105,7 +105,7 @@ module.exports = function (io) {
         ...msg,
         timestamp: msg.timestamp.toISOString() // Convert Date to ISO string for serialization
       }));
-      socket.emit('initChat', initialMessages);      socket.on('newMessage', async (text) => {
+      socket.emit('initChat', initialMessages);      socket.on('newMessage', async (messageData) => {
         try {
           // Re-check auth on each message to handle cases where subscription expires mid-session
           const now = new Date();
@@ -116,20 +116,44 @@ module.exports = function (io) {
             socket.emit('auth_error', { message: 'Your subscription or free trial has expired. Please renew to access the chat.' });
             socket.disconnect(true);
             return;
-          }
-
-          if (!text || typeof text !== 'string' || text.trim() === '') {
-            console.log('Invalid message received from user:', user.name);
+          }          // Handle both string messages (legacy) and enhanced message objects
+          let text, mentions, replyTo, messageId;
+          
+          console.log('Received messageData:', messageData);
+          
+          if (typeof messageData === 'string') {
+            // Legacy string message
+            text = messageData;
+            mentions = [];
+            replyTo = null;
+            messageId = Date.now().toString();
+          } else if (typeof messageData === 'object' && messageData.text) {
+            // Enhanced message object
+            text = messageData.text;
+            mentions = messageData.mentions || [];
+            replyTo = messageData.replyTo || null;
+            messageId = messageData.id || Date.now().toString();
+          } else {
+            console.log('Invalid message format received from user:', user.name);
             return;
           }
 
-          const message = {
+          console.log('Processed message data:', { text, mentions, replyTo, messageId });
+
+          if (!text || text.trim() === '') {
+            console.log('Empty message received from user:', user.name);
+            return;
+          }          const message = {
+            id: messageId,
             username: user.name,
             text: text.trim(),
             timestamp: new Date(),
+            ...(mentions && mentions.length > 0 && { mentions }),
+            ...(replyTo && { replyTo })
           };
           
-          console.log(`New message from ${user.name}: ${text}`);
+          console.log(`📤 Creating message with mentions:`, mentions, 'and replyTo:', replyTo);
+          console.log(`New message from ${user.name}:`, message);
           chatMessages.push(message);
 
           if (chatMessages.length > MAX_MESSAGES) {
@@ -146,10 +170,68 @@ module.exports = function (io) {
             timestamp: message.timestamp.toISOString()
           };
           
-          console.log('Broadcasting message to all clients:', broadcastMessage);
+          console.log('Broadcasting enhanced message to all clients:', broadcastMessage);
           io.emit('messageBroadcast', broadcastMessage);
         } catch (error) {
           console.error('Error handling new message:', error);
+        }
+      });
+
+      socket.on('addReaction', async (data) => {
+        try {
+          const { messageId, emoji } = data;
+          console.log(`User ${user.name} adding reaction ${emoji} to message ${messageId}`);
+          
+          // Find the message
+          const messageIndex = chatMessages.findIndex(msg => msg.id === messageId);
+          if (messageIndex === -1) {
+            console.log('Message not found for reaction:', messageId);
+            return;
+          }
+          
+          const message = chatMessages[messageIndex];
+          
+          // Initialize reactions if not exists
+          if (!message.reactions) {
+            message.reactions = {};
+          }
+          
+          // Initialize emoji array if not exists
+          if (!message.reactions[emoji]) {
+            message.reactions[emoji] = [];
+          }
+          
+          // Toggle user's reaction
+          const userIndex = message.reactions[emoji].indexOf(user.name);
+          if (userIndex === -1) {
+            // Add reaction
+            message.reactions[emoji].push(user.name);
+          } else {
+            // Remove reaction
+            message.reactions[emoji].splice(userIndex, 1);
+            // Remove emoji if no users reacted with it
+            if (message.reactions[emoji].length === 0) {
+              delete message.reactions[emoji];
+            }
+          }
+          
+          // Clean up empty reactions object
+          if (Object.keys(message.reactions).length === 0) {
+            delete message.reactions;
+          }
+          
+          // Save messages
+          await saveChatMessages();
+          
+          // Broadcast reaction update to all clients
+          io.emit('reactionUpdate', {
+            messageId: messageId,
+            reactions: message.reactions || {}
+          });
+          
+          console.log('Reaction updated for message:', messageId, 'reactions:', message.reactions);
+        } catch (error) {
+          console.error('Error handling reaction:', error);
         }
       });
 

@@ -34,7 +34,13 @@ const io = new Server(server, { // Attach socket.io to server
     origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: process.env.CORS_CREDENTIALS === 'true'
-  }
+  },
+  transports: ['websocket', 'polling'], // Support both transports
+  allowEIO3: true, // Allow Engine.IO v3 clients to connect
+  pingTimeout: 60000, // Increase ping timeout
+  pingInterval: 25000, // Increase ping interval
+  upgradeTimeout: 30000, // Time to wait for upgrade
+  maxHttpBufferSize: 1e6 // 1MB buffer size
 });
 
 // Initialize chat handler

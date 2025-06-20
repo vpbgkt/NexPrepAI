@@ -8,21 +8,55 @@ import { FormsModule } from '@angular/forms';
 @Component({
     selector: 'app-global-chat',
     imports: [CommonModule, FormsModule],
-    templateUrl: './global-chat.component.html'
+    templateUrl: './global-chat.component.html',
+    styles: [`
+      .mention {
+        background-color: #dbeafe;
+        color: #1d4ed8;
+        padding: 1px 4px;
+        border-radius: 4px;
+        font-weight: 600;
+      }
+      .border-l-3 {
+        border-left-width: 3px;
+      }
+      textarea {
+        resize: none;
+        min-height: 38px;
+        max-height: 100px;
+        overflow-y: auto;
+      }
+    `]
 })
 export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('messagesArea') messagesArea: ElementRef<HTMLDivElement> | null = null;
+  @ViewChild('messageInput') messageInput: ElementRef<HTMLTextAreaElement> | null = null;
   
   messages: ChatMessage[] = [];
   newMessage: string = '';
   error: string | null = null;
-  private subscriptions = new Subscription();  username: string | null = null;
+  private subscriptions = new Subscription();
+  
+  username: string | null = null;
   shouldScrollToBottom = true;
-    // Chat bubble state
+  
+  // Chat bubble state
   isMinimized: boolean = true;
   hasUnreadMessages: boolean = false;
   unreadCount: number = 0;
   private lastReadMessageCount: number = 0;
+  
+  // Mention and reply features
+  replyingTo: ChatMessage | null = null;
+  showUsersList: boolean = false;
+  filteredUsers: string[] = [];
+  allUsers: string[] = [];
+  mentionStartPosition: number = -1;
+  currentMentionQuery: string = '';
+
+  // Reaction features
+  availableReactions: string[] = ['👍', '❤️', '😂', '😮', '😢', '👎'];
+  showReactionPicker: { [messageId: string]: boolean } = {};
 
   constructor(private chatService: ChatService, public authService: AuthService) {}
   ngOnInit(): void {
@@ -46,21 +80,31 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
           this.messages = [];
         }
       })
-    );    // Subscribe to initial messages
+    );
+    
+    // Subscribe to initial messages
     this.subscriptions.add(
       this.chatService.onInitChat().subscribe(initialMessages => {
         console.log('Initial chat messages received:', initialMessages.length);
         this.messages = initialMessages;
+        this.updateUsersList(); // Update users list with initial messages
         this.shouldScrollToBottom = true;
         // Force scroll for initial messages
         setTimeout(() => {
           this.performScrollToBottom();
         }, 300);
       })
-    );// Subscribe to new messages
-    this.subscriptions.add(      this.chatService.onNewMessage().subscribe(message => {
-        console.log('New message received:', message);
-        console.log('Current messages array length:', this.messages.length);
+    );
+    
+    // Subscribe to new messages
+    this.subscriptions.add(
+      this.chatService.onNewMessage().subscribe(message => {
+        console.log('New message received:', {
+          username: message.username,
+          text: message.text,
+          mentions: message.mentions,
+          replyTo: message.replyTo
+        });
         
         // More efficient duplicate check - check last 10 messages only
         const recentMessages = this.messages.slice(-10);
@@ -72,13 +116,14 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
           
           return usernameMatch && textMatch && timeMatch;
         });
-        
-        if (!existingMessage) {
+          if (!existingMessage) {
           console.log('Adding new message to array - no duplicate found');
           this.messages.push(message);
           if (this.messages.length > 100) {
             this.messages.shift();
           }
+          // Update users list when new messages arrive
+          this.updateUsersList();
         } else {
           console.log('Message already exists in recent messages, skipping addition but triggering scroll');
         }
@@ -152,6 +197,14 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
         this.performScrollToBottom();
       }, 500);
     }
+
+    // Close reaction pickers when clicking outside
+    document.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.reaction-picker') && !target.closest('[data-reaction-trigger]')) {
+        this.showReactionPicker = {};
+      }
+    });
   }ngAfterViewChecked(): void {
     // Scroll to bottom after view is updated if needed
     if (this.shouldScrollToBottom) {
@@ -267,41 +320,13 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
     console.log('forceScrollToBottom called');
     this.shouldScrollToBottom = true;
     this.performScrollToBottom();
-  }
-  ngOnDestroy(): void {
+  }  ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
     // Don't disconnect on destroy since this is a live discussion chat
     // The ChatService will manage the connection across component lifecycles
-  }sendMessage(): void {
-    if (this.newMessage.trim() !== '') {
-      console.log('Sending chat message:', this.newMessage);
-      this.chatService.sendMessage(this.newMessage);
-      this.newMessage = '';
-      this.error = null;
-      
-      // FORCE scroll to bottom for user's own messages with multiple methods
-      console.log('User sent message, triggering comprehensive scroll');
-      this.shouldScrollToBottom = true;
-      
-      // Immediate scroll attempts
-      this.performScrollToBottom();
-      
-      // Additional scroll attempts at intervals
-      setTimeout(() => {
-        this.performScrollToBottom();
-      }, 50);
-      
-      setTimeout(() => {
-        this.performScrollToBottom();
-      }, 150);
-      
-      setTimeout(() => {
-        this.performScrollToBottom();
-      }, 300);
-    } else {
-      this.error = "Message cannot be empty";
-    }
-  }// Chat bubble methods
+  }
+
+  // Mention and Reply Methods
   toggleChat(): void {
     this.isMinimized = !this.isMinimized;
     if (!this.isMinimized) {
@@ -343,5 +368,142 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
 
   trackByMessage(index: number, message: ChatMessage): string {
     return `${message.username}-${message.timestamp}-${message.text}`;
+  }
+  // Mention and Reply Methods
+  onInputChange(event: any): void {
+    const value = event.target.value;
+    this.newMessage = value;
+    
+    // Check for @ mentions
+    const cursorPosition = event.target.selectionStart;
+    const textBeforeCursor = value.substring(0, cursorPosition);
+    const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
+    
+    if (mentionMatch) {
+      console.log('Found mention match:', mentionMatch[1], 'Available users:', this.allUsers);
+      this.mentionStartPosition = textBeforeCursor.lastIndexOf('@');
+      this.currentMentionQuery = mentionMatch[1].toLowerCase();
+      this.filteredUsers = this.allUsers.filter(user => 
+        user.toLowerCase().includes(this.currentMentionQuery) && user !== this.username
+      );
+      this.showUsersList = this.filteredUsers.length > 0;
+      console.log('Filtered users:', this.filteredUsers, 'Show users list:', this.showUsersList);
+    } else {
+      this.showUsersList = false;
+      this.mentionStartPosition = -1;
+    }
+  }
+
+  selectMention(username: string): void {
+    if (this.mentionStartPosition >= 0) {
+      const beforeMention = this.newMessage.substring(0, this.mentionStartPosition);
+      const afterMention = this.newMessage.substring(this.mentionStartPosition + this.currentMentionQuery.length + 1);
+      this.newMessage = beforeMention + `@${username} ` + afterMention;
+      this.showUsersList = false;
+      this.mentionStartPosition = -1;
+      
+      // Focus back to input
+      if (this.messageInput) {
+        this.messageInput.nativeElement.focus();
+      }
+    }
+  }
+
+  replyToMessage(message: ChatMessage): void {
+    this.replyingTo = message;
+    if (this.messageInput) {
+      this.messageInput.nativeElement.focus();
+    }
+  }
+
+  cancelReply(): void {
+    this.replyingTo = null;
+  }
+
+  extractMentions(text: string): string[] {
+    const mentionRegex = /@(\w+)/g;
+    const mentions: string[] = [];
+    let match;
+    while ((match = mentionRegex.exec(text)) !== null) {
+      mentions.push(match[1]);
+    }
+    return mentions;
+  }
+
+  formatMessageWithMentions(text: string): string {
+    return text.replace(/@(\w+)/g, '<span class="mention">@$1</span>');
+  }
+  sendMessage(): void {
+    if (!this.newMessage.trim() || !this.username) return;
+
+    const mentions = this.extractMentions(this.newMessage);
+    
+    const messageData: Partial<ChatMessage> = {
+      id: Date.now().toString(), // Simple ID generation
+      username: this.username,
+      text: this.newMessage.trim(),
+      timestamp: new Date(),
+      mentions: mentions.length > 0 ? mentions : undefined,
+      replyTo: this.replyingTo ? {
+        messageId: this.replyingTo.id || '',
+        username: this.replyingTo.username,
+        text: this.replyingTo.text.substring(0, 50) + (this.replyingTo.text.length > 50 ? '...' : '')
+      } : undefined
+    };
+
+    console.log('Sending message with data:', {
+      text: messageData.text,
+      mentions: messageData.mentions,
+      replyTo: messageData.replyTo
+    });
+
+    this.chatService.sendMessage(messageData as ChatMessage);
+    this.newMessage = '';
+    this.replyingTo = null;
+    this.shouldScrollToBottom = true;
+  }
+  // Update existing users list when new messages arrive
+  updateUsersList(): void {
+    const users = new Set<string>();
+    this.messages.forEach(msg => users.add(msg.username));
+    this.allUsers = Array.from(users).filter(user => user !== this.username);
+    console.log('Updated users list:', this.allUsers, 'Current username:', this.username);
+  }
+
+  // Reaction Methods
+  toggleReactionPicker(messageId: string): void {
+    // Close all other reaction pickers
+    Object.keys(this.showReactionPicker).forEach(id => {
+      if (id !== messageId) {
+        this.showReactionPicker[id] = false;
+      }
+    });
+    // Toggle the current one
+    this.showReactionPicker[messageId] = !this.showReactionPicker[messageId];
+  }
+
+  addReaction(messageId: string, emoji: string): void {
+    if (!messageId) return;
+    
+    console.log('Adding reaction:', { messageId, emoji, username: this.username });
+    this.chatService.sendReaction(messageId, emoji);
+    this.showReactionPicker[messageId] = false; // Close picker after selection
+  }
+
+  hasUserReacted(message: ChatMessage, emoji: string): boolean {
+    return message.reactions?.[emoji]?.includes(this.username || '') || false;
+  }
+
+  getReactionCount(message: ChatMessage, emoji: string): number {
+    return message.reactions?.[emoji]?.length || 0;
+  }
+
+  getReactionUsers(message: ChatMessage, emoji: string): string[] {
+    return message.reactions?.[emoji] || [];
+  }
+
+  // Helper method for template to access Object.keys
+  getObjectKeys(obj: any): string[] {
+    return Object.keys(obj || {});
   }
 }

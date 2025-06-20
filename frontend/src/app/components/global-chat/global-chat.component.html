@@ -58,9 +58,7 @@
         </svg>
         <span class="text-sm">Connection lost. Checking connection...</span>
       </div>
-    </div>
-
-    <!-- Error display -->
+    </div>    <!-- Error display -->
     <div class="p-3 md:p-4 bg-red-50 border-b border-red-200" *ngIf="error">
       <div class="flex items-center space-x-2 text-red-800">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -84,20 +82,103 @@
               <span class="font-medium">{{msg.username}}</span>
               <span>{{msg.timestamp | date:'shortTime'}}</span>
             </div>
-            <div class="bg-gray-100 text-gray-800 rounded-2xl rounded-tl-sm px-3 py-2 md:px-4 md:py-2">
-              <p class="text-sm md:text-base break-words">{{msg.text}}</p>
+            
+            <!-- Reply preview for other user's message -->
+            <div *ngIf="msg.replyTo" class="bg-gray-50 border-l-3 border-gray-300 rounded-lg p-2 mb-1 mx-2">
+              <div class="text-xs text-gray-500 mb-1">Replying to {{msg.replyTo.username}}</div>
+              <div class="text-xs text-gray-600 italic">"{{msg.replyTo.text}}"</div>
+            </div>
+              <div class="bg-gray-100 text-gray-800 rounded-2xl rounded-tl-sm px-3 py-2 md:px-4 md:py-2 relative group">
+              <p class="text-sm md:text-base break-words" [innerHTML]="formatMessageWithMentions(msg.text)"></p>
+              
+              <!-- Action buttons (appears on hover) -->
+              <div class="absolute -right-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-1">
+                <!-- Reply button -->
+                <button (click)="replyToMessage(msg)" 
+                  class="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-blue-600"
+                  title="Reply">
+                  ↶
+                </button>                <!-- Reaction button -->
+                <button (click)="toggleReactionPicker(msg.id || '')" 
+                  data-reaction-trigger
+                  class="bg-gray-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-gray-600"
+                  title="Add reaction">
+                  😊
+                </button>
+              </div>
+                <!-- Reaction picker (appears when clicked) -->
+              <div *ngIf="showReactionPicker[msg.id || '']" 
+                   class="reaction-picker absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex space-x-1 z-10">
+                <button *ngFor="let emoji of availableReactions" 
+                        (click)="addReaction(msg.id || '', emoji)"
+                        class="hover:bg-gray-100 rounded p-1 text-lg transition-colors duration-200"
+                        [title]="'React with ' + emoji">
+                  {{emoji}}
+                </button>
+              </div>
+            </div>
+              <!-- Reactions display -->
+            <div *ngIf="msg.reactions && getObjectKeys(msg.reactions).length > 0" 
+                 class="flex flex-wrap gap-1 mt-2 mx-2">
+              <button *ngFor="let emoji of getObjectKeys(msg.reactions)" 
+                      (click)="addReaction(msg.id || '', emoji)"
+                      class="inline-flex items-center space-x-1 bg-gray-200 hover:bg-gray-300 rounded-full px-2 py-1 text-xs transition-colors duration-200"
+                      [class.bg-blue-200]="hasUserReacted(msg, emoji)"
+                      [class.hover:bg-blue-300]="hasUserReacted(msg, emoji)"
+                      [title]="'Reacted by: ' + getReactionUsers(msg, emoji).join(', ')">
+                <span>{{emoji}}</span>
+                <span class="text-gray-600">{{getReactionCount(msg, emoji)}}</span>
+              </button>
             </div>
           </div>
           
           <!-- Own message -->
           <div *ngIf="msg.username === username" class="space-y-1">
-            <div class="bg-gradient-to-r from-primary-500 to-purple-600 text-white rounded-2xl rounded-tr-sm px-3 py-2 md:px-4 md:py-2">
-              <p class="text-sm md:text-base break-words">{{msg.text}}</p>
+            <!-- Reply preview for own message -->
+            <div *ngIf="msg.replyTo" class="bg-blue-50 border-l-3 border-blue-300 rounded-lg p-2 mb-1 mx-2">
+              <div class="text-xs text-blue-600 mb-1">Replying to {{msg.replyTo.username}}</div>
+              <div class="text-xs text-blue-700 italic">"{{msg.replyTo.text}}"</div>
             </div>
+              <div class="bg-gradient-to-r from-primary-500 to-purple-600 text-white rounded-2xl rounded-tr-sm px-3 py-2 md:px-4 md:py-2 relative group">
+              <p class="text-sm md:text-base break-words" [innerHTML]="formatMessageWithMentions(msg.text)"></p>
+              
+              <!-- Action buttons for own messages (appears on hover) -->
+              <div class="absolute -left-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-1">                <!-- Reaction button -->
+                <button (click)="toggleReactionPicker(msg.id || '')" 
+                  data-reaction-trigger
+                  class="bg-white bg-opacity-20 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-opacity-30"
+                  title="Add reaction">
+                  😊
+                </button>
+              </div>
+                <!-- Reaction picker for own messages -->
+              <div *ngIf="showReactionPicker[msg.id || '']" 
+                   class="reaction-picker absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex space-x-1 z-10">
+                <button *ngFor="let emoji of availableReactions" 
+                        (click)="addReaction(msg.id || '', emoji)"
+                        class="hover:bg-gray-100 rounded p-1 text-lg transition-colors duration-200"
+                        [title]="'React with ' + emoji">
+                  {{emoji}}
+                </button>
+              </div>
+            </div>
+              <!-- Reactions display for own messages -->
+            <div *ngIf="msg.reactions && getObjectKeys(msg.reactions).length > 0" 
+                 class="flex flex-wrap gap-1 mt-2 mx-2 justify-end">
+              <button *ngFor="let emoji of getObjectKeys(msg.reactions)" 
+                      (click)="addReaction(msg.id || '', emoji)"
+                      class="inline-flex items-center space-x-1 bg-gray-200 hover:bg-gray-300 rounded-full px-2 py-1 text-xs transition-colors duration-200"
+                      [class.bg-blue-200]="hasUserReacted(msg, emoji)"
+                      [class.hover:bg-blue-300]="hasUserReacted(msg, emoji)"
+                      [title]="'Reacted by: ' + getReactionUsers(msg, emoji).join(', ')">
+                <span>{{emoji}}</span>
+                <span class="text-gray-600">{{getReactionCount(msg, emoji)}}</span>
+              </button>
+            </div>
+            
             <div class="text-xs text-gray-500 text-right px-2">
               {{msg.timestamp | date:'shortTime'}}
-            </div>
-          </div>
+            </div></div>
         </div>
       </div>
       
@@ -114,23 +195,61 @@
 
     <!-- Input area -->
     <div class="p-3 md:p-4 border-t border-gray-200 bg-gray-50" *ngIf="username">
-      <div class="flex items-center space-x-2 md:space-x-3">
-        <input type="text" 
+      
+      <!-- Reply preview -->
+      <div *ngIf="replyingTo" class="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-start justify-between">
+        <div class="flex-1">
+          <div class="text-xs text-blue-600 font-medium mb-1">Replying to {{replyingTo.username}}</div>
+          <div class="text-sm text-blue-800 italic">"{{replyingTo.text.substring(0, 80)}}{{replyingTo.text.length > 80 ? '...' : ''}}"</div>
+        </div>
+        <button (click)="cancelReply()" class="text-blue-500 hover:text-blue-700 ml-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Users mention list -->
+      <div *ngIf="showUsersList" class="mb-2 max-h-32 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-md">
+        <div *ngFor="let user of filteredUsers" 
+             (click)="selectMention(user)"
+             class="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0">
+          <div class="flex items-center space-x-2">
+            <div class="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
+              {{user.charAt(0).toUpperCase()}}
+            </div>
+            <span class="text-sm font-medium">{{user}}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 md:space-x-3 relative">        <textarea #messageInput
                [(ngModel)]="newMessage" 
-               (keyup.enter)="sendMessage()"
+               (input)="onInputChange($event)"
+               (keydown.enter)="$event.preventDefault(); sendMessage()"
                (focus)="markMessagesAsRead(); forceScrollToBottom()"
-               placeholder="Type your message..."
+               placeholder="Type your message... (Use @ to mention someone)"
                maxlength="500"
-               class="flex-1 px-3 py-2 md:px-4 md:py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white text-sm md:text-base">
+               rows="1"
+               style="resize: none; overflow: hidden; scrollbar-width: none; -ms-overflow-style: none;"
+               class="flex-1 px-3 py-2 md:px-4 md:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white text-sm md:text-base resize-none"></textarea>
         <button class="p-2 md:p-2.5 bg-gradient-to-r from-primary-500 to-purple-600 text-white rounded-full hover:from-primary-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105" 
                 (click)="sendMessage()" 
                 [disabled]="!newMessage.trim()"
                 aria-label="Send message">
-          <i class="fas fa-paper-plane text-sm"></i>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+          </svg>
         </button>
-      </div>
-      <div class="text-xs text-gray-500 mt-1 text-right" *ngIf="newMessage.length > 400">
-        {{newMessage.length}}/500
+      </div>      
+      <div class="flex justify-between items-center mt-2 text-xs">
+        <div class="text-gray-500">
+          <span *ngIf="replyingTo">💬 Replying • </span>
+          <span>Use &#64; to mention users</span>
+        </div>
+        <div class="text-gray-500" *ngIf="newMessage.length > 400">
+          {{newMessage.length}}/500
+        </div>
       </div>
     </div>
 

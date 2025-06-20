@@ -1,0 +1,115 @@
+/* WhatsApp-like chat styles */
+
+.messages-area {
+  scroll-behavior: smooth;
+}
+
+/* Mention highlighting */
+.mention {
+  @apply bg-blue-100 text-blue-800 px-1 py-0.5 rounded font-medium;
+}
+
+/* Reaction picker styles */
+.reaction-picker {
+  @apply absolute bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex space-x-1 z-20;
+}
+
+.reaction-button {
+  @apply hover:bg-gray-100 rounded p-1 text-lg transition-colors duration-200 cursor-pointer;
+}
+
+.reaction-button:hover {
+  transform: scale(1.1);
+}
+
+/* Reaction display styles */
+.reaction-display {
+  @apply inline-flex items-center space-x-1 bg-gray-200 hover:bg-gray-300 rounded-full px-2 py-1 text-xs transition-all duration-200 cursor-pointer;
+}
+
+.reaction-display:hover {
+  transform: scale(1.05);
+}
+
+.reaction-display.user-reacted {
+  @apply bg-blue-200 hover:bg-blue-300;
+}
+
+/* Action buttons animation */
+.action-buttons {
+  @apply opacity-0 group-hover:opacity-100 transition-opacity duration-200;
+}
+
+/* ...existing code...
+
+/* Hover effects for message bubbles */
+.group:hover .group-hover\\:opacity-100 {
+  opacity: 1;
+}
+
+/* Reply preview styles */
+.reply-preview {
+  @apply border-l-4 border-blue-400 bg-blue-50 p-2 rounded-r-lg mb-2;
+}
+
+/* User mention dropdown */
+.mention-dropdown {
+  @apply absolute bottom-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg max-h-32 overflow-y-auto;
+}
+
+/* Animation for new messages */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-enter {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+/* Responsive improvements */
+@media (max-width: 640px) {
+  .chat-container {
+    width: calc(100vw - 2rem) !important;
+    height: calc(100vh - 4rem) !important;
+    left: 1rem !important;
+    right: 1rem !important;
+    bottom: 1rem !important;
+    top: 1rem !important;
+  }
+}
+
+/* Custom scrollbar for messages area */
+.messages-area::-webkit-scrollbar {
+  width: 4px;
+}
+
+.messages-area::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.messages-area::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.messages-area::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Hide scrollbar in textarea input */
+textarea::-webkit-scrollbar {
+  display: none;
+}
+
+textarea {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}

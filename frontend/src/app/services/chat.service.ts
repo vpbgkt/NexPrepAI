@@ -5,9 +5,18 @@ import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service'; 
 
 export interface ChatMessage {
+  id?: string; // Unique message ID for replies
   username: string;
   text: string;
   timestamp: Date;
+  mentions?: string[]; // Array of mentioned usernames
+  replyTo?: {
+    messageId: string;
+    username: string;
+    text: string; // Preview of original message
+  };
+  isEdited?: boolean;
+  reactions?: { [emoji: string]: string[] }; // emoji -> array of usernames
 }
 
 @Injectable({
@@ -39,13 +48,16 @@ export class ChatService {
     if (this.socket) {
         this.socket.disconnect();
     }
-    
-    this.socket = io(environment.socketUrl, {
+      this.socket = io(environment.socketUrl, {
       auth: {
         token: token
       },
-      transports: ['websocket', 'polling'],
-      autoConnect: false // Don't connect automatically
+      transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
+      autoConnect: false, // Don't connect automatically
+      timeout: 10000, // 10 second connection timeout
+      forceNew: true, // Force new connection
+      upgrade: true, // Allow upgrading to websocket
+      rememberUpgrade: false // Don't remember the transport type
     });
 
     this.socket.on('connect', () => {
@@ -59,19 +71,17 @@ export class ChatService {
       }
       // Request initial messages immediately after connection
       this.socket.emit('requestInitChat');
-    });
-
-    this.socket.on('connect_error', (err) => {
+    });    this.socket.on('connect_error', (err) => {
       console.error('❌ Connection Error:', err.message);
+      console.error('Socket URL:', environment.socketUrl);
+      console.error('Error details:', err);
       this.handleConnectionError();
     });
 
     this.socket.on('auth_error', (data) => {
       console.error('🔒 Authentication Error:', data.message);
       this.handleAuthError(data);
-    });
-
-    this.socket.on('disconnect', (reason) => {
+    });    this.socket.on('disconnect', (reason) => {
       console.log('🔌 Socket disconnected:', reason);
       // Only attempt reconnection for certain disconnect reasons
       if (reason === 'io server disconnect' || reason === 'transport close') {
@@ -80,12 +90,22 @@ export class ChatService {
     });
 
     this.socket.on('messageBroadcast', (message: any) => {
-      console.log('Received messageBroadcast:', message);
-      // Ensure the timestamp is a proper Date object
-      const parsedMessage: ChatMessage = {
+      console.log('Received messageBroadcast:', {
+        id: message.id,
         username: message.username,
         text: message.text,
-        timestamp: new Date(message.timestamp)
+        mentions: message.mentions,
+        replyTo: message.replyTo
+      });
+        // Ensure the timestamp is a proper Date object and include all message properties
+      const parsedMessage: ChatMessage = {
+        id: message.id,
+        username: message.username,
+        text: message.text,
+        timestamp: new Date(message.timestamp),
+        mentions: message.mentions,
+        replyTo: message.replyTo,
+        reactions: message.reactions
       };
       
       // Add message to local array and notify subscribers
@@ -94,14 +114,29 @@ export class ChatService {
     });
 
     this.socket.on('initChat', (messages: any[]) => {
-      console.log('Received initChat with', messages.length, 'messages');
-      // Parse dates for all messages
+      console.log('Received initChat with', messages.length, 'messages');      // Parse dates for all messages and include all properties
       const parsedMessages = messages.map(msg => ({
-        ...msg,
-        timestamp: new Date(msg.timestamp)
+        id: msg.id,
+        username: msg.username,
+        text: msg.text,
+        timestamp: new Date(msg.timestamp),
+        mentions: msg.mentions,
+        replyTo: msg.replyTo,
+        reactions: msg.reactions
       }));
       this.messages = parsedMessages.slice(-this.MAX_MESSAGES);
       this.initChatSubject.next(this.messages);
+    });
+    
+    this.socket.on('reactionUpdate', (data: { messageId: string, reactions: { [emoji: string]: string[] } }) => {
+      console.log('Received reaction update:', data);
+      // Find and update the message with new reactions
+      const messageIndex = this.messages.findIndex(msg => msg.id === data.messageId);
+      if (messageIndex !== -1) {
+        this.messages[messageIndex].reactions = data.reactions;
+        // Notify subscribers of the update
+        this.newMessageSubject.next(this.messages[messageIndex]);
+      }
     });
     
     // Connect immediately
@@ -221,16 +256,30 @@ export class ChatService {
     console.log('🔄 ChatService: Reconnecting with new token...');
     this.disconnect();
     this.initializeSocket();
-  }
-
-  sendMessage(text: string): void {
-    if (text && text.trim() !== '') {
+  }  sendMessage(messageData: string | Partial<ChatMessage>): void {
+    let messageToSend: any;
+    
+    if (typeof messageData === 'string') {
+      // Legacy string message
+      messageToSend = messageData;
+    } else {
+      // Enhanced message object
+      messageToSend = {
+        text: messageData.text,
+        mentions: messageData.mentions,
+        replyTo: messageData.replyTo,
+        id: messageData.id || Date.now().toString()
+      };
+      console.log('📤 Sending enhanced message:', messageToSend);
+    }
+    
+    if (messageToSend && (typeof messageToSend === 'string' ? messageToSend.trim() !== '' : messageToSend.text?.trim() !== '')) {
       // Check token expiration before sending
       if (this.authService.isTokenExpired(60)) { // 1 minute before expiry
         console.log('Token about to expire, refreshing before sending message...');
         this.authService.refreshToken().subscribe({
           next: () => {
-            this.sendMessageInternal(text);
+            this.sendMessageInternal(messageToSend);
           },
           error: (error) => {
             console.error('Failed to refresh token before sending message:', error);
@@ -240,27 +289,35 @@ export class ChatService {
           }
         });
       } else {
-        this.sendMessageInternal(text);
+        this.sendMessageInternal(messageToSend);
       }
     }
   }
-
-  private sendMessageInternal(text: string): void {
+  private sendMessageInternal(messageData: string | any): void {
     if (this.socket.connected) {
-      console.log('📤 Sending message:', text);
-      this.socket.emit('newMessage', text);
+      console.log('📤 Sending message:', messageData);
+      this.socket.emit('newMessage', messageData);
     } else {
       console.warn('Socket not connected, trying to reconnect...');
       this.connect();
       // Use a longer timeout to ensure connection is established
       setTimeout(() => {
         if (this.socket.connected) {
-          console.log('Reconnected, sending message:', text);
-          this.socket.emit('newMessage', text);
+          console.log('Reconnected, sending message:', messageData);
+          this.socket.emit('newMessage', messageData);
         } else {
           console.error('❌ Failed to send message: Socket still not connected');
         }
       }, 1000);
+    }
+  }
+
+  sendReaction(messageId: string, emoji: string): void {
+    if (this.socket.connected) {
+      console.log('📤 Sending reaction:', { messageId, emoji });
+      this.socket.emit('addReaction', { messageId, emoji });
+    } else {
+      console.error('❌ Cannot send reaction: Socket not connected');
     }
   }
 
