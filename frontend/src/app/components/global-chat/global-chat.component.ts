@@ -39,12 +39,25 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
   
   username: string | null = null;
   shouldScrollToBottom = true;
-  
-  // Chat bubble state
+    // Chat bubble state
   isMinimized: boolean = true;
   hasUnreadMessages: boolean = false;
   unreadCount: number = 0;
   private lastReadMessageCount: number = 0;
+  
+  // Resizable chat window properties
+  chatWidth: number = 450; // Default width
+  chatHeight: number = 600; // Default height
+  minWidth: number = 300;
+  maxWidth: number = 800;
+  minHeight: number = 400;
+  maxHeight: number = 800;
+  isResizing: boolean = false;
+  resizeDirection: string = '';
+  startX: number = 0;
+  startY: number = 0;
+  startWidth: number = 0;
+  startHeight: number = 0;
   
   // Mention and reply features
   replyingTo: ChatMessage | null = null;
@@ -501,9 +514,136 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
   getReactionUsers(message: ChatMessage, emoji: string): string[] {
     return message.reactions?.[emoji] || [];
   }
-
   // Helper method for template to access Object.keys
   getObjectKeys(obj: any): string[] {
     return Object.keys(obj || {});
+  }
+
+  // Resize functionality methods
+  startResize(event: MouseEvent, direction: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    this.isResizing = true;
+    this.resizeDirection = direction;
+    this.startX = event.clientX;
+    this.startY = event.clientY;
+    this.startWidth = this.chatWidth;
+    this.startHeight = this.chatHeight;
+    
+    // Add global mouse event listeners
+    document.addEventListener('mousemove', this.onMouseMove.bind(this));
+    document.addEventListener('mouseup', this.stopResize.bind(this));
+    
+    // Prevent text selection while resizing
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = this.getCursorForDirection(direction);
+  }  private onMouseMove(event: MouseEvent): void {
+    if (!this.isResizing) return;
+    
+    const deltaX = event.clientX - this.startX;
+    const deltaY = event.clientY - this.startY;
+    
+    // Calculate new dimensions based on resize direction
+    let newWidth = this.startWidth;
+    let newHeight = this.startHeight;
+    
+    if (this.resizeDirection.includes('right')) {
+      newWidth = this.startWidth + deltaX;
+    }
+    if (this.resizeDirection.includes('left')) {
+      newWidth = this.startWidth - deltaX;
+    }
+    if (this.resizeDirection.includes('bottom')) {
+      newHeight = this.startHeight + deltaY;
+    }
+    if (this.resizeDirection.includes('top')) {
+      newHeight = this.startHeight - deltaY;
+    }
+    
+    // Apply viewport-aware constraints
+    const maxAllowedWidth = Math.min(this.maxWidth, window.innerWidth - 40);
+    const maxAllowedHeight = Math.min(this.maxHeight, window.innerHeight - 40);
+    
+    newWidth = Math.max(this.minWidth, Math.min(maxAllowedWidth, newWidth));
+    newHeight = Math.max(this.minHeight, Math.min(maxAllowedHeight, newHeight));
+    
+    // Update dimensions
+    this.chatWidth = newWidth;
+    this.chatHeight = newHeight;
+    
+    // Scroll to bottom after resize to maintain message visibility
+    setTimeout(() => {
+      this.forceScrollToBottom();
+    }, 0);
+  }
+
+  private stopResize(): void {
+    this.isResizing = false;
+    this.resizeDirection = '';
+    
+    // Remove global event listeners
+    document.removeEventListener('mousemove', this.onMouseMove.bind(this));
+    document.removeEventListener('mouseup', this.stopResize.bind(this));
+    
+    // Restore normal cursor and text selection
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+  }
+  private getCursorForDirection(direction: string): string {
+    switch (direction) {
+      case 'right': return 'ew-resize';
+      case 'left': return 'ew-resize';
+      case 'bottom': return 'ns-resize';
+      case 'top': return 'ns-resize';
+      case 'bottom-right': return 'nwse-resize';
+      case 'bottom-left': return 'nesw-resize';
+      case 'top-right': return 'nesw-resize';
+      case 'top-left': return 'nwse-resize';
+      default: return 'default';
+    }
+  }
+  getChatStyle(): any {
+    if (this.isMinimized) {
+      return {};
+    }
+    
+    // For mobile, use full screen
+    if (window.innerWidth <= 640) {
+      return {
+        width: 'calc(100vw - 2rem)',
+        height: 'calc(100vh - 4rem)',
+        left: '1rem',
+        right: '1rem',
+        bottom: '1rem',
+        top: '1rem'
+      };
+    }
+    
+    // For desktop, use resizable dimensions with viewport constraints
+    const maxAllowedWidth = Math.min(this.maxWidth, window.innerWidth - 40);
+    const maxAllowedHeight = Math.min(this.maxHeight, window.innerHeight - 40);
+    
+    const constrainedWidth = Math.min(this.chatWidth, maxAllowedWidth);
+    const constrainedHeight = Math.min(this.chatHeight, maxAllowedHeight);
+    
+    return {
+      width: `${constrainedWidth}px`,
+      height: `${constrainedHeight}px`
+    };
+  }
+
+  // Add method to reset to default size
+  resetChatSize(): void {
+    this.chatWidth = 450;
+    this.chatHeight = 600;
+  }
+
+  // Add method to maximize chat (within limits)
+  maximizeChat(): void {
+    if (window.innerWidth > 640) {
+      this.chatWidth = Math.min(this.maxWidth, window.innerWidth - 80);
+      this.chatHeight = Math.min(this.maxHeight, window.innerHeight - 80);
+    }
   }
 }
