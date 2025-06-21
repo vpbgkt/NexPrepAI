@@ -529,11 +529,7 @@ exports.submitAttempt = async (req, res) => {
               (!isNATQuestion && normalizedSelectedArray.length > 0)
             );
 
-            if (questionAttempted) {
-              // User attempted this question
-              // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
-              if (questionId === debugQuestionId) {              }
-              
+            if (questionAttempted) {              // User attempted this question
               let correctOptionTexts = [];
               const defaultTranslation = masterQuestionData.translations?.find(t => t.lang === 'en');
               const optionsSource = defaultTranslation?.options || masterQuestionData.options;
@@ -665,12 +661,7 @@ exports.submitAttempt = async (req, res) => {
               // Genuinely not attempted by the user (no selected array or empty selected array for this questionId)
               statusForThisSlot = 'unanswered';
               earnedForThisSlot = 0;
-              
-              // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
-              if (questionId === debugQuestionId) {
-                console.log(`[DEBUG ${attemptId}] Question ${questionId} marked NOT-ATTEMPTED. Earned: ${earnedForThisSlot}`);
-              }
-              // #### END DEBUG LOGGING ####
+  
             }
             calculatedScore += earnedForThisSlot;            processedResponses.push({
               question: questionId,
