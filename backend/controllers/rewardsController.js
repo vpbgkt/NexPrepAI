@@ -50,20 +50,20 @@ class RewardsController {  /**
         message: 'Error fetching reward dashboard' 
       });
     }
-  }
-  /**
+  }  /**
    * Get Available Rewards Endpoint
    * 
-   * Retrieves rewards that the user can redeem based on their points and level.
-   * Filters rewards by user eligibility, active status, and availability dates.
+   * Retrieves all active rewards visible to the user, regardless of their current points.
+   * This shows users what they can work towards while indicating which rewards
+   * they can currently redeem based on their points and level.
    * 
    * @route GET /api/rewards/available
    * @access Private (Students only)
    * @param {Object} req.user - Authenticated user object
-   * @param {string} req.user.userId - User ID to check reward eligibility
-   * @returns {Object} Available rewards list with user's current point balance
+   * @param {string} req.user.userId - User ID to check eligibility against
+   * @returns {Object} All active rewards with user points for frontend eligibility checking
    * @throws {404} User not found
-   * @throws {500} Server error during reward filtering
+   * @throws {500} Server error during reward retrieval
    */
   static async getAvailableRewards(req, res) {
     try {
@@ -77,13 +77,37 @@ class RewardsController {  /**
         });
       }
 
-      const rewards = await Reward.getAvailableForUser(user);
+      // Get all active rewards instead of filtering by user points
+      // This allows frontend to show all rewards with appropriate UI states
+      const now = new Date();
+      const rewards = await Reward.find({
+        isActive: true,
+        validFrom: { $lte: now },
+        $or: [
+          { validUntil: null },
+          { validUntil: { $gte: now } }
+        ],
+        $or: [
+          { isLimited: false },
+          { remainingQuantity: { $gt: 0 } }
+        ]
+      }).sort({ displayOrder: 1, pointsCost: 1 });
+
+      // Add eligibility information to each reward for frontend convenience
+      const rewardsWithEligibility = rewards.map(reward => {
+        const rewardObj = reward.toObject();
+        rewardObj.isEligible = reward.isEligibleUser(user);
+        rewardObj.canAfford = user.rewardPoints >= reward.pointsCost;
+        rewardObj.meetsLevel = (user.level || 1) >= reward.minimumLevel;
+        return rewardObj;
+      });
       
       res.json({
         success: true,
         data: {
           userPoints: user.rewardPoints || 0,
-          rewards
+          userLevel: user.level || 1,
+          rewards: rewardsWithEligibility
         }
       });
     } catch (error) {

@@ -99,22 +99,45 @@ import { RewardService, RewardSummary, Reward, RewardTransaction, LeaderboardEnt
             <div *ngIf="!loading && availableRewards.length === 0" class="text-center py-12">
               <div class="text-6xl mb-4">🎁</div>
               <h3 class="text-xl font-semibold text-gray-900 mb-2">No Rewards Available</h3>
-              <p class="text-gray-600">Keep earning points through referrals to unlock amazing rewards!</p>
-            </div>
-
+              <p class="text-gray-600">Keep earning points through referrals to unlock amazing rewards!</p>            </div>
+            
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" *ngIf="!loading && availableRewards.length > 0">
               <div 
                 *ngFor="let reward of availableRewards" 
-                [class]="'bg-white border rounded-lg shadow-sm p-6 transition-all duration-200 hover:shadow-md ' + 
-                         ((rewardSummary?.currentPoints || 0) < reward.pointsCost ? 'opacity-60' : 'hover:border-blue-200')">
-                <div class="flex justify-between items-start mb-4">
-                  <h3 class="text-lg font-semibold text-gray-900">{{ reward.title }}</h3>
+                [class]="'bg-white border rounded-lg shadow-sm p-6 transition-all duration-200 hover:shadow-md relative ' + 
+                         (reward.isEligible ? 'hover:border-blue-200 border-l-4 border-l-green-400' : 
+                          reward.canAfford === false ? 'border-l-4 border-l-red-300 bg-gray-50' : 
+                          'border-l-4 border-l-yellow-300 bg-yellow-50')">
+                
+                <!-- Eligibility badge -->
+                <div class="absolute top-2 right-2">
+                  <span *ngIf="reward.isEligible" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    ✓ Available
+                  </span>
+                  <span *ngIf="!reward.canAfford && reward.meetsLevel" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    Need {{ reward.pointsCost - (rewardSummary?.currentPoints || 0) }} pts
+                  </span>
+                  <span *ngIf="!reward.meetsLevel" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    Level {{ reward.minimumLevel }} required
+                  </span>
+                </div>
+
+                <div class="flex justify-between items-start mb-4 pr-20">
+                  <h3 [class]="'text-lg font-semibold ' + (reward.isEligible ? 'text-gray-900' : 'text-gray-600')">
+                    {{ reward.title }}
+                  </h3>
                   <div class="text-right">
-                    <span class="text-2xl font-bold text-blue-600">{{ reward.pointsCost }}</span>
+                    <span [class]="'text-2xl font-bold ' + (reward.isEligible ? 'text-blue-600' : 'text-gray-500')">
+                      {{ reward.pointsCost }}
+                    </span>
                     <span class="text-sm text-gray-500 ml-1">pts</span>
                   </div>
                 </div>
-                <p class="text-gray-600 mb-4">{{ reward.description }}</p>
+                
+                <p [class]="'mb-4 ' + (reward.isEligible ? 'text-gray-600' : 'text-gray-500')">
+                  {{ reward.description }}
+                </p>
+                
                 <div class="flex justify-between items-center mb-4">
                   <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                     {{ getCategoryDisplayName(reward.category) }}
@@ -123,18 +146,69 @@ import { RewardService, RewardSummary, Reward, RewardTransaction, LeaderboardEnt
                     {{ reward.remainingQuantity }}/{{ reward.totalQuantity }} left
                   </span>
                 </div>
+
+                <!-- Enhanced progress bar for insufficient points -->
+                <div *ngIf="!reward.canAfford && reward.meetsLevel" class="mb-4">
+                  <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm text-gray-600">Progress</span>
+                    <span class="text-sm text-gray-600">{{ getProgressPercentage(reward) }}%</span>
+                  </div>
+                  <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      class="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-300"
+                      [style.width.%]="getProgressPercentage(reward)">
+                    </div>
+                  </div>
+                  <p class="text-xs text-gray-500 mt-1">
+                    Earn {{ reward.pointsCost - (rewardSummary?.currentPoints || 0) }} more points to unlock this reward
+                  </p>
+                </div>
+
+                <!-- Level requirement info -->
+                <div *ngIf="!reward.meetsLevel" class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div class="flex items-center space-x-2">
+                    <svg class="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span class="text-sm text-yellow-800">Requires Level {{ reward.minimumLevel }}</span>
+                  </div>
+                  <p class="text-xs text-yellow-700 mt-1">Complete more tests to increase your level</p>
+                </div>
+
+                <!-- Action button with enhanced states -->
                 <button 
-                  [class]="'w-full py-2 px-4 rounded-md font-medium transition-colors duration-200 ' + 
-                           ((rewardSummary?.currentPoints || 0) < reward.pointsCost || redeemingReward ? 
-                            'bg-gray-300 text-gray-500 cursor-not-allowed' : 
-                            'bg-blue-600 text-white hover:bg-blue-700')"
-                  [disabled]="(rewardSummary?.currentPoints || 0) < reward.pointsCost || redeemingReward"
-                  (click)="redeemReward(reward)">
-                  <span *ngIf="!redeemingReward">
-                    {{ (rewardSummary?.currentPoints || 0) < reward.pointsCost ? 'Insufficient Points' : 'Redeem' }}
+                  [disabled]="!reward.isEligible || redeemingReward"
+                  [class]="'w-full py-2 px-4 rounded-md font-medium transition-all duration-200 ' +
+                           (reward.isEligible ? 
+                             'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transform hover:scale-105' :
+                             'bg-gray-300 text-gray-500 cursor-not-allowed')"
+                  (click)="reward.isEligible ? redeemReward(reward) : null">
+                  <span *ngIf="redeemingReward" class="inline-flex items-center">
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Redeeming...
                   </span>
-                  <span *ngIf="redeemingReward">Redeeming...</span>
+                  <span *ngIf="!redeemingReward && reward.isEligible">
+                    🎁 Redeem Now
+                  </span>
+                  <span *ngIf="!redeemingReward && !reward.isEligible && !reward.canAfford && reward.meetsLevel">
+                    💰 Need More Points
+                  </span>
+                  <span *ngIf="!redeemingReward && !reward.isEligible && !reward.meetsLevel">
+                    🔒 Level Required
+                  </span>
                 </button>
+
+                <!-- Motivational call-to-action for non-eligible rewards -->
+                <div *ngIf="!reward.isEligible" class="mt-3 text-center">
+                  <button 
+                    class="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    (click)="setActiveTab('earn')">
+                    How to earn more points? →
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -181,9 +255,7 @@ import { RewardService, RewardSummary, Reward, RewardTransaction, LeaderboardEnt
               (click)="loadMoreTransactions()">
               View All Transactions
             </button>
-          </div>
-
-          <!-- Leaderboard Tab -->
+          </div>          <!-- Leaderboard Tab -->
           <div *ngIf="activeTab === 'leaderboard'">
             <div class="flex items-center justify-center py-12" *ngIf="loading">
               <div class="text-center">
@@ -224,49 +296,113 @@ import { RewardService, RewardSummary, Reward, RewardTransaction, LeaderboardEnt
                 </div>
               </div>
             </div>
-          </div>
-
-          <!-- How to Earn Tab -->
+          </div><!-- How to Earn Tab -->
           <div *ngIf="activeTab === 'earn'">
             <div class="mb-8">
               <h3 class="text-xl font-semibold text-gray-900 mb-6">💡 How to Earn Points</h3>
               
+              <!-- Quick tip for current points needed -->
+              <div *ngIf="getPointsNeededForNextReward() > 0" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div class="flex items-center space-x-2">
+                  <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                  </svg>
+                  <span class="text-blue-800 font-medium">Quick Tip</span>
+                </div>
+                <p class="text-blue-700 mt-2">
+                  You need <strong>{{ getPointsNeededForNextReward() }} more points</strong> to unlock your next reward! 
+                  <br><span class="text-sm">Refer just {{ Math.ceil(getPointsNeededForNextReward() / 100) }} friends to get there.</span>
+                </p>
+              </div>
+              
               <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white border rounded-lg p-6">
+                <div class="bg-white border rounded-lg p-6 hover:shadow-md transition-all duration-200">
                   <div class="text-3xl mb-4">👥</div>
                   <h4 class="text-lg font-semibold text-gray-900 mb-2">Refer Friends</h4>
                   <p class="text-gray-600 mb-2">Earn <strong class="text-blue-600">100 points</strong> for each successful referral</p>
-                  <p class="text-gray-600">Your friend gets <strong class="text-green-600">50 points</strong> as a welcome bonus!</p>
+                  <p class="text-gray-600 mb-4">Your friend gets <strong class="text-green-600">50 points</strong> as a welcome bonus!</p>
+                  <div class="text-sm text-gray-500">
+                    <p>✓ Fastest way to earn points</p>
+                    <p>✓ Help friends discover NexPrep</p>
+                    <p>✓ Both of you benefit</p>
+                  </div>
                 </div>
 
-                <div class="bg-white border rounded-lg p-6">
+                <div class="bg-white border rounded-lg p-6 hover:shadow-md transition-all duration-200">
                   <div class="text-3xl mb-4">🎯</div>
                   <h4 class="text-lg font-semibold text-gray-900 mb-2">Reach Milestones</h4>
-                  <p class="text-gray-600 mb-2">Get bonus points for referral milestones:</p>
-                  <ul class="text-sm text-gray-600 space-y-1">
-                    <li>5 referrals: <strong class="text-blue-600">200 bonus points</strong></li>
-                    <li>10 referrals: <strong class="text-blue-600">500 bonus points</strong></li>
-                    <li>25 referrals: <strong class="text-blue-600">1,000 bonus points</strong></li>
-                  </ul>
+                  <p class="text-gray-600 mb-4">Get bonus points for referral milestones:</p>
+                  <div class="space-y-2">
+                    <div class="flex justify-between items-center text-sm">
+                      <span class="text-gray-600">5 referrals:</span>
+                      <strong class="text-blue-600">+200 pts</strong>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                      <span class="text-gray-600">10 referrals:</span>
+                      <strong class="text-blue-600">+500 pts</strong>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                      <span class="text-gray-600">25 referrals:</span>
+                      <strong class="text-blue-600">+1,000 pts</strong>
+                    </div>
+                  </div>
                 </div>
 
-                <div class="bg-white border rounded-lg p-6">
-                  <div class="text-3xl mb-4">📱</div>
-                  <h4 class="text-lg font-semibold text-gray-900 mb-2">Daily Activities</h4>
-                  <p class="text-gray-600 mb-2">Earn points through regular app usage:</p>
-                  <ul class="text-sm text-gray-600 space-y-1">
-                    <li>Daily login: <strong class="text-blue-600">5 points</strong></li>
-                    <li>Complete a test: <strong class="text-blue-600">10 points</strong></li>
-                  </ul>
+                <div class="bg-white border rounded-lg p-6 hover:shadow-md transition-all duration-200">
+                  <div class="text-3xl mb-4">�</div>
+                  <h4 class="text-lg font-semibold text-gray-900 mb-2">Study Activities</h4>
+                  <p class="text-gray-600 mb-4">Earn points through regular study:</p>
+                  <div class="space-y-2">
+                    <div class="flex justify-between items-center text-sm">
+                      <span class="text-gray-600">Daily login:</span>
+                      <strong class="text-blue-600">+5 pts</strong>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                      <span class="text-gray-600">Complete test:</span>
+                      <strong class="text-blue-600">+10 pts</strong>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                      <span class="text-gray-600">Weekly streak:</span>
+                      <strong class="text-blue-600">+25 pts</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Calculation helper -->
+              <div class="bg-gray-50 border rounded-lg p-6 mb-6">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">📊 Points Calculator</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h5 class="font-medium text-gray-700 mb-2">Want to earn 500 points?</h5>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                      <li>• Refer 5 friends = 500 points</li>
+                      <li>• Or refer 3 friends + daily login for 20 days = 500 points</li>
+                      <li>• Or refer 4 friends + complete 10 tests = 500 points</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h5 class="font-medium text-gray-700 mb-2">Want to earn 1000 points?</h5>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                      <li>• Refer 10 friends = 1000 points</li>
+                      <li>• Or refer 8 friends + complete 20 tests = 1000 points</li>
+                      <li>• Or reach 10-referral milestone = 1500 points total!</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
 
               <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-6 text-white text-center">
-                <h4 class="text-xl font-semibold mb-2">Start Referring Now!</h4>
-                <p class="mb-4">Share your referral link and start earning points today.</p>
-                <button class="bg-white text-blue-600 px-6 py-2 rounded-md font-medium hover:bg-gray-100 transition-colors duration-200" (click)="goToProfile()">
-                  Get Your Referral Link
-                </button>
+                <h4 class="text-xl font-semibold mb-2">🚀 Start Earning Today!</h4>
+                <p class="mb-4">Share your referral link and help friends discover NexPrep while earning points.</p>
+                <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                  <button class="bg-white text-blue-600 px-6 py-2 rounded-md font-medium hover:bg-gray-100 transition-colors duration-200" (click)="goToProfile()">
+                    Get Your Referral Link
+                  </button>
+                  <button class="bg-white/20 text-white px-6 py-2 rounded-md font-medium hover:bg-white/30 transition-colors duration-200" (click)="setActiveTab('rewards')">
+                    View All Rewards
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -423,12 +559,34 @@ export class RewardsDashboardComponent implements OnInit, OnDestroy {
   formatPoints(points: number): string {
     return this.rewardService.formatPoints(points);
   }
-
   isCurrentUser(email: string): boolean {
     // This would need to be implemented based on your auth service
     // For now, return false
     return false;
   }
+  getProgressPercentage(reward: Reward): number {
+    const currentPoints = this.rewardSummary?.currentPoints || 0;
+    const progress = (currentPoints / reward.pointsCost) * 100;
+    return Math.min(progress, 100);
+  }
+
+  getPointsNeededForNextReward(): number {
+    const currentPoints = this.rewardSummary?.currentPoints || 0;
+    
+    // Find the cheapest reward that user can't afford yet
+    const nextReward = this.availableRewards
+      .filter(reward => !reward.canAfford && reward.meetsLevel)
+      .sort((a, b) => a.pointsCost - b.pointsCost)[0];
+    
+    if (nextReward) {
+      return nextReward.pointsCost - currentPoints;
+    }
+    
+    return 0;
+  }
+
+  // Add Math to the component for template usage
+  Math = Math;
 
   private showMessage(message: string, type: 'success' | 'error'): void {
     this.message = message;

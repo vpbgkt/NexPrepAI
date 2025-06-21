@@ -45,6 +45,10 @@ export interface Reward {
   validFrom: Date;
   validUntil?: Date;
   isAvailable?: boolean;
+  // New eligibility fields from backend
+  isEligible?: boolean;
+  canAfford?: boolean;
+  meetsLevel?: boolean;
 }
 
 export interface RewardRedemption {
@@ -117,10 +121,9 @@ export class RewardService {
         })
       );
   }
-
   // Get available rewards for user
-  getAvailableRewards(): Observable<{ success: boolean; data: { userPoints: number; rewards: Reward[] } }> {
-    return this.http.get<{ success: boolean; data: { userPoints: number; rewards: Reward[] } }>(`${this.apiUrl}/available`)
+  getAvailableRewards(): Observable<{ success: boolean; data: { userPoints: number; userLevel: number; rewards: Reward[] } }> {
+    return this.http.get<{ success: boolean; data: { userPoints: number; userLevel: number; rewards: Reward[] } }>(`${this.apiUrl}/available`)
       .pipe(
         tap(response => {
           if (response.success) {
