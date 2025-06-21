@@ -49,6 +49,7 @@ const TestAttempt  = require('../models/TestAttempt');
 const Question     = require('../models/Question');
 const mongoose = require('mongoose'); // Added mongoose require
 const User = require('../models/User'); // Import User model
+const AntiCheatingService = require('../services/antiCheatingService');
 
 /**
  * Utility function to randomly shuffle array elements using Fisher-Yates algorithm
@@ -182,16 +183,13 @@ exports.startTest = async (req, res) => {
       return res.status(429).json({
         message: `Max ${series.maxAttempts} attempts reached for this test.`
       });
-    }
-
-    // Delete only IN-PROGRESS attempts (not submitted ones) for this user and series
+    }    // Delete only IN-PROGRESS attempts (not submitted ones) for this user and series
     // This ensures user can start fresh if they had an incomplete attempt
     const deleteResult = await TestAttempt.deleteMany({ 
       student: userId, 
       series: seriesId, 
       status: 'in-progress' 
     });
-    console.log(`[${userId}] Deleted ${deleteResult.deletedCount} in-progress attempts for series ${seriesId}`);
 
     // pick a variant if available
     let selectedVariant = undefined;
@@ -233,31 +231,18 @@ exports.startTest = async (req, res) => {
     let processedLayout = JSON.parse(JSON.stringify(initialLayout)); // Deep copy to ensure plain objects and no side effects
 
     // Enhanced logging for section randomization
-    // console.log(`[${userId}] StartTest: Initial section count for randomization: ${initialLayout.length}`);
-    // console.log(`[${userId}] StartTest: series.randomizeSectionOrder flag is: ${series.randomizeSectionOrder}`);
+    // console.log(`[${userId}] StartTest: Initial section count for randomization: ${initialLayout.length}`);    // console.log(`[${userId}] StartTest: series.randomizeSectionOrder flag is: ${series.randomizeSectionOrder}`);
     // if (initialLayout.length > 0) {
     //   console.log(`[${userId}] StartTest: Initial sections (order, title from initialLayout): ${initialLayout.map(s => `(Order: ${s.order}, Title: '${s.title}')`).join('; ')}`);
     //   console.log(`[${userId}] StartTest: Sections for processing (order, title from processedLayout before shuffle): ${processedLayout.map(s => `(Order: ${s.order}, Title: '${s.title}')`).join('; ')}`);
     // }
-
+    
     if (series.randomizeSectionOrder && processedLayout.length > 1) {
-      console.log(`[${userId}] StartTest: Applying section shuffle as randomizeSectionOrder is true and section count > 1.`);
       processedLayout = shuffleArray(processedLayout);
       // Re-assign order based on new shuffled positions
       processedLayout.forEach((sec, index) => {
         sec.order = index + 1;
       });
-      // console.log(`[${userId}] StartTest: After shuffle - New sections order (order, title): ${processedLayout.map(s => `(Order: ${s.order}, Title: '${s.title}')`).join('; ')}`);
-    } else if (processedLayout.length <= 1) {
-      // console.log(`[${userId}] StartTest: Not shuffling sections - only one or zero sections present.`);
-      // if (processedLayout.length > 0) {
-      //   console.log(`[${userId}] StartTest: Sections order (no shuffle, <=1 section): ${processedLayout.map(s => `(Order: ${s.order}, Title: '${s.title}')`).join('; ')}`);
-      // }
-    } else { // series.randomizeSectionOrder is false
-      // console.log(`[${userId}] StartTest: Not shuffling sections - randomizeSectionOrder is false.`);
-      // if (processedLayout.length > 0) {
-      //   console.log(`[${userId}] StartTest: Sections order (no shuffle, flag false): ${processedLayout.map(s => `(Order: ${s.order}, Title: '${s.title}')`).join('; ')}`);
-      // }
     }
 
     for (let i = 0; i < processedLayout.length; i++) {
@@ -276,9 +261,8 @@ exports.startTest = async (req, res) => {
         section.questions = shuffleArray(section.questions);
       }
     }
-    
-    // Log the state of processedLayout right before creating detailedSectionsForAttempt
-    console.log(`[${userId}] StartTest: Processed layout before detailing:`, JSON.stringify(processedLayout, null, 2));    // now build detailed sections for the frontend and for storing in TestAttempt
+      // Log the state of processedLayout right before creating detailedSectionsForAttempt
+    // now build detailed sections for the frontend and for storing in TestAttempt
     // using the processedLayout
     const detailedSectionsForAttempt = await Promise.all(
       processedLayout.map(async sec => ({
@@ -362,7 +346,7 @@ exports.startTest = async (req, res) => {
             return {
               question:     q.question.toString(),
               marks:        q.marks || 1,
-              negativeMarks: q.negativeMarks === undefined ? 0 : q.negativeMarks,
+              negativeMarks: q.negativeMarks === undefined ? 0 : q.marks,
               translations: translations,
               questionText: questionText,
               options:      options,
@@ -374,9 +358,7 @@ exports.startTest = async (req, res) => {
           })
         )
       }))
-    );
-      // Log the final detailedSectionsForAttempt that will be saved and sent to frontend
-    console.log(`[${userId}] StartTest: Final detailedSectionsForAttempt:`, JSON.stringify(detailedSectionsForAttempt, null, 2));
+    );      // Log the final detailedSectionsForAttempt that will be saved and sent to frontend
 
     const startedAt = new Date();
     let expiresAt = null;
@@ -396,20 +378,10 @@ exports.startTest = async (req, res) => {
       status:      'in-progress',
       startedAt,
       expiresAt,
-      remainingDurationSeconds
-    });
-    await attempt.save();    // Debug: Log what we're sending to frontend
-    console.log(`[${userId}] StartTest: Sending to frontend - sections summary:`, 
-      detailedSectionsForAttempt.map(s => ({
-        title: s.title,
-        order: s.order,
-        questionCount: s.questions?.length || 0,
-        firstQuestionId: s.questions?.[0]?.question
-      }))
-    );
-    
-    // Additional debug: Log complete sections data
-    console.log(`[${userId}] StartTest: Complete sections data being sent:`, JSON.stringify(detailedSectionsForAttempt, null, 2));
+      remainingDurationSeconds,
+      // Initialize strict mode if required
+      strictModeEnabled: AntiCheatingService.isStrictModeExam(series)
+    });    await attempt.save();
 
     // Ensure newAttempt is defined and has _id
     if (!attempt || !attempt._id) {
@@ -482,19 +454,14 @@ exports.submitAttempt = async (req, res) => {
       });
     }
 
-    const questionIdsFromAttempt = Array.from(attemptQuestionsMap.keys());    const masterQuestions = await Question.find({ '_id': { $in: questionIdsFromAttempt } })
+    const questionIdsFromAttempt = Array.from(attemptQuestionsMap.keys());
+    const masterQuestions = await Question.find({ '_id': { $in: questionIdsFromAttempt } })
                                           .select('translations type options numericalAnswer') // Include numericalAnswer for NAT questions
                                           .lean();
-    
-    const masterQuestionsMap = new Map(masterQuestions.map(qDoc => [qDoc._id.toString(), qDoc]));    console.log(`--- Starting Grade Calculation for Attempt: ${attemptId} ---`);    console.log(`User ID: ${userId}`);
-    // console.log(`Raw responses from client (length ${responses.length}):`, JSON.stringify(responses, null, 2));
+      const masterQuestionsMap = new Map(masterQuestions.map(qDoc => [qDoc._id.toString(), qDoc]));
     
     // Create a position-indexed array of responses to handle duplicate question IDs
     const clientResponsesArray = Array.isArray(responses) ? responses : [];
-    console.log(`Client responses received (length ${clientResponsesArray.length}):`, JSON.stringify(clientResponsesArray, null, 2));
-    
-    // Debug: Show what question instance keys are in the client responses
-    console.log(`[SUBMIT_DEBUG] Client response keys:`, clientResponsesArray.map(r => r.questionInstanceKey));
     
     const processedResponses = [];
     let sectionIndex = 0; // Track section index for composite key generation
@@ -504,22 +471,10 @@ exports.submitAttempt = async (req, res) => {
         if (section.questions && Array.isArray(section.questions)) {
           let questionIndex = 0; // Track question index within section for composite key generation
           
-          for (const attemptQuestion of section.questions) { // These are the questions as defined in the attempt structure
-            const questionId = attemptQuestion.question.toString();
+          for (const attemptQuestion of section.questions) { // These are the questions as defined in the attempt structure            const questionId = attemptQuestion.question.toString();
               // Create composite key that matches frontend format: questionId_sectionIdx_questionIdx
             const questionInstanceKey = `${questionId}_${sectionIndex}_${questionIndex}`;
             
-            // Enhanced debug logging for all questions during submission
-            console.log(`[SUBMIT_DEBUG] Processing Q${questionIndex + 1} in Section ${sectionIndex}: ${questionId}`);
-            console.log(`[SUBMIT_DEBUG] Expected questionInstanceKey: ${questionInstanceKey}`);
-            
-            // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
-            // Replace 'SPECIFIC_QUESTION_ID_HERE' with an actual ID you want to trace
-            const debugQuestionId = 'REPLACE_WITH_ACTUAL_QUESTION_ID_TO_DEBUG'; // Example: '60c72b2f9b1d8c001f8e4c22'
-            if (questionId === debugQuestionId) {
-              console.log(`[DEBUG ${attemptId}] Processing question ${questionId} with key ${questionInstanceKey}`);
-            }
-            // #### END DEBUG LOGGING ####
             const questionDetailsFromAttempt = attemptQuestionsMap.get(questionId); // Marks, negative marks from attempt structure
             const masterQuestionData = masterQuestionsMap.get(questionId); // Full question data from DB
 
@@ -541,24 +496,11 @@ exports.submitAttempt = async (req, res) => {
                 if (userResponseForThisSlot.selected !== "") {
                     normalizedSelectedArray = [userResponseForThisSlot.selected];
                 }
-              }
-            }
+              }            }
             
-            // Enhanced debug: Log the matching result for ALL questions
-            console.log(`[SUBMIT_DEBUG] Looking for response with key: ${questionInstanceKey}`);
-            console.log(`[SUBMIT_DEBUG] Found matching response: ${userResponseForThisSlot ? 'YES' : 'NO'}`);
-            if (userResponseForThisSlot) {
-              console.log(`[SUBMIT_DEBUG] Response selected (original):`, userResponseForThisSlot.selected);
-              console.log(`[SUBMIT_DEBUG] Response selected (normalized):`, normalizedSelectedArray);
-            }
-            
-            // Debug: Log the matching result for troubleshooting
-            if (questionId === debugQuestionId) {
-              console.log(`[DEBUG ${attemptId}] Found response for ${questionInstanceKey}:`, userResponseForThisSlot ? 'YES' : 'NO');
-            }
-
             if (!questionDetailsFromAttempt || !masterQuestionData) {
-              console.warn(`[${attemptId}] Missing details for question ${questionId} in attempt structure or master DB. Skipping for grading.`);              processedResponses.push({
+              console.warn(`[${attemptId}] Missing details for question ${questionId} in attempt structure or master DB. Skipping for grading.`);
+              processedResponses.push({
                 question: questionId,
                 questionInstanceKey: questionInstanceKey, // Add the composite key for matching in review
                 selected: normalizedSelectedArray, // Use normalized array
@@ -575,18 +517,11 @@ exports.submitAttempt = async (req, res) => {
                 calculatedMaxScore += (questionDetailsFromAttempt.marks || 0);
               }
               continue; 
-            }
-
-            const qMarks = questionDetailsFromAttempt.marks || 0;
+            }            const qMarks = questionDetailsFromAttempt.marks || 0;
             const qNegativeMarks = typeof questionDetailsFromAttempt.negativeMarks === 'number' ? questionDetailsFromAttempt.negativeMarks : 0;
             calculatedMaxScore += qMarks;
 
-            // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
-            if (questionId === debugQuestionId) {
-              console.log(`[DEBUG ${attemptId}] User response for ${questionId}:`, JSON.stringify(userResponseForThisSlot, null, 2));
-              console.log(`[DEBUG ${attemptId}] Master question data for ${questionId}:`, JSON.stringify(masterQuestionData, null, 2));
-            }
-            // #### END DEBUG LOGGING ####            // Check if question was attempted - for NAT questions check numericalAnswer, for others check selected
+            // Check if question was attempted - for NAT questions check numericalAnswer, for others check selected
             const isNATQuestion = masterQuestionData.type === 'integer' || masterQuestionData.type === 'numerical';
             const questionAttempted = userResponseForThisSlot && (
               (isNATQuestion && userResponseForThisSlot.numericalAnswer !== undefined && userResponseForThisSlot.numericalAnswer !== null) ||
@@ -596,10 +531,8 @@ exports.submitAttempt = async (req, res) => {
             if (questionAttempted) {
               // User attempted this question
               // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
-              if (questionId === debugQuestionId) {
-                console.log(`[DEBUG ${attemptId}] Question ${questionId} was attempted by user.`);
-              }
-              // #### END DEBUG LOGGING ####
+              if (questionId === debugQuestionId) {              }
+              
               let correctOptionTexts = [];
               const defaultTranslation = masterQuestionData.translations?.find(t => t.lang === 'en');
               const optionsSource = defaultTranslation?.options || masterQuestionData.options;
@@ -613,40 +546,18 @@ exports.submitAttempt = async (req, res) => {
                   const selectedIndex = parseInt(String(normalizedSelectedArray[0]), 10); // Use normalizedSelectedArray
                   if (selectedIndex >= 0 && selectedIndex < optionsSource.length) {
                     const selectedOptionText = optionsSource[selectedIndex].text;
-                    if (correctOptionTexts.includes(selectedOptionText)) {
-                      earnedForThisSlot = qMarks;
+                    if (correctOptionTexts.includes(selectedOptionText)) {                      earnedForThisSlot = qMarks;
                       statusForThisSlot = 'correct';
-                      // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
-                      if (questionId === debugQuestionId) {
-                        console.log(`[DEBUG ${attemptId}] Question ${questionId} marked CORRECT. Earned: ${earnedForThisSlot}`);
-                      }
-                      // #### END DEBUG LOGGING ####
                     } else {
                       earnedForThisSlot = -qNegativeMarks;
                       statusForThisSlot = 'incorrect';
-                      // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
-                      if (questionId === debugQuestionId) {
-                        console.log(`[DEBUG ${attemptId}] Question ${questionId} marked INCORRECT (wrong answer). Earned: ${earnedForThisSlot}`);
-                      }
-                      // #### END DEBUG LOGGING ####
-                    }
-                  } else {
+                    }                  } else {
                     earnedForThisSlot = -qNegativeMarks; // Invalid index
                     statusForThisSlot = 'incorrect';
-                    // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
-                    if (questionId === debugQuestionId) {
-                      console.log(`[DEBUG ${attemptId}] Question ${questionId} marked INCORRECT (invalid index). Earned: ${earnedForThisSlot}`);
-                    }
-                    // #### END DEBUG LOGGING ####
                   }
                 } else {
                   earnedForThisSlot = -qNegativeMarks; // Multiple selected for SCQ or no options source
                   statusForThisSlot = 'incorrect';
-                  // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
-                  if (questionId === debugQuestionId) {
-                    console.log(`[DEBUG ${attemptId}] Question ${questionId} marked INCORRECT (multiple selected for SCQ or no options). Earned: ${earnedForThisSlot}`);
-                  }
-                  // #### END DEBUG LOGGING ####
                 }
               } else if (masterQuestionData.type === 'multiple') {
                 const selectedOptionTextsForMSQ = [];
@@ -678,7 +589,8 @@ exports.submitAttempt = async (req, res) => {
                 } else { 
                     earnedForThisSlot = 0;
                     statusForThisSlot = selectedOptionTextsForMSQ.length > 0 ? 'incorrect' : 'not-attempted';
-                }              } else if (masterQuestionData.type === 'integer' || masterQuestionData.type === 'numerical') {
+                }
+              } else if (masterQuestionData.type === 'integer' || masterQuestionData.type === 'numerical') {
                 // Handle Numerical Answer Type (NAT) questions
                 // For NAT questions, get the answer from numericalAnswer field, not selected
                 const studentAnswer = parseFloat(userResponseForThisSlot.numericalAnswer);
@@ -747,26 +659,19 @@ exports.submitAttempt = async (req, res) => {
                   earnedForThisSlot = 0;
                   statusForThisSlot = 'incorrect';
                 }
-              }            } else {
+              }
+            } else {
               // Genuinely not attempted by the user (no selected array or empty selected array for this questionId)
               statusForThisSlot = 'unanswered';
-              earnedForThisSlot = 0;// #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
+              earnedForThisSlot = 0;
+              
+              // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
               if (questionId === debugQuestionId) {
                 console.log(`[DEBUG ${attemptId}] Question ${questionId} marked NOT-ATTEMPTED. Earned: ${earnedForThisSlot}`);
               }
               // #### END DEBUG LOGGING ####
             }
-              calculatedScore += earnedForThisSlot;
-
-            // Enhanced debug logging for final status
-            console.log(`[SUBMIT_DEBUG] Question ${questionId} final status: ${statusForThisSlot}, earned: ${earnedForThisSlot}`);
-
-            // #### START DEBUG LOGGING FOR A SPECIFIC QUESTION ID ####
-            if (questionId === debugQuestionId) {
-              console.log(`[DEBUG ${attemptId}] Final status for ${questionId}: ${statusForThisSlot}, Earned: ${earnedForThisSlot}. Pushing to processedResponses.`);
-            }
-              // #### END DEBUG LOGGING ####
-            processedResponses.push({
+            calculatedScore += earnedForThisSlot;            processedResponses.push({
               question: questionId,
               questionInstanceKey: questionInstanceKey, // Add the composite key for matching in review
               selected: normalizedSelectedArray, // Use normalized array
@@ -780,16 +685,13 @@ exports.submitAttempt = async (req, res) => {
               visitedAt: userResponseForThisSlot?.visitedAt,
               lastModifiedAt: userResponseForThisSlot?.lastModifiedAt
             });
-              // Increment question index within current section
+            // Increment question index within current section
             questionIndex++;
           }
         }
         // Increment section index after processing all questions in the section
         sectionIndex++;
-      }
-    }
-
-    console.log(`[${attemptId}] PRE-SAVE CHECK: Calculated Score: ${calculatedScore}, Calculated MaxScore: ${calculatedMaxScore}`);
+      }    }
 
     // Refetch the attempt just before saving to get the latest version
     const freshAttempt = await TestAttempt.findById(attemptId);
@@ -817,9 +719,7 @@ exports.submitAttempt = async (req, res) => {
       console.warn(`[${attemptId}] Warning: startedAt is not defined on freshAttempt during submit. timeTakenSeconds will be null.`);
       freshAttempt.timeTakenSeconds = null;
     }
-
     freshAttempt.remainingDurationSeconds = 0; // Standard for completed attempts
-
     await freshAttempt.save(); // Persist the changes
 
     // Return success response with details from the saved attempt
@@ -834,7 +734,6 @@ exports.submitAttempt = async (req, res) => {
 
   } catch (err) {
     console.error('❌ Error in submitAttempt:', err);
-    // It's good practice to check if headers have already been sent before trying to send a response.
     if (!res.headersSent) {
       return res.status(500).json({ message: 'Failed to submit test', error: err.message });
     }
@@ -960,13 +859,9 @@ exports.submitTest = async (req, res) => {
  * @throws {500} Server error during save operation
  */
 exports.saveProgress = async (req, res) => {
-  // ADD THIS LINE FOR DEBUGGING
-  console.log('Backend received saveProgress request. Body:', JSON.stringify(req.body, null, 2));
-  console.log('Backend received saveProgress responses:', JSON.stringify(req.body.responses, null, 2));
-
   try {
     const { attemptId: currentAttemptId } = req.params; // Renamed to avoid conflict
-    const { responses, timeLeft } = req.body; 
+    const { responses, timeLeft } = req.body;
 
     const currentAttempt = await TestAttempt.findById(currentAttemptId); // Renamed to avoid conflict
     if (!currentAttempt) {
@@ -1534,7 +1429,7 @@ exports.getEnhancedReview = async (req, res) => {
                     }
 
                     // Debug logging to help identify the issue
-                    console.log(`[getEnhancedReview] Question ${questionData.question.toString()}: response found = ${!!response}, response.selected = ${response?.selected}, status = ${response?.status}`);                    let userSelectedOptionTexts = [];
+                    let userSelectedOptionTexts = [];
                     let correctOptionTexts = [];
                     let actualCorrectOptionIds = [];
                     let userNumericalAnswer = null;
@@ -1576,6 +1471,7 @@ exports.getEnhancedReview = async (req, res) => {
                                 ? response.selected 
                                 : [response.selected];
                             
+
                             userSelectedOptionTexts = selectedArray.map(selectedIndex => {
                                 const idx = parseInt(String(selectedIndex), 10);
                                 if (idx >= 0 && idx < optionsSourceForDisplay.length) {
@@ -1776,563 +1672,478 @@ exports.getStudyRecommendations = async (req, res) => {
     res.json(weaknessAnalysis);
 
   } catch (err) {
-    console.error('❌ Error in getStudyRecommendations:', err);
-    res.status(500).json({ message: 'Failed to get recommendations', error: err.message });
+    console.error('❌ Error in getStudyRecommendations:', err);    res.status(500).json({ message: 'Failed to get recommendations', error: err.message });
   }
 };
 
 // ────────────────────────────────────────────────────────────────────────────────
-// Helper Functions for Analytics and Performance Analysis
+// Anti-Cheating Functions for Strict Mode Exams
 // ────────────────────────────────────────────────────────────────────────────────
 
 /**
- * Calculate performance grade based on percentage score
- * 
- * @description Converts numerical percentage to letter grade using standard
- * grading scale. Used for performance analytics and student progress tracking.
- * 
- * @param {number} percentage - Percentage score (0-100)
- * @returns {string} Letter grade (A+, A, B, C, D, F)
- * 
- * @example
- * getGrade(95); // Returns 'A+'
- * getGrade(75); // Returns 'B'
- * getGrade(45); // Returns 'F'
+ * Log a cheating event for strict mode exams
  */
-function getGrade(percentage) {
-  if (percentage >= 90) return 'A+';
-  if (percentage >= 80) return 'A';
-  if (percentage >= 70) return 'B';
-  if (percentage >= 60) return 'C';
-  if (percentage >= 50) return 'D';
-  return 'F';
-}
+exports.logCheatingEvent = async (req, res) => {
+  try {
+    const { attemptId } = req.params;
+    const { type, severity, description, questionIndex, timeRemaining, currentSection } = req.body;
+    const userId = req.user.id;
 
-/**
- * Generate comprehensive performance summary for student feedback
- * 
- * @description Creates detailed narrative summary of student performance including
- * accuracy analysis, improvement trends, and motivational feedback. Combines
- * current attempt results with historical performance data for context.
- * 
- * @param {Object} attempt - Test attempt object with series information
- * @param {Object} performanceAnalytics - Current attempt performance metrics
- * @param {Object} comparativeAnalytics - Historical comparison data
- * @returns {string} Formatted performance summary text
- * 
- * @example
- * const summary = generatePerformanceSummary(attempt, analytics, comparison);
- * // Returns: "Your overall performance on JEE Main Practice Test shows 75.5% accuracy 
- * //          with significant improvement of 8.2% from your previous attempts..."
- */
-function generatePerformanceSummary(attempt, performanceAnalytics, comparativeAnalytics) {
-  const accuracy = performanceAnalytics.overall.accuracy;
-  const improvement = comparativeAnalytics.improvement;
-  
-  let summary = `Your overall performance on ${attempt.series.title} shows ${accuracy.toFixed(1)}% accuracy `;
-  
-  if (improvement > 5) {
-    summary += `with significant improvement of ${improvement.toFixed(1)}% from your previous attempts. `;
-  } else if (improvement > 0) {
-    summary += `with slight improvement of ${improvement.toFixed(1)}% from your previous attempts. `;
-  } else if (improvement < -5) {
-    summary += `showing a decline of ${Math.abs(improvement).toFixed(1)}% from your previous attempts. `;
-  } else {
-    summary += `maintaining consistent performance. `;
-  }
-  
-  if (accuracy >= 80) {
-    summary += "Excellent work! You're demonstrating strong mastery of the subject matter.";
-  } else if (accuracy >= 70) {
-    summary += "Good performance with room for improvement. Focus on the recommended areas.";
-  } else if (accuracy >= 60) {
-    summary += "Fair performance. Increased study time and focus on weak areas will help improve your scores.";
-  } else {
-    summary += "This exam highlights key areas for improvement. Follow the action plan for better results.";
-  }
-  
-  return summary;
-}
+    // Verify the attempt belongs to the user
+    const attempt = await TestAttempt.findOne({ _id: attemptId, student: userId });
+    if (!attempt) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Test attempt not found or access denied' 
+      });
+    }
 
-/**
- * Generate personalized study recommendations based on performance analysis
- * 
- * @description Analyzes performance metrics and weakness patterns to provide
- * targeted study recommendations. Considers accuracy levels, time management,
- * difficulty progression, and subject-specific performance patterns.
- * 
- * @param {Object} performanceAnalytics - Detailed performance breakdown
- * @param {Object} weaknessAnalysis - Identified weak areas and patterns
- * @returns {Array<string>} Array of personalized study recommendations
- * 
- * @example
- * const recommendations = generateStudyRecommendations(analytics, weaknesses);
- * // Returns: [
- * //   "Focus on fundamental concepts before attempting practice tests",
- * //   "Practice time management with timed question sets",
- * //   "Create a daily study schedule with regular practice sessions"
- * // ]
- */
-function generateStudyRecommendations(performanceAnalytics, weaknessAnalysis) {
-  const recommendations = [];
-  
-  // Based on accuracy
-  if (performanceAnalytics.overall.accuracy < 70) {
-    recommendations.push("Focus on fundamental concepts before attempting practice tests");
-    recommendations.push("Review incorrect answers thoroughly to understand mistakes");
-  }
-  
-  // Based on time management
-  if (performanceAnalytics.timeAnalysis.questionsOverTime > 5) {
-    recommendations.push("Practice time management with timed question sets");
-    recommendations.push("Identify question patterns that take longer and practice those specifically");
-  }
-  
-  // Based on difficulty performance
-  const diffBreakdown = performanceAnalytics.difficultyBreakdown;
-  if (diffBreakdown.Easy.total > 0 && (diffBreakdown.Easy.correct / diffBreakdown.Easy.total) < 0.8) {
-    recommendations.push("Strengthen foundation by focusing on easy-level questions first");
-  }
-  
- 
-  if (diffBreakdown.Hard.total > 0 && (diffBreakdown.Hard.correct / diffBreakdown.Hard.total) < 0.4) {
-    recommendations.push("Build up to harder questions gradually after mastering medium-level topics");
-  }
-  
-  // Generic recommendations
-  recommendations.push("Create a daily study schedule with regular practice sessions");
-  recommendations.push("Use active recall and spaced repetition techniques");
-  
-  return recommendations;
-}
+    // Check if strict mode is enabled
+    if (!attempt.strictModeEnabled) {
+      return res.status(400).json({
+        success: false,
+        message: 'Anti-cheating monitoring not enabled for this exam'
+      });
+    }
 
-/**
- * Generate actionable study plan for performance improvement
- * 
- * @description Creates specific, time-bound action items for students to improve
- * their performance. Considers current performance level and provides graduated
- * study intensity recommendations based on accuracy and weak areas.
- * 
- * @param {Object} performanceAnalytics - Performance analysis with accuracy and timing data
- * @returns {Array<string>} Array of specific action items for improvement
- * 
- * @example
- * const actionPlan = generateActionPlan(analytics);
- * // Returns: [
- * //   "Review all flagged and incorrect questions from this attempt",
- * //   "Spend 2-3 hours daily on foundational concepts",
- * //   "Take practice tests weekly to track improvement"
- * // ]
- */
-function generateActionPlan(performanceAnalytics) {
-  const actionPlan = [];
-  
-  actionPlan.push("Review all flagged and incorrect questions from this attempt");
-  actionPlan.push("Identify and study the top 3 weakest subject areas");
-  
-  if (performanceAnalytics.overall.accuracy < 60) {
-    actionPlan.push("Spend 2-3 hours daily on foundational concepts");
-  } else {
-    actionPlan.push("Spend 1-2 hours daily on targeted practice");
-  }
-  
-  actionPlan.push("Take practice tests weekly to track improvement");
-  actionPlan.push("Maintain a study log to track progress and identify patterns");
-  
-  return actionPlan;
-}
-
-/**
- * Identify primary focus areas for targeted study improvement
- * 
- * @description Analyzes performance data to identify the most critical areas
- * requiring student attention. Prioritizes subjects, concepts, and skills based
- * on performance gaps and improvement potential.
- * 
- * @param {Object} performanceAnalytics - Comprehensive performance breakdown including subject and difficulty analysis
- * @returns {Array<string>} Prioritized list of focus areas with performance indicators
- * 
- * @example
- * const focusAreas = identifyFocusAreas(analytics);
- * // Returns: [
- * //   "Physics (65.2% accuracy)",
- * //   "Chemistry (58.7% accuracy)", 
- * //   "Time Management Skills",
- * //   "Basic Concept Mastery"
- * // ]
- */
-function identifyFocusAreas(performanceAnalytics) {
-  const focusAreas = [];
-  
-  // Subject-wise focus
-  const subjects = Object.entries(performanceAnalytics.subjectPerformance)
-    .sort((a, b) => (a[1].correct / a[1].total) - (b[1].correct / b[1].total))
-    .slice(0, 3);
-  
-  subjects.forEach(([subject, stats]) => {
-    const accuracy = ((stats.correct / stats.total) * 100).toFixed(1);
-    focusAreas.push(`${subject} (${accuracy}% accuracy)`);
-  });
-  
-  // Time management if needed
-  if (performanceAnalytics.timeAnalysis.questionsOverTime > 3) {
-    focusAreas.push("Time Management Skills");
-  }
-  
-  // Difficulty-based focus
-  const diffBreakdown = performanceAnalytics.difficultyBreakdown;
-  if (diffBreakdown.Easy.total > 0 && (diffBreakdown.Easy.correct / diffBreakdown.Easy.total) < 0.8) {
-    focusAreas.push("Basic Concept Mastery");
-  }
-  
-  return focusAreas;
-}
-
-function getMotivationalMessage(accuracy) {
-  if (accuracy >= 85) {
-    return "Outstanding performance! You're well on your way to exam success. Keep up this excellent momentum!";
-  } else if (accuracy >= 75) {
-    return "Great job! You're showing strong progress. A little more focus on weak areas will get you to the top!";
-  } else if (accuracy >= 65) {
-    return "Good effort! You're building a solid foundation. Consistent practice will definitely improve your scores!";
-  } else {
-    return "Every expert was once a beginner. Use this analysis to guide your study plan and you'll see improvement soon!";
-  }
-}
-
-async function getQuestionsWithAnalytics(attempt) {
-  const questions = [];
-  
-  for (const section of attempt.sections || []) {
-    for (const qData of section.questions || []) {
-      const questionDetails = await Question.findById(qData.questionId).lean();
-      if (questionDetails) {
-        questions.push({
-          ...qData,
-          ...questionDetails,
-          timeSpent: qData.timeSpent || 0,
-          isCorrect: qData.isCorrect || false,
-          status: qData.status || 'unanswered',
-          flagged: qData.flagged || false,
-          difficulty: questionDetails.difficulty || 'Medium',
-          topics: questionDetails.topics || { subject: 'Unknown' }
-        });
-      }
-    }
-  }
-    return questions;
-}
-
-function calculatePerformanceAnalytics(attempt, questions) {
-  const totalQuestions = questions.length;
-  let correctAnswers = 0;
-  let incorrectAnswers = 0;
-  let unanswered = 0;
-  let totalTimeSpent = 0;
-  let flaggedCount = 0;
-  
-  // Difficulty breakdown
-  const difficultyBreakdown = {
-    Easy: { total: 0, correct: 0 },
-    Medium: { total: 0, correct: 0 },
-    Hard: { total: 0, correct: 0 }
-  };
-  
-  // Subject performance
-  const subjectPerformance = {};
-  
-  // Time analysis
-  let fastestQuestion = Infinity;
-  let slowestQuestion = 0;
-  let questionsOverTime = 0;
-    questions.forEach(q => {
-    // Basic counts
-    if (q.isCorrect) {
-      correctAnswers++;
-    } else if (q.status === 'incorrect') {
-      incorrectAnswers++;
-    } else {
-      unanswered++;
-    }
-    
-    // Time tracking
-    const timeSpent = q.timeSpent || 0;
-    totalTimeSpent += timeSpent;
-    
-    if (timeSpent > 0) {
-      fastestQuestion = Math.min(fastestQuestion, timeSpent);
-      slowestQuestion = Math.max(slowestQuestion, timeSpent);
-      
-      // Questions taking more than 2 minutes
-      if (timeSpent > 120) {
-        questionsOverTime++;
-      }
-    }
-    
-    // Flagged questions
-    if (q.flagged) {
-      flaggedCount++;
-    }
-    
-    // Difficulty breakdown
-    const difficulty = q.difficulty || 'Medium';
-    if (difficultyBreakdown[difficulty]) {
-      difficultyBreakdown[difficulty].total++;
-      if (q.isCorrect) {
-        difficultyBreakdown[difficulty].correct++;
-      }
-    }
-    
-    // Subject performance
-    const subject = q.topics?.subject || 'Unknown';
-    if (!subjectPerformance[subject]) {
-      subjectPerformance[subject] = { total: 0, correct: 0, timeSpent: 0 };
-    }
-    subjectPerformance[subject].total++;
-    subjectPerformance[subject].timeSpent += timeSpent;
-    if (q.isCorrect) {
-      subjectPerformance[subject].correct++;
-    }
-  });
-  
-  const accuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
-  const averageTimePerQuestion = totalQuestions > 0 ? totalTimeSpent / totalQuestions : 0;
-  
-  return {
-    overall: {
-      totalQuestions,
-      correctAnswers,
-      incorrectAnswers,
-      unanswered,
-      accuracy,
-      timeSpent: totalTimeSpent,
-      averageTimePerQuestion,
-      flaggedCount
-    },
-    difficultyBreakdown,
-    subjectPerformance,
-    timeAnalysis: {
-      fastestQuestion: fastestQuestion === Infinity ? 0 : fastestQuestion,
-      slowestQuestion,
-      questionsOverTime
-    }
-  };
-}
-
-function calculateComparativeAnalytics(currentAttempt, allAttempts) {
-  const currentScore = currentAttempt.score || 0;
-  const currentPercentage = currentAttempt.percentage || 0;
-  
-  if (!allAttempts || allAttempts.length <= 1) {
-    return {
-      currentScore,
-      averageScore: currentScore,
-      improvement: 0,
-      totalAttempts: 1,
-      rank: 1,
-      trend: 'first-attempt'
+    const eventData = {
+      type,
+      severity,
+      description,
+      questionIndex,
+      timeRemaining,
+      currentSection,
+      userAgent: req.headers['user-agent'],
+      screenResolution: req.body.screenResolution
     };
-  }
-  
-  // Calculate average score
-  const totalScore = allAttempts.reduce((sum, attempt) => sum + (attempt.score || 0), 0);
-  const averageScore = totalScore / allAttempts.length;
-  
-  // Calculate improvement from previous attempt
-  const sortedAttempts = allAttempts.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
-  const previousAttempt = sortedAttempts[1]; // Second most recent (first is current)
-  const improvement = previousAttempt ? currentPercentage - (previousAttempt.percentage || 0) : 0;
-  
-  // Calculate rank (simplified - based on current score vs average)
-  const rank = currentScore >= averageScore ? 1 : 2;
-  
-  // Determine trend
-  let trend = 'stable';
-  if (improvement > 5) trend = 'improving';
-  else if (improvement < -5) trend = 'declining';
-  
-  return {
-    currentScore,
-    averageScore,
-    improvement,
-    totalAttempts: allAttempts.length,
-    rank,
-    trend
-  };
-}
 
-async function analyzeWeaknesses(attempt, userId) {
-  // For now, return a simplified analysis
-  // In a full implementation, this would analyze patterns across multiple attempts
-  
-  const weakTopics = ['Organic Chemistry', 'Thermodynamics']; // Placeholder
-  const recommendedStudyTime = 120; // 2 hours
-  const focusAreas = ['Time Management', 'Accuracy'];
-  const nextSteps = [
-    'Review flagged questions',
-    'Practice similar difficulty questions', 
-    'Focus on time management'
-  ];
-    return {
-    weakTopics,
-    recommendedStudyTime,
-    focusAreas,
-    nextSteps
-  };
+    const result = await AntiCheatingService.logCheatingEvent(attemptId, eventData);
+
+    res.json({
+      success: true,
+      data: result,
+      message: result.shouldTerminate ? 'Exam terminated due to violations' : 'Event logged successfully'
+    });
+
+  } catch (error) {
+    console.error('Error logging cheating event:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to log cheating event',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get cheating statistics for a test attempt
+ */
+exports.getCheatingStats = async (req, res) => {
+  try {
+    const { attemptId } = req.params;
+    const userId = req.user.id;
+
+    // Verify the attempt belongs to the user or user is admin
+    const attempt = await TestAttempt.findOne({ _id: attemptId, student: userId });
+    if (!attempt && req.user.role !== 'admin') {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Test attempt not found or access denied' 
+      });
+    }
+
+    const stats = await AntiCheatingService.getCheatingStats(attemptId);
+
+    res.json({
+      success: true,
+      data: stats
+    });
+
+  } catch (error) {
+    console.error('Error getting cheating stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get cheating statistics',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Initialize strict mode for a test attempt
+ */
+exports.initializeStrictMode = async (req, res) => {
+  try {
+    const { attemptId } = req.params;
+    const userId = req.user.id;
+
+    // Verify the attempt belongs to the user
+    const attempt = await TestAttempt.findOne({ _id: attemptId, student: userId });
+    if (!attempt) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Test attempt not found or access denied' 
+      });
+    }
+
+    const result = await AntiCheatingService.initializeStrictMode(attemptId);
+
+    res.json({
+      success: true,
+      data: result,
+      message: 'Strict mode initialized successfully'
+    });
+
+  } catch (error) {
+    console.error('Error initializing strict mode:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to initialize strict mode',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Check if a test series requires strict mode
+ */
+exports.checkStrictMode = async (req, res) => {
+  try {
+    const { seriesId } = req.params;
+
+    const testSeries = await TestSeries.findById(seriesId).select('mode title');
+    if (!testSeries) {
+      return res.status(404).json({
+        success: false,
+        message: 'Test series not found'
+      });
+    }
+
+    const isStrictMode = AntiCheatingService.isStrictModeExam(testSeries);
+
+    res.json({
+      success: true,
+      data: {
+        isStrictMode,
+        mode: testSeries.mode,
+        title: testSeries.title,
+        requiresFullscreen: isStrictMode,
+        monitoringEnabled: isStrictMode
+      }
+    });
+
+  } catch (error) {
+    console.error('Error checking strict mode:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check strict mode status',
+      error: error.message
+    });
+  }
+};
+
+// ────────────────────────────────────────────────────────────────────────────────
+// Helper Functions
+// ────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Helper function to calculate percentage
+ */
+function calculatePercentage(score, maxScore) {
+  if (maxScore === 0) return 0;
+  return Math.round((score / maxScore) * 100);
 }
 
 /**
- * Score a single question based on its type and student response
- * @param {Object} questionDetails - Question details from attempt
- * @param {Array|String|Number} selected - Student's selected answer(s)
- * @returns {Object} - { earned: number, status: string }
+ * Helper function to score MCQ questions
  */
-function scoreQuestion(questionDetails, selected) {
-  const marks = questionDetails.marks || 1;
-  const negativeMarks = questionDetails.negativeMarks || 0;
-  const questionType = questionDetails.type;
+function scoreMCQ(questionDetails, selected, marks, negativeMarks) {
+  if (!selected || selected.length === 0) return { earned: 0, status: 'unanswered' };
+  
+  const correctOptions = questionDetails.options?.filter(opt => opt.isCorrect) || [];
+  if (correctOptions.length === 0) return { earned: 0, status: 'no-correct-answer' };
+  
+  const correctIds = correctOptions.map(opt => opt._id?.toString());
+  const isCorrect = selected.length === correctIds.length && 
+    selected.every(sel => correctIds.includes(sel));
+  
+  if (isCorrect) {
+    return { earned: marks, status: 'correct' };
+  } else {
+    return { earned: -negativeMarks, status: 'incorrect' };
+  }
+}
 
-  // Handle unanswered questions
-  if (!selected || selected === '' || (Array.isArray(selected) && selected.length === 0)) {
+/**
+ * Helper function to score NAT questions
+ */
+function scoreNAT(questionDetails, numericalAnswer, marks) {
+  if (numericalAnswer === null || numericalAnswer === undefined) {
     return { earned: 0, status: 'unanswered' };
   }
 
-  try {
-    switch (questionType) {
-      case 'single': // Single correct option
-        return scoreSingleChoice(questionDetails, selected, marks, negativeMarks);
-      
-      case 'multiple': // Multiple correct options
-        return scoreMultipleChoice(questionDetails, selected, marks, negativeMarks);
-      
-      case 'numerical':
-      case 'integer': // Numerical Answer Type (NAT)
-        return scoreNumerical(questionDetails, selected, marks, negativeMarks);
-      
-      case 'matrix': // Matrix match type
-        return scoreMatrix(questionDetails, selected, marks, negativeMarks);
-      
-      default:
-        console.warn(`Unknown question type: ${questionType}`);
-        return { earned: 0, status: 'incorrect' };
-    }
-  } catch (error) {
-    console.error(`Error scoring question ${questionDetails.question}:`, error);
-    return { earned: 0, status: 'incorrect' };
-  }
-}
-
-/**
- * Score single choice question
- */
-function scoreSingleChoice(questionDetails, selected, marks, negativeMarks) {
-  const selectedOption = Array.isArray(selected) ? selected[0] : selected;
-  
-  // Find correct option from translations or fallback options
-  let correctOptions = [];
-  
-  if (questionDetails.translations && questionDetails.translations.length > 0) {
-    const englishTranslation = questionDetails.translations.find(t => t.lang === 'en') || questionDetails.translations[0];
-    if (englishTranslation.options) {
-      correctOptions = englishTranslation.options.filter(opt => opt.isCorrect).map(opt => opt._id || opt.text);
-    }
-  } else if (questionDetails.options) {
-    correctOptions = questionDetails.options.filter(opt => opt.isCorrect).map(opt => opt._id || opt.text);
-  }
-
-  if (correctOptions.includes(selectedOption)) {
-    return { earned: marks, status: 'correct' };
-  } else {
-    return { earned: -negativeMarks, status: 'incorrect' };
-  }
-}
-
-/**
- * Score multiple choice question  
- */
-function scoreMultipleChoice(questionDetails, selected, marks, negativeMarks) {
-  const selectedOptions = Array.isArray(selected) ? selected : [selected];
-  
-  // Find correct options from translations or fallback options
-  let correctOptions = [];
-  
-  if (questionDetails.translations && questionDetails.translations.length > 0) {
-    const englishTranslation = questionDetails.translations.find(t => t.lang === 'en') || questionDetails.translations[0];
-    if (englishTranslation.options) {
-      correctOptions = englishTranslation.options.filter(opt => opt.isCorrect).map(opt => opt._id || opt.text);
-    }
-  } else if (questionDetails.options) {
-    correctOptions = questionDetails.options.filter(opt => opt.isCorrect).map(opt => opt._id || opt.text);
-  }
-
-  // Check if selected options exactly match correct options
-  const sortedSelected = [...selectedOptions].sort();
-  const sortedCorrect = [...correctOptions].sort();
-  
-  if (JSON.stringify(sortedSelected) === JSON.stringify(sortedCorrect)) {
-    return { earned: marks, status: 'correct' };
-  } else {
-    return { earned: -negativeMarks, status: 'incorrect' };
-  }
-}
-
-/**
- * Score numerical answer type (NAT) question
- */
-function scoreNumerical(questionDetails, selected, marks, negativeMarks) {
-  const studentAnswer = parseFloat(Array.isArray(selected) ? selected[0] : selected);
-  
+  const studentAnswer = parseFloat(numericalAnswer);
   if (isNaN(studentAnswer)) {
-    return { earned: 0, status: 'incorrect' };
-  }
-
-  // Get numerical answer from translations or fallback
-  let numericalAnswer = questionDetails.numericalAnswer;
-  
-  if (!numericalAnswer && questionDetails.translations && questionDetails.translations.length > 0) {
-    const englishTranslation = questionDetails.translations.find(t => t.lang === 'en') || questionDetails.translations[0];
-    numericalAnswer = englishTranslation.numericalAnswer;
-  }
-
-  if (!numericalAnswer) {
-    console.warn(`No numerical answer found for question ${questionDetails.question}`);
-    return { earned: 0, status: 'incorrect' };
+    return { earned: 0, status: 'invalid' };
   }
 
   // Check exact value
-  if (numericalAnswer.exactValue !== undefined) {
-    if (numericalAnswer.tolerance && numericalAnswer.tolerance > 0) {
-      // Check with tolerance (percentage-based)
-      const tolerance = (numericalAnswer.exactValue * numericalAnswer.tolerance) / 100;
-      const minValue = numericalAnswer.exactValue - tolerance;
-      const maxValue = numericalAnswer.exactValue + tolerance;
-      
-      if (studentAnswer >= minValue && studentAnswer <= maxValue) {
-        return { earned: marks, status: 'correct' };
-      }
-    } else {
-      // Exact match
-      if (Math.abs(studentAnswer - numericalAnswer.exactValue) < 0.001) { // Small epsilon for floating point comparison
-        return { earned: marks, status: 'correct' };
-      }
-    }
-  }
-  
-  // Check range
-  if (numericalAnswer.minValue !== undefined && numericalAnswer.maxValue !== undefined) {
-    if (studentAnswer >= numericalAnswer.minValue && studentAnswer <= numericalAnswer.maxValue) {
+  if (questionDetails.numericalAnswer?.exactValue !== undefined) {
+    if (Math.abs(studentAnswer - questionDetails.numericalAnswer.exactValue) < 0.001) {
       return { earned: marks, status: 'correct' };
     }
   }
 
-  return { earned: 0, status: 'incorrect' }; // NAT questions typically have no negative marking
+  // Check range
+  if (questionDetails.numericalAnswer?.minValue !== undefined && 
+      questionDetails.numericalAnswer?.maxValue !== undefined) {
+    if (studentAnswer >= questionDetails.numericalAnswer.minValue && 
+        studentAnswer <= questionDetails.numericalAnswer.maxValue) {
+      return { earned: marks, status: 'correct' };
+    }
+  }
+
+  return { earned: 0, status: 'incorrect' };
 }
 
 /**
- * Score matrix match question (placeholder - implement based on your matrix format)
+ * Helper function to calculate performance analytics
  */
-function scoreMatrix(questionDetails, selected, marks, negativeMarks) {
-  // Implement matrix scoring logic based on your specific matrix format
-  // This is a placeholder implementation
-  return { earned: 0, status: 'incorrect' };
+function calculatePerformanceAnalytics(attempt, detailedQuestions) {  
+  const analytics = {
+    totalQuestions: detailedQuestions.length,
+    attempted: 0,
+    correct: 0,
+    incorrect: 0,
+    unanswered: 0,
+    score: attempt.score || 0,
+    maxScore: attempt.maxScore || 0,
+    percentage: attempt.percentage || 0,
+    timeSpent: attempt.timeSpent || 0,
+    sectionWise: {},
+    difficultyWise: {
+      easy: { total: 0, correct: 0, attempted: 0 },
+      medium: { total: 0, correct: 0, attempted: 0 },
+      hard: { total: 0, correct: 0, attempted: 0 }
+    },
+    subjectWise: {}
+  };
+
+  // Process each question
+  detailedQuestions.forEach(question => {
+    const status = question.response?.status || 'unanswered';
+    const sectionTitle = question.sectionTitle || 'Unknown';
+    const difficulty = question.difficulty || 'medium';
+    const subjectName = question.subject?.name || 'Unknown';
+
+    // Overall statistics
+    if (status === 'correct') {
+      analytics.correct++;
+      analytics.attempted++;
+    } else if (status === 'incorrect') {
+      analytics.incorrect++;
+      analytics.attempted++;
+    } else {
+      analytics.unanswered++;
+    }
+
+    // Section-wise analytics
+    if (!analytics.sectionWise[sectionTitle]) {
+      analytics.sectionWise[sectionTitle] = {
+        total: 0,
+        attempted: 0,
+        correct: 0,
+        incorrect: 0,
+        unanswered: 0,
+        score: 0,
+        maxScore: 0
+      };
+    }
+    analytics.sectionWise[sectionTitle].total++;
+    analytics.sectionWise[sectionTitle][status]++;
+    if (status !== 'unanswered') {
+      analytics.sectionWise[sectionTitle].attempted++;
+    }
+    analytics.sectionWise[sectionTitle].score += question.response?.earnedMarks || 0;
+    analytics.sectionWise[sectionTitle].maxScore += question.marks || 0;
+
+    // Difficulty-wise analytics
+    if (analytics.difficultyWise[difficulty]) {
+      analytics.difficultyWise[difficulty].total++;
+      if (status !== 'unanswered') {
+        analytics.difficultyWise[difficulty].attempted++;
+      }
+      if (status === 'correct') {
+        analytics.difficultyWise[difficulty].correct++;
+      }
+    }
+
+    // Subject-wise analytics
+    if (!analytics.subjectWise[subjectName]) {
+      analytics.subjectWise[subjectName] = {
+        total: 0,
+        attempted: 0,
+        correct: 0,
+        incorrect: 0,
+        unanswered: 0,
+        score: 0,
+        maxScore: 0
+      };
+    }
+    analytics.subjectWise[subjectName].total++;
+    analytics.subjectWise[subjectName][status]++;
+    if (status !== 'unanswered') {
+      analytics.subjectWise[subjectName].attempted++;
+    }
+    analytics.subjectWise[subjectName].score += question.response?.earnedMarks || 0;
+    analytics.subjectWise[subjectName].maxScore += question.marks || 0;
+  });
+
+  // Calculate percentages for sections and subjects
+  Object.keys(analytics.sectionWise).forEach(section => {
+    const sectionData = analytics.sectionWise[section];
+    sectionData.percentage = sectionData.maxScore > 0 ? 
+      Math.round((sectionData.score / sectionData.maxScore) * 100 * 100) / 100 : 0;
+    sectionData.attemptRate = sectionData.total > 0 ? 
+      Math.round((sectionData.attempted / sectionData.total) * 100 * 100) / 100 : 0;
+    sectionData.accuracy = sectionData.attempted > 0 ? 
+      Math.round((sectionData.correct / sectionData.attempted) * 100 * 100) / 100 : 0;
+  });
+
+  Object.keys(analytics.subjectWise).forEach(subject => {
+    const subjectData = analytics.subjectWise[subject];
+    subjectData.percentage = subjectData.maxScore > 0 ? 
+      Math.round((subjectData.score / subjectData.maxScore) * 100 * 100) / 100 : 0;
+    subjectData.attemptRate = subjectData.total > 0 ? 
+      Math.round((subjectData.attempted / subjectData.total) * 100 * 100) / 100 : 0;
+    subjectData.accuracy = subjectData.attempted > 0 ? 
+      Math.round((subjectData.correct / subjectData.attempted) * 100 * 100) / 100 : 0;
+  });
+
+  // Calculate difficulty-wise percentages
+  Object.keys(analytics.difficultyWise).forEach(difficulty => {
+    const diffData = analytics.difficultyWise[difficulty];
+    diffData.attemptRate = diffData.total > 0 ? 
+      Math.round((diffData.attempted / diffData.total) * 100 * 100) / 100 : 0;
+    diffData.accuracy = diffData.attempted > 0 ? 
+      Math.round((diffData.correct / diffData.attempted) * 100 * 100) / 100 : 0;
+  });
+
+  // Calculate overall metrics
+  analytics.attemptRate = analytics.totalQuestions > 0 ? 
+    Math.round((analytics.attempted / analytics.totalQuestions) * 100 * 100) / 100 : 0;
+  analytics.accuracy = analytics.attempted > 0 ? 
+    Math.round((analytics.correct / analytics.attempted) * 100 * 100) / 100 : 0;
+  return analytics;
+}
+
+/**
+ * Helper function to calculate comparative analytics
+ */
+function calculateComparativeAnalytics(attempt, allAttempts) {  
+  if (!allAttempts || allAttempts.length === 0) {
+    return {
+      totalAttempts: 0,
+      averageScore: 0,
+      averagePercentage: 0,
+      rank: 1,
+      percentile: 100,
+      comparison: {
+        betterThan: 0,
+        percentageAboveAverage: 0
+      }
+    };
+  }
+
+  const scores = allAttempts.map(a => a.score || 0);
+  const percentages = allAttempts.map(a => a.percentage || 0);
+  
+  const averageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+  const averagePercentage = percentages.reduce((sum, pct) => sum + pct, 0) / percentages.length;
+  
+  // Calculate rank (1-based, lower is better)
+  const betterScores = scores.filter(score => score > (attempt.score || 0)).length;
+  const rank = betterScores + 1;
+  
+  // Calculate percentile
+  const percentile = Math.round(((allAttempts.length - rank + 1) / allAttempts.length) * 100 * 100) / 100;
+  
+  const comparison = {
+    betterThan: Math.round(((allAttempts.length - rank) / allAttempts.length) * 100 * 100) / 100,
+    percentageAboveAverage: Math.round(((attempt.percentage || 0) - averagePercentage) * 100) / 100
+  };
+  return {
+    totalAttempts: allAttempts.length,
+    averageScore: Math.round(averageScore * 100) / 100,
+    averagePercentage: Math.round(averagePercentage * 100) / 100,
+    rank,
+    percentile,
+    comparison
+  };
+}
+
+/**
+ * Helper function to analyze student weaknesses
+ */
+function analyzeWeaknesses(attempt, userId) {
+  // Basic weakness analysis based on attempt data
+  const weaknesses = [];
+  const recommendations = [];
+
+  if (!attempt.responses || attempt.responses.length === 0) {
+    return {
+      weakTopics: [],
+      recommendations: ['Complete more practice questions to identify areas for improvement.']
+    };
+  }
+
+  // Analyze incorrect responses
+  const incorrectCount = attempt.responses.filter(r => r.status === 'incorrect').length;
+  const unansweredCount = attempt.responses.filter(r => r.status === 'unanswered' || r.status === 'not-attempted').length;
+  const totalQuestions = attempt.responses.length;
+
+  if (incorrectCount > totalQuestions * 0.3) {
+    recommendations.push('Focus on understanding question concepts rather than memorization.');
+    recommendations.push('Practice more questions from topics with frequent mistakes.');
+  }
+
+  if (unansweredCount > totalQuestions * 0.2) {
+    recommendations.push('Work on time management during exams.');
+    recommendations.push('Practice solving questions within time limits.');
+  }
+
+  // Basic topic analysis (simplified)
+  const topicPerformance = {};
+  attempt.responses.forEach(response => {
+    if (response.topic) {
+      if (!topicPerformance[response.topic]) {
+        topicPerformance[response.topic] = { correct: 0, total: 0 };
+      }
+      topicPerformance[response.topic].total++;
+      if (response.status === 'correct') {
+        topicPerformance[response.topic].correct++;
+      }
+    }
+  });
+
+  // Find weak topics (< 50% accuracy)
+  Object.keys(topicPerformance).forEach(topic => {
+    const accuracy = topicPerformance[topic].correct / topicPerformance[topic].total;
+    if (accuracy < 0.5 && topicPerformance[topic].total >= 2) {
+      weaknesses.push({
+        topic: topic,
+        accuracy: Math.round(accuracy * 100),
+        questionsAttempted: topicPerformance[topic].total
+      });
+    }
+  });
+
+  if (weaknesses.length === 0) {
+    recommendations.push('Continue practicing to maintain your current performance level.');
+  }
+
+  return {
+    weakTopics: weaknesses,
+    recommendations: recommendations
+  };
 }

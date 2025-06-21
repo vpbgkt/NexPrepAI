@@ -139,10 +139,65 @@ const testAttemptSchema = new Schema({
     sectionTitle: String,
     timeSpent: Number // Time spent on each section in seconds
   }],
-  questionSequence: [{ type: String }], // Order in which questions were visited
-  totalTimeSpent: { type: Number, default: 0 }, // Total time spent on the test in seconds
+  questionSequence: [{ type: String }], // Order in which questions were visited  totalTimeSpent: { type: Number, default: 0 }, // Total time spent on the test in seconds
   averageTimePerQuestion: { type: Number }, // Calculated field for analytics
-  flaggedQuestions: [{ type: String }] // Array of question IDs that were flagged
+  flaggedQuestions: [{ type: String }], // Array of question IDs that were flagged
+  
+  // Anti-cheating fields (only for strict mode exams)
+  cheatingEvents: [{
+    type: {
+      type: String,
+      enum: [
+        'tab_switch', 'fullscreen_exit', 'copy_attempt', 'paste_attempt', 
+        'right_click', 'keyboard_shortcut', 'mouse_leave', 'window_blur',
+        'developer_tools', 'screen_sharing', 'suspicious_activity', 'multiple_violations'
+      ],
+      required: true
+    },
+    severity: {
+      type: String,
+      enum: ['low', 'medium', 'high'],
+      required: true
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
+    },
+    questionIndex: { type: Number },
+    description: { type: String },
+    metadata: {
+      timeRemaining: { type: Number },
+      currentSection: { type: String },
+      userAgent: { type: String },
+      screenResolution: { type: String }
+    }
+  }],
+  
+  cheatingScore: {
+    type: Number,
+    default: 0
+  },
+  
+  totalCheatingAttempts: {
+    type: Number,
+    default: 0
+  },
+  
+  examTerminatedForCheating: {
+    type: Boolean,
+    default: false
+  },
+  
+  integrityStatus: {
+    type: String,
+    enum: ['clean', 'flagged', 'terminated'],
+    default: 'clean'
+  },
+  
+  strictModeEnabled: {
+    type: Boolean,
+    default: false
+  }
 });
 
 // Added attemptNo field to the schema

@@ -68,6 +68,20 @@ const testSeriesSchema = new Schema({
     enum: ['practice', 'live', 'strict'],
     default: 'practice'
   },
+  
+  // Strict mode configuration settings
+  strictModeSettings: {
+    enforceFullScreen: { type: Boolean, default: true },
+    blockCopyPaste: { type: Boolean, default: true },
+    blockKeyboardShortcuts: { type: Boolean, default: true },
+    trackTabSwitches: { type: Boolean, default: true },
+    trackBlurEvents: { type: Boolean, default: true },
+    maxAllowedViolations: { type: Number, default: 5 },
+    autoSubmitOnMaxViolations: { type: Boolean, default: false },
+    warningThreshold: { type: Number, default: 3 }, // Show warnings after this many violations
+    showViolationCounter: { type: Boolean, default: true }
+  },
+
   startAt: {
     type: Date
   },

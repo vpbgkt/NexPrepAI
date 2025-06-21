@@ -27,6 +27,7 @@ import { TestService, StartTestResponse } from '../../services/test.service'; //
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators'; // Import takeUntil
 import { Subject, interval } from 'rxjs'; // Import Subject and interval
 import { MathDisplayComponent } from '../math-display/math-display.component';
+import { AntiCheatingService, AntiCheatingMonitor, CheatingEvent, StrictModeInfo } from '../../services/anti-cheating.service';
 
 /**
  * @interface QuestionOption
@@ -170,7 +171,66 @@ interface PlayerSection {
 @Component({
     selector: 'app-exam-player',
     imports: [CommonModule, ReactiveFormsModule, MathDisplayComponent],
-    templateUrl: './exam-player.component.html'
+    templateUrl: './exam-player.component.html',
+    styles: [`
+      .fullscreen-exam {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 9999 !important;
+        background: #f9fafb !important;
+      }
+      
+      .exam-interface {
+        width: 100% !important;
+        height: 100% !important;
+        overflow: hidden !important;
+      }
+      
+      :host {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      
+      ::ng-deep body.strict-mode {
+        overflow: hidden !important;
+      }
+      
+      ::ng-deep .nav-header {
+        display: none !important;
+      }
+        /* Ensure modals always appear above everything else */
+      ::ng-deep .modal-overlay {
+        z-index: 99999 !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+      }
+      
+      /* Reduce sidebar z-index and add dimming when modal is open */
+      ::ng-deep .sidebar-container.faded {
+        z-index: 1 !important;
+        position: relative !important;
+      }
+      
+      /* Add overlay effect for better visual separation */
+      .modal-active::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.3);
+        z-index: 9998;
+        pointer-events: none;
+      }
+    `]
 })
 export class ExamPlayerComponent implements OnInit, OnDestroy {
   // Make String constructor available in template
@@ -251,9 +311,26 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
   /** @property {Date} Timestamp of last successful auto-save */
   lastSavedAt: Date | null = null;
   /** @property {boolean} Tracks if there are unsaved changes */
-  hasUnsavedChanges = false;
-  /** @property {string} JSON string of last saved form state for comparison */
+  hasUnsavedChanges = false;  /** @property {string} JSON string of last saved form state for comparison */
   private lastSavedState = '';
+
+  // Anti-Cheating Properties
+  /** @property {boolean} Whether strict mode is enabled for this test */
+  isStrictMode = false;
+  /** @property {AntiCheatingMonitor|null} Anti-cheating monitor instance */
+  private antiCheatingMonitor: AntiCheatingMonitor | null = null;
+  /** @property {number} Current cheating violation count */
+  cheatingCount = 0;
+  /** @property {number} Maximum allowed cheating violations before test termination */
+  maxCheatingAttempts = 3;
+  /** @property {boolean} Whether to show cheating warning modal */
+  showCheatingWarning = false;
+  /** @property {string} Current cheating warning message */
+  cheatingWarningMessage = '';
+  /** @property {CheatingEvent[]} Recent cheating events for display */
+  recentCheatingEvents: CheatingEvent[] = [];
+  /** @property {boolean} Whether strict mode info modal is visible */
+  showStrictModeInfo = false;
 
   /**
    * @constructor
@@ -263,13 +340,15 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
    * @param {Router} router - Angular Router for navigation
    * @param {TestService} testSvc - Test service for API operations
    * @param {ChangeDetectorRef} cd - Angular ChangeDetectorRef for manual change detection
+   * @param {AntiCheatingService} antiCheatingService - Anti-cheating service for strict mode monitoring
    */
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
     private testSvc: TestService,
-    private cd: ChangeDetectorRef
+    private cd: ChangeDetectorRef,
+    private antiCheatingService: AntiCheatingService
   ) {
     this.form = this.fb.group({
       // Each response will be a FormGroup with fields like:
@@ -365,14 +444,16 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
    * this.resumeTest();
    * // Restores: timer, responses, current question position
    * ```
-   */
-  resumeTest(): void {
+   */  resumeTest(): void {
     if (this.pendingAttemptId && this.pendingSections.length > 0) {
       console.log('Resuming test with ID:', this.pendingAttemptId);
       this.attemptId = this.pendingAttemptId;
       // pendingTimeLeft is already in seconds, so pass it directly for duration calculation in buildFormAndTimer
       this.buildFormAndTimer(this.pendingTimeLeft, this.pendingSections, this.pendingSavedResponses);
       this.hasSavedProgress = false;
+      
+      // Initialize anti-cheating if in strict mode
+      this.initializeAntiCheating();
     } else {
       console.log('No valid pending test to resume, starting new.');
       this.startNewTest();
@@ -393,14 +474,16 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
    * // 2. Receives: attemptId, duration, sections
    * // 3. Initializes: timer, form controls, navigation
    * ```
-   */
-  private startNewTest() {
+   */  private startNewTest() {
     this.testSvc.startTest(this.seriesId).subscribe({
       next: (res: StartTestResponse) => {
         console.log('New test started successfully:', res);
         this.attemptId = res.attemptId;
         this.testSeriesTitle = (res as any).seriesTitle || 'Test'; // Use seriesTitle from response
         this.buildFormAndTimer((res as any).duration * 60, res.sections || [], []);
+        
+        // Initialize anti-cheating if in strict mode
+        this.initializeAntiCheating();
       },
       error: (err: any) => alert(err.error?.message || 'Failed to start test')
     });
@@ -760,9 +843,7 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
       this.checkForChanges();
       if (this.hasUnsavedChanges) {
         this.autoSaveProgress('navigation');
-      }
-
-      this.currentSectionIndex = sectionIdx;      this.currentQuestionInSectionIndex = questionInSectionIdx;
+      }      this.currentSectionIndex = sectionIdx;      this.currentQuestionInSectionIndex = questionInSectionIdx;
       this.currentGlobalQuestionIndex = this.getGlobalIndex(this.currentSectionIndex, this.currentQuestionInSectionIndex);
       
       this.trackQuestionVisit(this.currentGlobalQuestionIndex);
@@ -794,7 +875,8 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
     }    if (this.currentQuestionInSectionIndex < this.sections[this.currentSectionIndex].questions.length - 1) {
       this.currentQuestionInSectionIndex++;
     } else if (this.currentSectionIndex < this.sections.length - 1) {
-      this.currentSectionIndex++;      this.currentQuestionInSectionIndex = 0;
+      this.currentSectionIndex++;
+      this.currentQuestionInSectionIndex = 0;
     } else {
       return;
     }
@@ -1164,12 +1246,19 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
    * }
    * ```
    */
-  get currentQuestionDisplayData(): PlayerQuestion | undefined {
-    const currentSection = this.sections[this.currentSectionIndex];    if (currentSection && currentSection.questions && currentSection.questions.length > this.currentQuestionInSectionIndex) {
+  get currentQuestionDisplayData(): PlayerQuestion | undefined {    const currentSection = this.sections[this.currentSectionIndex];    if (currentSection && currentSection.questions && currentSection.questions.length > this.currentQuestionInSectionIndex) {
       const questionData = currentSection.questions[this.currentQuestionInSectionIndex]; // Corrected typo here
       return questionData;
     }
     return undefined;
+  }
+
+  /**
+   * @getter isAnyModalOpen
+   * @description Checks if any modal is currently open
+   */
+  get isAnyModalOpen(): boolean {
+    return this.showStrictModeInfo || this.showCheatingWarning;
   }
 
   /**
@@ -1472,16 +1561,25 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
   toggleSidebar(): void {
     this.isSidebarVisible = !this.isSidebarVisible;
   }
-
   /**
    * @method ngOnDestroy
    * @description Component cleanup lifecycle hook. Properly cleans up resources,
    * stops timers, and prevents memory leaks.
-   */
-  ngOnDestroy(): void {
+   */  ngOnDestroy(): void {
     if (this.timerHandle) {
       clearInterval(this.timerHandle);
     }
+    
+    // Cleanup anti-cheating monitor
+    if (this.antiCheatingMonitor) {
+      this.antiCheatingMonitor.cleanup();
+    }
+    
+    // Remove strict mode styles when leaving exam
+    if (this.isStrictMode) {
+      this.removeStrictModeStyles();
+    }
+    
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -1746,7 +1844,6 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
     console.log(`Progress Stats: ${attempted}/${total} attempted`);
     return { attempted, total };
   }
-
   /**
    * @method getTotalQuestions
    * @description Gets the total number of questions across all sections
@@ -1757,5 +1854,317 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
       return 0;
     }
     return this.sections.reduce((total, section) => total + section.questions.length, 0);
+  }
+
+  // ========================================
+  // Anti-Cheating Methods
+  // ========================================
+  /**
+   * @private
+   * @method initializeAntiCheating
+   * @description Initializes anti-cheating system if the test is in strict mode
+   */
+  private async initializeAntiCheating(): Promise<void> {
+    if (!this.attemptId) {
+      console.warn('No attempt ID available for anti-cheating initialization');
+      return;
+    }
+
+    try {
+      // Check if this test series requires strict mode
+      const response = await this.antiCheatingService.checkStrictMode(this.seriesId).toPromise();
+        if (response && response.success && response.data && response.data.isStrictMode) {
+        this.isStrictMode = true;
+        this.maxCheatingAttempts = 3; // Default value
+        
+        console.log('Strict mode enabled for this test');
+        
+        // Apply strict mode styling to hide navigation
+        this.applyStrictModeStyles();
+        
+        // Show strict mode information to user
+        this.showStrictModeInfoModal();
+        
+        // Initialize the anti-cheating monitor
+        this.startAntiCheatingMonitor();
+          // Get current cheating stats
+        this.loadCheatingStats();
+        
+        // Start periodic refresh of cheating stats
+        this.refreshCheatingStats();
+      } else {
+        console.log('Test is not in strict mode, anti-cheating disabled');
+        this.isStrictMode = false;
+      }
+    } catch (error) {
+      console.error('Error initializing anti-cheating:', error);
+      // If there's an error checking strict mode, assume normal mode
+      this.isStrictMode = false;
+    }
+  }
+  /**
+   * @private
+   * @method startAntiCheatingMonitor
+   * @description Starts the anti-cheating monitor with event handlers
+   */
+  private startAntiCheatingMonitor(): void {
+    if (!this.attemptId) return;
+
+    console.log('Starting anti-cheating monitor for attempt:', this.attemptId);
+
+    // Create monitor instance with callbacks
+    this.antiCheatingMonitor = new AntiCheatingMonitor(
+      this.antiCheatingService,
+      (event: CheatingEvent, shouldTerminate: boolean) => {
+        console.log('Anti-cheating violation callback triggered:', event, shouldTerminate);
+        this.handleCheatingEvent(event);
+        if (shouldTerminate) {
+          this.handleMaxViolationsReached();
+        }
+      },
+      (message: string, count: number) => {
+        console.log('Anti-cheating warning callback triggered:', message, count);
+        this.cheatingWarningMessage = message;
+        this.cheatingCount = count;
+        this.showCheatingWarning = true;
+      }
+    );
+    
+    // Initialize monitoring
+    this.antiCheatingMonitor.initialize(this.attemptId, this.isStrictMode);
+    
+    console.log('Anti-cheating monitor started successfully');
+  }
+
+  /**
+   * @private
+   * @method handleCheatingEvent
+   * @description Handles cheating events detected by the monitor
+   * @param event The cheating event
+   */
+  private handleCheatingEvent(event: CheatingEvent): void {
+    if (!this.attemptId) return;
+    
+    console.warn('Cheating event detected:', event);
+    
+    // Add context information
+    const contextualEvent: CheatingEvent = {
+      ...event,
+      questionIndex: this.currentGlobalQuestionIndex,
+      timeRemaining: this.timeLeft,
+      currentSection: this.sections[this.currentSectionIndex]?.title
+    };
+    
+    // Log event to backend
+    this.antiCheatingService.logCheatingEvent(this.attemptId, contextualEvent).subscribe({
+      next: (response) => {
+        console.log('Cheating event logged:', response);
+        
+        // Update local cheating count from response if available
+        if (response.success && response.data) {
+                   this.cheatingCount = response.data.totalAttempts || this.cheatingCount + 1;
+        } else {
+          this.cheatingCount++;
+        }
+        
+        // Add to recent events for display
+        this.recentCheatingEvents.unshift(contextualEvent);
+        if (this.recentCheatingEvents.length > 5) {
+          this.recentCheatingEvents.pop();
+        }
+        
+        // Show warning to user
+        this.showCheatingWarningModal(event);
+        
+        // Check if maximum violations reached
+        if (this.cheatingCount >= this.maxCheatingAttempts) {
+          this.handleMaxViolationsReached();
+        }
+      },
+      error: (error) => {
+        console.error('Error logging cheating event:', error);
+        // Still increment count locally
+        this.cheatingCount++;
+        this.showCheatingWarningModal(event);
+      }
+    });
+  }
+
+  /**
+   * @private
+   * @method showCheatingWarningModal
+   * @description Shows a warning modal for cheating behavior
+   * @param event The cheating event that triggered the warning
+   */
+  private showCheatingWarningModal(event: CheatingEvent): void {    const eventMessages: { [key: string]: string } = {
+      'tab-switch': 'Switching to another tab or window is not allowed during the exam.',
+      'window-blur': 'The exam window lost focus. Please keep the exam window active.',
+      'fullscreen-exit': 'Exiting fullscreen mode is not allowed during the exam. If you want to exit, click on "Finish Exam" or "Submit Exam" button.',
+      'copy-attempt': 'Copying content is not allowed during the exam.',
+      'paste-attempt': 'Pasting content is not allowed during the exam.',
+      'right-click': 'Right-clicking is disabled during the exam.',
+      'key-shortcut': 'Keyboard shortcuts are disabled during the exam.',
+      'devtools-attempt': 'Developer tools are not allowed during the exam.'
+    };
+    
+    // Normalize event type (convert underscores to hyphens for consistent messaging)
+    const normalizedEventType = event.type.replace(/_/g, '-');
+    
+    this.cheatingWarningMessage = eventMessages[normalizedEventType] || 'Suspicious activity detected.';
+    this.cheatingWarningMessage += ` Warning ${this.cheatingCount}/${this.maxCheatingAttempts}. `;
+    
+    if (this.cheatingCount >= this.maxCheatingAttempts - 1) {
+      this.cheatingWarningMessage += 'One more violation will result in automatic test submission.';
+    }
+    
+    this.showCheatingWarning = true;
+    
+    // Auto-hide warning after 5 seconds
+    setTimeout(() => {
+      this.showCheatingWarning = false;
+    }, 5000);
+  }
+  /**
+   * @private
+   * @method handleMaxViolationsReached
+   * @description Handles the case when maximum cheating violations are reached
+   */
+  private handleMaxViolationsReached(): void {
+    console.log('Maximum cheating violations reached, terminating exam');
+    
+    // Stop the anti-cheating monitor
+    if (this.antiCheatingMonitor) {
+      this.antiCheatingMonitor.cleanup();
+    }
+    
+    // Show final warning
+    alert('Maximum cheating violations reached. Your exam will be submitted automatically.');
+    
+    // Force submit the exam
+    this.submit();
+  }
+  /**
+   * @private
+   * @method loadCheatingStats
+   * @description Loads current cheating statistics for the attempt
+   */
+  private loadCheatingStats(): void {
+    if (!this.attemptId) return;
+    
+    this.antiCheatingService.getCheatingStats(this.attemptId).subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          this.cheatingCount = response.data.totalAttempts || 0;
+          this.recentCheatingEvents = response.data.events || [];
+          console.log('Loaded cheating stats:', response.data);
+          
+          // Also update the anti-cheating monitor's violation count
+          if (this.antiCheatingMonitor) {
+            (this.antiCheatingMonitor as any).violationCount = this.cheatingCount;
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error loading cheating stats:', error);
+      }
+    });
+  }
+
+  /**
+   * @method refreshCheatingStats
+   * @description Manually refresh cheating statistics (called periodically)
+   */
+  private refreshCheatingStats(): void {
+    // Refresh stats every 10 seconds to ensure sync with backend
+    setInterval(() => {
+      if (this.isStrictMode && this.attemptId) {
+        this.loadCheatingStats();
+      }
+    }, 10000);
+  }
+
+  /**
+   * @method showStrictModeInfoModal
+   * @description Shows information modal about strict mode to the user
+   */
+  showStrictModeInfoModal(): void {
+    this.showStrictModeInfo = true;
+  }
+
+  /**
+   * @method closeStrictModeInfo
+   * @description Closes the strict mode information modal
+   */
+  closeStrictModeInfo(): void {
+    this.showStrictModeInfo = false;
+  }
+
+  /**
+   * @method closeCheatingWarning
+   * @description Closes the cheating warning modal
+   */
+  closeCheatingWarning(): void {
+    this.showCheatingWarning = false;
+  }
+
+  /**
+   * @private
+   * @method applyStrictModeStyles
+   * @description Applies strict mode styles to hide navigation and ensure fullscreen
+   */
+  private applyStrictModeStyles(): void {
+    // Add strict mode class to body to hide navigation
+    document.body.classList.add('strict-mode');
+    
+    // Hide any navigation elements
+    const navElements = document.querySelectorAll('.nav-header, nav, .navbar, .navigation');
+    navElements.forEach(element => {
+      (element as HTMLElement).style.display = 'none';
+    });
+    
+    // Ensure body takes full height
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+  }
+
+  /**
+   * @private
+   * @method removeStrictModeStyles
+   * @description Removes strict mode styles when exam ends
+   */
+  private removeStrictModeStyles(): void {
+    // Remove strict mode class from body
+    document.body.classList.remove('strict-mode');
+    
+    // Restore navigation elements
+    const navElements = document.querySelectorAll('.nav-header, nav, .navbar, .navigation');
+    navElements.forEach(element => {
+      (element as HTMLElement).style.display = '';
+    });
+    
+    // Restore body overflow
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+  }
+
+  /**
+   * @method getCheatingEventIcon
+   * @description Gets the appropriate icon for a cheating event type
+   * @param eventType The type of cheating event
+   * @returns Icon class string
+   */
+  getCheatingEventIcon(eventType: string): string {
+    const iconMap: { [key: string]: string } = {
+      'tab_switch': 'material-icons-outlined',
+      'window_blur': 'material-icons-outlined',
+      'fullscreen_exit': 'material-icons-outlined',
+      'copy_attempt': 'material-icons-outlined',
+      'paste_attempt': 'material-icons-outlined',
+      'right_click': 'material-icons-outlined',
+      'keyboard_shortcut': 'material-icons-outlined',
+      'devtools_attempt': 'material-icons-outlined'
+    };
+    
+    return iconMap[eventType] || 'material-icons-outlined';
   }
 }

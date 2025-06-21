@@ -40,7 +40,12 @@ const {
   // Enhanced Review Page endpoints
   getEnhancedReview,
   getPerformanceAnalytics,
-  getStudyRecommendations
+  getStudyRecommendations,
+  // Anti-cheating endpoints for strict mode
+  logCheatingEvent,
+  getCheatingStats,
+  initializeStrictMode,
+  checkStrictMode
 } = require('../controllers/testAttemptController');
 
 
@@ -83,5 +88,18 @@ router.get('/:attemptId/recommendations', verifyToken, requireRole('student'), g
 router.get('/stats/me', verifyToken, getStudentStats);
 // Public leaderboard endpoint (removed verifyToken to make it public)
 router.get('/leaderboard/:seriesId', getLeaderboardForSeries);
+
+// ✅ ANTI-CHEATING ROUTES (Strict Mode Only)
+// Check if test series requires strict mode
+router.get('/series/:seriesId/strict-mode', verifyToken, requireRole('student'), checkStrictMode);
+
+// Initialize strict mode for test attempt
+router.post('/:attemptId/strict-mode/init', verifyToken, requireRole('student'), initializeStrictMode);
+
+// Log cheating events
+router.post('/:attemptId/cheating-event', verifyToken, requireRole('student'), logCheatingEvent);
+
+// Get cheating statistics for attempt
+router.get('/:attemptId/cheating-stats', verifyToken, getCheatingStats);
 
 module.exports = router;

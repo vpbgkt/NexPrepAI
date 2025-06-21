@@ -32,9 +32,13 @@
 </div>
 
 <!-- Exam Interface -->
-<div *ngIf="attemptId" class="min-h-screen bg-gray-50 flex flex-col md:flex-row">
-  <!-- Main Question Area - Mobile: Top, Desktop: Right -->
-  <div class="flex-1 flex flex-col order-1 md:order-2 pb-80 md:pb-0"><!-- Question Content -->
+<div *ngIf="attemptId" class="fixed inset-0 bg-gray-50 flex flex-col md:flex-row z-50 overflow-hidden" 
+     [class.fullscreen-exam]="isStrictMode"
+     [class.modal-active]="isAnyModalOpen">  <!-- Main Question Area - Mobile: Top, Desktop: Right -->
+  <div class="flex-1 flex flex-col order-1 md:order-2 pb-80 md:pb-0" [ngClass]="{
+    'z-10': isAnyModalOpen,
+    'z-20': !isAnyModalOpen
+  }"><!-- Question Content -->
     <div class="flex-1 overflow-y-auto p-6">
       <form [formGroup]="form" (ngSubmit)="submit()">
         <div formArrayName="responses">
@@ -242,8 +246,9 @@
     'flex': true,
     'flex-col': true,
     'order-2': true,
-    'md:order-1': true,
-    'z-50': true,
+    'md:order-1': true,    'z-50': !isAnyModalOpen,
+    'z-10': isAnyModalOpen,
+    'faded': isAnyModalOpen,
     'md:relative': true,
     'md:w-80': true,
     'md:h-auto': true,
@@ -282,8 +287,7 @@
           <span class="material-icons-outlined text-sm md:text-xl">timer</span>
           <span class="font-mono text-xs md:text-lg font-semibold">{{ formatTime(timeLeft) }}</span>
         </div>
-        
-        <!-- Progress Stats -->
+          <!-- Progress Stats -->
         <div class="bg-green-50 border border-green-200 rounded-lg p-2 md:p-3 flex items-center gap-2 text-green-700">
           <span class="material-icons-outlined text-sm md:text-base">assignment_turned_in</span>
           <div class="text-xs md:text-sm">
@@ -291,6 +295,37 @@
             <span class="text-green-600"> out of </span>
             <span class="font-semibold">{{ getProgressStats().total }}</span>
             <span class="text-green-600"> attempted</span>
+          </div>
+        </div>
+        
+        <!-- Anti-Cheating Status (Strict Mode Only) -->
+        <div *ngIf="isStrictMode" class="mt-2 md:mt-3">
+          <!-- Integrity Status -->
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-2 md:p-3 flex items-center gap-2">
+            <span class="material-icons-outlined text-sm md:text-base text-blue-600">security</span>
+            <div class="text-xs md:text-sm text-blue-700">
+              <div class="font-semibold">Strict Mode</div>
+              <div class="flex items-center gap-2">
+                <span>Violations: {{ cheatingCount }}/{{ maxCheatingAttempts }}</span>
+                <div class="w-2 h-2 rounded-full" 
+                     [class]="cheatingCount === 0 ? 'bg-green-500' : 
+                              cheatingCount < maxCheatingAttempts - 1 ? 'bg-yellow-500' : 'bg-red-500'"></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Recent Violations (if any) -->
+          <div *ngIf="recentCheatingEvents.length > 0" class="mt-2">
+            <div class="bg-orange-50 border border-orange-200 rounded-lg p-2">
+              <div class="text-xs font-semibold text-orange-700 mb-1">Recent Violations:</div>
+              <div class="space-y-1">
+                <div *ngFor="let event of recentCheatingEvents.slice(0, 3)" 
+                     class="text-xs text-orange-600 flex items-center gap-1">
+                  <i [class]="getCheatingEventIcon(event.type)" class="text-xs"></i>
+                  <span>{{ event.type.replace('_', ' ') | titlecase }}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -409,13 +444,134 @@
         <span *ngIf="lastSavedAt && !isAutoSaving && autoSaveStatus === 'Saved'" class="text-xs opacity-70">
           {{ lastSavedAt | date:'HH:mm:ss' }}
         </span>
-      </div>      
-      <!-- Finish Exam Button -->
+      </div>        <!-- Finish Exam Button -->
       <button class="w-full bg-blue-600 text-white py-1.5 md:py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center gap-2 font-bold text-xs md:text-base" 
               (click)="submit()">
         <span class="material-icons-outlined text-sm md:text-base">done_all</span>
         Finish Exam
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Anti-Cheating Modals -->
+
+<!-- Strict Mode Information Modal -->
+<div *ngIf="showStrictModeInfo" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style="z-index: 99999;">
+  <div class="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+    <div class="p-6">
+      <!-- Header -->
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+          <span class="material-icons-outlined text-blue-600 text-2xl">security</span>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-gray-900">Strict Mode Exam</h3>
+          <p class="text-sm text-gray-600">Enhanced Security Enabled</p>
+        </div>
+      </div>
+      
+      <!-- Content -->
+      <div class="space-y-4">
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <h4 class="font-semibold text-yellow-800 mb-2">Important Notice</h4>
+          <p class="text-sm text-yellow-700">
+            This exam is conducted in strict mode with anti-cheating measures enabled. 
+            Please read the following guidelines carefully.
+          </p>
+        </div>
+        
+        <div class="space-y-3">
+          <h4 class="font-semibold text-gray-900">Guidelines:</h4>
+          <ul class="space-y-2 text-sm text-gray-700">
+            <li class="flex items-start gap-2">
+              <span class="material-icons-outlined text-red-500 text-sm mt-0.5">block</span>
+              <span>Do not switch to other tabs or windows</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="material-icons-outlined text-red-500 text-sm mt-0.5">block</span>
+              <span>Do not exit fullscreen mode</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="material-icons-outlined text-red-500 text-sm mt-0.5">block</span>
+              <span>Do not copy, paste, or right-click</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="material-icons-outlined text-red-500 text-sm mt-0.5">block</span>
+              <span>Do not use keyboard shortcuts</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="material-icons-outlined text-orange-500 text-sm mt-0.5">warning</span>
+              <span>Maximum {{ maxCheatingAttempts }} violations allowed</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="material-icons-outlined text-red-500 text-sm mt-0.5">gavel</span>
+              <span>Exam will auto-submit after {{ maxCheatingAttempts }} violations</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- Footer -->
+      <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+        <button (click)="closeStrictModeInfo()" 
+                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium">
+          I Understand
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Cheating Warning Modal -->
+<div *ngIf="showCheatingWarning" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style="z-index: 99999;">
+  <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+    <div class="p-6">
+      <!-- Header -->
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+          <span class="material-icons-outlined text-red-600 text-2xl">warning</span>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-red-900">Violation Detected</h3>
+          <p class="text-sm text-red-600">Cheating Attempt Warning</p>
+        </div>
+      </div>
+      
+      <!-- Warning Message -->
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+        <p class="text-sm text-red-800">{{ cheatingWarningMessage }}</p>
+      </div>
+      
+      <!-- Violation Counter -->
+      <div class="flex items-center justify-between mb-4 p-3 bg-gray-50 rounded-lg">
+        <span class="text-sm font-medium text-gray-700">Violations:</span>
+        <div class="flex items-center gap-2">
+          <span class="text-lg font-bold" [class]="cheatingCount >= maxCheatingAttempts - 1 ? 'text-red-600' : 'text-orange-600'">
+            {{ cheatingCount }}/{{ maxCheatingAttempts }}
+          </span>
+          <div class="flex gap-1">
+            <div *ngFor="let i of [].constructor(maxCheatingAttempts); let idx = index" 
+                 class="w-3 h-3 rounded-full"
+                 [class]="idx < cheatingCount ? 'bg-red-500' : 'bg-gray-300'"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Final Warning -->
+      <div *ngIf="cheatingCount >= maxCheatingAttempts - 1" class="bg-red-100 border border-red-300 rounded-lg p-3 mb-4">
+        <p class="text-sm text-red-800 font-medium text-center">
+          ⚠️ FINAL WARNING: One more violation will automatically submit your exam!
+        </p>
+      </div>
+      
+      <!-- Footer -->
+      <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+        <button (click)="closeCheatingWarning()" 
+                class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium">
+          Understood
+        </button>
+      </div>
     </div>
   </div>
 </div>
