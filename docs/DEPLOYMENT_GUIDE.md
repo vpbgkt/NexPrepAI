@@ -74,36 +74,14 @@ ls -la src/environments/
 
 # Create development environment file
 cat > src/environments/environment.ts << 'EOF'
-export const environment = {
-  production: false,
-  apiUrl: 'http://localhost:5000/api',
-  socketUrl: 'http://localhost:5000',
-  firebase: {
-    apiKey: "AIzaSyCdfNaGNk2PlgHBBM_5IFUnQa3zxAM__NA",
-    authDomain: "nexprepauth.firebaseapp.com",
-    projectId: "nexprepauth",
-    storageBucket: "nexprepauth.firebasestorage.app",
-    messagingSenderId: "1035644349662",
-    appId: "1:1035644349662:web:4bd9378adae4d11df4664f",
-    measurementId: "G-6F331E9GKZ"
+...........
   }
 };
 EOF
 
 # Create/fix production environment file
 cat > src/environments/environment.prod.ts << 'EOF'
-export const environment = {
-  production: true,
-  apiUrl: '/api',
-  socketUrl: 'http://43.205.88.43',
-  firebase: {
-    apiKey: "AIzaSyCdfNaGNk2PlgHBBM_5IFUnQa3zxAM__NA",
-    authDomain: "nexprepauth.firebaseapp.com",
-    projectId: "nexprepauth",
-    storageBucket: "nexprepauth.firebasestorage.app",
-    messagingSenderId: "1035644349662",
-    appId: "1:1035644349662:web:4bd9378adae4d11df4664f",
-    measurementId: "G-6F331E9GKZ"
+.....
   }
 };
 EOF
