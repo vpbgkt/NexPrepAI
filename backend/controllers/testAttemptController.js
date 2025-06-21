@@ -471,7 +471,8 @@ exports.submitAttempt = async (req, res) => {
         if (section.questions && Array.isArray(section.questions)) {
           let questionIndex = 0; // Track question index within section for composite key generation
           
-          for (const attemptQuestion of section.questions) { // These are the questions as defined in the attempt structure            const questionId = attemptQuestion.question.toString();
+          for (const attemptQuestion of section.questions) { // These are the questions as defined in the attempt structure
+            const questionId = attemptQuestion.question.toString();
               // Create composite key that matches frontend format: questionId_sectionIdx_questionIdx
             const questionInstanceKey = `${questionId}_${sectionIndex}_${questionIndex}`;
             
