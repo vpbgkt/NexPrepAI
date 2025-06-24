@@ -538,12 +538,22 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {  /** 
    * // - Time analysis bar/line chart
    * // - Difficulty breakdown chart
    * ```
-   */
-  initializeCharts() {
+   */  initializeCharts() {
+    if (!this.reviewData?.analytics) {
+      console.warn('Analytics data not available for chart initialization');
+      return;
+    }
+    
     if (this.reviewData && this.activeTab === 'analytics') {
-      this.createAccuracyChart();
-      this.createTimeAnalysisChart();
-      this.createDifficultyChart();
+      setTimeout(() => {
+        try {
+          this.createAccuracyChart();
+          this.createTimeAnalysisChart();
+          this.createDifficultyChart();
+        } catch (error) {
+          console.error('Error initializing charts:', error);
+        }
+      }, 100);
     }
   }
 
@@ -559,9 +569,8 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {  /** 
    * // Features: hover effects, percentage tooltips, responsive design
    * // Colors: green (correct), red (incorrect), yellow (unanswered)
    * ```
-   */
-  createAccuracyChart() {
-    if (!this.accuracyChartRef?.nativeElement || !this.reviewData) return;
+   */  createAccuracyChart() {
+    if (!this.accuracyChartRef?.nativeElement || !this.reviewData?.analytics?.overall) return;
 
     const ctx = this.accuracyChartRef.nativeElement.getContext('2d');
     if (!ctx) return;
@@ -574,9 +583,9 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {  /** 
         labels: ['Correct', 'Incorrect', 'Unanswered'],
         datasets: [{
           data: [
-            analytics.correctAnswers,
-            analytics.incorrectAnswers,
-            analytics.unanswered
+            analytics.correctAnswers || 0,
+            analytics.incorrectAnswers || 0,
+            analytics.unanswered || 0
           ],
           backgroundColor: [
             '#28a745',
@@ -606,7 +615,7 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {  /** 
               label: (context) => {
                 const label = context.label || '';
                 const value = context.parsed || 0;
-                const total = analytics.totalQuestions;
+                const total = analytics.totalQuestions || 1;
                 const percentage = ((value / total) * 100).toFixed(1);
                 return `${label}: ${value} (${percentage}%)`;
               }
@@ -1606,5 +1615,17 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {  /** 
     } else {
       return 'bg-orange-50';
     }
+  }
+
+  /**
+   * @method getDifficultyProgressWidth
+   * @description Safely calculates progress width for difficulty breakdown
+   * @param {string} difficulty - Difficulty level
+   * @returns {number} Progress width percentage
+   */
+  getDifficultyProgressWidth(difficulty: string): number {
+    const correct = this.reviewData?.analytics?.difficultyBreakdown?.[difficulty]?.correct || 0;
+    const total = this.reviewData?.analytics?.difficultyBreakdown?.[difficulty]?.total || 0;
+    return total > 0 ? (correct / total) * 100 : 0;
   }
 }

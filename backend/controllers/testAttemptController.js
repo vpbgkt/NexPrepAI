@@ -1911,7 +1911,7 @@ function calculatePerformanceAnalytics(attempt, detailedQuestions) {
     score: attempt.score || 0,
     maxScore: attempt.maxScore || 0,
     percentage: attempt.percentage || 0,
-    timeSpent: attempt.timeSpent || 0,
+    timeSpent: attempt.timeTakenSeconds || attempt.totalTimeSpent || 0,
     sectionWise: {},
     difficultyWise: {
       easy: { total: 0, correct: 0, attempted: 0 },
@@ -1923,10 +1923,9 @@ function calculatePerformanceAnalytics(attempt, detailedQuestions) {
 
   // Process each question
   detailedQuestions.forEach(question => {
-    const status = question.response?.status || 'unanswered';
-    const sectionTitle = question.sectionTitle || 'Unknown';
-    const difficulty = question.difficulty || 'medium';
-    const subjectName = question.subject?.name || 'Unknown';
+    const status = question.status || 'unanswered';
+    const difficulty = (question.difficulty || 'medium').toLowerCase();
+    const subjectName = question.topics?.subject || 'Unknown';
 
     // Overall statistics
     if (status === 'correct') {
@@ -1938,26 +1937,6 @@ function calculatePerformanceAnalytics(attempt, detailedQuestions) {
     } else {
       analytics.unanswered++;
     }
-
-    // Section-wise analytics
-    if (!analytics.sectionWise[sectionTitle]) {
-      analytics.sectionWise[sectionTitle] = {
-        total: 0,
-        attempted: 0,
-        correct: 0,
-        incorrect: 0,
-        unanswered: 0,
-        score: 0,
-        maxScore: 0
-      };
-    }
-    analytics.sectionWise[sectionTitle].total++;
-    analytics.sectionWise[sectionTitle][status]++;
-    if (status !== 'unanswered') {
-      analytics.sectionWise[sectionTitle].attempted++;
-    }
-    analytics.sectionWise[sectionTitle].score += question.response?.earnedMarks || 0;
-    analytics.sectionWise[sectionTitle].maxScore += question.marks || 0;
 
     // Difficulty-wise analytics
     if (analytics.difficultyWise[difficulty]) {
@@ -1987,21 +1966,11 @@ function calculatePerformanceAnalytics(attempt, detailedQuestions) {
     if (status !== 'unanswered') {
       analytics.subjectWise[subjectName].attempted++;
     }
-    analytics.subjectWise[subjectName].score += question.response?.earnedMarks || 0;
+    analytics.subjectWise[subjectName].score += question.earned || 0;
     analytics.subjectWise[subjectName].maxScore += question.marks || 0;
   });
 
-  // Calculate percentages for sections and subjects
-  Object.keys(analytics.sectionWise).forEach(section => {
-    const sectionData = analytics.sectionWise[section];
-    sectionData.percentage = sectionData.maxScore > 0 ? 
-      Math.round((sectionData.score / sectionData.maxScore) * 100 * 100) / 100 : 0;
-    sectionData.attemptRate = sectionData.total > 0 ? 
-      Math.round((sectionData.attempted / sectionData.total) * 100 * 100) / 100 : 0;
-    sectionData.accuracy = sectionData.attempted > 0 ? 
-      Math.round((sectionData.correct / sectionData.attempted) * 100 * 100) / 100 : 0;
-  });
-
+  // Calculate percentages for subjects
   Object.keys(analytics.subjectWise).forEach(subject => {
     const subjectData = analytics.subjectWise[subject];
     subjectData.percentage = subjectData.maxScore > 0 ? 
@@ -2012,20 +1981,17 @@ function calculatePerformanceAnalytics(attempt, detailedQuestions) {
       Math.round((subjectData.correct / subjectData.attempted) * 100 * 100) / 100 : 0;
   });
 
-  // Calculate difficulty-wise percentages
-  Object.keys(analytics.difficultyWise).forEach(difficulty => {
-    const diffData = analytics.difficultyWise[difficulty];
-    diffData.attemptRate = diffData.total > 0 ? 
-      Math.round((diffData.attempted / diffData.total) * 100 * 100) / 100 : 0;
-    diffData.accuracy = diffData.attempted > 0 ? 
-      Math.round((diffData.correct / diffData.attempted) * 100 * 100) / 100 : 0;
-  });
-
-  // Calculate overall metrics
-  analytics.attemptRate = analytics.totalQuestions > 0 ? 
-    Math.round((analytics.attempted / analytics.totalQuestions) * 100 * 100) / 100 : 0;
-  analytics.accuracy = analytics.attempted > 0 ? 
-    Math.round((analytics.correct / analytics.attempted) * 100 * 100) / 100 : 0;
+  // Add overall performance metrics
+  analytics.overall = {
+    totalQuestions: analytics.totalQuestions,
+    correctAnswers: analytics.correct,
+    incorrectAnswers: analytics.incorrect,
+    unanswered: analytics.unanswered,
+    accuracy: analytics.attempted > 0 ? Math.round((analytics.correct / analytics.attempted) * 100 * 100) / 100 : 0,
+    timeSpent: analytics.timeSpent,
+    averageTimePerQuestion: analytics.totalQuestions > 0 ? Math.round(analytics.timeSpent / analytics.totalQuestions) : 0,
+    flaggedCount: detailedQuestions.filter(q => q.flagged).length
+  };
   return analytics;
 }
 
