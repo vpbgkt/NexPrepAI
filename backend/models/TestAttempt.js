@@ -85,6 +85,7 @@ const questionHistoryItemSchema = new Schema({
 const detailedQuestionSchema = new Schema({
   question:     { type: Schema.Types.ObjectId, ref: 'Question', required: true },
   marks:        { type: Number, default: 1 },
+  negativeMarks: { type: Number, default: 0 }, // Add negative marks field
   translations: [attemptTranslationSchema], // Stores the translated content of the question
   questionHistory: [questionHistoryItemSchema], // Stores the history of when the question was asked
   // Fallback fields (intended for scenarios where full translation data might be missing, though ideally translations are comprehensive)

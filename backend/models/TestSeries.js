@@ -56,6 +56,8 @@ const testSeriesSchema = new Schema({
 
   duration:     { type: Number, required: true },
   totalMarks:   { type: Number, default: 0 },   // NEW
+  negativeMarking: { type: Boolean, default: true }, // Enable negative marking
+  defaultNegativeMarks: { type: Number, default: 1 }, // Default negative marks per wrong answer
 
   sections:     [ sectionSchema ],
 

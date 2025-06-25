@@ -215,11 +215,10 @@ exports.startTest = async (req, res) => {
       // fallback: wrap a flat questions[] into one section
       initialLayout = [{
         title: 'All Questions',
-        order: 1,
-        questions: series.questions.map(qItem => ({
+        order: 1,        questions: series.questions.map(qItem => ({
           question: qItem.question, // Assuming qItem is {question: ObjectId, marks: Number, negativeMarks: Number}
           marks: qItem.marks || 1,
-          negativeMarks: q.negativeMarks === undefined ? 0 : qItem.negativeMarks
+          negativeMarks: qItem.negativeMarks === undefined ? 0 : qItem.negativeMarks
         })),
         questionPool: [],
         questionsToSelectFromPool: 0,
@@ -341,12 +340,10 @@ exports.startTest = async (req, res) => {
               }
             } else {
               console.warn(`[${userId}] StartTest: Question with ID ${q.question} not found in DB.`);
-            }
-
-            return {
+            }            return {
               question:     q.question.toString(),
               marks:        q.marks || 1,
-              negativeMarks: q.negativeMarks === undefined ? 0 : q.marks,
+              negativeMarks: q.negativeMarks === undefined ? 0 : q.negativeMarks,
               translations: translations,
               questionText: questionText,
               options:      options,
@@ -430,7 +427,7 @@ exports.submitAttempt = async (req, res) => {
       _id: attemptId,
       student: userId,
       status: 'in-progress'
-    }).populate('series', 'title'); // Populate series title, useful for context if needed
+    }).populate('series', 'title negativeMarking defaultNegativeMarks'); // Populate series title and negative marking settings
 
     if (!attempt) {
       return res.status(404).json({ message: 'In-progress attempt not found or already submitted.' });
@@ -439,8 +436,7 @@ exports.submitAttempt = async (req, res) => {
     let calculatedScore = 0;
     let calculatedMaxScore = 0;
 
-    const attemptQuestionsMap = new Map();
-    if (attempt.sections && Array.isArray(attempt.sections)) {
+    const attemptQuestionsMap = new Map();    if (attempt.sections && Array.isArray(attempt.sections)) {
       attempt.sections.forEach(section => {
         if (section.questions && Array.isArray(section.questions)) {
           section.questions.forEach(q => {
@@ -475,8 +471,7 @@ exports.submitAttempt = async (req, res) => {
             const questionId = attemptQuestion.question.toString();
               // Create composite key that matches frontend format: questionId_sectionIdx_questionIdx
             const questionInstanceKey = `${questionId}_${sectionIndex}_${questionIndex}`;
-            
-            const questionDetailsFromAttempt = attemptQuestionsMap.get(questionId); // Marks, negative marks from attempt structure
+              const questionDetailsFromAttempt = attemptQuestionsMap.get(questionId); // Marks, negative marks from attempt structure
             const masterQuestionData = masterQuestionsMap.get(questionId); // Full question data from DB
 
             let earnedForThisSlot = 0;
@@ -519,7 +514,19 @@ exports.submitAttempt = async (req, res) => {
               }
               continue; 
             }            const qMarks = questionDetailsFromAttempt.marks || 0;
-            const qNegativeMarks = typeof questionDetailsFromAttempt.negativeMarks === 'number' ? questionDetailsFromAttempt.negativeMarks : 0;
+              // Get negative marks - prefer question-specific, then series default, then fallback
+            let qNegativeMarks = 0;
+            if (attempt.series?.negativeMarking !== false) { // Check if negative marking is enabled for the series
+              if (typeof questionDetailsFromAttempt.negativeMarks === 'number') {
+                // Use question-specific negative marks (including 0 if explicitly set)
+                qNegativeMarks = questionDetailsFromAttempt.negativeMarks;
+              } else if (attempt.series?.defaultNegativeMarks) {
+                qNegativeMarks = attempt.series.defaultNegativeMarks;
+              } else {
+                // Default negative marking: typically 1/3 or 1/4 of positive marks
+                qNegativeMarks = Math.round(qMarks / 3) || 1; // Default to 1/3 of marks or minimum 1
+              }            }
+            
             calculatedMaxScore += qMarks;
 
             // Check if question was attempted - for NAT questions check numericalAnswer, for others check selected
@@ -542,13 +549,14 @@ exports.submitAttempt = async (req, res) => {
                 if (normalizedSelectedArray.length === 1 && optionsSource) { // Check normalizedSelectedArray
                   const selectedIndex = parseInt(String(normalizedSelectedArray[0]), 10); // Use normalizedSelectedArray
                   if (selectedIndex >= 0 && selectedIndex < optionsSource.length) {
-                    const selectedOptionText = optionsSource[selectedIndex].text;
-                    if (correctOptionTexts.includes(selectedOptionText)) {                      earnedForThisSlot = qMarks;
+                    const selectedOptionText = optionsSource[selectedIndex].text;                    if (correctOptionTexts.includes(selectedOptionText)) {                      earnedForThisSlot = qMarks;
                       statusForThisSlot = 'correct';
+                      console.log(`[SCORING_DEBUG] Question ${questionId}: CORRECT - earned ${earnedForThisSlot} marks`);
                     } else {
                       earnedForThisSlot = -qNegativeMarks;
                       statusForThisSlot = 'incorrect';
-                    }                  } else {
+                      console.log(`[SCORING_DEBUG] Question ${questionId}: INCORRECT - lost ${qNegativeMarks} marks (earned: ${earnedForThisSlot})`);
+                    }} else {
                     earnedForThisSlot = -qNegativeMarks; // Invalid index
                     statusForThisSlot = 'incorrect';
                   }
@@ -639,31 +647,32 @@ exports.submitAttempt = async (req, res) => {
                     }
                     
                     console.log(`[NAT_DEBUG] Question ${questionId}: ${debugInfo}, studentAnswer=${studentAnswer}, isCorrect=${isCorrect}`);
-                    
-                    if (isCorrect) {
+                      if (isCorrect) {
                       earnedForThisSlot = qMarks;
                       statusForThisSlot = 'correct';
                     } else {
-                      earnedForThisSlot = 0; // NAT questions typically have no negative marking
+                      // Apply negative marking for NAT questions too, based on question-specific settings
+                      earnedForThisSlot = -qNegativeMarks;
                       statusForThisSlot = 'incorrect';
-                    }
-                  } else {
+                    }                  } else {
                     console.warn(`No numerical answer found for NAT question ${questionId}`);
-                    earnedForThisSlot = 0;
+                    earnedForThisSlot = -qNegativeMarks;
                     statusForThisSlot = 'incorrect';
                   }
                 } else {
-                  earnedForThisSlot = 0;
+                  earnedForThisSlot = -qNegativeMarks;
                   statusForThisSlot = 'incorrect';
                 }
               }
             } else {
               // Genuinely not attempted by the user (no selected array or empty selected array for this questionId)
               statusForThisSlot = 'unanswered';
-              earnedForThisSlot = 0;
-  
-            }
-            calculatedScore += earnedForThisSlot;            processedResponses.push({
+              earnedForThisSlot = 0;            }
+            
+            // Round earned marks to avoid floating point precision issues
+            earnedForThisSlot = Math.round(earnedForThisSlot * 100) / 100;
+            
+            calculatedScore += earnedForThisSlot;processedResponses.push({
               question: questionId,
               questionInstanceKey: questionInstanceKey, // Add the composite key for matching in review
               selected: normalizedSelectedArray, // Use normalized array
@@ -692,12 +701,10 @@ exports.submitAttempt = async (req, res) => {
         // This log helps understand if the document disappeared or was never found.
         console.error(`[${attemptId}] CRITICAL: Attempt not found before final save. Original attempt object was ${attempt ? 'populated' : 'null or not found initially'}.`);
         return res.status(404).json({ message: 'Test attempt not found for final save.' });
-    }
-
-    // Apply all calculated and updated fields to the freshAttempt object
-    freshAttempt.score = calculatedScore;
+    }    // Apply all calculated and updated fields to the freshAttempt object
+    freshAttempt.score = Math.round(calculatedScore * 100) / 100; // Round to 2 decimal places
     freshAttempt.maxScore = calculatedMaxScore;
-    freshAttempt.percentage = calculatedMaxScore > 0 ? (calculatedScore / calculatedMaxScore) * 100 : 0;
+    freshAttempt.percentage = calculatedMaxScore > 0 ? Math.round((calculatedScore / calculatedMaxScore) * 10000) / 100 : 0; // Round to 2 decimal places
     freshAttempt.responses = processedResponses; 
     freshAttempt.status = 'completed';
     freshAttempt.submittedAt = new Date(); // Ensures a consistent submission timestamp
@@ -798,18 +805,16 @@ exports.submitTest = async (req, res) => {
           lastModifiedAt: resp.lastModifiedAt
         };
       })
-    );
-
-    // Calculate total score
+    );    // Calculate total score
     const totalScore = scoredResponses.reduce((sum, resp) => sum + (resp.earned || 0), 0);
     const maxScore = attempt.sections.reduce((sum, section) => 
       sum + section.questions.reduce((sectionSum, q) => sectionSum + (q.marks || 1), 0), 0
     );
-    const percentage = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
+    const percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 10000) / 100 : 0; // Round to 2 decimal places
 
     // Update attempt with final results
     attempt.responses = scoredResponses;
-    attempt.score = totalScore;
+    attempt.score = Math.round(totalScore * 100) / 100; // Round to 2 decimal places
     attempt.maxScore = maxScore;
     attempt.percentage = percentage;
     attempt.status = 'completed';
@@ -1645,7 +1650,7 @@ exports.getPerformanceAnalytics = async (req, res) => {
  * @throws {500} Server error during weakness analysis
  */
 exports.getStudyRecommendations = async (req, res) => {
-  try {
+   try {
     const { attemptId } = req.params;
     const userId = req.user.userId;
 
