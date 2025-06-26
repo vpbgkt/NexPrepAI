@@ -726,7 +726,7 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {  /** 
     if (!ctx) return;
 
     const breakdown = this.reviewData.analytics.difficultyBreakdown;
-    const difficulties = ['Easy', 'Medium', 'Hard'];
+    const difficulties = ['Very easy', 'Easy', 'Medium', 'Hard', 'Very hard'];
     const correctData = difficulties.map(d => breakdown[d]?.correct || 0);
     const totalData = difficulties.map(d => breakdown[d]?.total || 0);
 

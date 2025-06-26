@@ -34,6 +34,7 @@ const jwt = require('jsonwebtoken');
 const admin = require('../config/firebaseAdmin'); // Import Firebase Admin SDK
 const { generateUniqueReferralCode } = require('../utils/referralUtils');
 const RewardService = require('../services/rewardService'); // Import reward service
+const StreakService = require('../services/streakService'); // Import streak service
 
 /**
  * @constant {number} DEFAULT_FREE_TRIAL_DAYS
@@ -301,13 +302,22 @@ exports.login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials (password mismatch)' });
 
+    // Handle daily login reward
+    let loginReward = null;
+    try {
+      loginReward = await StreakService.handleDailyLogin(user._id);
+    } catch (error) {
+      console.error('❌ Error handling daily login reward:', error);
+      // Don't fail login if reward fails
+    }
+
     const token = jwt.sign(
       { userId: user._id, role: user.role, name: user.name },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
 
-    res.json({ 
+    const response = { 
       token, 
       role: user.role, 
       name: user.name, 
@@ -316,7 +326,20 @@ exports.login = async (req, res) => {
       successfulReferrals: user.successfulReferrals || 0
       // accountExpiresAt and freeTrialEndsAt are not typically returned on login for security/privacy.
       // They should be fetched via a dedicated profile endpoint.
-    });
+    };
+
+    // Add login reward info if available
+    if (loginReward) {
+      response.loginReward = {
+        pointsEarned: loginReward.pointsEarned,
+        currentStreak: loginReward.currentStreak,
+        longestStreak: loginReward.longestStreak,
+        message: loginReward.message,
+        alreadyLoggedToday: loginReward.alreadyLoggedToday
+      };
+    }
+
+    res.json(response);
   } catch (error) {
     console.error("❌ Error in login:", error);
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -496,12 +519,23 @@ exports.firebaseSignIn = async (req, res) => {
       }
     }
 
+    // Handle daily login reward for existing users
+    let loginReward = null;
+    try {
+      loginReward = await StreakService.handleDailyLogin(user._id);
+    } catch (error) {
+      console.error('❌ Error handling Firebase daily login reward:', error);
+      // Don't fail login if reward fails
+    }
+
     // Generate your application's JWT
     const appToken = jwt.sign(
       { userId: user._id, role: user.role, name: user.name },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
-    );    res.json({
+    );
+
+    const response = {
       token: appToken,
       userId: user._id,
       name: user.name,
@@ -515,7 +549,20 @@ exports.firebaseSignIn = async (req, res) => {
       successfulReferrals: user.successfulReferrals || 0
       // accountExpiresAt and freeTrialEndsAt are not typically returned on login for security/privacy.
       // They should be fetched via a dedicated profile endpoint.
-    });
+    };
+
+    // Add login reward info if available
+    if (loginReward) {
+      response.loginReward = {
+        pointsEarned: loginReward.pointsEarned,
+        currentStreak: loginReward.currentStreak,
+        longestStreak: loginReward.longestStreak,
+        message: loginReward.message,
+        alreadyLoggedToday: loginReward.alreadyLoggedToday
+      };
+    }
+
+    res.json(response);
   } catch (error) {
     console.error('Error during Firebase sign-in:', error);
     if (error.code === 'auth/id-token-expired') {

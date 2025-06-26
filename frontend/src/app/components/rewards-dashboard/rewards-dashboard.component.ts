@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { RewardService, RewardSummary, Reward, RewardTransaction, LeaderboardEntry } from '../../services/reward.service';
+import { StreakService, StreakStats, StreakMilestones } from '../../services/streak.service';
 
 @Component({
     selector: 'app-rewards-dashboard',
@@ -58,14 +59,25 @@ import { RewardService, RewardSummary, Reward, RewardTransaction, LeaderboardEnt
             </div>
           </div>
         </div>
-        <div class="bg-white rounded-lg shadow-sm p-6" *ngIf="rewardSummary.nextMilestone">
-          <div class="flex items-center space-x-3">
-            <div class="text-2xl">🎯</div>
+        <div class="bg-white rounded-lg shadow-sm p-6">
+          <div class="flex items-center space-x-3" *ngIf="streakStats; else nextMilestoneCard">
+            <div class="text-2xl">🔥</div>
             <div>
-              <div class="text-2xl font-bold text-gray-900">{{ rewardSummary.nextMilestone - rewardSummary.successfulReferrals }}</div>
-              <div class="text-sm text-gray-600">To Next Milestone</div>
+              <div class="text-lg font-bold text-gray-900">
+                {{ streakStats.currentLoginStreak }}<span class="text-sm text-gray-500">/</span>{{ streakStats.currentStudyStreak }}
+              </div>
+              <div class="text-sm text-gray-600">Login/Study Streaks</div>
             </div>
           </div>
+          <ng-template #nextMilestoneCard>
+            <div class="flex items-center space-x-3" *ngIf="rewardSummary.nextMilestone">
+              <div class="text-2xl">🎯</div>
+              <div>
+                <div class="text-2xl font-bold text-gray-900">{{ rewardSummary.nextMilestone - rewardSummary.successfulReferrals }}</div>
+                <div class="text-sm text-gray-600">To Next Milestone</div>
+              </div>
+            </div>
+          </ng-template>
         </div>
       </div>
 
@@ -255,7 +267,225 @@ import { RewardService, RewardSummary, Reward, RewardTransaction, LeaderboardEnt
               (click)="loadMoreTransactions()">
               View All Transactions
             </button>
-          </div>          <!-- Leaderboard Tab -->
+          </div>
+
+          <!-- Streaks & Goals Tab -->
+          <div *ngIf="activeTab === 'streaks'">
+            <div class="flex items-center justify-center py-12" *ngIf="loading">
+              <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p class="text-gray-600">Loading streak data...</p>
+              </div>
+            </div>
+
+            <div *ngIf="!loading">
+              <!-- Motivational Message -->
+              <div class="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg p-4 mb-6 text-white text-center" *ngIf="streakStats">
+                <p class="font-medium">{{ getStreakMotivationalMessage() }}</p>
+              </div>
+
+              <!-- Streak Overview Cards -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8" *ngIf="streakStats">
+                <!-- Login Streak Card -->
+                <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white">
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-3">
+                      <div class="text-3xl">{{ getStreakStatusIcon(streakStats.currentLoginStreak) }}</div>
+                      <div>
+                        <h3 class="text-lg font-semibold">Login Streak</h3>
+                        <p class="text-blue-100 text-sm">Daily login consistency</p>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-3xl font-bold">{{ streakStats.currentLoginStreak }}</div>
+                      <div class="text-blue-100 text-sm">days</div>
+                    </div>
+                  </div>
+                  <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                      <span class="text-blue-100">Longest streak:</span>
+                      <span class="font-medium">{{ streakStats.longestLoginStreak }} days</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                      <span class="text-blue-100">Total login days:</span>
+                      <span class="font-medium">{{ streakStats.totalLoginDays }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Study Streak Card -->
+                <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white">
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-3">
+                      <div class="text-3xl">{{ getStreakStatusIcon(streakStats.currentStudyStreak) }}</div>
+                      <div>
+                        <h3 class="text-lg font-semibold">Study Streak</h3>
+                        <p class="text-green-100 text-sm">Answer questions daily</p>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-3xl font-bold">{{ streakStats.currentStudyStreak }}</div>
+                      <div class="text-green-100 text-sm">days</div>
+                    </div>
+                  </div>
+                  <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                      <span class="text-green-100">Longest streak:</span>
+                      <span class="font-medium">{{ streakStats.longestStudyStreak }} days</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                      <span class="text-green-100">Total study days:</span>
+                      <span class="font-medium">{{ streakStats.totalStudyDays }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Milestone Progress -->
+              <div class="bg-white rounded-lg shadow-sm p-6 mb-8" *ngIf="streakMilestones">
+                <h3 class="text-xl font-semibold text-gray-900 mb-6">🎯 Milestone Progress</h3>
+                
+                <!-- Login Milestones -->
+                <div class="mb-8">
+                  <h4 class="text-lg font-medium text-gray-800 mb-4 flex items-center space-x-2">
+                    <span class="text-blue-500">🏃‍♂️</span>
+                    <span>Login Streak Milestones</span>
+                  </h4>
+                  
+                  <div class="space-y-4">
+                    <div *ngFor="let milestone of streakMilestones.loginMilestones" 
+                         [class]="'border rounded-lg p-4 transition-all duration-200 ' + 
+                                  (streakStats!.currentLoginStreak >= milestone.days ? 
+                                   'border-green-200 bg-green-50' : 
+                                   'border-gray-200 bg-gray-50')">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                          <div [class]="'w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ' + 
+                                       (streakStats!.currentLoginStreak >= milestone.days ? 
+                                        'bg-green-500 text-white' : 
+                                        'bg-gray-300 text-gray-600')">
+                            {{ streakStats!.currentLoginStreak >= milestone.days ? '✓' : milestone.days }}
+                          </div>
+                          <div>
+                            <h5 class="font-medium text-gray-900">{{ milestone.title }}</h5>
+                            <p class="text-sm text-gray-600">{{ milestone.description }}</p>
+                          </div>
+                        </div>
+                        <div class="text-right">
+                          <div class="text-lg font-semibold text-blue-600">+{{ milestone.reward }}</div>
+                          <div class="text-sm text-gray-500">points</div>
+                        </div>
+                      </div>
+                      
+                      <!-- Progress bar for current milestone -->
+                      <div *ngIf="isCurrentLoginMilestone(milestone)" class="mt-3">
+                        <div class="flex justify-between items-center mb-2">
+                          <span class="text-sm text-gray-600">Progress</span>
+                          <span class="text-sm text-gray-600">
+                            {{ getMilestoneProgress(streakStats!.currentLoginStreak, milestone.days) }}%
+                          </span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                          <div class="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                               [style.width.%]="getMilestoneProgress(streakStats!.currentLoginStreak, milestone.days)">
+                          </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">
+                          {{ milestone.days - streakStats!.currentLoginStreak }} more days to reach this milestone
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Study Milestones -->
+                <div>
+                  <h4 class="text-lg font-medium text-gray-800 mb-4 flex items-center space-x-2">
+                    <span class="text-green-500">📚</span>
+                    <span>Study Streak Milestones</span>
+                  </h4>
+                  
+                  <div class="space-y-4">
+                    <div *ngFor="let milestone of streakMilestones.studyMilestones" 
+                         [class]="'border rounded-lg p-4 transition-all duration-200 ' + 
+                                  (streakStats!.currentStudyStreak >= milestone.days ? 
+                                   'border-green-200 bg-green-50' : 
+                                   'border-gray-200 bg-gray-50')">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                          <div [class]="'w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ' + 
+                                       (streakStats!.currentStudyStreak >= milestone.days ? 
+                                        'bg-green-500 text-white' : 
+                                        'bg-gray-300 text-gray-600')">
+                            {{ streakStats!.currentStudyStreak >= milestone.days ? '✓' : milestone.days }}
+                          </div>
+                          <div>
+                            <h5 class="font-medium text-gray-900">{{ milestone.title }}</h5>
+                            <p class="text-sm text-gray-600">{{ milestone.description }}</p>
+                          </div>
+                        </div>
+                        <div class="text-right">
+                          <div class="text-lg font-semibold text-green-600">+{{ milestone.reward }}</div>
+                          <div class="text-sm text-gray-500">points</div>
+                        </div>
+                      </div>
+                      
+                      <!-- Progress bar for current milestone -->
+                      <div *ngIf="isCurrentStudyMilestone(milestone)" class="mt-3">
+                        <div class="flex justify-between items-center mb-2">
+                          <span class="text-sm text-gray-600">Progress</span>
+                          <span class="text-sm text-gray-600">
+                            {{ getMilestoneProgress(streakStats!.currentStudyStreak, milestone.days) }}%
+                          </span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                          <div class="bg-green-500 h-2 rounded-full transition-all duration-300"
+                               [style.width.%]="getMilestoneProgress(streakStats!.currentStudyStreak, milestone.days)">
+                          </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">
+                          {{ milestone.days - streakStats!.currentStudyStreak }} more days to reach this milestone
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Streak Tips -->
+              <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg p-6 text-white">
+                <h3 class="text-xl font-semibold mb-4">💡 Streak Tips</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 class="font-medium mb-2 flex items-center space-x-2">
+                      <span>🌅</span>
+                      <span>Maintain Login Streak</span>
+                    </h4>
+                    <ul class="text-sm space-y-1 text-indigo-100">
+                      <li>• Login daily to earn 5 points</li>
+                      <li>• Set daily reminders</li>
+                      <li>• Use mobile app for easy access</li>
+                      <li>• Track progress on dashboard</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 class="font-medium mb-2 flex items-center space-x-2">
+                      <span>🎯</span>
+                      <span>Build Study Streak</span>
+                    </h4>
+                    <ul class="text-sm space-y-1 text-purple-100">
+                      <li>• Answer at least 1 question daily</li>
+                      <li>• Complete practice tests regularly</li>
+                      <li>• Focus on consistency over volume</li>
+                      <li>• Earn bonus points at milestones</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Leaderboard Tab -->
           <div *ngIf="activeTab === 'leaderboard'">
             <div class="flex items-center justify-center py-12" *ngIf="loading">
               <div class="text-center">
@@ -349,7 +579,7 @@ import { RewardService, RewardSummary, Reward, RewardTransaction, LeaderboardEnt
                 </div>
 
                 <div class="bg-white border rounded-lg p-6 hover:shadow-md transition-all duration-200">
-                  <div class="text-3xl mb-4">�</div>
+                  <div class="text-3xl mb-4">📚</div>
                   <h4 class="text-lg font-semibold text-gray-900 mb-2">Study Activities</h4>
                   <p class="text-gray-600 mb-4">Earn points through regular study:</p>
                   <div class="space-y-2">
@@ -358,12 +588,16 @@ import { RewardService, RewardSummary, Reward, RewardTransaction, LeaderboardEnt
                       <strong class="text-blue-600">+5 pts</strong>
                     </div>
                     <div class="flex justify-between items-center text-sm">
-                      <span class="text-gray-600">Complete test:</span>
+                      <span class="text-gray-600">Answer questions:</span>
                       <strong class="text-blue-600">+10 pts</strong>
                     </div>
                     <div class="flex justify-between items-center text-sm">
-                      <span class="text-gray-600">Weekly streak:</span>
+                      <span class="text-gray-600">7-day login streak:</span>
                       <strong class="text-blue-600">+25 pts</strong>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                      <span class="text-gray-600">7-day study streak:</span>
+                      <strong class="text-blue-600">+50 pts</strong>
                     </div>
                   </div>
                 </div>
@@ -423,6 +657,10 @@ export class RewardsDashboardComponent implements OnInit, OnDestroy {
   recentTransactions: RewardTransaction[] = [];
   leaderboard: LeaderboardEntry[] = [];
   
+  // Streak-related properties
+  streakStats: StreakStats | null = null;
+  streakMilestones: StreakMilestones | null = null;
+  
   activeTab = 'rewards';
   loading = false;
   redeemingReward = false;
@@ -434,6 +672,7 @@ export class RewardsDashboardComponent implements OnInit, OnDestroy {
 
   tabs = [
     { id: 'rewards', label: 'Available Rewards' },
+    { id: 'streaks', label: 'Streaks & Goals' },
     { id: 'transactions', label: 'Transaction History' },
     { id: 'leaderboard', label: 'Leaderboard' },
     { id: 'earn', label: 'How to Earn' }
@@ -441,6 +680,7 @@ export class RewardsDashboardComponent implements OnInit, OnDestroy {
 
   constructor(
     private rewardService: RewardService,
+    private streakService: StreakService,
     private router: Router
   ) {}
 
@@ -492,8 +732,37 @@ export class RewardsDashboardComponent implements OnInit, OnDestroy {
       }
     });
 
+    // Load streak statistics
+    this.loadStreakData();
+
     // Load leaderboard
     this.loadLeaderboard();
+  }
+
+  private loadStreakData(): void {
+    // Load streak statistics
+    this.streakService.getStreakStats().subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.streakStats = response.data;
+        }
+      },
+      error: (error) => {
+        console.error('Error loading streak stats:', error);
+      }
+    });
+
+    // Load streak milestones
+    this.streakService.getStreakMilestones().subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.streakMilestones = response.data;
+        }
+      },
+      error: (error) => {
+        console.error('Error loading streak milestones:', error);
+      }
+    });
   }
 
   private loadLeaderboard(): void {
@@ -515,6 +784,10 @@ export class RewardsDashboardComponent implements OnInit, OnDestroy {
     // Load data specific to the tab if needed
     if (tabId === 'leaderboard' && this.leaderboard.length === 0) {
       this.loadLeaderboard();
+    }
+    
+    if (tabId === 'streaks' && !this.streakStats) {
+      this.loadStreakData();
     }
   }
 
@@ -587,6 +860,113 @@ export class RewardsDashboardComponent implements OnInit, OnDestroy {
 
   // Add Math to the component for template usage
   Math = Math;
+
+  // Streak helper methods
+  getStreakStatusColor(streak: number): string {
+    return this.streakService.getStreakStatusColor(streak);
+  }
+
+  getStreakStatusIcon(streak: number): string {
+    return this.streakService.getStreakStatusIcon(streak);
+  }
+
+  formatStreakText(streak: number, type: 'login' | 'study'): string {
+    return this.streakService.formatStreakText(streak, type);
+  }
+
+  getDaysUntilNextLoginMilestone(): { days: number; milestone: any } {
+    if (!this.streakStats || !this.streakMilestones) {
+      return { days: 0, milestone: null };
+    }
+    return this.streakService.getDaysUntilNextMilestone(
+      this.streakStats.currentLoginStreak, 
+      this.streakMilestones.loginMilestones
+    );
+  }
+
+  getDaysUntilNextStudyMilestone(): { days: number; milestone: any } {
+    if (!this.streakStats || !this.streakMilestones) {
+      return { days: 0, milestone: null };
+    }
+    return this.streakService.getDaysUntilNextMilestone(
+      this.streakStats.currentStudyStreak, 
+      this.streakMilestones.studyMilestones
+    );
+  }
+
+  getNextLoginMilestone(): any {
+    if (!this.streakStats || !this.streakMilestones) {
+      return null;
+    }
+    return this.streakMilestones.loginMilestones
+      .find(milestone => this.streakStats!.currentLoginStreak < milestone.days);
+  }
+
+  getNextStudyMilestone(): any {
+    if (!this.streakStats || !this.streakMilestones) {
+      return null;
+    }
+    return this.streakMilestones.studyMilestones
+      .find(milestone => this.streakStats!.currentStudyStreak < milestone.days);
+  }
+
+  getStreakMotivationalMessage(): string {
+    if (!this.streakStats) return '';
+    
+    const loginStreak = this.streakStats.currentLoginStreak;
+    const studyStreak = this.streakStats.currentStudyStreak;
+    
+    if (loginStreak === 0 && studyStreak === 0) {
+      return "Start your journey today! Login and answer questions to begin your streaks.";
+    } else if (loginStreak > 0 && studyStreak === 0) {
+      return "Great login streak! Now try answering some questions to start your study streak.";
+    } else if (loginStreak === 0 && studyStreak > 0) {
+      return "Nice study habit! Don't forget to login daily to maintain your login streak too.";
+    } else if (loginStreak < 7 && studyStreak < 7) {
+      return "You're building great habits! Keep going to reach your first weekly milestone.";
+    } else if (loginStreak >= 7 || studyStreak >= 7) {
+      return "Excellent consistency! You're on track for even bigger milestones.";
+    }
+    
+    return "Keep up the amazing work with your streaks!";
+  }
+
+  hasActiveStreaks(): boolean {
+    return (this.streakStats?.currentLoginStreak || 0) > 0 || 
+           (this.streakStats?.currentStudyStreak || 0) > 0;
+  }
+
+  // Helper methods for milestone progress
+  isCurrentLoginMilestone(milestone: any): boolean {
+    if (!this.streakStats || !this.streakMilestones) return false;
+    
+    // Check if this is the next milestone to achieve
+    const currentStreak = this.streakStats.currentLoginStreak;
+    if (currentStreak >= milestone.days) return false; // Already achieved
+    
+    const nextMilestone = this.streakMilestones.loginMilestones
+      .find(m => currentStreak < m.days);
+    
+    return nextMilestone === milestone;
+  }
+
+  isCurrentStudyMilestone(milestone: any): boolean {
+    if (!this.streakStats || !this.streakMilestones) return false;
+    
+    // Check if this is the next milestone to achieve
+    const currentStreak = this.streakStats.currentStudyStreak;
+    if (currentStreak >= milestone.days) return false; // Already achieved
+    
+    const nextMilestone = this.streakMilestones.studyMilestones
+      .find(m => currentStreak < m.days);
+    
+    return nextMilestone === milestone;
+  }
+
+  getMilestoneProgress(currentStreak: number, targetDays: number): number {
+    if (currentStreak >= targetDays) return 100;
+    return Math.round((currentStreak / targetDays) * 100);
+  }
 
   private showMessage(message: string, type: 'success' | 'error'): void {
     this.message = message;

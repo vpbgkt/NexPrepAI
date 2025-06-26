@@ -139,13 +139,15 @@
           <div class="bg-white p-6 rounded-lg shadow-md">
             <h3 class="text-lg font-semibold mb-4 text-gray-800">Difficulty Breakdown</h3>
             <div class="space-y-4">
-              <div *ngFor="let difficulty of ['Easy', 'Medium', 'Hard']" class="space-y-2">
+              <div *ngFor="let difficulty of ['Very easy', 'Easy', 'Medium', 'Hard', 'Very hard']" class="space-y-2">
                 <div class="flex items-center justify-between">
                   <span class="text-sm font-medium" 
                     [ngClass]="{
-                      'text-green-600': difficulty === 'Easy',
+                      'text-green-600': difficulty === 'Very easy',
+                      'text-green-500': difficulty === 'Easy',
                       'text-yellow-600': difficulty === 'Medium',
-                      'text-red-600': difficulty === 'Hard'
+                      'text-red-500': difficulty === 'Hard',
+                      'text-red-700': difficulty === 'Very hard'
                     }">
                     {{ difficulty }}
                   </span>                  <span class="text-sm font-medium">
@@ -156,9 +158,11 @@
                   <div 
                     class="h-2 rounded-full transition-all duration-300"
                     [ngClass]="{
+                      'bg-green-600': difficulty === 'Very easy',
                       'bg-green-500': difficulty === 'Easy',
                       'bg-yellow-500': difficulty === 'Medium',
-                      'bg-red-500': difficulty === 'Hard'
+                      'bg-red-500': difficulty === 'Hard',
+                      'bg-red-700': difficulty === 'Very hard'
                     }"
                     [style.width.%]="getDifficultyProgressWidth(difficulty)">
                   </div>

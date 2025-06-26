@@ -50,6 +50,7 @@ const Question     = require('../models/Question');
 const mongoose = require('mongoose'); // Added mongoose require
 const User = require('../models/User'); // Import User model
 const AntiCheatingService = require('../services/antiCheatingService');
+const StreakService = require('../services/streakService'); // Import streak service
 
 /**
  * Utility function to randomly shuffle array elements using Fisher-Yates algorithm
@@ -721,15 +722,41 @@ exports.submitAttempt = async (req, res) => {
     freshAttempt.remainingDurationSeconds = 0; // Standard for completed attempts
     await freshAttempt.save(); // Persist the changes
 
+    // Handle study streak after successful test submission
+    let studyStreak = null;
+    try {
+      studyStreak = await StreakService.handleStudyActivity(userId);
+    } catch (error) {
+      console.error('❌ Error handling study streak:', error);
+      // Don't fail submission if streak handling fails
+    }
+
     // Return success response with details from the saved attempt
-    return res.status(200).json({
+    const response = {
       message: 'Test submitted successfully.',
       attemptId: freshAttempt._id,
       score: freshAttempt.score,
       maxScore: freshAttempt.maxScore,
       percentage: freshAttempt.percentage,
       timeTakenSeconds: freshAttempt.timeTakenSeconds
-    });
+    };
+
+    // Add study streak info if available
+    if (studyStreak) {
+      response.studyStreak = {
+        activityRecorded: !studyStreak.alreadyStudiedToday,
+        pointsEarned: studyStreak.pointsEarned || 0,
+        basePoints: studyStreak.basePoints || 0,
+        streakBonus: studyStreak.streakBonus || 0,
+        currentStudyStreak: studyStreak.studyStreak || 0,
+        longestStudyStreak: studyStreak.longestStudyStreak || 0,
+        totalStudyDays: studyStreak.totalStudyDays || 0,
+        message: studyStreak.message,
+        weeklyStreakUpdated: studyStreak.weeklyStreakUpdated
+      };
+    }
+
+    return res.status(200).json(response);
 
   } catch (err) {
     console.error('❌ Error in submitAttempt:', err);
@@ -1480,16 +1507,16 @@ exports.getEnhancedReview = async (req, res) => {
 
                         // Get correct option texts and IDs
                         if (optionsSourceForDisplay.length > 0) {
-                            optionsSourceForDisplay.forEach(opt => {
-                                if (opt.isCorrect) {
-                                    correctOptionTexts.push(opt.text);
-                                    if (opt._id) {
-                                        actualCorrectOptionIds.push(opt._id.toString());
-                                    }
-                                }
-                            });
+                          optionsSourceForDisplay.forEach(opt => {
+                            if (opt.isCorrect) {
+                              correctOptionTexts.push(opt.text);
+                              if (opt._id) {
+                                actualCorrectOptionIds.push(opt._id.toString());
+                              }
+                            }
+                          });
                         }
-                    }
+                      }
                       const questionTextForDisplay = (fullQuestion.translations && fullQuestion.translations.length > 0 && fullQuestion.translations[0].questionText)
                                                    ? fullQuestion.translations[0].questionText
                                                    : (fullQuestion.questionText || 'Question text not available');
@@ -1919,18 +1946,35 @@ function calculatePerformanceAnalytics(attempt, detailedQuestions) {
     timeSpent: attempt.timeTakenSeconds || attempt.totalTimeSpent || 0,
     sectionWise: {},
     difficultyWise: {
-      easy: { total: 0, correct: 0, attempted: 0 },
-      medium: { total: 0, correct: 0, attempted: 0 },
-      hard: { total: 0, correct: 0, attempted: 0 }
+      'very easy': { total: 0, correct: 0, attempted: 0 },
+      'easy': { total: 0, correct: 0, attempted: 0 },
+      'medium': { total: 0, correct: 0, attempted: 0 },
+      'hard': { total: 0, correct: 0, attempted: 0 },
+      'very hard': { total: 0, correct: 0, attempted: 0 }
     },
-    subjectWise: {}
+    subjectWise: {},
+    difficultyBreakdown: {},
+    timeAnalysis: {
+      fastestQuestion: null,
+      slowestQuestion: null,
+      questionsOverTime: 0,
+      averageTimePerQuestion: 0
+    }
   };
 
   // Process each question
+  let questionTimes = [];
+  
   detailedQuestions.forEach(question => {
     const status = question.status || 'unanswered';
     const difficulty = (question.difficulty || 'medium').toLowerCase();
     const subjectName = question.topics?.subject || 'Unknown';
+    const timeSpent = question.timeSpent || 0;
+    
+    // Collect time data for analysis
+    if (timeSpent > 0) {
+      questionTimes.push(timeSpent);
+    }
 
     // Overall statistics
     if (status === 'correct') {
@@ -1974,6 +2018,42 @@ function calculatePerformanceAnalytics(attempt, detailedQuestions) {
     analytics.subjectWise[subjectName].score += question.earned || 0;
     analytics.subjectWise[subjectName].maxScore += question.marks || 0;
   });
+
+  // Calculate time analysis
+  if (questionTimes.length > 0) {
+    questionTimes.sort((a, b) => a - b);
+    analytics.timeAnalysis.fastestQuestion = questionTimes[0];
+    analytics.timeAnalysis.slowestQuestion = questionTimes[questionTimes.length - 1];
+    analytics.timeAnalysis.averageTimePerQuestion = Math.round(questionTimes.reduce((sum, time) => sum + time, 0) / questionTimes.length);
+    
+    // Count questions that took longer than estimated time (assuming 2 minutes per question as baseline)
+    const estimatedTimePerQuestion = 120; // 2 minutes in seconds
+    analytics.timeAnalysis.questionsOverTime = questionTimes.filter(time => time > estimatedTimePerQuestion).length;
+  } else {
+    analytics.timeAnalysis.fastestQuestion = 0;
+    analytics.timeAnalysis.slowestQuestion = 0;
+    analytics.timeAnalysis.averageTimePerQuestion = 0;
+    analytics.timeAnalysis.questionsOverTime = 0;
+  }
+
+  // Create difficultyBreakdown in the format expected by frontend
+  analytics.difficultyBreakdown = {};
+  Object.keys(analytics.difficultyWise).forEach(difficulty => {
+    let capitalizedDifficulty;
+    if (difficulty === 'very easy') {
+      capitalizedDifficulty = 'Very easy';
+    } else if (difficulty === 'very hard') {
+      capitalizedDifficulty = 'Very hard';
+    } else {
+      capitalizedDifficulty = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+    }
+    analytics.difficultyBreakdown[capitalizedDifficulty] = {
+      total: analytics.difficultyWise[difficulty].total,
+      correct: analytics.difficultyWise[difficulty].correct,
+      attempted: analytics.difficultyWise[difficulty].attempted
+    };
+  });
+  console.log('🔍 Debug: Final difficulty breakdown:', analytics.difficultyBreakdown);
 
   // Calculate percentages for subjects
   Object.keys(analytics.subjectWise).forEach(subject => {

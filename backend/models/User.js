@@ -86,6 +86,52 @@ const userSchema = new mongoose.Schema({
   freeTrialEndsAt: {
     type: Date,
     default: null
+  },
+  // Streak tracking fields
+  currentStreak: {
+    type: Number,
+    default: 0
+  },
+  longestStreak: {
+    type: Number,
+    default: 0
+  },
+  lastActivityDate: {
+    type: Date,
+    default: null
+  },
+  lastLoginDate: {
+    type: Date,
+    default: null
+  },
+  totalLoginDays: {
+    type: Number,
+    default: 0
+  },
+  weeklyStreak: {
+    type: Number,
+    default: 0
+  },
+  lastWeeklyStreakDate: {
+    type: Date,
+    default: null
+  },
+  // Study-specific streak tracking
+  studyStreak: {
+    type: Number,
+    default: 0
+  },
+  longestStudyStreak: {
+    type: Number,
+    default: 0
+  },
+  lastStudyDate: {
+    type: Date,
+    default: null
+  },
+  totalStudyDays: {
+    type: Number,
+    default: 0
   }
 }, { timestamps: true });
 
