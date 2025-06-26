@@ -1,10 +1,12 @@
-import { Component, OnInit, NgZone } from '@angular/core';
+import { Component, OnInit, NgZone, OnDestroy, HostListener } from '@angular/core';
 import { RouterOutlet, Router, RouterModule, NavigationEnd, ActivatedRoute } from '@angular/router'; // Import ActivatedRoute
 import { AuthService } from './services/auth.service';
 import { FirebaseAuthService } from './services/firebase-auth.service';
 import { ReferralService } from './services/referral.service'; // Import ReferralService
-import { Observable } from 'rxjs';
-import { filter } from 'rxjs/operators'; // Import filter operator
+import { StreakService, StreakStats } from './services/streak.service'; // Import StreakService
+import { RewardService, RewardSummary } from './services/reward.service'; // Import RewardService
+import { Observable, Subscription, interval } from 'rxjs';
+import { filter, switchMap, startWith } from 'rxjs/operators'; // Import filter operator
 import { User as FirebaseUser } from '@angular/fire/auth';
 import { CommonModule } from '@angular/common';
 import { GlobalChatComponent } from './components/global-chat/global-chat.component'; // Import GlobalChatComponent
@@ -17,22 +19,111 @@ import { GlobalChatComponent } from './components/global-chat/global-chat.compon
         CommonModule,
         GlobalChatComponent // Add GlobalChatComponent to imports
     ], templateUrl: './app.component.html',
-    styleUrls: []
+    styles: [`
+      .animate-slideDown {
+        animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      }
+      
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-12px) scale(0.95);
+          max-height: 0;
+          visibility: hidden;
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+          max-height: 500px;
+          visibility: visible;
+        }
+      }
+      
+      .rotate-180 {
+        transform: rotate(180deg);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      
+      .streak-dropdown {
+        backdrop-filter: blur(10px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+                    0 10px 10px -5px rgba(0, 0, 0, 0.04),
+                    0 0 0 1px rgba(255, 255, 255, 0.1);
+        border-top: 2px solid rgba(59, 130, 246, 0.3);
+      }
+      
+      .streak-item {
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      
+      .streak-item:hover {
+        transform: translateX(4px);
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+      }
+      
+      .points-glow {
+        text-shadow: 0 0 10px rgba(234, 179, 8, 0.3);
+      }
+      
+      .streak-badge-glow {
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+      }
+      
+      .mobile-streak-card {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9));
+        backdrop-filter: blur(10px);
+      }
+      
+      .mobile-streak-item {
+        backdrop-filter: blur(8px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      
+      .mobile-streak-item:hover {
+        transform: scale(1.02);
+      }
+      
+      .dropdown-container {
+        position: relative;
+        z-index: 1000;
+      }
+      
+      .action-button {
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    `]
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   currentUser$: Observable<FirebaseUser | null>;
   isAppLoggedIn: boolean = false;
   appUserDisplayName: string | null = null;
   userRole: string | null = null; // Add userRole property
   currentRoute: string = ''; // Add property to track current route
   mobileMenuOpen: boolean = false; // Add mobile menu state
+  
+  // Streak and reward tracking
+  streakStats: StreakStats | null = null;
+  rewardSummary: RewardSummary | null = null;
+  
+  // Dropdown state management
+  showStreakDropdown = false;
+  showMobileStreakDropdown = false;
+  
+  private subscriptions: Subscription[] = [];
+  private refreshInterval: Subscription | null = null;
+  
   constructor(
     public authService: AuthService, 
     private firebaseAuthService: FirebaseAuthService,
     private router: Router,
     private ngZone: NgZone,
     private activatedRoute: ActivatedRoute,
-    private referralService: ReferralService 
+    private referralService: ReferralService,
+    private streakService: StreakService,
+    private rewardService: RewardService 
   ) {
     this.currentUser$ = this.firebaseAuthService.currentUser$;
   }
@@ -110,6 +201,25 @@ export class AppComponent implements OnInit {
             `isAppLoggedIn: ${appIsLoggedInOld} -> ${this.isAppLoggedIn}, ` +
             `appUserDisplayName: '${appUserDisplayNameOld}' -> '${this.appUserDisplayName}'`
         );
+        
+        // Load streak and reward data when user logs in
+        if (this.isAppLoggedIn && !appIsLoggedInOld) {
+          this.loadStreakAndRewardData();
+          this.startPeriodicRefresh();
+        }
+        
+        // Clear data when user logs out
+        if (!this.isAppLoggedIn && appIsLoggedInOld) {
+          this.streakStats = null;
+          this.rewardSummary = null;
+          // Cleanup subscriptions
+          this.subscriptions.forEach(sub => sub.unsubscribe());
+          this.subscriptions = [];
+          if (this.refreshInterval) {
+            this.refreshInterval.unsubscribe();
+            this.refreshInterval = null;
+          }
+        }
     } else {
         console.log(
             `AppComponent: updateAuthStates - NO STATE CHANGE by ${caller}. ` +
@@ -169,5 +279,124 @@ export class AppComponent implements OnInit {
 
   closeMobileMenu(): void {
     this.mobileMenuOpen = false;
+    this.showMobileStreakDropdown = false; // Close streak dropdown when closing mobile menu
+  }
+  
+  ngOnDestroy(): void {
+    // Cleanup subscriptions
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+    if (this.refreshInterval) {
+      this.refreshInterval.unsubscribe();
+    }
+  }
+
+  private loadStreakAndRewardData(): void {
+    if (!this.isAppLoggedIn) {
+      this.streakStats = null;
+      this.rewardSummary = null;
+      return;
+    }
+
+    // Load streak statistics
+    this.subscriptions.push(
+      this.streakService.getStreakStats().subscribe({
+        next: (response) => {
+          if (response.success) {
+            this.streakStats = response.data;
+          }
+        },
+        error: (error) => {
+          console.error('Error loading streak stats:', error);
+        }
+      })
+    );
+
+    // Load reward summary
+    this.subscriptions.push(
+      this.rewardService.getUserRewardDashboard().subscribe({
+        next: () => {
+          // Data is available through the service's observable
+        },
+        error: (error) => {
+          console.error('Error loading reward summary:', error);
+        }
+      })
+    );
+
+    // Subscribe to reward summary from service
+    this.subscriptions.push(
+      this.rewardService.rewardSummary$.subscribe(summary => {
+        this.rewardSummary = summary;
+      })
+    );
+  }
+
+  private startPeriodicRefresh(): void {
+    // Refresh streak and reward data every 5 minutes
+    this.refreshInterval = interval(5 * 60 * 1000).pipe(
+      startWith(0), // Start immediately
+      filter(() => this.isAppLoggedIn),
+      switchMap(() => this.streakService.getStreakStats())
+    ).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.streakStats = response.data;
+        }
+      },
+      error: (error) => {
+        console.error('Error refreshing streak stats:', error);
+      }
+    });
+  }
+
+  getStreakStatusColor(streak: number): string {
+    if (streak === 0) return 'text-gray-400';
+    if (streak < 3) return 'text-yellow-400';
+    if (streak < 7) return 'text-orange-400';
+    return 'text-green-400';
+  }
+
+  getStreakStatusIcon(streak: number): string {
+    if (streak === 0) return '⚪';
+    if (streak < 3) return '🔥';
+    if (streak < 7) return '🚀';
+    return '⭐';
+  }
+
+  // Helper methods for streak display
+  navigateToRewards(): void {
+    this.router.navigate(['/rewards']);
+  }
+
+  formatPoints(points: number): string {
+    if (points >= 1000000) {
+      return (points / 1000000).toFixed(1) + 'M';
+    } else if (points >= 1000) {
+      return (points / 1000).toFixed(1) + 'K';
+    }
+    return points.toString();
+  }
+
+  // Dropdown toggle methods
+  toggleStreakDropdown(): void {
+    this.showStreakDropdown = !this.showStreakDropdown;
+  }
+
+  toggleMobileStreakDropdown(): void {
+    this.showMobileStreakDropdown = !this.showMobileStreakDropdown;
+  }
+
+  // Close dropdowns when clicking outside or navigating
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: Event): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.relative')) {
+      this.showStreakDropdown = false;
+    }
+  }
+
+  private showMessage(message: string, type: 'success' | 'error'): void {
+    // You can implement a toast notification system here
+    console.log(`${type.toUpperCase()}: ${message}`);
   }
 }

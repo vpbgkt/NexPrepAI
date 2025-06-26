@@ -11,7 +11,7 @@ import { adminGuard } from './guards/admin.guard'; // Import AdminGuard
 import { ProfileComponent } from './components/profile/profile.component'; // Import ProfileComponent
 import { LeaderboardComponent } from './components/leaderboard/leaderboard.component'; // Import LeaderboardComponent
 import { HomeComponent } from './components/home/home.component'; // Import HomeComponent
-import { RewardsDashboardComponent } from './components/rewards-dashboard/rewards-dashboard.component'; // Import RewardsDashboardComponent
+import { RewardsDashboardComponent } from './components/rewards-dashboard/rewards-dashboard.component';
 import { AdminRewardsComponent } from './components/admin-rewards/admin-rewards.component'; // Import AdminRewardsComponent
 import { AccountActiveGuard } from './guards/account-active.guard'; // Corrected import: AccountActiveGuard
 import { MathTestComponent } from './components/math-test/math-test.component'; // Import MathTestComponent for testing
@@ -29,7 +29,7 @@ export const routes: Routes = [  // Public student routes
   { path: 'student/dashboard', component: StudentDashboardComponent, canActivate: [studentGuard, AccountActiveGuard] }, // Corrected usage: AccountActiveGuard
   { path: 'tests', component: TestListComponent, canActivate: [studentGuard, AccountActiveGuard] }, // Corrected usage: AccountActiveGuard
   { path: 'profile', component: ProfileComponent, canActivate: [studentGuard] }, // Profile page should be accessible to see status
-  { path: 'rewards', component: RewardsDashboardComponent, canActivate: [studentGuard, AccountActiveGuard] }, // Corrected usage: AccountActiveGuard
+  { path: 'rewards', component: RewardsDashboardComponent, canActivate: [studentGuard, AccountActiveGuard] },
 
   // Admin-only pages
   { path: 'admin/rewards', component: AdminRewardsComponent, canActivate: [adminGuard] }, // Admin rewards management
