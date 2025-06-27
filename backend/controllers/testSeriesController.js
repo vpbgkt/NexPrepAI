@@ -32,6 +32,7 @@
 const mongoose   = require('mongoose');
 const TestSeries = require('../models/TestSeries');   // ← make sure this points to /backend/models/tests.js
 const Question   = require('../models/Question');
+const Enrollment = require('../models/Enrollment');   // Add enrollment model
 
 /**
  * Process sections array to include new randomization and pooling fields
@@ -406,20 +407,88 @@ async function cloneTestSeries(req, res) {
  *   }
  * ]
  */
-// 3) Get all TestSeries
+// 3) Get all TestSeries with enrollment filtering
 async function getAllTestSeries(req, res) {
   try {
-    const all = await TestSeries.find()
-      .populate('family', 'name code') // Populate family with name and code
-      .populate('stream', 'name code') // Populate stream with name and code
-      .populate('paper', 'name code')  // Populate paper with name and code
-      .populate('shift', 'name code')  // Populate shift with name and code
+    const userId = req.user.userId;
+    const userRole = req.user.role;
+
+    // For admin users, return all test series
+    if (userRole === 'admin' || userRole === 'superadmin') {
+      const all = await TestSeries.find()
+        .populate('family', 'name code') // Populate family with name and code
+        .populate('stream', 'name code') // Populate stream with name and code
+        .populate('paper', 'name code')  // Populate paper with name and code
+        .populate('shift', 'name code')  // Populate shift with name and code
+        .sort({ createdAt: -1 });
+
+      return res.json({
+        success: true,
+        data: all,
+        message: 'All test series retrieved successfully'
+      });
+    }
+
+    // For students, filter based on enrollments
+    const studentEnrollments = await Enrollment.getActiveEnrollments(userId);
+    
+    if (!studentEnrollments || studentEnrollments.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+        message: 'No enrollments found. Please enroll in exam categories to access test series.',
+        requiresEnrollment: true
+      });
+    }
+
+    // Extract exam family IDs from enrollments
+    const enrolledFamilyIds = studentEnrollments.map(enrollment => enrollment.examFamily._id);
+
+    // Get all test series for enrolled exam families
+    const testSeries = await TestSeries.find({
+      family: { $in: enrolledFamilyIds }
+    })
+      .populate('family', 'name code')
+      .populate('stream', 'name code')
+      .populate('paper', 'name code')
+      .populate('shift', 'name code')
       .sort({ createdAt: -1 });
 
-    res.json(all);
+    // Add enrollment metadata to each test series
+    const enrichedTestSeries = testSeries.map(series => {
+      const enrollment = studentEnrollments.find(e => 
+        e.examFamily._id.toString() === series.family._id.toString()
+      );
+
+      return {
+        ...series.toObject(),
+        hasAccess: !enrollment.isExpired,
+        accessLevel: enrollment.accessLevel,
+        isTrialAccess: enrollment.isTrialEnrollment,
+        trialDaysRemaining: enrollment.trialDaysRemaining,
+        enrollmentId: enrollment._id
+      };
+    });
+
+    res.json({
+      success: true,
+      data: enrichedTestSeries,
+      message: 'Test series retrieved successfully',
+      enrollmentInfo: {
+        totalEnrollments: studentEnrollments.length,
+        enrolledFamilies: studentEnrollments.map(e => ({
+          id: e.examFamily._id,
+          name: e.examFamily.name,
+          accessLevel: e.accessLevel
+        }))
+      }
+    });
   } catch (err) {
     console.error('Error in getAllTestSeries:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error while fetching test series' 
+    });
   }
 }
 

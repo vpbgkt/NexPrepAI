@@ -1,13 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { UserService, UserProfile, ReferralInfo } from '../../services/user.service'; // Adjust path as needed
 import { AuthService, BackendUser } from '../../services/auth.service'; // Import AuthService and BackendUser
 import { ReferralModalComponent } from '../referral-modal/referral-modal.component';
+import { EnrollmentManagementComponent } from '../enrollment-management/enrollment-management.component';
 
 @Component({
     selector: 'app-profile',
-    imports: [CommonModule, ReactiveFormsModule, ReferralModalComponent],
+    imports: [CommonModule, ReactiveFormsModule, ReferralModalComponent, EnrollmentManagementComponent],
     templateUrl: './profile.component.html'
 })
 export class ProfileComponent implements OnInit {
@@ -29,10 +31,15 @@ export class ProfileComponent implements OnInit {
   daysToAccountExpiry: number | null = null;
   daysToFreeTrialExpiry: number | null = null;
 
+  // Enrollment message properties
+  enrollmentMessage: string | null = null;
+  showEnrollmentAlert = false;
+
   constructor(
     private fb: FormBuilder,
     private userService: UserService,
-    private authService: AuthService // Inject AuthService
+    private authService: AuthService, // Inject AuthService
+    private route: ActivatedRoute // Inject ActivatedRoute
   ) {
     this.profileForm = this.fb.group({
       name: ['', Validators.required],
@@ -45,6 +52,21 @@ export class ProfileComponent implements OnInit {
   ngOnInit(): void {
     this.loadUserProfile();
     this.loadReferralInfo();
+    this.checkEnrollmentMessage();
+  }
+
+  checkEnrollmentMessage(): void {
+    this.route.queryParams.subscribe(params => {
+      if (params['message'] && params['action']) {
+        this.enrollmentMessage = params['message'];
+        this.showEnrollmentAlert = true;
+        
+        // Auto-hide the message after 10 seconds
+        setTimeout(() => {
+          this.showEnrollmentAlert = false;
+        }, 10000);
+      }
+    });
   }
 
   loadUserProfile(): void {

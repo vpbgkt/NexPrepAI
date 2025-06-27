@@ -15,6 +15,7 @@ import { RewardsDashboardComponent } from './components/rewards-dashboard/reward
 import { AdminRewardsComponent } from './components/admin-rewards/admin-rewards.component'; // Import AdminRewardsComponent
 import { AccountActiveGuard } from './guards/account-active.guard'; // Corrected import: AccountActiveGuard
 import { MathTestComponent } from './components/math-test/math-test.component'; // Import MathTestComponent for testing
+import { EnrollmentGuard } from './guards/enrollment.guard'; // Import EnrollmentGuard
 
 export const routes: Routes = [  // Public student routes
   { path: 'login', component: LoginComponent },
@@ -23,13 +24,13 @@ export const routes: Routes = [  // Public student routes
   { path: 'math-test', component: MathTestComponent }, // Math test component for testing
   
   // Student‐only pages
-  { path: 'home', component: HomeComponent, canActivate: [studentGuard] }, // Added home route
-  { path: 'exam/:seriesId', component: ExamPlayerComponent, canActivate: [studentGuard, AccountActiveGuard] }, // Corrected usage: AccountActiveGuard
-  { path: 'review/:attemptId', component: ReviewComponent, canActivate: [studentGuard] }, // Assuming review doesn't need active account, or add guard if it does
-  { path: 'student/dashboard', component: StudentDashboardComponent, canActivate: [studentGuard, AccountActiveGuard] }, // Corrected usage: AccountActiveGuard
-  { path: 'tests', component: TestListComponent, canActivate: [studentGuard, AccountActiveGuard] }, // Corrected usage: AccountActiveGuard
-  { path: 'profile', component: ProfileComponent, canActivate: [studentGuard] }, // Profile page should be accessible to see status
-  { path: 'rewards', component: RewardsDashboardComponent, canActivate: [studentGuard, AccountActiveGuard] },
+  { path: 'home', component: HomeComponent, canActivate: [studentGuard, EnrollmentGuard] }, // Added EnrollmentGuard
+  { path: 'exam/:seriesId', component: ExamPlayerComponent, canActivate: [studentGuard, AccountActiveGuard, EnrollmentGuard] }, // Added EnrollmentGuard
+  { path: 'review/:attemptId', component: ReviewComponent, canActivate: [studentGuard, EnrollmentGuard] }, // Added EnrollmentGuard
+  { path: 'student/dashboard', component: StudentDashboardComponent, canActivate: [studentGuard, AccountActiveGuard, EnrollmentGuard] }, // Added EnrollmentGuard
+  { path: 'tests', component: TestListComponent, canActivate: [studentGuard, AccountActiveGuard, EnrollmentGuard] }, // Added EnrollmentGuard
+  { path: 'profile', component: ProfileComponent, canActivate: [studentGuard] }, // Profile page should always be accessible
+  { path: 'rewards', component: RewardsDashboardComponent, canActivate: [studentGuard, AccountActiveGuard, EnrollmentGuard] }, // Added EnrollmentGuard
 
   // Admin-only pages
   { path: 'admin/rewards', component: AdminRewardsComponent, canActivate: [adminGuard] }, // Admin rewards management

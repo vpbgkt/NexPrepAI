@@ -16,7 +16,17 @@ const branchSchema = new Schema(
       lowercase: true // Removed unique: true
     },
     description: String,
-    createdBy: { type: ObjectId, ref: 'User' } // already added earlier
+    createdBy: { type: ObjectId, ref: 'User' }, // already added earlier
+    // Add applicable exam levels - branches can be relevant to multiple levels
+    applicableExamLevels: [{
+      type: ObjectId,
+      ref: 'ExamLevel'
+    }],
+    // Add applicable exam families for broader filtering
+    applicableExamFamilies: [{
+      type: ObjectId,
+      ref: 'ExamFamily'
+    }]
   },
   { timestamps: true }
 );

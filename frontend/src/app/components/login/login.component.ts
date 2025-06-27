@@ -33,8 +33,13 @@ export class LoginComponent implements OnInit {
       if (user && localStorage.getItem('token') && this.router.url === '/login') { 
         // Only redirect if we're on the login page
         // This prevents unwanted redirects when refreshing other pages like /tests
-        // Redirect all users to home page instead of role-based dashboards
-        this.router.navigate(['/home']);
+        // Redirect to profile page to check/manage enrollments
+        this.router.navigate(['/profile'], {
+          queryParams: { 
+            message: 'Welcome! Please make sure you are enrolled in at least one exam category.',
+            action: 'welcome'
+          }
+        });
       }
     });
   }
@@ -42,11 +47,17 @@ export class LoginComponent implements OnInit {
   onSubmit() {
     if (this.form.invalid) return;
     const { email, password } = this.form.value;
-    this.authService.login(email!, password!).subscribe({      next: (res) => {
+    this.authService.login(email!, password!).subscribe({      
+      next: (res) => {
         alert('Login successful!');
         // AuthService's login method already stores token and role.
-        // Redirect all users to home page instead of role-based dashboards
-        this.router.navigate(['/home']);
+        // Redirect to profile page to check/manage enrollments
+        this.router.navigate(['/profile'], {
+          queryParams: { 
+            message: 'Welcome! Please make sure you are enrolled in at least one exam category.',
+            action: 'welcome'
+          }
+        });
       },
       error: err => {
         const msg = err.error?.message || 'Login failed';
