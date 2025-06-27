@@ -106,18 +106,17 @@ export class AddExamBranchComponent implements OnInit {
 
     const formValue = this.form.value;
     
-    // Prepare the data with both family and level relationships
+    // Prepare the data with the correct structure for ExamBranch model
     const branchData = {
+      level: formValue.level, // Single level reference for ExamBranch model
+      code: formValue.code || this.generateCodeFromName(formValue.name), // Ensure code is provided
       name: formValue.name,
-      code: formValue.code,
-      description: formValue.description,
-      applicableExamFamilies: [formValue.family], // Array of family IDs
-      applicableExamLevels: [formValue.level] // Array of level IDs
+      description: formValue.description
     };
 
     this.svc.create(branchData).subscribe({
       next: branch => {
-        window.alert(`✅ Branch "${branch.name}" added.`);
+        window.alert(`✅ Branch "${branch.name}" added successfully!`);
         this.router.navigate(['/exam-branches']);
       },
       error: err => {

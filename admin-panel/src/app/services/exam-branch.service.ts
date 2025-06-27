@@ -5,7 +5,7 @@ import { environment } from '../../environments/environment';
 
 export interface ExamBranch {
   _id: string;
-  level: string | { _id: string; name: string; code: string };  // Can be populated or just ObjectId
+  level: string | { _id: string; name: string; code: string };  // Single level reference
   code?: string;   // Optional, can be auto-generated
   name: string;
   description?: string;
