@@ -26,7 +26,7 @@ export interface EnrollmentData {
 export interface Enrollment {
   _id: string;
   student: string;
-  examFamily: {
+  examFamily?: {
     _id: string;
     name: string;
     code: string;
@@ -98,10 +98,15 @@ export class EnrollmentService {
    * Get current user's enrollments
    */
   getMyEnrollments(): Observable<any> {
+    console.log('🔄 EnrollmentService: Fetching my enrollments...');
     return this.http.get<any>(`${this.baseUrl}/my-enrollments`).pipe(
       tap(response => {
+        console.log('✅ EnrollmentService: My enrollments response:', response);
         if (response.success) {
           this.enrollmentsSubject.next(response.data);
+          console.log('✅ EnrollmentService: Enrollments updated:', response.data);
+        } else {
+          console.warn('⚠️ EnrollmentService: Response not successful:', response);
         }
       })
     );
@@ -111,10 +116,15 @@ export class EnrollmentService {
    * Get enrollment options (exam families, levels, branches)
    */
   getEnrollmentOptions(): Observable<any> {
+    console.log('🔄 EnrollmentService: Fetching enrollment options...');
     return this.http.get<any>(`${this.baseUrl}/enrollment-options`).pipe(
       tap(response => {
+        console.log('✅ EnrollmentService: Enrollment options response:', response);
         if (response.success) {
           this.enrollmentOptionsSubject.next(response.data);
+          console.log('✅ EnrollmentService: Enrollment options updated:', response.data);
+        } else {
+          console.warn('⚠️ EnrollmentService: Response not successful:', response);
         }
       })
     );
@@ -124,8 +134,10 @@ export class EnrollmentService {
    * Create new enrollment
    */
   createEnrollment(enrollmentData: EnrollmentData): Observable<any> {
+    console.log('🔄 EnrollmentService: Creating enrollment:', enrollmentData);
     return this.http.post<any>(`${this.baseUrl}/enroll`, enrollmentData).pipe(
       tap(response => {
+        console.log('✅ EnrollmentService: Create enrollment response:', response);
         if (response.success) {
           // Refresh enrollments after creation
           this.refreshEnrollments();
@@ -152,8 +164,10 @@ export class EnrollmentService {
    * Delete enrollment
    */
   deleteEnrollment(enrollmentId: string): Observable<any> {
+    console.log('🗑️ EnrollmentService: Deleting enrollment:', enrollmentId);
     return this.http.delete<any>(`${this.baseUrl}/${enrollmentId}`).pipe(
       tap(response => {
+        console.log('✅ EnrollmentService: Delete enrollment response:', response);
         if (response.success) {
           // Refresh enrollments after deletion
           this.refreshEnrollments();
@@ -204,7 +218,7 @@ export class EnrollmentService {
   hasAccessToExamFamily(examFamilyId: string): boolean {
     const enrollments = this.enrollmentsSubject.value;
     return enrollments.some(e => 
-      e.examFamily._id === examFamilyId && 
+      e.examFamily?._id === examFamilyId && 
       e.status === 'active'
     );
   }
@@ -214,7 +228,7 @@ export class EnrollmentService {
    */
   getEnrollmentForExamFamily(examFamilyId: string): Enrollment | null {
     const enrollments = this.enrollmentsSubject.value;
-    return enrollments.find(e => e.examFamily._id === examFamilyId) || null;
+    return enrollments.find(e => e.examFamily?._id === examFamilyId) || null;
   }
 
   /**

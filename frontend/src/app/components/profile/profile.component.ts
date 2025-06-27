@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { UserService, UserProfile, ReferralInfo } from '../../services/user.service'; // Adjust path as needed
 import { AuthService, BackendUser } from '../../services/auth.service'; // Import AuthService and BackendUser
+import { EnrollmentService } from '../../services/enrollment.service'; // Import EnrollmentService
 import { ReferralModalComponent } from '../referral-modal/referral-modal.component';
 import { EnrollmentManagementComponent } from '../enrollment-management/enrollment-management.component';
 
@@ -39,6 +40,7 @@ export class ProfileComponent implements OnInit {
     private fb: FormBuilder,
     private userService: UserService,
     private authService: AuthService, // Inject AuthService
+    private enrollmentService: EnrollmentService, // Inject EnrollmentService
     private route: ActivatedRoute // Inject ActivatedRoute
   ) {
     this.profileForm = this.fb.group({
@@ -50,9 +52,14 @@ export class ProfileComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    console.log('🚀 ProfileComponent: Initializing...');
     this.loadUserProfile();
     this.loadReferralInfo();
     this.checkEnrollmentMessage();
+    
+    // Initialize enrollment data when profile loads
+    console.log('🔄 ProfileComponent: Initializing enrollment data...');
+    this.enrollmentService.initializeEnrollmentData();
   }
 
   checkEnrollmentMessage(): void {
