@@ -18,6 +18,7 @@
  */
 
 const TestAttempt = require('../models/TestAttempt');
+const TestAttemptCounter = require('../models/TestAttemptCounter');
 const TestSeries = require('../models/TestSeries');
 const Question = require('../models/Question');
 const Topic = require('../models/Topic');
@@ -58,7 +59,8 @@ exports.getStudentDashboard = async (req, res) => {
     let totalScore = 0;
     let best = null;
 
-    const testHistory = attempts.map((a) => {
+    // Get attempt counts for each test
+    const testHistory = await Promise.all(attempts.map(async (a) => {
       const score = a.percentage || 0;
       totalScore += score;
 
@@ -66,17 +68,22 @@ exports.getStudentDashboard = async (req, res) => {
         best = { test: a.series.title, percentage: score };
       }
 
+      // Get the total number of attempts for this test series
+      const attemptCount = await TestAttemptCounter.getAttemptCount(studentId, a.series._id);
+
       return {
         test: a.series.title,
         percentage: score,
-        submittedAt: a.submittedAt
+        submittedAt: a.submittedAt,
+        attemptCount: attemptCount, // Total attempts for this test
+        isLatestAttempt: true // Since we only store latest attempts now
       };
-    });
+    }));
 
     const average = totalScore / attempts.length;
 
     res.json({
-      totalTests: attempts.length,
+      totalTests: attempts.length, // Number of unique tests attempted
       averagePercentage: Math.max(0, Math.round(average)),
       bestPerformance: best,
       testHistory

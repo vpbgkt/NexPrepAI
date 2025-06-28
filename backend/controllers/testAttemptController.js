@@ -46,6 +46,7 @@
 
 const TestSeries   = require('../models/TestSeries');
 const TestAttempt  = require('../models/TestAttempt');
+const TestAttemptCounter = require('../models/TestAttemptCounter');
 const Question     = require('../models/Question');
 const mongoose = require('mongoose'); // Added mongoose require
 const User = require('../models/User'); // Import User model
@@ -174,23 +175,31 @@ exports.startTest = async (req, res) => {
       if (series.endAt && now > series.endAt) {
         return res.status(403).json({ message: 'This test has ended.' });
       }
-    }    // Count only COMPLETED attempts for limit checking (not in-progress)
-    const completedCount = await TestAttempt.countDocuments({
-      student: req.user.userId,
-      series:  seriesId,
-      status: 'completed'
-    });
-    if (series.maxAttempts && completedCount >= series.maxAttempts) {
+    }    // Get current attempt count for this student-series combination
+    const currentAttemptCount = await TestAttemptCounter.getAttemptCount(userId, seriesId);
+    
+    // Check if max attempts reached
+    if (series.maxAttempts && currentAttemptCount >= series.maxAttempts) {
       return res.status(429).json({
         message: `Max ${series.maxAttempts} attempts reached for this test.`
       });
-    }    // Delete only IN-PROGRESS attempts (not submitted ones) for this user and series
-    // This ensures user can start fresh if they had an incomplete attempt
-    const deleteResult = await TestAttempt.deleteMany({ 
+    }
+
+    // Check if there's already an in-progress attempt for this user and series
+    const existingInProgressAttempt = await TestAttempt.findOne({ 
       student: userId, 
-      series: seriesId, 
-      status: 'in-progress' 
+      series: seriesId,
+      status: 'in-progress'
     });
+
+    // If there's an in-progress attempt, delete it (but keep completed attempts)
+    if (existingInProgressAttempt) {
+      await TestAttempt.deleteOne({ _id: existingInProgressAttempt._id });
+      console.log(`[${userId}] Deleted existing in-progress attempt for series ${seriesId}`);
+    }
+
+    // Increment the attempt counter and get the new attempt number
+    const newAttemptNumber = await TestAttemptCounter.incrementAttemptCount(userId, seriesId);
 
     // pick a variant if available
     let selectedVariant = undefined;
@@ -369,7 +378,7 @@ exports.startTest = async (req, res) => {
     const attempt = new TestAttempt({
       series:      seriesId,
       student:     req.user.userId,
-      attemptNo:   completedCount + 1, // attemptNo reflects the sequence of tries
+      attemptNo:   newAttemptNumber, // Use the calculated attempt number
       variantCode: selectedVariant?.code,
       sections:    detailedSectionsForAttempt, // Store the detailed structure
       responses:   [],
@@ -720,7 +729,25 @@ exports.submitAttempt = async (req, res) => {
       freshAttempt.timeTakenSeconds = null;
     }
     freshAttempt.remainingDurationSeconds = 0; // Standard for completed attempts
+    
+    // Save the current attempt first
     await freshAttempt.save(); // Persist the changes
+
+    // After successfully saving the new completed attempt, delete any previous completed attempts
+    // for this student and series (to maintain only the latest attempt policy)
+    const seriesId = freshAttempt.series._id || freshAttempt.series;
+    const studentId = freshAttempt.student;
+    
+    const deleteResult = await TestAttempt.deleteMany({ 
+      student: studentId, 
+      series: seriesId,
+      status: 'completed',
+      _id: { $ne: freshAttempt._id } // Don't delete the current attempt we just saved
+    });
+    
+    if (deleteResult.deletedCount > 0) {
+      console.log(`[${studentId}] Deleted ${deleteResult.deletedCount} previous completed attempts for series ${seriesId}`);
+    }
 
     // Handle study streak after successful test submission
     let studyStreak = null;
@@ -847,7 +874,24 @@ exports.submitTest = async (req, res) => {
     attempt.status = 'completed';
     attempt.submittedAt = new Date();
 
+    // Save the current attempt first
     await attempt.save();
+
+    // After successfully saving the new completed attempt, delete any previous completed attempts
+    // for this student and series (to maintain only the latest attempt policy)
+    const seriesId = attempt.series._id || attempt.series;
+    const studentId = attempt.student;
+    
+    const deleteResult = await TestAttempt.deleteMany({ 
+      student: studentId, 
+      series: seriesId,
+      status: 'completed',
+      _id: { $ne: attempt._id } // Don't delete the current attempt we just saved
+    });
+    
+    if (deleteResult.deletedCount > 0) {
+      console.log(`[${studentId}] Deleted ${deleteResult.deletedCount} previous completed attempts for series ${seriesId}`);
+    }
 
     res.json({ 
       message: 'Test submitted successfully',
@@ -1098,16 +1142,25 @@ exports.reviewAttempt = async (req, res) => {
  */
 exports.getStudentStats = async (req, res) => {
   try {
+    // Get all latest attempts for this student
     const studentAttempts = await TestAttempt.find({
       student:     req.user.userId,
       submittedAt: { $exists: true }
     });
-    const totalAttempts       = studentAttempts.length;
-    const totalAttemptScore  = studentAttempts.reduce((s, a) => s + (a.score || 0), 0);
+
+    // Get total attempt counts across all tests
+    const totalAttemptCounts = await TestAttemptCounter.find({
+      student: req.user.userId
+    });
+
+    const totalLatestAttempts = studentAttempts.length;
+    const totalAttemptScore = studentAttempts.reduce((s, a) => s + (a.score || 0), 0);
     const maxAttemptScoreSum = studentAttempts.reduce((s, a) => s + (a.maxScore || 0), 0);
+    const totalAllAttempts = totalAttemptCounts.reduce((total, counter) => total + counter.attemptCount, 0);
 
     return res.json({
-      total: totalAttempts,
+      totalUniqueTests: totalLatestAttempts, // Number of unique tests attempted
+      totalAttempts: totalAllAttempts, // Total number of attempts across all tests
       averagePercentage: maxAttemptScoreSum > 0
         ? Math.round((totalAttemptScore / maxAttemptScoreSum) * 100)
         : 0,
@@ -1152,6 +1205,7 @@ exports.getLeaderboardForSeries = async (req, res) => {
       });
     }
 
+    // Simplified leaderboard aggregation since we only store latest attempts per student
     const leaderboardData = await TestAttempt.aggregate([
       {
         $match: {
@@ -1160,52 +1214,36 @@ exports.getLeaderboardForSeries = async (req, res) => {
         }
       },
       {
-        $sort: {
-          student: 1,       // Sort by student to easily pick their best attempt
-          percentage: -1,   // Best percentage first
-          score: -1,        // Tie-break with score
-          timeTakenSeconds: 1, // For tie-breaking, prefer faster times if scores are identical
-          submittedAt: 1    // Further tie-break with submission time (earlier is better)
-        }
-      },      {
-        $group: {
-          _id: "$student",    // Group by student ID
-          bestAttemptId: { $first: "$_id" }, // Keep the ID of the best attempt
-          score: { $first: "$score" },
-          maxScore: { $first: "$maxScore" },
-          percentage: { $first: "$percentage" },
-          submittedAt: { $first: "$submittedAt" },
-          timeTakenSeconds: { $first: "$timeTakenSeconds" } // This should now correctly pick from the $first (best) attempt
-        }
-      },
-      {
         $lookup: {
           from: "users",      // Collection name for User model
-          localField: "_id",  // This is the student ID from the $group stage
+          localField: "student", // This is the student ID field in TestAttempt
           foreignField: "_id",// Match with _id in the users collection
           as: "studentInfo"
         }
       },
       {
-        $unwind: "$studentInfo" // Deconstruct the studentInfo array (should be one user per attempt)
+        $unwind: "$studentInfo" // Deconstruct the studentInfo array
       },
-      {        $sort: {
-          percentage: -1,   // Sort final list by percentage
-          score: -1,         // Tie-break with score
-          submittedAt: 1    // Further tie-break with submission time
+      {
+        $sort: {
+          percentage: -1,      // Sort by percentage (highest first)
+          score: -1,           // Tie-break with score
+          timeTakenSeconds: 1, // Tie-break with time (faster is better)
+          submittedAt: 1       // Final tie-break with submission time
         }
       },
       {
         $project: {
-          _id: 0, // Exclude the default _id (which is studentId from $group stage)
+          _id: 0,
           studentId: "$studentInfo._id",
           displayName: {
             $ifNull: ["$studentInfo.displayName", { $ifNull: ["$studentInfo.name", "$studentInfo.email"] }]
-          },          score: 1,
+          },
+          score: 1,
           maxScore: 1,
           percentage: 1,
           submittedAt: 1,
-          timeTakenSeconds: 1 // Include time taken
+          timeTakenSeconds: 1
         }
       }
     ]);

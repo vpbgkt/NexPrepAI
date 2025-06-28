@@ -19,6 +19,7 @@ const router  = express.Router();
 const { createTestSeries, cloneTestSeries, getAllTestSeries, createRandomTestSeries } = require('../controllers/testSeriesController');
 const { verifyToken, requireRole } = require('../middleware/verifyToken'); // ✔︎ add requireRole
 const TestAttempt = require('../models/TestAttempt');
+const TestAttemptCounter = require('../models/TestAttemptCounter');
 const TestSeries = require('../models/TestSeries');
 const auditFields = require('../middleware/auditFields'); // NEW
 const testSeriesController = require('../controllers/testSeriesController');   // ✔︎ add this line
@@ -58,18 +59,17 @@ router.get('/:id/status', verifyToken, async (req, res) => {
     const series = await TestSeries.findById(seriesId);
     if (!series) return res.status(404).json({ message: 'Test not found' });
 
-    const count = await TestAttempt.countDocuments({
-      series: seriesId,
-      student: studentId,
-    });
+    // Use the new TestAttemptCounter instead of counting documents
+    const attemptCount = await TestAttemptCounter.getAttemptCount(studentId, seriesId);
 
-    const attemptsLeft = Math.max(series.maxAttempts - count, 0);
+    const attemptsLeft = Math.max(series.maxAttempts - attemptCount, 0);
     const canAttempt = attemptsLeft > 0;
 
     res.json({
       canAttempt,
       attemptsLeft,
-      maxAttempts: series.maxAttempts
+      maxAttempts: series.maxAttempts,
+      currentAttempts: attemptCount
     });
   } catch (err) {
     console.error('❌ status check error:', err);

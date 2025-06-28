@@ -12,6 +12,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 /**
@@ -174,7 +175,15 @@ export class TestService {  /** @private Base API URL for all test-related endpo
    */
   // → New: fetch all test series
   getSeries(): Observable<TestSeries[]> {
-    return this.http.get<TestSeries[]>(`${this.base}/testSeries`);
+    interface ApiResponse {
+      success: boolean;
+      data: TestSeries[];
+      message: string;
+    }
+    
+    return this.http.get<ApiResponse>(`${this.base}/testSeries`).pipe(
+      map((response: ApiResponse) => response.data || [])
+    );
   }
 
   /**

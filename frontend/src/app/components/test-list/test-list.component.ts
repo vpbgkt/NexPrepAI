@@ -46,21 +46,28 @@ export class TestListComponent implements OnInit {
     this.checkAccountStatus().subscribe(() => {
       this.isLoadingAccountStatus = false;
       // Proceed to load test series after account status is known
-      this.svc.getSeries().subscribe(data => {
-        this.series = data;
-        this.groupTestsByFamily();
-        
-        // Check if there's a hash in the URL and navigate to that family
-        setTimeout(() => {
-          const hash = window.location.hash;
-          if (hash && hash.startsWith('#family-')) {
-            const familyId = hash.replace('#family-', '');
-            this.setActiveFamily(familyId);
-          } else if (this.groupedSeries.length > 0) {
-            // Set the first family as active by default
-            this.activeFamily = this.groupedSeries[0].familyId;
-          }
-        }, 100);
+      this.svc.getSeries().subscribe({
+        next: (data) => {
+          this.series = data;
+          this.groupTestsByFamily();
+          
+          // Check if there's a hash in the URL and navigate to that family
+          setTimeout(() => {
+            const hash = window.location.hash;
+            if (hash && hash.startsWith('#family-')) {
+              const familyId = hash.replace('#family-', '');
+              this.setActiveFamily(familyId);
+            } else if (this.groupedSeries.length > 0) {
+              // Set the first family as active by default
+              this.activeFamily = this.groupedSeries[0].familyId;
+            }
+          }, 100);
+        },
+        error: (error) => {
+          console.error('Error loading test series:', error);
+          this.series = [];
+          this.groupedSeries = [];
+        }
       });
     });
   }
