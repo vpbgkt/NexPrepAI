@@ -1449,7 +1449,7 @@ exports.getEnhancedReview = async (req, res) => {
       _id: attemptId, 
       student: userId 
     })
-    .populate('series', 'title description duration sections')
+    .populate('series', 'title description duration sections enablePublicLeaderboard')
     .lean();    if (!attempt) {
       return res.status(404).json({ message: 'Test attempt not found' });
     }
@@ -1639,6 +1639,12 @@ exports.getEnhancedReview = async (req, res) => {
         timePerSection: attempt.timePerSection || [],
         questionSequence: attempt.questionSequence || [],
         flaggedQuestions: attempt.flaggedQuestions || []
+      },
+      series: {
+        _id: attempt.series?._id,
+        id: attempt.series?._id,
+        title: attempt.series?.title,
+        enablePublicLeaderboard: attempt.series?.enablePublicLeaderboard || false
       },
       questions: detailedQuestions,
       analytics: analytics

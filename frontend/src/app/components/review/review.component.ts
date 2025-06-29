@@ -56,6 +56,17 @@ interface EnhancedReviewData {
     /** Questions marked for review */
     flaggedQuestions: string[];
   };
+  /** Test series information */
+  series: {
+    /** Series unique identifier */
+    _id: string;
+    /** Series unique identifier (alias) */
+    id: string;
+    /** Series title */
+    title: string;
+    /** Whether public leaderboard is enabled */
+    enablePublicLeaderboard: boolean;
+  };
   /** Question-wise review data */
   questions: QuestionReview[];
   /** Performance analytics */
@@ -269,6 +280,12 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {  /** 
   /** @property {boolean} PDF download state indicator */
   downloadingPdf = false;
 
+  /** @property {boolean} Indicates if leaderboard is enabled for this test series */
+  isLeaderboardEnabled = false;
+  
+  /** @property {string | null} Test series ID for leaderboard navigation */
+  seriesId: string | null = null;
+
   /** @property {StringConstructor} Utility reference for template string operations */
   String = String;  /**
    * @constructor
@@ -357,6 +374,12 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {  /** 
     try {
       const reviewResponse = await this.testSvc.getEnhancedReview(this.attemptId).toPromise();
       this.reviewData = reviewResponse;
+
+      // Extract leaderboard configuration and series ID
+      if (this.reviewData?.series) {
+        this.isLeaderboardEnabled = this.reviewData.series.enablePublicLeaderboard || false;
+        this.seriesId = this.reviewData.series._id || this.reviewData.series.id || null;
+      }
 
       if (this.reviewData && this.reviewData.questions) {
         this.reviewData.questions = this.reviewData.questions.map((q: any) => ({
@@ -524,6 +547,22 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {  /** 
    */
   goBack(): void {
     this.location.back();
+  }
+  
+  /**
+   * @method goToLeaderboard
+   * @description Navigates to the leaderboard page for the current test series
+   * 
+   * @example
+   * ```typescript
+   * // Navigate to leaderboard if enabled
+   * this.goToLeaderboard();
+   * ```
+   */
+  goToLeaderboard(): void {
+    if (this.seriesId) {
+      this.router.navigate(['/leaderboard', this.seriesId]);
+    }
   }
   /**
    * @method initializeCharts

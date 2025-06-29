@@ -55,11 +55,24 @@
         </div>
         
         <div class="flex-shrink-0">
-          <button (click)="downloadReviewAsPdf()" class="btn-primary flex items-center gap-2" [disabled]="downloadingPdf">
-            <span>📄</span>
-            <span *ngIf="!downloadingPdf">Download PDF</span>
-            <span *ngIf="downloadingPdf">Generating...</span>
-          </button>
+          <div class="flex gap-2">
+            <!-- Leaderboard Button - Only show if leaderboard is enabled -->
+            <button 
+              *ngIf="isLeaderboardEnabled"
+              (click)="goToLeaderboard()" 
+              class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 shadow-md"
+              title="View Leaderboard">
+              <span>🏆</span>
+              <span>Leaderboard</span>
+            </button>
+            
+            <!-- PDF Download Button -->
+            <button (click)="downloadReviewAsPdf()" class="btn-primary flex items-center gap-2" [disabled]="downloadingPdf">
+              <span>📄</span>
+              <span *ngIf="!downloadingPdf">Download PDF</span>
+              <span *ngIf="downloadingPdf">Generating...</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
