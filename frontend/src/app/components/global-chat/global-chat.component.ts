@@ -26,6 +26,19 @@ import { FormsModule } from '@angular/forms';
         max-height: 100px;
         overflow-y: auto;
       }
+      .mentions-dropdown {
+        z-index: 1000;
+      }
+      .mention-item.selected {
+        background-color: #eff6ff !important;
+        border-color: #bfdbfe !important;
+      }
+      .mention-item:hover {
+        background-color: #f3f4f6;
+      }
+      .mention-item.selected:hover {
+        background-color: #eff6ff !important;
+      }
     `]
 })
 export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked {
@@ -66,6 +79,7 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
   allUsers: string[] = [];
   mentionStartPosition: number = -1;
   currentMentionQuery: string = '';
+  selectedMentionIndex: number = 0; // For keyboard navigation
 
   // Reaction features
   availableReactions: string[] = ['👍', '❤️', '😂', '😮', '😢', '👎'];
@@ -390,36 +404,177 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
     // Check for @ mentions
     const cursorPosition = event.target.selectionStart;
     const textBeforeCursor = value.substring(0, cursorPosition);
-    const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
     
-    if (mentionMatch) {
-      console.log('Found mention match:', mentionMatch[1], 'Available users:', this.allUsers);
-      this.mentionStartPosition = textBeforeCursor.lastIndexOf('@');
-      this.currentMentionQuery = mentionMatch[1].toLowerCase();
-      this.filteredUsers = this.allUsers.filter(user => 
-        user.toLowerCase().includes(this.currentMentionQuery) && user !== this.username
-      );
-      this.showUsersList = this.filteredUsers.length > 0;
-      console.log('Filtered users:', this.filteredUsers, 'Show users list:', this.showUsersList);
+    // Enhanced regex to find the most recent @ symbol and capture the query after it
+    // Now supports mentions anywhere in text and improved word boundary detection
+    const mentionPattern = /@([a-zA-Z0-9_\s]*?)(?=\s|$|@)/;
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtIndex !== -1) {
+      const textFromAt = textBeforeCursor.substring(lastAtIndex);
+      const mentionMatch = textFromAt.match(/@([a-zA-Z0-9_\s]*?)$/);
+      
+      if (mentionMatch) {
+        console.log('Found mention match:', mentionMatch[1], 'Available active users:', this.allUsers);
+        this.mentionStartPosition = lastAtIndex;
+        this.currentMentionQuery = mentionMatch[1].toLowerCase().trim();
+        
+        // Enhanced filtering with better username handling
+        // Only show users who have sent at least one message in the chat
+        this.filteredUsers = this.allUsers.filter(user => {
+          if (user === this.username) return false;
+          
+          const userName = user.toLowerCase();
+          const query = this.currentMentionQuery;
+          
+          // Create mention-friendly version of username (replace spaces with nothing for comparison)
+          const mentionFriendlyName = userName.replace(/\s+/g, '');
+          const queryNoSpaces = query.replace(/\s+/g, '');
+          
+          return query === '' || // Show all active users when just typing @
+            userName.startsWith(query) || // Full name starts with query
+            mentionFriendlyName.startsWith(queryNoSpaces) || // Name without spaces starts with query
+            userName.includes(query) || // Full name contains query
+            mentionFriendlyName.includes(queryNoSpaces); // Name without spaces contains query
+        }).sort((a, b) => {
+          // Sort by relevance: exact matches first, then starts with, then contains
+          const aLower = a.toLowerCase();
+          const bLower = b.toLowerCase();
+          const query = this.currentMentionQuery;
+          
+          // Priority for exact starts with match
+          if (aLower.startsWith(query) && !bLower.startsWith(query)) return -1;
+          if (!aLower.startsWith(query) && bLower.startsWith(query)) return 1;
+          
+          // Priority for mention-friendly starts with match (no spaces)
+          const aMention = aLower.replace(/\s+/g, '');
+          const bMention = bLower.replace(/\s+/g, '');
+          const queryNoSpaces = query.replace(/\s+/g, '');
+          
+          if (aMention.startsWith(queryNoSpaces) && !bMention.startsWith(queryNoSpaces)) return -1;
+          if (!aMention.startsWith(queryNoSpaces) && bMention.startsWith(queryNoSpaces)) return 1;
+          
+          return a.localeCompare(b); // Alphabetical if same relevance
+        });
+        
+        this.showUsersList = this.filteredUsers.length > 0;
+        // Reset selection index if current selection is out of bounds
+        if (this.selectedMentionIndex >= this.filteredUsers.length) {
+          this.selectedMentionIndex = 0;
+        }
+        console.log('Filtered active users for mention:', this.filteredUsers, 'Show users list:', this.showUsersList);
+      } else {
+        this.hideMentionsList();
+      }
     } else {
-      this.showUsersList = false;
-      this.mentionStartPosition = -1;
+      this.hideMentionsList();
     }
   }
 
+  // Helper method to hide mentions list and reset state
+  private hideMentionsList(): void {
+    this.showUsersList = false;
+    this.mentionStartPosition = -1;
+    this.currentMentionQuery = '';
+    this.selectedMentionIndex = 0;
+  }
+
   selectMention(username: string): void {
-    if (this.mentionStartPosition >= 0) {
-      const beforeMention = this.newMessage.substring(0, this.mentionStartPosition);
-      const afterMention = this.newMessage.substring(this.mentionStartPosition + this.currentMentionQuery.length + 1);
-      this.newMessage = beforeMention + `@${username} ` + afterMention;
-      this.showUsersList = false;
-      this.mentionStartPosition = -1;
+    if (this.mentionStartPosition >= 0 && this.messageInput) {
+      // Get current cursor position for more accurate text manipulation
+      const currentCursorPosition = this.messageInput.nativeElement.selectionStart;
+      const textBeforeCursor = this.newMessage.substring(0, currentCursorPosition);
+      const textAfterCursor = this.newMessage.substring(currentCursorPosition);
       
-      // Focus back to input
-      if (this.messageInput) {
+      // Find the mention start position more accurately
+      const lastAtPosition = this.mentionStartPosition;
+      
+      if (lastAtPosition >= 0) {
+        // Replace from @ symbol to cursor with the selected username
+        const beforeMention = this.newMessage.substring(0, lastAtPosition);
+        const afterMention = textAfterCursor;
+        
+        // Create mention-friendly username (remove spaces for cleaner mentions)
+        const mentionUsername = username.replace(/\s+/g, '');
+        
+        // Create the new message with the mention
+        this.newMessage = beforeMention + `@${mentionUsername} ` + afterMention;
+        
+        // Calculate new cursor position (after the inserted mention + space)
+        const newCursorPosition = lastAtPosition + mentionUsername.length + 2; // +2 for @ and space
+        
+        // Reset mention state
+        this.hideMentionsList();
+        
+        // Focus back to input and set cursor position
         this.messageInput.nativeElement.focus();
+        
+        // Set cursor position after the mention
+        setTimeout(() => {
+          if (this.messageInput) {
+            this.messageInput.nativeElement.setSelectionRange(newCursorPosition, newCursorPosition);
+          }
+        }, 0);
       }
     }
+  }
+
+  // Enhanced keyboard navigation for mentions
+  onInputKeyDown(event: KeyboardEvent): void {
+    if (this.showUsersList && this.filteredUsers.length > 0) {
+      switch (event.key) {
+        case 'ArrowDown':
+          event.preventDefault();
+          this.selectedMentionIndex = Math.min(this.selectedMentionIndex + 1, this.filteredUsers.length - 1);
+          this.scrollMentionIntoView();
+          break;
+        
+        case 'ArrowUp':
+          event.preventDefault();
+          this.selectedMentionIndex = Math.max(this.selectedMentionIndex - 1, 0);
+          this.scrollMentionIntoView();
+          break;
+        
+        case 'Enter':
+          if (this.selectedMentionIndex >= 0 && this.selectedMentionIndex < this.filteredUsers.length) {
+            event.preventDefault();
+            this.selectMention(this.filteredUsers[this.selectedMentionIndex]);
+          }
+          break;
+        
+        case 'Escape':
+          event.preventDefault();
+          this.hideMentionsList();
+          break;
+        
+        case 'Tab':
+          if (this.selectedMentionIndex >= 0 && this.selectedMentionIndex < this.filteredUsers.length) {
+            event.preventDefault();
+            this.selectMention(this.filteredUsers[this.selectedMentionIndex]);
+          }
+          break;
+      }
+    } else if (event.key === 'Enter' && !event.shiftKey) {
+      // Only send message if mentions list is not shown
+      event.preventDefault();
+      this.sendMessage();
+    }
+  }
+
+  // Helper method to scroll selected mention into view
+  private scrollMentionIntoView(): void {
+    // Use setTimeout to ensure DOM is updated before scrolling
+    setTimeout(() => {
+      const mentionList = document.querySelector('.mentions-dropdown');
+      const selectedItem = document.querySelector('.mention-item.selected');
+      
+      if (mentionList && selectedItem) {
+        selectedItem.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest'
+        });
+      }
+    }, 0);
   }
 
   replyToMessage(message: ChatMessage): void {
@@ -434,17 +589,45 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
   }
 
   extractMentions(text: string): string[] {
-    const mentionRegex = /@(\w+)/g;
+    // Enhanced regex to handle usernames with spaces that are converted to mention format
+    const mentionRegex = /@([a-zA-Z0-9_]+)/g;
     const mentions: string[] = [];
     let match;
+    
     while ((match = mentionRegex.exec(text)) !== null) {
-      mentions.push(match[1]);
+      const mentionedUser = match[1];
+      
+      // Try to find the actual username that matches this mention
+      // Look for exact match first, then try to match by removing spaces
+      const actualUser = this.allUsers.find(user => {
+        const userNoSpaces = user.replace(/\s+/g, '');
+        return user === mentionedUser || userNoSpaces.toLowerCase() === mentionedUser.toLowerCase();
+      });
+      
+      if (actualUser) {
+        mentions.push(actualUser);
+      } else {
+        // If no match found, use the mention as-is
+        mentions.push(mentionedUser);
+      }
     }
-    return mentions;
+    
+    // Remove duplicates
+    return [...new Set(mentions)];
   }
 
   formatMessageWithMentions(text: string): string {
-    return text.replace(/@(\w+)/g, '<span class="mention">@$1</span>');
+    // Enhanced mention formatting with better username resolution
+    return text.replace(/@([a-zA-Z0-9_]+)/g, (match, mentionedUser) => {
+      // Try to find the actual username for display
+      const actualUser = this.allUsers.find(user => {
+        const userNoSpaces = user.replace(/\s+/g, '');
+        return user === mentionedUser || userNoSpaces.toLowerCase() === mentionedUser.toLowerCase();
+      });
+      
+      const displayName = actualUser || mentionedUser;
+      return `<span class="mention" title="@${displayName}">@${displayName}</span>`;
+    });
   }
   sendMessage(): void {
     if (!this.newMessage.trim() || !this.username) return;
@@ -475,12 +658,22 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
     this.replyingTo = null;
     this.shouldScrollToBottom = true;
   }
-  // Update existing users list when new messages arrive
+  // Update users list to only include users who have sent at least one message
   updateUsersList(): void {
-    const users = new Set<string>();
-    this.messages.forEach(msg => users.add(msg.username));
-    this.allUsers = Array.from(users).filter(user => user !== this.username);
-    console.log('Updated users list:', this.allUsers, 'Current username:', this.username);
+    const activeUsers = new Set<string>();
+    
+    // Only add users who have actually participated in the chat
+    this.messages.forEach(msg => {
+      if (msg.username && msg.username.trim() !== '') {
+        activeUsers.add(msg.username);
+      }
+    });
+    
+    // Exclude current user from mention list
+    this.allUsers = Array.from(activeUsers).filter(user => user !== this.username);
+    
+    console.log('Updated users list (only active participants):', this.allUsers, 'Current username:', this.username);
+    console.log('Total messages processed:', this.messages.length, 'Active users found:', this.allUsers.length);
   }
 
   // Reaction Methods
@@ -514,6 +707,21 @@ export class GlobalChatComponent implements OnInit, OnDestroy, AfterViewChecked 
   getReactionUsers(message: ChatMessage, emoji: string): string[] {
     return message.reactions?.[emoji] || [];
   }
+  // Helper method to get count of active users in chat
+  getActiveUserCount(): number {
+    return this.allUsers.length;
+  }
+
+  // Helper method to check if a user has sent messages
+  isUserActive(username: string): boolean {
+    return this.messages.some(msg => msg.username === username);
+  }
+
+  // Helper method for template to convert username to mention format
+  getUserMentionName(username: string): string {
+    return username.replace(/\s+/g, '');
+  }
+
   // Helper method for template to access Object.keys
   getObjectKeys(obj: any): string[] {
     return Object.keys(obj || {});
