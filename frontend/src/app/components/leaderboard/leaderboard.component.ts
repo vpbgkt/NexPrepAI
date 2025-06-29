@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TestService, LeaderboardEntry } from '../../services/test.service';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -44,7 +44,8 @@ export class LeaderboardComponent implements OnInit {
   sortDirection: 'asc' | 'desc' = 'asc';
   constructor(
     private route: ActivatedRoute,
-    private testService: TestService
+    private testService: TestService,
+    private router: Router
   ) { }
   ngOnInit(): void {
     this.seriesId = this.route.snapshot.paramMap.get('seriesId');
@@ -262,5 +263,21 @@ export class LeaderboardComponent implements OnInit {
     parts.push(`${remainingSeconds}s`);
     
     return parts.join(' ');
+  }
+
+  /**
+   * Navigate to a user's public profile
+   */
+  viewUserProfile(username: string): void {
+    if (username) {
+      this.router.navigate(['/user', username]);
+    }
+  }
+
+  /**
+   * Check if user profile can be viewed (has username)
+   */
+  canViewProfile(entry: LeaderboardEntry): boolean {
+    return !!(entry.username && entry.username.trim());
   }
 }

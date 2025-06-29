@@ -16,12 +16,14 @@ import { AdminRewardsComponent } from './components/admin-rewards/admin-rewards.
 import { AccountActiveGuard } from './guards/account-active.guard'; // Corrected import: AccountActiveGuard
 import { MathTestComponent } from './components/math-test/math-test.component'; // Import MathTestComponent for testing
 import { EnrollmentGuard } from './guards/enrollment.guard'; // Import EnrollmentGuard
+import { PublicProfileComponent } from './components/public-profile/public-profile.component'; // Import PublicProfileComponent
 
 export const routes: Routes = [  // Public student routes
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { path: 'leaderboard/:seriesId', component: LeaderboardComponent }, // Public leaderboard route
   { path: 'math-test', component: MathTestComponent }, // Math test component for testing
+  { path: 'user/:username', component: PublicProfileComponent }, // Public user profile route
   
   // Student‐only pages
   { path: 'home', component: HomeComponent, canActivate: [studentGuard, EnrollmentGuard] }, // Added EnrollmentGuard

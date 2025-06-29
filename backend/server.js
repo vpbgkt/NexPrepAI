@@ -64,6 +64,7 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 // API Routes
+app.use('/api/public', require('./routes/public')); // Added public routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users')); // Added user routes
 app.use('/api/rewards', require('./routes/rewards')); // Added rewards routes

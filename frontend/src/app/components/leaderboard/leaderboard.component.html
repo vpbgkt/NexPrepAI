@@ -147,7 +147,16 @@
                     <div *ngIf="!entry.photoURL" class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center mr-3">
                       <span class="text-white text-sm font-medium">{{ (entry.displayName || 'A').charAt(0).toUpperCase() }}</span>
                     </div>
-                    <span class="text-sm font-medium text-gray-900">{{ entry.displayName || 'Anonymous' }}</span>
+                    <!-- Clickable name if username is available -->
+                    <button *ngIf="canViewProfile(entry)" 
+                            (click)="viewUserProfile(entry.username!)"
+                            class="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors duration-200 text-left">
+                      {{ entry.displayName || 'Anonymous' }}
+                    </button>
+                    <!-- Non-clickable name if no username -->
+                    <span *ngIf="!canViewProfile(entry)" class="text-sm font-medium text-gray-900">
+                      {{ entry.displayName || 'Anonymous' }}
+                    </span>
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

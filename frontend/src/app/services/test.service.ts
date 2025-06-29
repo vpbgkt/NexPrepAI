@@ -99,6 +99,8 @@ export interface LeaderboardEntry {
   studentId?: string;  // Changed from nested studentInfo
   /** Student's display name */
   displayName: string; // Changed from nested studentInfo
+  /** Student's username for profile linking */
+  username?: string;   // Add username for profile links
   /** Student's profile photo URL */
   photoURL?: string;   // Optional
   /** Student's achieved score */

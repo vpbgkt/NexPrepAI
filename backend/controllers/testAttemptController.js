@@ -1239,6 +1239,8 @@ exports.getLeaderboardForSeries = async (req, res) => {
           displayName: {
             $ifNull: ["$studentInfo.displayName", { $ifNull: ["$studentInfo.name", "$studentInfo.email"] }]
           },
+          username: "$studentInfo.username", // Add username for profile links
+          photoURL: "$studentInfo.photoURL", // Add photoURL for consistency
           score: 1,
           maxScore: 1,
           percentage: 1,
