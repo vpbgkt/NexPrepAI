@@ -289,3 +289,58 @@ cd /var/www/NexPrep && git pull origin main && cd backend && npm install && pm2 
 ---
 
 **🚀 Deployment Complete!** Your NexPrep website is now updated and live.
+
+---
+
+## 🔀 **Angular Routing Issues Fix**
+
+### **If routes like `/user/username` redirect to homepage on server but work locally:**
+
+```bash
+# 1. Check current Nginx configuration
+sudo cat /etc/nginx/conf.d/nexprepai.conf | grep -A 5 "location /"
+
+# 2. Verify try_files directive exists
+sudo grep -r "try_files" /etc/nginx/conf.d/
+
+# 3. Test if Angular routes return proper content
+curl -s http://43.205.88.43/user/vpbgkt | grep "app-root"
+
+# 4. If app-root is missing, rebuild with proper production config
+cd /var/www/NexPrep/frontend
+rm -rf dist/ node_modules/.cache/
+npm run build -- --configuration production
+
+# 5. Redeploy with clean slate
+sudo rm -rf /usr/share/nginx/html/*
+sudo cp -r dist/frontend/browser/* /usr/share/nginx/html/
+sudo chown -R nginx:nginx /usr/share/nginx/html/
+sudo restorecon -R /usr/share/nginx/html/
+
+# 6. Test Nginx and reload
+sudo nginx -t
+sudo systemctl reload nginx
+
+# 7. Test routes again
+curl -I http://43.205.88.43/user/vpbgkt  # Should return 200
+```
+
+### **Enhanced Deployment with Routing Fix:**
+
+Use the enhanced deployment script (`deploynp-enhanced.sh`) which includes:
+- Clean build process
+- Production configuration verification
+- Automatic routing tests
+- Deployment verification
+
+```bash
+# Upload the enhanced script to your server
+scp -i your-key.pem deploynp-enhanced.sh ec2-user@43.205.88.43:~/
+
+# Run the enhanced deployment
+ssh -i your-key.pem ec2-user@43.205.88.43
+chmod +x deploynp-enhanced.sh
+./deploynp-enhanced.sh
+```
+
+---
