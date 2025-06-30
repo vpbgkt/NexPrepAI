@@ -8,7 +8,7 @@ import {
   FormControl // Import FormControl
 } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
-import { Router, RouterLink } from '@angular/router'; // Import RouterLink
+import { Router, RouterLink, ActivatedRoute } from '@angular/router'; // Import ActivatedRoute
 import { FirebaseAuthService } from '../../services/firebase-auth.service'; // Import FirebaseAuthService
 
 @Component({
@@ -22,24 +22,31 @@ export class LoginComponent implements OnInit {
     private fb: FormBuilder,
     private authService: AuthService, // Renamed to authService for clarity
     private router: Router,
+    private route: ActivatedRoute, // Add ActivatedRoute
     public firebaseAuthService: FirebaseAuthService // Make FirebaseAuthService public
   ) {}
   ngOnInit() {
+    // Check if user is already logged in and redirect immediately
+    if (this.authService.isLoggedIn()) {
+      console.log('User already logged in, redirecting to home');
+      const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/home';
+      this.router.navigate([returnUrl]);
+      return;
+    }
+
     this.form = this.fb.group({
       email:    ['', [Validators.required, Validators.email]],
       password: ['', Validators.required]
-    });    // Subscribe to Firebase auth state changes to handle navigation and app token
+    });    
+
+    // Subscribe to Firebase auth state changes to handle navigation and app token
     this.firebaseAuthService.currentUser$.subscribe(user => {
       if (user && localStorage.getItem('token') && this.router.url === '/login') { 
         // Only redirect if we're on the login page
         // This prevents unwanted redirects when refreshing other pages like /tests
-        // Redirect to profile page to check/manage enrollments
-        this.router.navigate(['/profile'], {
-          queryParams: { 
-            message: 'Welcome! Please make sure you are enrolled in at least one exam category.',
-            action: 'welcome'
-          }
-        });
+        // Redirect to home page if user is already authenticated
+        const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/home';
+        this.router.navigate([returnUrl]);
       }
     });
   }
@@ -51,13 +58,9 @@ export class LoginComponent implements OnInit {
       next: (res) => {
         alert('Login successful!');
         // AuthService's login method already stores token and role.
-        // Redirect to profile page to check/manage enrollments
-        this.router.navigate(['/profile'], {
-          queryParams: { 
-            message: 'Welcome! Please make sure you are enrolled in at least one exam category.',
-            action: 'welcome'
-          }
-        });
+        // Check for return URL or redirect to appropriate page
+        const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/home';
+        this.router.navigate([returnUrl]);
       },
       error: err => {
         const msg = err.error?.message || 'Login failed';
