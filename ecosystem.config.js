@@ -18,8 +18,8 @@ module.exports = {
     env_production: {
       NODE_ENV: 'production',
       PORT: 5000, // Internal port Nginx will proxy to
-      // Update this with your current EC2 Elastic IP or domain
-      ALLOWED_ORIGIN: 'http://43.205.88.43,http://43.205.88.43/admin',
+      // Update this with your current domain
+      ALLOWED_ORIGIN: 'https://nexprepai.com,https://nexprepai.com/admin,https://www.nexprepai.com,https://www.nexprepai.com/admin',
       CORS_CREDENTIALS: 'true'
       // Ensure MONGO_URI, JWT_SECRET, etc., are in /var/www/nexprepai/backend/.env on the server
       // and loaded by your application using dotenv.

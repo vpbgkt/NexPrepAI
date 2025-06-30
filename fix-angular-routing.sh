@@ -97,7 +97,7 @@ fix_angular_routing() {
     sudo tee /etc/nginx/conf.d/default.conf > /dev/null << EOF
 server {
     listen 80;
-    server_name 43.205.88.43;
+    server_name nexprepai.com www.nexprepai.com;
     
     # Serve frontend static files
     location / {
@@ -167,16 +167,16 @@ test_routing() {
     echo "🧪 Testing current routing..."
     
     echo "Testing home page..."
-    curl -s -o /dev/null -w "%{http_code}" http://43.205.88.43/ && echo " ✅" || echo " ❌"
+    curl -s -o /dev/null -w "%{http_code}" https://nexprepai.com/ && echo " ✅" || echo " ❌"
     
     echo "Testing public profile route..."
-    curl -s -o /dev/null -w "%{http_code}" http://43.205.88.43/user/vpbgkt && echo " ✅" || echo " ❌"
+    curl -s -o /dev/null -w "%{http_code}" https://nexprepai.com/user/vpbgkt && echo " ✅" || echo " ❌"
     
     echo "Testing leaderboard route..."
-    curl -s -o /dev/null -w "%{http_code}" http://43.205.88.43/leaderboard/test && echo " ✅" || echo " ❌"
+    curl -s -o /dev/null -w "%{http_code}" https://nexprepai.com/leaderboard/test && echo " ✅" || echo " ❌"
     
     echo "Testing API..."
-    curl -s -o /dev/null -w "%{http_code}" http://43.205.88.43/api/health && echo " ✅" || echo " ❌"
+    curl -s -o /dev/null -w "%{http_code}" https://nexprepai.com/api/health && echo " ✅" || echo " ❌"
 }
 
 # Main menu

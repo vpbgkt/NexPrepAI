@@ -11,15 +11,15 @@ test_route() {
     
     echo ""
     echo "Testing: $description"
-    echo "URL: http://43.205.88.43$route"
+    echo "URL: https://nexprepai.com$route"
     
     # Get HTTP status code
-    local status_code=$(curl -s -o /dev/null -w "%{http_code}" "http://43.205.88.43$route" 2>/dev/null)
+    local status_code=$(curl -s -o /dev/null -w "%{http_code}" "https://nexprepai.com$route" 2>/dev/null)
     echo "Status code: $status_code"
     
     if [ "$status_code" = "200" ]; then
         # Check if response contains Angular app
-        local response=$(curl -s "http://43.205.88.43$route" 2>/dev/null)
+        local response=$(curl -s "https://nexprepai.com$route" 2>/dev/null)
         
         if echo "$response" | grep -q "app-root"; then
             echo "✅ SUCCESS: Angular app found"
@@ -62,7 +62,7 @@ echo "===================="
 echo ""
 echo "1. Checking if main JavaScript files are accessible:"
 # Try to access main JS files
-curl -s -o /dev/null -w "main.js: %{http_code}\n" http://43.205.88.43/main.js 2>/dev/null || echo "main.js: Not found"
+curl -s -o /dev/null -w "main.js: %{http_code}\n" https://nexprepai.com/main.js 2>/dev/null || echo "main.js: Not found"
 
 echo ""
 echo "2. Checking Nginx document root contents:"
