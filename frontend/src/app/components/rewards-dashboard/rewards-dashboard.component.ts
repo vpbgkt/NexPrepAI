@@ -84,10 +84,10 @@ import { StreakService, StreakStats, StreakMilestones } from '../../services/str
       <!-- Navigation Tabs -->
       <div class="bg-white rounded-lg shadow-sm mb-6">
         <div class="border-b border-gray-200">
-          <nav class="flex space-x-8 px-6" aria-label="Tabs">
+          <nav class="flex space-x-4 sm:space-x-8 px-4 sm:px-6 overflow-x-auto" aria-label="Tabs">
             <button 
               *ngFor="let tab of tabs" 
-              [class]="'py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ' + 
+              [class]="'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ' + 
                        (activeTab === tab.id ? 
                         'border-blue-500 text-blue-600' : 
                         'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300')"
