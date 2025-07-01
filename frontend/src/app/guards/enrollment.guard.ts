@@ -38,7 +38,7 @@ export class EnrollmentGuard implements CanActivate {
           // User has no enrollments, redirect to profile with message
           this.router.navigate(['/profile'], {
             queryParams: { 
-              message: 'Please enroll in at least one exam category to access this content.',
+              message: 'Please enroll now in at least one exam category to access the NexPrep Platform.',
               action: 'enroll'
             }
           });
