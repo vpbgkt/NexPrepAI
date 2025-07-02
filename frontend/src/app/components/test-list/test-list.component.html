@@ -1,59 +1,93 @@
 <!-- Test List Component - Tailwind CSS Responsive Design -->
 <div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
   <div class="max-w-7xl mx-auto">
-    <!-- Header -->
-    <div class="mb-8">
-      <h2 class="text-3xl font-bold text-gray-900 mb-2">Your Tests</h2>
-      <p class="text-gray-600">Available practice tests and assessments</p>
-    </div>
+    
+    <!-- Loading States -->
+    <div *ngIf="isLoadingAccountStatus || isLoadingTests" class="flex flex-col items-center justify-center py-16">
+      <!-- Loading Account Status -->
+      <div *ngIf="isLoadingAccountStatus" class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4 mx-auto"></div>
+        <p class="text-gray-600">Loading account status...</p>
+      </div>
 
-    <!-- Loading Account Status -->
-    <div *ngIf="isLoadingAccountStatus" class="flex flex-col items-center justify-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-      <p class="text-gray-600">Loading account status...</p>
-    </div>
-
-    <!-- Account Expired Message -->
-    <div *ngIf="!isLoadingAccountStatus && authService.getRole() === 'student' && isAccountExpired" 
-         class="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
-      <div class="flex items-start">
-        <svg class="w-6 h-6 text-red-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
+      <!-- Loading Tests -->
+      <div *ngIf="!isLoadingAccountStatus && isLoadingTests" class="text-center">
+        <!-- Beautiful Loading Animation -->
+        <div class="relative mb-8 mx-auto w-20 h-20">
+          <!-- Outer rotating ring -->
+          <div class="w-20 h-20 border-4 border-blue-200 rounded-full animate-spin">
+            <div class="w-4 h-4 bg-blue-600 rounded-full absolute top-0 left-1/2 transform -translate-x-1/2"></div>
+          </div>
+          <!-- Inner pulsing dot -->
+          <div class="absolute inset-0 flex items-center justify-center">
+            <div class="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+          </div>
+        </div>
+        
+        <!-- Loading Text -->
         <div>
-          <h4 class="text-lg font-semibold text-red-800 mb-2">Account Expired</h4>
-          <p class="text-red-700">
-            Your account has expired. You will not be able to start new tests. Please 
-            <a routerLink="/profile" class="underline font-medium hover:text-red-600">visit your profile</a> 
-            to check your subscription status or contact support.
-          </p>
+          <h3 class="text-xl font-semibold text-gray-900 mb-2">Loading Your Tests</h3>
+          <p class="text-gray-600 mb-4">Fetching available test papers...</p>
+          
+          <!-- Progress Dots -->
+          <div class="flex justify-center space-x-1">
+            <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+            <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+            <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Family Navigation Shortcuts -->
-    <div class="mb-8" *ngIf="groupedSeries.length > 0">
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <span class="text-sm font-medium text-gray-700 mb-3 block">Jump to:</span>
-        <div class="flex flex-wrap gap-2">
-          <a *ngFor="let group of groupedSeries" 
-             [href]="'#family-' + group.familyId"
-             class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
-             [class.bg-blue-50]="activeFamily === group.familyId"
-             [class.border-blue-300]="activeFamily === group.familyId"
-             [class.text-blue-700]="activeFamily === group.familyId"
-             (click)="setActiveFamily(group.familyId, $event)">
-            {{ group.familyName }}
-          </a>
+    <!-- Main Content - Only show when not loading -->
+    <div *ngIf="!isLoadingAccountStatus && !isLoadingTests">
+      <!-- Header -->
+      <div class="mb-8">
+        <h2 class="text-3xl font-bold text-gray-900 mb-2">Your Tests</h2>
+        <p class="text-gray-600">Available practice tests and assessments</p>
+      </div>
+
+      <!-- Account Expired Message -->
+      <div *ngIf="authService.getRole() === 'student' && isAccountExpired" 
+           class="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
+        <div class="flex items-start">
+          <svg class="w-6 h-6 text-red-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <div>
+            <h4 class="text-lg font-semibold text-red-800 mb-2">Account Expired</h4>
+            <p class="text-red-700">
+              Your account has expired. You will not be able to start new tests. Please 
+              <a routerLink="/profile" class="underline font-medium hover:text-red-600">visit your profile</a> 
+              to check your subscription status or contact support.
+            </p>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Test Groups -->
-    <div class="space-y-8">
-      <div *ngFor="let group of groupedSeries" 
-           class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden" 
-           [id]="'family-' + group.familyId">
+      <!-- Family Navigation Shortcuts -->
+      <div class="mb-8" *ngIf="groupedSeries.length > 0">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <span class="text-sm font-medium text-gray-700 mb-3 block">Jump to:</span>
+          <div class="flex flex-wrap gap-2">
+            <a *ngFor="let group of groupedSeries" 
+               [href]="'#family-' + group.familyId"
+               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
+               [class.bg-blue-50]="activeFamily === group.familyId"
+               [class.border-blue-300]="activeFamily === group.familyId"
+               [class.text-blue-700]="activeFamily === group.familyId"
+               (click)="setActiveFamily(group.familyId, $event)">
+              {{ group.familyName }}
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Test Groups -->
+      <div class="space-y-8">
+        <div *ngFor="let group of groupedSeries" 
+             class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden" 
+             [id]="'family-' + group.familyId">
         
         <!-- Group Header -->
         <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
@@ -200,14 +234,15 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- No Tests Message -->
-    <div *ngIf="groupedSeries.length === 0" class="text-center py-12">
-      <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 48 48">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M34 40h10v-4a6 6 0 00-10.712-3.714M34 40H14m20 0v-4a9.971 9.971 0 00-.712-3.714M14 40H4v-4a6 6 0 0110.713-3.714M14 40v-4c0-1.313.253-2.566.713-3.714m0 0A9.971 9.971 0 0124 34c4.137 0 7.892 1.249 10.713 3.286"></path>
-      </svg>
-      <h3 class="text-lg font-medium text-gray-900 mb-2">No tests available</h3>
-      <p class="text-gray-600">No tests available at the moment. Please check back later.</p>    </div>
+      <!-- No Tests Message -->
+      <div *ngIf="groupedSeries.length === 0" class="text-center py-12">
+        <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 48 48">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M34 40h10v-4a6 6 0 00-10.712-3.714M34 40H14m20 0v-4a9.971 9.971 0 00-.712-3.714M14 40H4v-4a6 6 0 0110.713-3.714M14 40v-4c0-1.313.253-2.566.713-3.714m0 0A9.971 9.971 0 0124 34c4.137 0 7.892 1.249 10.713 3.286"></path>
+        </svg>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No tests available</h3>
+        <p class="text-gray-600">No tests available at the moment. Please check back later.</p>
+      </div>
+    </div>
   </div>
 </div>

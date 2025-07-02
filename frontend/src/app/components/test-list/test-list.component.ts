@@ -34,6 +34,7 @@ export class TestListComponent implements OnInit {
   activeFamily: string | null = null;
   isAccountExpired: boolean = false;
   isLoadingAccountStatus: boolean = true;
+  isLoadingTests: boolean = true; // Add loading state for tests
 
   constructor(
     private svc: TestService, 
@@ -46,10 +47,12 @@ export class TestListComponent implements OnInit {
     this.checkAccountStatus().subscribe(() => {
       this.isLoadingAccountStatus = false;
       // Proceed to load test series after account status is known
+      this.isLoadingTests = true; // Set loading state
       this.svc.getSeries().subscribe({
         next: (data) => {
           this.series = data;
           this.groupTestsByFamily();
+          this.isLoadingTests = false;
           
           // Check if there's a hash in the URL and navigate to that family
           setTimeout(() => {
@@ -67,6 +70,7 @@ export class TestListComponent implements OnInit {
           console.error('Error loading test series:', error);
           this.series = [];
           this.groupedSeries = [];
+          this.isLoadingTests = false;
         }
       });
     });
