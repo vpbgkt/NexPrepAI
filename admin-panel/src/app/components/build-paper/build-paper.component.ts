@@ -455,8 +455,20 @@ previewedQuestions: any[][] = [];
       } else {
         console.log('[BuildPaperComponent] paperId is null or empty. Not fetching shifts.');
       }
-    });    // Load your question bank
-    this.qService.getAll().subscribe(q => this.questionsList = q);
+    });    
+    
+    // Load question bank with pagination (load first 100 questions initially)
+    this.qService.getAll(1, 100).subscribe({
+      next: (response) => {
+        this.questionsList = response.questions;
+        console.log('[BuildPaperComponent] Loaded questions:', response.questions.length);
+        console.log('[BuildPaperComponent] Total questions available:', response.pagination.totalCount);
+      },
+      error: (error) => {
+        console.error('[BuildPaperComponent] Error loading questions:', error);
+        this.questionsList = [];
+      }
+    });
 
     // Handle mode changes to dynamically update validators for startAt and endAt
     this.seriesForm.get('mode')!.valueChanges.subscribe(mode => {

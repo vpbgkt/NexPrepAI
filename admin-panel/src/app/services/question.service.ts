@@ -214,27 +214,36 @@ export class QuestionService {
   }
   /**
    * @method getQuestions
-   * @description Retrieves all questions from the system without pagination
-   * @returns {Observable<Question[]>} Observable containing array of all questions
+   * @description Retrieves questions with pagination support
+   * @param {number} page - Page number (default: 1)
+   * @param {number} limit - Items per page (default: 50)
+   * @param {string} search - Optional search term
+   * @returns {Observable<{questions: Question[], pagination: any}>} Observable containing paginated questions and metadata
    * @throws {HttpErrorResponse} When authentication fails or server error occurs
    * 
    * @example
    * ```typescript
-   * this.questionService.getQuestions().subscribe({
-   *   next: (questions) => {
-   *     this.allQuestions = questions;
-   *     console.log(`Loaded ${questions.length} questions`);
-   *   },
-   *   error: (error) => console.error('Failed to load questions:', error)
+   * this.questionService.getQuestions(1, 20, 'mathematics').subscribe({
+   *   next: (response) => {
+   *     this.questions = response.questions;
+   *     this.totalPages = response.pagination.totalPages;
+   *   }
    * });
    * ```
    */
-  // New method to fetch all questions
-  getQuestions(): Observable<Question[]> { // MODIFIED: Return type to Observable<Question[]>
+  getQuestions(page: number = 1, limit: number = 50, search?: string): Observable<{questions: Question[], pagination: any}> {
     const token = localStorage.getItem('token')!;
     const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
-    // Call the correct endpoint:
-    return this.http.get<Question[]>(`${this.apiUrl}/questions/all`, { headers }); // MODIFIED: Specify type for http.get
+    
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('limit', limit.toString());
+    
+    if (search) {
+      params = params.set('search', search);
+    }
+    
+    return this.http.get<{questions: Question[], pagination: any}>(`${this.apiUrl}/questions/all`, { headers, params });
   }
   
   /**
@@ -545,25 +554,31 @@ export class QuestionService {
 
   /**
    * @method getAll
-   * @description Alternative method to retrieve all questions (alias for getQuestions)
-   * @returns {Observable<Question[]>} Observable containing array of all questions
+   * @description Retrieves questions with pagination support (legacy method for compatibility)
+   * @param {number} page - Page number (default: 1)
+   * @param {number} limit - Items per page (default: 100)
+   * @returns {Observable<{questions: Question[], pagination: any}>} Observable containing paginated questions
    * @throws {HttpErrorResponse} When authentication fails or server error occurs
    * 
    * @example
    * ```typescript
-   * this.questionService.getAll().subscribe({
-   *   next: (questions) => {
-   *     this.allQuestions = questions;
-   *     console.log(`Retrieved ${questions.length} total questions`);
-   *   },
-   *   error: (error) => console.error('Failed to retrieve questions:', error)
+   * this.questionService.getAll(1, 100).subscribe({
+   *   next: (response) => {
+   *     this.questionsList = response.questions;
+   *     this.pagination = response.pagination;
+   *   }
    * });
    * ```
    */
-  getAll(): Observable<Question[]> {
+  getAll(page: number = 1, limit: number = 100): Observable<{questions: Question[], pagination: any}> {
     const token = localStorage.getItem('token')!;
     const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
-    return this.http.get<Question[]>(`${this.apiUrl}/questions/all`, { headers });
+    
+    const params = new HttpParams()
+      .set('page', page.toString())
+      .set('limit', limit.toString());
+    
+    return this.http.get<{questions: Question[], pagination: any}>(`${this.apiUrl}/questions/all`, { headers, params });
   }
 
   /**

@@ -311,14 +311,60 @@ exports.addQuestion = async (req, res) => {
  * @returns {Array} Array of all questions with populated hierarchy fields
  * @throws {500} Server error during question retrieval
  */
-exports.getAllQuestions = async (_req, res) => {
-  const list = await Question.find()
-    .populate('branch',  'name')
-    .populate('subject', 'name')
-    .populate('topic',   'name')
-    .populate('subTopic','name')
-    .lean();
-  res.json(list);
+exports.getAllQuestions = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 50,
+      search
+    } = req.query;
+
+    // Validate and limit the page size to prevent memory issues
+    const pageNumber = Math.max(1, parseInt(page, 10));
+    const limitNumber = Math.min(1000, Math.max(1, parseInt(limit, 10))); // Max 1000 items per page
+    const skip = (pageNumber - 1) * limitNumber;
+
+    // Build query for optional search
+    const query = {};
+    if (search) {
+      query.$or = [
+        { questionText: { $regex: search, $options: 'i' } },
+        { 'translations.questionText': { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Get total count for pagination metadata
+    const totalCount = await Question.countDocuments(query);
+
+    // Fetch questions with pagination
+    const questions = await Question.find(query)
+      .populate('branch', 'name')
+      .populate('subject', 'name')
+      .populate('topic', 'name')
+      .populate('subTopic', 'name')
+      .sort({ createdAt: -1 }) // Newest first
+      .skip(skip)
+      .limit(limitNumber)
+      .lean();
+
+    res.json({
+      questions,
+      pagination: {
+        currentPage: pageNumber,
+        totalPages: Math.ceil(totalCount / limitNumber),
+        totalCount,
+        itemsPerPage: limitNumber,
+        hasNextPage: pageNumber < Math.ceil(totalCount / limitNumber),
+        hasPrevPage: pageNumber > 1
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching all questions:', error);
+    res.status(500).json({ 
+      message: 'Server error while fetching questions', 
+      error: error.message 
+    });
+  }
 };
 
 /**
