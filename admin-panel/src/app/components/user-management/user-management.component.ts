@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms'; // For ngModel
 import { User, UserService, UserAccountSettingsUpdate } from '../../services/user.service';
 import { AuthService } from '../../services/auth.service';
+import { NotificationService } from '../../services/notification.service';
 
 @Component({
   selector: 'app-user-management',
@@ -23,7 +24,8 @@ export class UserManagementComponent implements OnInit {
 
   constructor(
     private userService: UserService,
-    private authService: AuthService
+    private authService: AuthService,
+    private notificationService: NotificationService
   ) { }
 
   ngOnInit(): void {
@@ -130,7 +132,7 @@ export class UserManagementComponent implements OnInit {
 
     if (!this.isSuperAdmin) {
       console.log('[UserManagement] Not a SuperAdmin. Action blocked for addExpiryDays.');
-      alert('Action blocked: Only Superadmins can modify user expiry dates.');
+      this.notificationService.showError('Action Blocked', 'Only Superadmins can modify user expiry dates.');
       return;
     }
     console.log('[UserManagement] Is SuperAdmin. Proceeding with addExpiryDays.');
@@ -148,13 +150,13 @@ export class UserManagementComponent implements OnInit {
 
     if (!this.isSuperAdmin) {
       console.log('[UserManagement] Not a SuperAdmin. Showing alert and returning.');
-      alert('Action blocked: Only Superadmins can modify user settings.');
+      this.notificationService.showError('Action Blocked', 'Only Superadmins can modify user settings.');
       return;
     }
 
     console.log('[UserManagement] Is SuperAdmin. Proceeding with save.');
     if (!this.userEditModels[user._id]) {
-      alert('Cannot save settings: edit model not found.');
+      this.notificationService.showError('Save Error', 'Cannot save settings: edit model not found.');
       return;
     }
 
@@ -168,24 +170,24 @@ export class UserManagementComponent implements OnInit {
     // Basic validation for date formats (YYYY-MM-DD)
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (settings.accountExpiresAt && !dateRegex.test(settings.accountExpiresAt)) {
-        alert('Invalid format for Account Expiry Date. Please use YYYY-MM-DD.');
+        this.notificationService.showError('Invalid Date Format', 'Invalid format for Account Expiry Date. Please use YYYY-MM-DD.');
         return;
     }
     if (settings.freeTrialEndsAt && !dateRegex.test(settings.freeTrialEndsAt)) {
-        alert('Invalid format for Free Trial End Date. Please use YYYY-MM-DD.');
+        this.notificationService.showError('Invalid Date Format', 'Invalid format for Free Trial End Date. Please use YYYY-MM-DD.');
         return;
     }
 
     this.userService.updateUserAccountSettings(user._id, settings).subscribe({
       next: () => {
-        alert('User settings updated successfully!');
+        this.notificationService.showSuccess('Settings Updated', 'User settings updated successfully!');
         // Update the original user object with new dates from the response or edit model
         // For simplicity, we'll just reload all users to reflect changes.
         this.loadUsers();
       },
       error: (err) => {
         console.error('Error updating user settings:', err);
-        alert(`Failed to update settings: ${err.error?.message || 'Server error'}`);
+        this.notificationService.showError('Update Failed', `Failed to update settings: ${err.error?.message || 'Server error'}`);
       }
     });
   }

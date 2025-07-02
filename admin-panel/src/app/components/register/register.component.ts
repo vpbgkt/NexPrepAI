@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
+import { NotificationService } from '../../services/notification.service';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
@@ -16,7 +17,8 @@ export class RegisterComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private auth: AuthService,
-    private router: Router
+    private router: Router,
+    private notificationService: NotificationService
   ) {}
 
   ngOnInit() {
@@ -39,12 +41,18 @@ export class RegisterComponent implements OnInit {
 
     this.auth.register({ username, email, password }).subscribe({
       next: () => {
-        alert('Registration successful! You can now log in.');
+        this.notificationService.showSuccess(
+          'Registration Successful!',
+          'Your administrator account has been created. You can now log in.'
+        );
         this.router.navigate(['/login']);
       },
       error: err => {
         const msg = err.error?.message || 'Registration failed';
-        alert(msg);
+        this.notificationService.showError(
+          'Registration Failed',
+          msg
+        );
       }
     });
   }

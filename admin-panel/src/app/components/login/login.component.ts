@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
+import { NotificationService } from '../../services/notification.service';
 import { Router } from '@angular/router';
 
 @Component({
@@ -18,7 +19,8 @@ export class LoginComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private auth: AuthService,
-    private router: Router
+    private router: Router,
+    private notificationService: NotificationService
   ) {}
 
   ngOnInit() {
@@ -48,19 +50,29 @@ export class LoginComponent implements OnInit {
         if (res.role !== 'admin' && res.role !== 'superadmin') {
           // If not admin or superadmin, log them out and show error
           this.auth.logout();
-          alert('Access denied: Only administrators or super administrators can access this panel. Please login with appropriate credentials.');
+          this.notificationService.showError(
+            'Access Denied',
+            'Only administrators or super administrators can access this panel. Please login with appropriate credentials.'
+          );
           this.isLoading = false; // Stop loading
           return;
         }
         
         // If admin or superadmin, proceed with login
+        this.notificationService.showSuccess(
+          'Login Successful!',
+          `Welcome back! You are now logged in as ${res.role}.`
+        );
         this.router.navigate(['/home']);
       },
       error: err => {
         this.isLoading = false; // Stop loading on error
         // err.error.message comes from your backend
         const msg = err.error?.message || 'Login failed. Please check your credentials and try again.';
-        alert(msg);
+        this.notificationService.showError(
+          'Login Failed',
+          msg
+        );
       }
     });
   }

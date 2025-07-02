@@ -43,6 +43,7 @@ import { AddExamShiftComponent }  from './components/exam-shift/add-exam-shift/a
 
 import { HierarchyFlowComponent }    from './components/hierarchy-flow/hierarchy-flow.component';
 import { UserManagementComponent } from './components/user-management/user-management.component'; // Import the new UserManagementComponent
+import { NotificationDemoComponent } from './components/notification-demo/notification-demo.component'; // Import NotificationDemo
 
 import { AdminGuard }   from './guards/admin.guard';
 import { StudentGuard } from './guards/student.guard';
@@ -118,6 +119,9 @@ export const routes: Routes = [
       // User Management (Superadmin only)
       { path: 'user-management', component: UserManagementComponent, canActivate: [AdminGuard] }, // Added route for UserManagement
       { path: 'leaderboard', loadComponent: () => import('./components/leaderboard/leaderboard.component').then(m => m.LeaderboardComponent), canActivate: [AdminGuard] }, // Route for Leaderboard
+      
+      // Notification Demo
+      { path: 'notification-demo', component: NotificationDemoComponent, canActivate: [AdminGuard] }, // Demo for beautiful notifications
     ]
   },
 

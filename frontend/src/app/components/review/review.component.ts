@@ -23,6 +23,7 @@ import { FormsModule }       from '@angular/forms';
 import { ActivatedRoute, Router }    from '@angular/router';
 import { HttpClient }        from '@angular/common/http';
 import { TestService }       from '../../services/test.service';
+import { NotificationService } from '../../services/notification.service';
 import { Chart, ChartConfiguration } from 'chart.js/auto';
 import { saveAs } from 'file-saver';
 import * as html2pdf from 'html2pdf.js/dist/html2pdf.bundle.js';
@@ -303,7 +304,8 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {  /** 
     private router: Router,
     private testSvc: TestService,
     private http: HttpClient,
-    private location: Location // Inject Location
+    private location: Location, // Inject Location
+    private notificationService: NotificationService // Inject NotificationService
   ) {}
   /**
    * @method ngOnInit
@@ -1101,7 +1103,7 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {  /** 
     if (!element) {
       console.error('Review content element not found for PDF generation.');
       this.downloadingPdf = false;
-      alert('Could not generate PDF: Content area not found.');
+      this.notificationService.showError('PDF Generation Failed', 'Could not generate PDF: Content area not found.');
       return;
     }
 
@@ -1120,7 +1122,7 @@ export class ReviewComponent implements OnInit, AfterViewInit, OnDestroy {  /** 
       html2pdf().from(element).set(options).save();
     } catch (error) {
       console.error('Error generating PDF with html2pdf.js:', error);
-      alert('Failed to generate PDF. Please ensure you have a stable internet connection or try again later.');
+      this.notificationService.showError('PDF Generation Failed', 'Failed to generate PDF. Please ensure you have a stable internet connection or try again later.');
     } finally {
       this.downloadingPdf = false;
     }

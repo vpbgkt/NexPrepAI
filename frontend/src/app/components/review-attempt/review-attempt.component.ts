@@ -10,6 +10,7 @@ import { RouterModule, ActivatedRoute } from '@angular/router';
 import { TestService } from '../../services/test.service';
 import { saveAs } from 'file-saver';
 import { HttpClient } from '@angular/common/http';
+import { NotificationService } from '../../services/notification.service';
 import { environment } from '../../../environments/environment';
 
 // Define interfaces based on the expected structure of 'data'
@@ -109,7 +110,8 @@ export class ReviewAttemptComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private testSvc: TestService,
-    private http: HttpClient // ← inject HttpClient
+    private http: HttpClient, // ← inject HttpClient
+    private notificationService: NotificationService // ← inject NotificationService
   ) {}
 
   /**
@@ -283,7 +285,7 @@ export class ReviewAttemptComponent implements OnInit {
     }).subscribe({
       next: (blob: Blob) => saveAs(blob, `scorecard-${this.attemptId}.pdf`),
       error: (err: any) =>
-        alert(err.error?.message || 'PDF download failed')
+        this.notificationService.showError('PDF Download Failed', err.error?.message || 'PDF download failed')
     });
   }
 }

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { BranchService } from '../../services/branch.service';
+import { NotificationService } from '../../services/notification.service';
 
 @Component({
   selector: 'app-add-branch',
@@ -25,7 +26,8 @@ export class AddBranchComponent implements OnInit {
   constructor(
     private branchService: BranchService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private notificationService: NotificationService
   ) {}
   ngOnInit(): void {
     // Check for cascade flow parameters
@@ -58,13 +60,13 @@ export class AddBranchComponent implements OnInit {
           });
         } else {
           // Normal flow - redirect to questions
-          alert('Branch created successfully!');
+          this.notificationService.showSuccess('Branch Created Successfully!', `Branch "${response.name}" has been created successfully.`);
           this.router.navigate(['/questions']);
         }
       },
       error: (error) => {
         console.error('Error creating branch:', error);
-        alert('Error creating branch. Please try again.');
+        this.notificationService.showError('Creation Failed', 'Error creating branch. Please try again.');
         this.isLoading = false;
       }
     });

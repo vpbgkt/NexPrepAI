@@ -5,6 +5,7 @@ import { Observable, BehaviorSubject } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http'; // For backend communication
 import { AuthService } from './auth.service'; // Import AuthService
 import { ReferralService } from './referral.service'; // Import ReferralService
+import { NotificationService } from './notification.service'; // Import NotificationService
 import { environment } from '../../environments/environment';
 
 interface BackendUser { // Duplicating from AuthService for clarity, consider a shared types file
@@ -42,7 +43,8 @@ export class FirebaseAuthService {  private userSubject = new BehaviorSubject<Fi
     private http: HttpClient,
     private authService: AuthService, // Inject AuthService
     private ngZone: NgZone, // Inject NgZone
-    private referralService: ReferralService // Inject ReferralService
+    private referralService: ReferralService, // Inject ReferralService
+    private notificationService: NotificationService // Inject NotificationService
   ) {
     onAuthStateChanged(this.fireAuth, async (user) => {
       this.ngZone.run(async () => { // Run callback in Angular's zone
@@ -101,14 +103,14 @@ export class FirebaseAuthService {  private userSubject = new BehaviorSubject<Fi
                 },
                 error: (err: HttpErrorResponse) => {
                   console.error('FirebaseAuthService: Backend /firebase-signin FAILED:', err);
-                  alert(err.error?.message || err.message || 'Firebase sign-in with backend failed.');
+                  this.notificationService.showError(err.error?.message || err.message || 'Firebase sign-in with backend failed.');
                   this.signOutFirebase(); // Attempt to sign out from Firebase to clear its state if backend fails
                   console.log('FirebaseAuthService: Attempting Firebase sign-out due to backend failure.');
                 }
               });
           } catch (error: any) { // Catch for getIdToken or other unexpected issues
             console.error('FirebaseAuthService: Error during Firebase ID token retrieval or backend sign-in process:', error);
-            alert(error.message || 'An unexpected error occurred during sign-in.');
+            this.notificationService.showError(error.message || 'An unexpected error occurred during sign-in.');
             this.signOutFirebase(); // Attempt to sign out
             console.log('FirebaseAuthService: Attempting Firebase sign-out due to error in process.');
           }
@@ -182,7 +184,7 @@ export class FirebaseAuthService {  private userSubject = new BehaviorSubject<Fi
       this.tempReferralCode = null;
       console.error('Google Sign-In failed:', error);
       const authError = error as AuthError;
-      alert(authError.message || 'Google Sign-In was unsuccessful.');
+      this.notificationService.showError(authError.message || 'Google Sign-In was unsuccessful.');
       throw authError;
     }
   }
@@ -200,7 +202,7 @@ export class FirebaseAuthService {  private userSubject = new BehaviorSubject<Fi
       this.firebaseUserJustSignedOut = false; // Reset flag on error during signout itself
       console.error('Sign out failed:', error);
       const authError = error as AuthError;
-      alert(authError.message || 'Sign out failed.');
+      this.notificationService.showError(authError.message || 'Sign out failed.');
     }
   }
 

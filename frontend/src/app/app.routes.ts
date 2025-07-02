@@ -17,10 +17,12 @@ import { AccountActiveGuard } from './guards/account-active.guard'; // Corrected
 import { MathTestComponent } from './components/math-test/math-test.component'; // Import MathTestComponent for testing
 import { EnrollmentGuard } from './guards/enrollment.guard'; // Import EnrollmentGuard
 import { PublicProfileComponent } from './components/public-profile/public-profile.component'; // Import PublicProfileComponent
+import { NotificationDemoComponent } from './components/notification-demo/notification-demo.component'; // Import NotificationDemoComponent
 
 export const routes: Routes = [  // Public student routes
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
+  { path: 'notification-demo', component: NotificationDemoComponent }, // Notification demo route
   { path: 'leaderboard/:seriesId', component: LeaderboardComponent }, // Public leaderboard route
   { path: 'math-test', component: MathTestComponent }, // Math test component for testing
   { path: 'user/:username', component: PublicProfileComponent }, // Public user profile route

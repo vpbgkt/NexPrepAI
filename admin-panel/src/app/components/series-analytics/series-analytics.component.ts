@@ -3,6 +3,7 @@ import { CommonModule }       from '@angular/common';
 import { ActivatedRoute }     from '@angular/router';
 import { HttpClient }         from '@angular/common/http';
 import { saveAs }             from 'file-saver';
+import { NotificationService } from '../../services/notification.service';
 import { environment }        from '../../../environments/environment';
 
 import { ChartData, ChartOptions } from 'chart.js';
@@ -36,7 +37,8 @@ export class SeriesAnalyticsComponent implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
-    private http: HttpClient
+    private http: HttpClient,
+    private notificationService: NotificationService
   ) {}
   ngOnInit() {
     this.seriesId = this.route.snapshot.paramMap.get('seriesId') || '';
@@ -70,7 +72,7 @@ export class SeriesAnalyticsComponent implements OnInit {
       })
       .subscribe({
         next: blob => saveAs(blob, `series-${this.seriesId}-attempts.csv`),
-        error: err => alert(err.error?.message || 'CSV export failed')
+        error: err => this.notificationService.showError('CSV Export Failed', err.error?.message || 'CSV export failed')
       });
   }
 }

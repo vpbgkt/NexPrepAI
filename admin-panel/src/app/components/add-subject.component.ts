@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { NgForm, FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { QuestionService } from '../services/question.service';
+import { NotificationService } from '../services/notification.service';
 
 @Component({
   selector: 'app-add-subject',
@@ -24,7 +25,8 @@ export class AddSubjectComponent implements OnInit {
   constructor(
     private questionService: QuestionService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private notificationService: NotificationService
   ) {}
   ngOnInit(): void {
     // Check for cascade flow parameters
@@ -81,13 +83,13 @@ export class AddSubjectComponent implements OnInit {
           });
         } else {
           // Normal flow - redirect to questions
-          alert('Subject created successfully!');
+          this.notificationService.showSuccess('Subject Created Successfully!', `Subject "${this.subjectName}" has been created successfully.`);
           this.router.navigate(['/questions']);
         }
       },
       error: (err) => {
         console.error('Error creating subject:', err);
-        alert('Error creating subject. Please try again.');
+        this.notificationService.showError('Creation Failed', 'Error creating subject. Please try again.');
         this.isLoading = false;
       }
     });

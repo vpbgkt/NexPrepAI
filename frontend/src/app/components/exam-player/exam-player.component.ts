@@ -24,6 +24,7 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TestService, StartTestResponse } from '../../services/test.service'; // Ensure StartTestResponse is imported
+import { NotificationService } from '../../services/notification.service'; // Import NotificationService
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators'; // Import takeUntil
 import { Subject, interval } from 'rxjs'; // Import Subject and interval
 import { MathDisplayComponent } from '../math-display/math-display.component';
@@ -348,7 +349,8 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
     private router: Router,
     private testSvc: TestService,
     private cd: ChangeDetectorRef,
-    private antiCheatingService: AntiCheatingService
+    private antiCheatingService: AntiCheatingService,
+    private notificationService: NotificationService
   ) {
     this.form = this.fb.group({
       // Each response will be a FormGroup with fields like:
@@ -485,7 +487,7 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
         // Initialize anti-cheating if in strict mode
         this.initializeAntiCheating();
       },
-      error: (err: any) => alert(err.error?.message || 'Failed to start test')
+      error: (err: any) => this.notificationService.showError('Test Start Failed', err.error?.message || 'Failed to start test')
     });
   }
   /**
@@ -596,7 +598,7 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
     
     if (!this.attemptId) {
       console.error('Submit called without an active attemptId.');
-      alert('No active test attempt to submit.');
+      this.notificationService.showError('Submission Error', 'No active test attempt to submit.');
       return;
     }
     
@@ -615,12 +617,12 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
     this.testSvc.submitAttempt(this.attemptId, { responses: payload }).subscribe({
       next: (submissionResponse: any) => {
         console.log('Test submitted successfully, response:', submissionResponse);
-        alert('Test submitted successfully!');
+        this.notificationService.showSuccess('Test Submitted Successfully!', 'Your test has been submitted and is being processed.');
         this.router.navigate(['/review', this.attemptId]);
       },
       error: (err: any) => {
         console.error('Submission failed (exam-player.component.ts):', err);
-        alert(err.error?.message || 'Submission failed');
+        this.notificationService.showError('Submission Failed', err.error?.message || 'Submission failed');
       }
     });
   }
@@ -1371,7 +1373,7 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
       next: () => {
         console.log(`Progress saved (Trigger: ${isManualTrigger ? 'Manual' : 'Auto'})`);
         if (isManualTrigger) {
-          alert('Progress Saved!'); // Only show alert for manual trigger
+          this.notificationService.showSuccess('Progress Saved!', 'Your progress has been saved successfully.'); // Only show notification for manual trigger
         }
       },
       error: (err) => console.error('Failed to save progress:', err)
@@ -2038,7 +2040,7 @@ export class ExamPlayerComponent implements OnInit, OnDestroy {
     }
     
     // Show final warning
-    alert('Maximum cheating violations reached. Your exam will be submitted automatically.');
+    this.notificationService.showError('Maximum Violations Reached', 'Maximum cheating violations reached. Your exam will be submitted automatically.');
     
     // Force submit the exam
     this.submit();

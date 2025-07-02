@@ -12,6 +12,7 @@ import { AuthService } from '../../services/auth.service';
 import { Router, RouterLink } from '@angular/router'; // Import RouterLink
 import { FirebaseAuthService } from '../../services/firebase-auth.service'; // Import FirebaseAuthService
 import { ReferralService } from '../../services/referral.service'; // Import ReferralService
+import { NotificationService } from '../../services/notification.service'; // Import NotificationService
 
 // Custom email validator
 function validEmailValidator(control: AbstractControl): ValidationErrors | null {
@@ -75,7 +76,8 @@ export class RegisterComponent implements OnInit {
     private auth: AuthService,
     private router: Router,
     public firebaseAuthService: FirebaseAuthService, // Inject FirebaseAuthService
-    private referralService: ReferralService // Inject ReferralService
+    private referralService: ReferralService, // Inject ReferralService
+    private notificationService: NotificationService // Inject NotificationService
   ) {}  ngOnInit() {
     // Get referral code from service if available
     const storedReferralCode = this.referralService.getReferralCode();
@@ -102,12 +104,12 @@ export class RegisterComponent implements OnInit {
       next: () => {
         // Clear referral code from service after successful registration
         this.referralService.clearReferralCode();
-        alert('Registration successful! Please log in.');
+        this.notificationService.showSuccess('Registration successful! Please log in.');
         this.router.navigate(['/login']);
       },
       error: err => {
         const msg = err.error?.message || 'Registration failed';
-        alert(msg);
+        this.notificationService.showError(msg);
       }
     });
   }
@@ -121,7 +123,7 @@ export class RegisterComponent implements OnInit {
       // It will also create a new user in the backend if one doesn't exist.
     } catch (error: any) {
       console.error('Google sign-in error in component', error);
-      alert(error.message || 'Google Sign-In failed.');
+      this.notificationService.showError(error.message || 'Google Sign-In failed.');
     }
   }
 }

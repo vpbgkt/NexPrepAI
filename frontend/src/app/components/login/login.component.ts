@@ -8,6 +8,7 @@ import {
   FormControl // Import FormControl
 } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
+import { NotificationService } from '../../services/notification.service';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router'; // Import ActivatedRoute
 import { FirebaseAuthService } from '../../services/firebase-auth.service'; // Import FirebaseAuthService
 
@@ -23,7 +24,8 @@ export class LoginComponent implements OnInit {
     private authService: AuthService, // Renamed to authService for clarity
     private router: Router,
     private route: ActivatedRoute, // Add ActivatedRoute
-    public firebaseAuthService: FirebaseAuthService // Make FirebaseAuthService public
+    public firebaseAuthService: FirebaseAuthService, // Make FirebaseAuthService public
+    private notificationService: NotificationService
   ) {}
   ngOnInit() {
     // Check if user is already logged in and redirect immediately
@@ -56,7 +58,10 @@ export class LoginComponent implements OnInit {
     const { email, password } = this.form.value;
     this.authService.login(email!, password!).subscribe({      
       next: (res) => {
-        alert('Login successful!');
+        this.notificationService.showSuccess(
+          'Login Successful!',
+          'Welcome back! You have been successfully logged in.'
+        );
         // AuthService's login method already stores token and role.
         // Check for return URL or redirect to appropriate page
         const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/home';
@@ -64,7 +69,10 @@ export class LoginComponent implements OnInit {
       },
       error: err => {
         const msg = err.error?.message || 'Login failed';
-        alert(msg);
+        this.notificationService.showError(
+          'Login Failed',
+          msg
+        );
       }
     });
   }
@@ -72,10 +80,16 @@ export class LoginComponent implements OnInit {
     try {
       await this.firebaseAuthService.googleSignIn();
       // onAuthStateChanged in FirebaseAuthService will handle backend token exchange and navigation
-      // alert('Google Sign-In initiated. Please wait...'); // Optional user feedback
+      this.notificationService.showInfo(
+        'Google Sign-In',
+        'Google Sign-In initiated. Please wait...'
+      );
     } catch (error: any) {
       console.error('Google sign-in error in component', error);
-      alert(error.message || 'Google Sign-In failed.');
+      this.notificationService.showError(
+        'Google Sign-In Failed',
+        error.message || 'Google Sign-In failed. Please try again.'
+      );
     }
   }
 }

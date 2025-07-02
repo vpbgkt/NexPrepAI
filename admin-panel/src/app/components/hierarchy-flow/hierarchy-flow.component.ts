@@ -4,6 +4,7 @@ import { FormsModule, NgForm } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { QuestionService } from '../../services/question.service';
 import { BranchService } from '../../services/branch.service';
+import { NotificationService } from '../../services/notification.service';
 
 interface HierarchyStep {
   step: number;
@@ -62,7 +63,8 @@ export class HierarchyFlowComponent implements OnInit {
     private questionService: QuestionService,
     private branchService: BranchService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private notificationService: NotificationService
   ) {}
   ngOnInit(): void {
     this.loadBranches();
@@ -475,18 +477,16 @@ export class HierarchyFlowComponent implements OnInit {
   }
 
   showSuccessAndRedirect(): void {
-    const successMessage = `
-      ✅ Complete Hierarchy Created Successfully!
-      
-      📁 Branch: ${this.hierarchyData.branchName}
-      📚 Subject: ${this.hierarchyData.subjectName}
-      📖 Topic: ${this.hierarchyData.topicName}
-      📄 Subtopic: ${this.hierarchyData.subtopicName}
-      
-      You can now create questions using this hierarchy.
-    `;
+    const successMessage = `Complete Hierarchy Created Successfully!
+
+📁 Branch: ${this.hierarchyData.branchName}
+📚 Subject: ${this.hierarchyData.subjectName}
+📖 Topic: ${this.hierarchyData.topicName}
+📄 Subtopic: ${this.hierarchyData.subtopicName}
+
+You can now create questions using this hierarchy.`;
     
-    alert(successMessage);
+    this.notificationService.showSuccess('Hierarchy Created!', successMessage);
     
     // Redirect to add question with full hierarchy
     this.router.navigate(['/add-question'], {

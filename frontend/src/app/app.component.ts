@@ -10,6 +10,7 @@ import { filter, switchMap, startWith } from 'rxjs/operators'; // Import filter 
 import { User as FirebaseUser } from '@angular/fire/auth';
 import { CommonModule } from '@angular/common';
 import { GlobalChatComponent } from './components/global-chat/global-chat.component'; // Import GlobalChatComponent
+import { NotificationComponent } from './components/notification/notification.component'; // Import NotificationComponent
 
 @Component({
     selector: 'app-root',
@@ -17,7 +18,8 @@ import { GlobalChatComponent } from './components/global-chat/global-chat.compon
         RouterOutlet,
         RouterModule,
         CommonModule,
-        GlobalChatComponent // Add GlobalChatComponent to imports
+        GlobalChatComponent, // Add GlobalChatComponent to imports
+        NotificationComponent // Add NotificationComponent to imports
     ], templateUrl: './app.component.html',
     styles: [`
       .animate-slideDown {
