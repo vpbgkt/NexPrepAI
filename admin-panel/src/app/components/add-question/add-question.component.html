@@ -2,38 +2,6 @@
 <div class="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
   <div class="max-w-4xl mx-auto">
     
-    <!-- Alert Component -->
-    <div *ngIf="showAlert" 
-         [ngClass]="{
-           'bg-green-50 border-green-200 text-green-800': alertType === 'success',
-           'bg-red-50 border-red-200 text-red-800': alertType === 'error',
-           'bg-yellow-50 border-yellow-200 text-yellow-800': alertType === 'warning'
-         }"
-         class="mb-6 border rounded-lg p-4 shadow-sm">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center">
-          <!-- Success Icon -->
-          <svg *ngIf="alertType === 'success'" class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <!-- Error Icon -->
-          <svg *ngIf="alertType === 'error'" class="w-5 h-5 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-          </svg>
-          <!-- Warning Icon -->
-          <svg *ngIf="alertType === 'warning'" class="w-5 h-5 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-          </svg>
-          <span class="font-medium">{{ alertMessage }}</span>
-        </div>
-        <button type="button" (click)="hideAlert()" class="ml-4 inline-flex text-sm font-medium hover:opacity-75">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-        </button>
-      </div>
-    </div>
-
     <!-- Page Header -->
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-gray-900 mb-2">Add New Question</h1>
