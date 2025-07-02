@@ -47,7 +47,15 @@ const User = require('../models/User');
  */
 const getMyEnrollments = async (req, res) => {
   try {
+    console.log('🔍 getMyEnrollments: Fetching enrollments for user:', req.user.userId);
     const enrollments = await Enrollment.getActiveEnrollments(req.user.userId);
+    console.log('✅ getMyEnrollments: Found enrollments:', enrollments.length);
+    console.log('📋 getMyEnrollments: Enrollment details:', enrollments.map(e => ({
+      id: e._id,
+      examFamily: e.examFamily?.name,
+      status: e.status,
+      isActive: e.status === 'active'
+    })));
     
     res.json({
       success: true,
@@ -55,7 +63,7 @@ const getMyEnrollments = async (req, res) => {
       message: 'Enrollments retrieved successfully'
     });
   } catch (error) {
-    console.error('Error fetching enrollments:', error);
+    console.error('❌ Error fetching enrollments:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch enrollments'
@@ -181,15 +189,41 @@ const createEnrollment = async (req, res) => {
       });
     }
 
-    // Check if student already has an identical enrollment (same family, levels, and branches)
+    // Check if student already has any enrollment for this exam family (active or inactive)
     const existingEnrollment = await Enrollment.findOne({
       student: studentId,
-      examFamily: examFamily,
-      status: 'active'
+      examFamily: examFamily
     });
 
     if (existingEnrollment) {
-      // Check if it's exactly the same enrollment (same levels and branches)
+      // If enrollment exists but is inactive, reactivate it with new data
+      if (existingEnrollment.status === 'inactive') {
+        existingEnrollment.status = 'active';
+        existingEnrollment.examLevels = examLevels;
+        existingEnrollment.branches = branches;
+        existingEnrollment.preferences = {
+          receiveNotifications: preferences.receiveNotifications !== false,
+          difficultyLevel: preferences.difficultyLevel || 'mixed',
+          preferredLanguage: preferences.preferredLanguage || 'english'
+        };
+        existingEnrollment.enrolledAt = new Date();
+        
+        await existingEnrollment.save();
+
+        // Return the reactivated enrollment
+        const reactivatedEnrollment = await Enrollment.findById(existingEnrollment._id)
+          .populate('examFamily', 'name code description')
+          .populate('examLevels', 'name code description')
+          .populate('branches', 'name description');
+
+        return res.status(200).json({
+          success: true,
+          data: reactivatedEnrollment,
+          message: 'Enrollment reactivated successfully'
+        });
+      }
+
+      // If enrollment is active, check if it's exactly the same
       const existingLevels = existingEnrollment.examLevels.map(id => id.toString()).sort();
       const newLevels = examLevels.map(id => id.toString()).sort();
       const existingBranches = existingEnrollment.branches.map(id => id.toString()).sort();
@@ -294,6 +328,15 @@ const createEnrollment = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating enrollment:', error);
+    
+    // Handle MongoDB duplicate key error specifically
+    if (error.code === 11000 && error.keyPattern && error.keyPattern.student && error.keyPattern.examFamily) {
+      return res.status(400).json({
+        success: false,
+        message: 'You already have an enrollment for this exam family. Please update your existing enrollment instead of creating a new one.'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Failed to create enrollment'
