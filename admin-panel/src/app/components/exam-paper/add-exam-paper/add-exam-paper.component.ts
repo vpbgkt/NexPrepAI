@@ -12,6 +12,7 @@ import {
 import {
   ExamLevelService, ExamLevel
 } from '../../../services/exam-level.service';
+import { NotificationService } from '../../../services/notification.service';
 import {
   ExamBranchService, ExamBranch
 } from '../../../services/exam-branch.service';
@@ -43,7 +44,8 @@ export class AddExamPaperComponent implements OnInit {
     private levelSvc: ExamLevelService,
     private branchSvc: ExamBranchService,
     private streamSvc: ExamStreamService,
-    private router: Router
+    private router: Router,
+    private notificationService: NotificationService
   ) {}
   ngOnInit() {
     // Build form with complete hierarchy
@@ -58,7 +60,7 @@ export class AddExamPaperComponent implements OnInit {
       durationMinutes: [''],
       passingCriteria: [''],
       examDate: [''],
-      description: ['']
+      description: ['', Validators.required] // Make description required
     });
 
     // Load initial data
@@ -193,7 +195,11 @@ export class AddExamPaperComponent implements OnInit {
   }
 
   onSubmit() {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.notificationService.showError('Form Validation Failed', 'Please fill in all required fields correctly.');
+      return;
+    }
     
     const formValue = this.form.value;
     
@@ -212,12 +218,28 @@ export class AddExamPaperComponent implements OnInit {
 
     this.paperSvc.create(paperData).subscribe({
       next: paper => {
-        window.alert(`✅ Paper "${paper.name}" added successfully!`);
+        this.notificationService.showSuccess(`Paper "${paper.name}" added successfully!`);
         this.router.navigate(['/exam-papers']);
       },
       error: err => {
-        const msg = err.error?.message || err.message || 'Unknown error';
-        window.alert(`❌ Failed to add paper: ${msg}`);
+        console.error('Failed to create exam paper:', err);
+        let errorMessage = 'Failed to add paper';
+        
+        if (err.error?.message) {
+          errorMessage = err.error.message;
+        } else if (err.error?.error) {
+          errorMessage = err.error.error;
+        } else if (err.message) {
+          errorMessage = err.message;
+        } else if (err.status === 400) {
+          errorMessage = 'Invalid data provided. Please check all fields and try again.';
+        } else if (err.status === 409) {
+          errorMessage = 'Paper with this name or code already exists for this stream.';
+        } else if (err.status === 500) {
+          errorMessage = 'Server error. Please try again later.';
+        }
+        
+        this.notificationService.showError('Creation Failed', errorMessage);
       }
     });
   }

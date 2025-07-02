@@ -5,6 +5,7 @@ import { Router, RouterModule } from '@angular/router';
 import { ExamBranchService } from '../../../services/exam-branch.service';
 import { ExamLevelService, ExamLevel } from '../../../services/exam-level.service';
 import { ExamFamilyService, ExamFamily } from '../../../services/exam-family.service';
+import { NotificationService } from '../../../services/notification.service';
 
 @Component({
   standalone: true,
@@ -24,7 +25,8 @@ export class AddExamBranchComponent implements OnInit {
     private svc: ExamBranchService,
     private levelSvc: ExamLevelService,
     private familySvc: ExamFamilyService,
-    private router: Router
+    private router: Router,
+    private notificationService: NotificationService
   ) {}
 
   ngOnInit() {
@@ -34,7 +36,7 @@ export class AddExamBranchComponent implements OnInit {
       level: ['', Validators.required],
       code: [''], // Made optional - will auto-generate if empty
       name: ['', Validators.required],
-      description: ['']
+      description: ['', Validators.required] // Make description required
     });
 
     // 2. Load families and all levels
@@ -102,7 +104,11 @@ export class AddExamBranchComponent implements OnInit {
   }
 
   onSubmit() {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.notificationService.showError('Form Validation Failed', 'Please fill in all required fields correctly.');
+      return;
+    }
 
     const formValue = this.form.value;
     
@@ -116,12 +122,28 @@ export class AddExamBranchComponent implements OnInit {
 
     this.svc.create(branchData).subscribe({
       next: branch => {
-        window.alert(`✅ Branch "${branch.name}" added successfully!`);
+        this.notificationService.showSuccess(`Branch "${branch.name}" added successfully!`);
         this.router.navigate(['/exam-branches']);
       },
       error: err => {
-        const msg = err.error?.message || err.message || 'Unknown error';
-        window.alert(`❌ Failed to add branch: ${msg}`);
+        console.error('Failed to create exam branch:', err);
+        let errorMessage = 'Failed to add branch';
+        
+        if (err.error?.message) {
+          errorMessage = err.error.message;
+        } else if (err.error?.error) {
+          errorMessage = err.error.error;
+        } else if (err.message) {
+          errorMessage = err.message;
+        } else if (err.status === 400) {
+          errorMessage = 'Invalid data provided. Please check all fields and try again.';
+        } else if (err.status === 409) {
+          errorMessage = 'Branch with this name or code already exists in this level.';
+        } else if (err.status === 500) {
+          errorMessage = 'Server error. Please try again later.';
+        }
+        
+        this.notificationService.showError('Creation Failed', errorMessage);
       }
     });
   }

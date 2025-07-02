@@ -57,6 +57,7 @@ import {
   ExamShift
 } from '../../services/exam-shift.service';
 import { HighlightPipe } from '../../pipes/highlight.pipe'; // Assuming pipe is in src/app/pipes
+import { NotificationService } from '../../services/notification.service'; // Import NotificationService
 
 /**
  * @class BuildPaperComponent
@@ -168,7 +169,8 @@ previewedQuestions: any[][] = [];
     private branchService: ExamBranchService,
     private streamService: ExamStreamService,
     private paperService: ExamPaperService,
-    private shiftService: ExamShiftService
+    private shiftService: ExamShiftService,
+    private notificationService: NotificationService
   ) {}
 
   /**
@@ -902,7 +904,7 @@ previewedQuestions: any[][] = [];
     const sectionGroup = this.sections.at(secIndex) as FormGroup;
     if (sectionGroup.get('questions')?.disabled) {
       // console.log(`Section ${secIndex}: Cannot add manual question, pool mode is active or manual questions disabled.`);
-      alert('Cannot add manual question when question pool is active or manual entry is disabled for this section.');
+      this.notificationService.showWarning('Manual Question Disabled', 'Cannot add manual question when question pool is active or manual entry is disabled for this section.');
       return;
     }
     const qArray = this.getQuestions(secIndex);
@@ -991,7 +993,7 @@ previewedQuestions: any[][] = [];
     const sectionGroup = this.sections.at(secIndex) as FormGroup;
     if (sectionGroup.get('questions')?.disabled) {
       // console.log(`Section ${secIndex}: Cannot import CSV, pool mode is active or manual questions disabled.`);
-      alert('Cannot import CSV when question pool is active or manual entry is disabled for this section.');
+      this.notificationService.showWarning('CSV Import Disabled', 'Cannot import CSV when question pool is active or manual entry is disabled for this section.');
       return;
     }
     const file = (event.target as HTMLInputElement).files?.[0];
@@ -1081,7 +1083,7 @@ previewedQuestions: any[][] = [];
     // Validate that the test series has at least two questions
     const hasEnoughQuestions = this.validateMinimumQuestions(2); // Require at least 2 questions
     if (!hasEnoughQuestions) {
-      alert('Test series must have at least 2 questions. Please add more questions before submitting.');
+      this.notificationService.showError('Insufficient Questions', 'Test series must have at least 2 questions. Please add more questions before submitting.');
       return;
     }
 
@@ -1116,7 +1118,7 @@ previewedQuestions: any[][] = [];
         },
         error: (err) => {
           console.error('Failed to get or create default shift:', err);
-          alert('Failed to create default shift. Please try again or manually select a shift.');
+          this.notificationService.showError('Shift Creation Failed', 'Failed to create default shift. Please try again or manually select a shift.');
         }
       });
     } else {
@@ -1149,10 +1151,10 @@ previewedQuestions: any[][] = [];
     this.tsService.create(formValues as Partial<TestSeries>)
       .subscribe({
         next: (res: any) => { 
-          alert('Test Series created!'); 
+          this.notificationService.showSuccess('Test Series Created!', 'Your test series has been created successfully.'); 
         },
         error: (err: any) => { 
-          alert('Creation failed: ' + (err.message || 'Unknown error')); 
+          this.notificationService.showError('Creation Failed', 'Creation failed: ' + (err.message || 'Unknown error')); 
         }
       });
   }
@@ -1398,7 +1400,7 @@ previewedQuestions: any[][] = [];
     const sectionGroup = this.sections.at(secIndex) as FormGroup;
     if (sectionGroup.get('questions')?.disabled) {
       // console.log(`Section ${secIndex}: Cannot add from search results, pool mode is active.`);
-      alert('Cannot add question from search results when question pool is active or manual entry is disabled for this section.');
+      this.notificationService.showWarning('Question Pool Active', 'Cannot add question from search results when question pool is active or manual entry is disabled for this section.');
       return;
     }    const questionsArray = this.getQuestions(secIndex);
     const newIndex = questionsArray.length;

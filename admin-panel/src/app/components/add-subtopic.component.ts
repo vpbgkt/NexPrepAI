@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { QuestionService } from '../services/question.service';
+import { NotificationService } from '../services/notification.service';
 
 @Component({
   selector: 'app-add-subtopic',
@@ -28,7 +29,8 @@ export class AddSubtopicComponent implements OnInit {
   constructor(
     private questionService: QuestionService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private notificationService: NotificationService
   ) {}
   ngOnInit(): void {
     // Check for cascade flow parameters
@@ -133,7 +135,7 @@ export class AddSubtopicComponent implements OnInit {
             You can now create questions using this hierarchy.
           `;
           
-          alert(hierarchyComplete);
+          this.notificationService.showSuccess('Hierarchy Complete!', hierarchyComplete);
           
           // Redirect to questions with the full hierarchy pre-selected
           this.router.navigate(['/add-question'], {
@@ -150,13 +152,13 @@ export class AddSubtopicComponent implements OnInit {
           });
         } else {
           // Normal flow - redirect to questions
-          alert('Subtopic created successfully!');
+          this.notificationService.showSuccess('Subtopic Created Successfully!', `Subtopic "${this.subtopicName}" has been created successfully.`);
           this.router.navigate(['/questions']);
         }
       },
       error: (err: any) => {
         console.error('Error creating subtopic:', err);
-        alert('Error creating subtopic. Please try again.');
+        this.notificationService.showError('Creation Failed', 'Error creating subtopic. Please try again.');
         this.isLoading = false;
       }
     });

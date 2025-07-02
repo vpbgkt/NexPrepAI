@@ -6,6 +6,7 @@ import { ExamStreamService } from '../../../services/exam-stream.service';
 import { ExamFamilyService, ExamFamily } from '../../../services/exam-family.service';
 import { ExamLevelService, ExamLevel } from '../../../services/exam-level.service';
 import { ExamBranchService, ExamBranch } from '../../../services/exam-branch.service';
+import { NotificationService } from '../../../services/notification.service';
 
 @Component({
   standalone: true,
@@ -26,7 +27,8 @@ export class AddExamStreamComponent implements OnInit {
     private familySvc: ExamFamilyService,
     private levelSvc: ExamLevelService,
     private branchSvc: ExamBranchService,
-    private router: Router
+    private router: Router,
+    private notificationService: NotificationService
   ) {}  ngOnInit() {
     // 1. Build the form
     this.form = this.fb.group({
@@ -39,7 +41,7 @@ export class AddExamStreamComponent implements OnInit {
       region: [''],
       language: ['English'], // Default to English
       status: ['Active'], // Default to Active
-      description: ['']
+      description: ['', Validators.required] // Make description required
     });
 
     // 2. Load families for the dropdown
@@ -89,16 +91,36 @@ export class AddExamStreamComponent implements OnInit {
   }
 
   onSubmit() {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.notificationService.showError('Form Validation Failed', 'Please fill in all required fields correctly.');
+      return;
+    }
 
     this.svc.create(this.form.value).subscribe({
       next: stream => {
-        window.alert(`✅ Stream "${stream.name}" added.`);
+        this.notificationService.showSuccess(`Stream "${stream.name}" added.`);
         this.router.navigate(['/exam-streams']);
       },
       error: err => {
-        const msg = err.error?.message || err.message || 'Unknown error';
-        window.alert(`❌ Failed to add stream: ${msg}`);
+        console.error('Failed to create exam stream:', err);
+        let errorMessage = 'Failed to add stream';
+        
+        if (err.error?.message) {
+          errorMessage = err.error.message;
+        } else if (err.error?.error) {
+          errorMessage = err.error.error;
+        } else if (err.message) {
+          errorMessage = err.message;
+        } else if (err.status === 400) {
+          errorMessage = 'Invalid data provided. Please check all fields and try again.';
+        } else if (err.status === 409) {
+          errorMessage = 'Stream with this name or code already exists for this branch.';
+        } else if (err.status === 500) {
+          errorMessage = 'Server error. Please try again later.';
+        }
+        
+        this.notificationService.showError('Creation Failed', errorMessage);
       }
     });
   }

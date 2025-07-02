@@ -32,6 +32,7 @@ import { QuestionService } from '../../services/question.service';
 import { ImageUploadService, ImageUploadRequest } from '../../services/image-upload.service';
 import { MathDisplayComponent } from '../math-display/math-display.component';
 import { AuthService }     from '../../services/auth.service'; // Added AuthService
+import { NotificationService } from '../../services/notification.service'; // Added NotificationService
 
 /**
  * @typedef {('en'|'hi')} LangCode
@@ -141,6 +142,8 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
   private route       = inject(ActivatedRoute);
   /** @private {AuthService} Service for authentication and user role management */ // Added
   private authService = inject(AuthService); // Added
+  /** @private {NotificationService} Service for displaying user notifications */
+  private notificationService = inject(NotificationService);
 
   /* ───────── component state ───────── */
   /** @property {LangCode} currentLang - Currently active language for question editing */
@@ -265,13 +268,6 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
   /** @property {boolean} creatingSubtopic - Whether subtopic creation is in progress */
   creatingSubtopic: boolean = false;
   
-  /** @property {string} alertMessage - Current alert message to display */
-  alertMessage: string = '';
-  /** @property {'success' | 'error' | 'warning' | ''} alertType - Type of alert */
-  alertType: 'success' | 'error' | 'warning' | '' = '';
-  /** @property {boolean} showAlert - Whether to show alert */
-  showAlert: boolean = false;
-  
   /** @property {boolean} showMathSymbols - Whether to show mathematical symbols section */
   showMathSymbols: boolean = false;
   
@@ -375,7 +371,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Error loading branches:', err);
-        this.showErrorAlert('Failed to load branches');
+        this.notificationService.showError('Failed to load branches');
       }
     });
     
@@ -420,49 +416,6 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
   }
 
   private documentClickListener: ((event: Event) => void) | null = null;
-
-  /* ───────── alert methods ───────── */
-  
-  /**
-   * @method showAlertMessage
-   * @description Shows an alert message with specified type
-   */
-  private showAlertMessage(message: string, type: 'success' | 'error' | 'warning'): void {
-    this.alertMessage = message;
-    this.alertType = type;
-    this.showAlert = true;
-    
-    // Auto-hide after 5 seconds
-    setTimeout(() => {
-      this.hideAlert();
-    }, 5000);
-  }
-
-  /**
-   * @method hideAlert
-   * @description Hides the current alert
-   */
-  hideAlert(): void {
-    this.showAlert = false;
-    this.alertMessage = '';
-    this.alertType = '';
-  }
-
-  /**
-   * @method showSuccessAlert
-   * @description Shows a success alert
-   */
-  private showSuccessAlert(message: string): void {
-    this.showAlertMessage(message, 'success');
-  }
-
-  /**
-   * @method showErrorAlert
-   * @description Shows an error alert
-   */
-  private showErrorAlert(message: string): void {
-    this.showAlertMessage(message, 'error');
-  }
 
   /**
    * @method toggleMathSymbols
@@ -1057,7 +1010,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
     // 3️⃣ clean up empty arrays (optional hygiene)
     // if (!payload.options?.length)       delete payload.options; // If options were at root    // ----- POST ----------------------------------------------------------
     if (filledTranslations.length === 0) {
-      alert('Error: No valid translations found. Please check that all required fields are filled correctly.');
+      this.notificationService.showError('Validation Error', 'No valid translations found. Please check that all required fields are filled correctly.');
       console.error('No translations passed validation');
       return;
     }
@@ -1065,7 +1018,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
     console.log('Sending payload:', payload);    this.questionSrv.addQuestion(payload)
         .subscribe({
           next: () => {
-            this.showSuccessAlert('Question successfully saved to database!');
+            this.notificationService.showSuccess('Question successfully saved to database!');
             // Auto-reset form after 2 seconds
             setTimeout(() => {
               this.resetForm();
@@ -1073,7 +1026,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
           },
           error: (err: any) => {
             console.error('Error details:', err);
-            this.showErrorAlert('Save failed: ' + err.message);
+            this.notificationService.showError('Save failed: ' + err.message);
           }
         });
   }
@@ -1153,7 +1106,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
     // Validate file
     const validation = this.imageUploadSrv.validateImageFile(file);
     if (!validation.isValid) {
-      alert(validation.error);
+      this.notificationService.showError(validation.error || 'Invalid file');
       return;
     }
     
@@ -1184,7 +1137,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
     // Validate file
     const validation = this.imageUploadSrv.validateImageFile(file);
     if (!validation.isValid) {
-      alert(validation.error);
+      this.notificationService.showError(validation.error || 'Invalid file');
       return;
     }
     
@@ -1210,7 +1163,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
     const file = this.selectedFiles.get(fileKey);
     
     if (!file || !this.question.branchId || !this.question.subjectId || !this.question.topicId) {
-      alert('Please select hierarchy (Branch, Subject, Topic) before uploading images.');
+      this.notificationService.showError('Please select hierarchy (Branch, Subject, Topic) before uploading images.');
       return;
     }
     
@@ -1236,7 +1189,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('Image upload failed:', error);
         this.uploadStatuses.set(fileKey, 'failed');
-        alert('Image upload failed. Please try again.');
+        this.notificationService.showError('Image upload failed. Please try again.');
       }
     });
   }
@@ -1253,7 +1206,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
     const file = this.selectedFiles.get(fileKey);
     
     if (!file || !this.question.branchId || !this.question.subjectId || !this.question.topicId) {
-      alert('Please select hierarchy (Branch, Subject, Topic) before uploading images.');
+      this.notificationService.showError('Please select hierarchy (Branch, Subject, Topic) before uploading images.');
       return;
     }
     
@@ -1279,7 +1232,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         this.uploadStatuses.set(fileKey, 'failed');
-        alert('Option image upload failed. Please try again.');
+        this.notificationService.showError('Option image upload failed. Please try again.');
       }
     });
   }
@@ -1349,7 +1302,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
         this.previewUrls.delete(fileKey);
         this.uploadProgress.delete(fileKey);
       },      error: (error) => {
-        alert('Failed to delete image. Please try again.');
+        this.notificationService.showError('Failed to delete image. Please try again.');
       }
     });
   }
@@ -1425,7 +1378,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
     );
     
     if (branchExists) {
-      this.showErrorAlert(`Branch "${this.newBranchName.trim()}" already exists!`);
+      this.notificationService.showError(`Branch "${this.newBranchName.trim()}" already exists!`);
       return;
     }
     
@@ -1443,7 +1396,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
         this.cancelCreateBranch();
         
         // Show success message
-        this.showSuccessAlert(`Branch "${newBranch.name}" created successfully!`);
+        this.notificationService.showSuccess(`Branch "${newBranch.name}" created successfully!`);
         
         console.log('Branch created successfully:', newBranch);
       },
@@ -1459,7 +1412,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
           errorMessage = error.message;
         }
         
-        this.showErrorAlert(errorMessage);
+        this.notificationService.showError(errorMessage);
       }
     });
   }
@@ -1542,7 +1495,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
     );
     
     if (subjectExists) {
-      this.showErrorAlert(`Subject "${this.newSubjectName.trim()}" already exists in this branch!`);
+      this.notificationService.showError(`Subject "${this.newSubjectName.trim()}" already exists in this branch!`);
       return;
     }
     
@@ -1560,7 +1513,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
         this.cancelCreateSubject();
         
         // Show success message
-        this.showSuccessAlert(`Subject "${newSubject.name}" created successfully!`);
+        this.notificationService.showSuccess(`Subject "${newSubject.name}" created successfully!`);
         
         console.log('Subject created successfully:', newSubject);
       },
@@ -1576,7 +1529,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
           errorMessage = error.message;
         }
         
-        this.showErrorAlert(errorMessage);
+        this.notificationService.showError(errorMessage);
       }
     });
   }
@@ -1658,7 +1611,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
     );
     
     if (topicExists) {
-      this.showErrorAlert(`Topic "${this.newTopicName.trim()}" already exists in this subject!`);
+      this.notificationService.showError(`Topic "${this.newTopicName.trim()}" already exists in this subject!`);
       return;
     }
     
@@ -1676,7 +1629,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
         this.cancelCreateTopic();
         
         // Show success message
-        this.showSuccessAlert(`Topic "${newTopic.name}" created successfully!`);
+        this.notificationService.showSuccess(`Topic "${newTopic.name}" created successfully!`);
         
         console.log('Topic created successfully:', newTopic);
       },
@@ -1692,7 +1645,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
           errorMessage = error.message;
         }
         
-        this.showErrorAlert(errorMessage);
+        this.notificationService.showError(errorMessage);
       }
     });
   }
@@ -1766,7 +1719,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
     );
     
     if (subtopicExists) {
-      this.showErrorAlert(`Subtopic "${this.newSubtopicName.trim()}" already exists in this topic!`);
+      this.notificationService.showError(`Subtopic "${this.newSubtopicName.trim()}" already exists in this topic!`);
       return;
     }
     
@@ -1784,7 +1737,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
         this.cancelCreateSubtopic();
         
         // Show success message
-        this.showSuccessAlert(`Subtopic "${newSubtopic.name}" created successfully!`);
+        this.notificationService.showSuccess(`Subtopic "${newSubtopic.name}" created successfully!`);
         
         console.log('Subtopic created successfully:', newSubtopic);
       },
@@ -1800,7 +1753,7 @@ export class AddQuestionComponent implements OnInit, OnDestroy {
           errorMessage = error.message;
         }
         
-        this.showErrorAlert(errorMessage);
+        this.notificationService.showError(errorMessage);
       }
     });
   }

@@ -21,6 +21,7 @@ import { FormsModule, NgForm } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { QuestionService } from '../../services/question.service';
+import { NotificationService } from '../../services/notification.service';
 import { Question, PopulatedHierarchyField, Translation, Option as QuestionOption, Explanation, NumericalAnswer } from '../../models/question.model'; // Import NumericalAnswer
 
 /**
@@ -86,6 +87,8 @@ export class EditQuestionComponent implements OnInit {  /** @private {QuestionSe
   private route = inject(ActivatedRoute);
   /** @private {Router} Angular navigation service for programmatic routing */
   private router = inject(Router);
+  /** @private {NotificationService} Service for displaying notifications */
+  private notificationService = inject(NotificationService);
 
   /** @property {string} Question ID extracted from route parameters */
   id!: string;
@@ -845,12 +848,12 @@ export class EditQuestionComponent implements OnInit {  /** @private {QuestionSe
       .pipe(finalize(() => this.isLoading = false))
       .subscribe({
         next: (response: any) => { // response might be Question or simple message
-          alert(`Question ${this.id ? 'updated' : 'added'} successfully!`);
+          this.notificationService.showSuccess(`Question ${this.id ? 'updated' : 'added'} successfully!`);
           this.router.navigate(['/questions']);
         },
         error: (err) => {
             console.error(`Failed to ${this.id ? 'update' : 'add'} question:`, err);
-            alert(`Failed to ${this.id ? 'update' : 'add'} question.`);
+            this.notificationService.showError(`Failed to ${this.id ? 'update' : 'add'} question.`);
         }
       });
   }

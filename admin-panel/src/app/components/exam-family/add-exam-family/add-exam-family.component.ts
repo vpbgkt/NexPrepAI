@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ExamFamilyService } from '../../../services/exam-family.service';
+import { NotificationService } from '../../../services/notification.service';
 
 @Component({
   standalone: true,
@@ -17,7 +18,8 @@ export class AddExamFamilyComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private svc: ExamFamilyService,
-    private router: Router
+    private router: Router,
+    private notificationService: NotificationService
   ) {}
 
   ngOnInit() {
@@ -25,23 +27,43 @@ export class AddExamFamilyComponent implements OnInit {
     this.form = this.fb.group({
       name: ['', Validators.required],
       code: ['', Validators.required],       // ← make code required
-      description: ['']
+      description: ['', Validators.required] // Make description required
     });
   }
 
   onSubmit() {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.notificationService.showError('Form Validation Failed', 'Please fill in all required fields correctly.');
+      return;
+    }
 
     this.svc.create(this.form.value).subscribe({
       next: family => {
         // Show success alert
-        window.alert(`✅ Exam Family "${family.name}" added successfully.`);
+        this.notificationService.showSuccess(`Exam Family "${family.name}" added successfully.`);
         this.router.navigate(['/exam-families']);
       },
       error: err => {
-        // Show error alert
-        const msg = err.error?.message || err.message || 'Unknown error';
-        window.alert(`❌ Failed to add Exam Family: ${msg}`);
+        // Show detailed error alert
+        console.error('Failed to create exam family:', err);
+        let errorMessage = 'Failed to add Exam Family';
+        
+        if (err.error?.message) {
+          errorMessage = err.error.message;
+        } else if (err.error?.error) {
+          errorMessage = err.error.error;
+        } else if (err.message) {
+          errorMessage = err.message;
+        } else if (err.status === 400) {
+          errorMessage = 'Invalid data provided. Please check all fields.';
+        } else if (err.status === 409) {
+          errorMessage = 'Exam Family with this name or code already exists.';
+        } else if (err.status === 500) {
+          errorMessage = 'Server error. Please try again later.';
+        }
+        
+        this.notificationService.showError('Creation Failed', errorMessage);
       }
     });
   }

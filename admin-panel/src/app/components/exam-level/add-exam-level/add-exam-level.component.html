@@ -16,55 +16,70 @@
         <div class="form-group">
           <label for="familyId" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
             <i class="fas fa-users text-purple-500"></i>
-            Exam Family
+            Exam Family *
           </label>
           <select 
             id="familyId" 
             formControlName="familyId"
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 bg-white appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e')] bg-no-repeat bg-right-4 bg-[length:1em]">
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 bg-white appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e')] bg-no-repeat bg-right-4 bg-[length:1em]"
+            [class.border-red-500]="form.get('familyId')?.invalid && form.get('familyId')?.touched">
             <option value="" disabled>Select Exam Family</option>
             <option *ngFor="let f of families" [value]="f._id">{{ f.name }}</option>
           </select>
+          <div *ngIf="form.get('familyId')?.invalid && form.get('familyId')?.touched" class="text-red-500 text-sm mt-1">
+            Please select an exam family
+          </div>
         </div>        <!-- Code Input -->
         <div class="form-group">
           <label for="code" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
             <i class="fas fa-code text-green-500"></i>
-            Code
+            Code *
           </label>
           <input 
             id="code"
             formControlName="code" 
             placeholder="e.g. UG, PG, DIPLOMA, CBSE10, JEE, NEET, etc."
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 placeholder-gray-400" />
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 placeholder-gray-400"
+            [class.border-red-500]="form.get('code')?.invalid && form.get('code')?.touched" />
           <p class="text-xs text-gray-500 mt-1">Enter a unique short code for this exam level (will be converted to uppercase)</p>
+          <div *ngIf="form.get('code')?.invalid && form.get('code')?.touched" class="text-red-500 text-sm mt-1">
+            Code is required
+          </div>
         </div>        <!-- Name Input -->
         <div class="form-group">
           <label for="name" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
             <i class="fas fa-tag text-blue-500"></i>
-            Name
+            Name *
           </label>
           <input 
             id="name"
             formControlName="name" 
             placeholder="e.g. Undergraduate Level, Class 10 CBSE, JEE Main, NEET UG, etc."
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 placeholder-gray-400" />
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 placeholder-gray-400"
+            [class.border-red-500]="form.get('name')?.invalid && form.get('name')?.touched" />
           <p class="text-xs text-gray-500 mt-1">Enter a descriptive name for this exam level</p>
+          <div *ngIf="form.get('name')?.invalid && form.get('name')?.touched" class="text-red-500 text-sm mt-1">
+            Name is required
+          </div>
         </div>
 
         <!-- Description Input -->
         <div class="form-group">
           <label for="description" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
             <i class="fas fa-align-left text-orange-500"></i>
-            Description
-            <span class="text-gray-400 text-xs">(Optional)</span>
+            Description *
           </label>
           <textarea 
             id="description"
             formControlName="description" 
             rows="3"
             placeholder="e.g. For students who have completed 12th standard and are pursuing bachelor's degree..."
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 placeholder-gray-400 resize-vertical"></textarea>
-          <p class="text-xs text-gray-500 mt-1">Optional detailed information about eligibility, requirements, etc.</p>
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 placeholder-gray-400 resize-vertical"
+            [class.border-red-500]="form.get('description')?.invalid && form.get('description')?.touched"></textarea>
+          <p class="text-xs text-gray-500 mt-1">Detailed information about eligibility, requirements, etc.</p>
+          <div *ngIf="form.get('description')?.invalid && form.get('description')?.touched" class="text-red-500 text-sm mt-1">
+            Description is required
+          </div>
         </div>
 
         <!-- Submit Button -->
