@@ -173,13 +173,50 @@
 
     <!-- Questions Table -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <!-- Table Header with Controls -->
       <div class="px-6 py-4 border-b border-gray-200">
-        <h2 class="text-xl font-semibold text-gray-900 flex items-center">
-          <svg class="w-5 h-5 mr-2 text-secondary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-          </svg>
-          Question List
-        </h2>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+          <div class="flex items-center">
+            <svg class="w-5 h-5 mr-2 text-secondary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <h2 class="text-xl font-semibold text-gray-900">Question List</h2>
+            <span class="ml-2 text-sm text-gray-500">({{ getDisplayRange().start }}-{{ getDisplayRange().end }} of {{ totalQuestions }})</span>
+          </div>
+          
+          <!-- Sort and Page Size Controls -->
+          <div class="flex items-center space-x-4">
+            <!-- Sort Dropdown -->
+            <div class="flex items-center space-x-2">
+              <label class="text-sm font-medium text-gray-700">Sort by:</label>
+              <select 
+                (change)="handleSortChange($event)"
+                class="form-select text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option 
+                  *ngFor="let option of sortOptions" 
+                  [value]="option.value + '|' + option.order"
+                  [selected]="filters.sortBy === option.value && filters.sortOrder === option.order"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
+            
+            <!-- Page Size Dropdown -->
+            <div class="flex items-center space-x-2">
+              <label class="text-sm font-medium text-gray-700">Show:</label>
+              <select 
+                [(ngModel)]="itemsPerPage" 
+                (change)="onPageSizeChange(itemsPerPage)"
+                class="form-select text-sm border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+              </select>
+              <span class="text-sm text-gray-500">per page</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="overflow-x-auto">

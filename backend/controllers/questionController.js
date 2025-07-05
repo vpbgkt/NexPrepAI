@@ -476,8 +476,10 @@ exports.filterQuestions = async (req, res) => {
       type,
       status,
       searchTerm,
+      sortBy = 'createdAt', // Default sort by creation date
+      sortOrder = 'desc', // Default to newest first
       page = 1, // Default to page 1
-      limit = 10 // Default to 10 items per page
+      limit = 15 // Default to 15 items per page (matching frontend)
     } = req.query; // Filters will come from query parameters
 
     const query = {};
@@ -502,6 +504,16 @@ exports.filterQuestions = async (req, res) => {
     const limitNumber = parseInt(limit, 10);
     const skip = (pageNumber - 1) * limitNumber;
 
+    // Build sort object based on sortBy and sortOrder
+    const sortObject = {};
+    const validSortFields = ['createdAt', 'updatedAt', 'difficulty', 'type', 'status'];
+    
+    if (validSortFields.includes(sortBy)) {
+      sortObject[sortBy] = sortOrder === 'asc' ? 1 : -1;
+    } else {
+      sortObject['createdAt'] = -1; // Default fallback
+    }
+
     // Get total count of documents matching the query (without pagination)
     const totalCount = await Question.countDocuments(query);
 
@@ -510,6 +522,7 @@ exports.filterQuestions = async (req, res) => {
       .populate('subject', 'name')
       .populate('topic', 'name')
       .populate('subTopic', 'name')
+      .sort(sortObject) // Use dynamic sorting
       .skip(skip)
       .limit(limitNumber)
       .lean();

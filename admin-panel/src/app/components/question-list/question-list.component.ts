@@ -108,8 +108,23 @@ export class QuestionListComponent implements OnInit {
     difficulty: '',
     type: '',
     status: '',
-    searchTerm: '' // ADDED: For text search
+    searchTerm: '', // ADDED: For text search
+    sortBy: 'createdAt', // ADDED: Default sort by creation date
+    sortOrder: 'desc' // ADDED: Default to newest first
   };
+
+  /** @property {Object[]} Available sorting options */
+  sortOptions = [
+    { value: 'createdAt', label: 'Date Created', order: 'desc' },
+    { value: 'createdAt', label: 'Date Created (Oldest)', order: 'asc' },
+    { value: 'updatedAt', label: 'Last Modified', order: 'desc' },
+    { value: 'difficulty', label: 'Difficulty Level', order: 'asc' },
+    { value: 'type', label: 'Question Type', order: 'asc' },
+    { value: 'status', label: 'Status', order: 'asc' }
+  ];
+
+  /** @property {number[]} Available page size options */
+  pageSizeOptions = [10, 15, 25, 50, 100];
 
   /** @property {number} Current page number for pagination */
   // ADDED: Pagination properties
@@ -337,7 +352,9 @@ export class QuestionListComponent implements OnInit {
       difficulty: '',
       type: '',
       status: '',
-      searchTerm: '' // ADDED: Reset search term
+      searchTerm: '', // ADDED: Reset search term
+      sortBy: 'createdAt', // ADDED: Reset to default sort
+      sortOrder: 'desc' // ADDED: Reset to newest first
     };
     this.subjects = [];
     this.topics = [];
@@ -839,5 +856,56 @@ export class QuestionListComponent implements OnInit {
         return firstHistoryEntry.examName;
     }
     return `Used in ${question.questionHistory.length} exam(s)`;
+  }
+
+  /**
+   * @method onSortChange
+   * @description Handles sort option change and reloads questions with new sorting
+   * 
+   * @param {string} sortBy - The field to sort by
+   * @param {string} sortOrder - The sort order (asc/desc)
+   */
+  onSortChange(sortBy: string, sortOrder: string): void {
+    this.filters.sortBy = sortBy;
+    this.filters.sortOrder = sortOrder;
+    this.currentPage = 1; // Reset to first page when sorting changes
+    this.loadQuestions();
+  }
+
+  /**
+   * @method handleSortChange
+   * @description Handles sort dropdown change event with proper type casting
+   * 
+   * @param {Event} event - The change event from the select element
+   */
+  handleSortChange(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    const value = target.value;
+    const [sortBy, sortOrder] = value.split('|');
+    this.onSortChange(sortBy, sortOrder);
+  }
+
+  /**
+   * @method onPageSizeChange
+   * @description Handles page size change and reloads questions with new page size
+   * 
+   * @param {number} newSize - The new page size
+   */
+  onPageSizeChange(newSize: number): void {
+    this.itemsPerPage = newSize;
+    this.currentPage = 1; // Reset to first page when page size changes
+    this.loadQuestions();
+  }
+
+  /**
+   * @method getDisplayRange
+   * @description Calculates the range of items being displayed for pagination info
+   * 
+   * @returns {Object} Object containing start and end indices
+   */
+  getDisplayRange(): { start: number; end: number } {
+    const start = (this.currentPage - 1) * this.itemsPerPage + 1;
+    const end = Math.min(this.currentPage * this.itemsPerPage, this.totalQuestions);
+    return { start, end };
   }
 }
