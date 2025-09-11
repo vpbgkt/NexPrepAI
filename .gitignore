@@ -95,21 +95,40 @@ pids
 logs
 *.log
 
-# Environment variables
+# Environment variables and secrets
 .env
+.env.*
 .env.local
+.env.*.local
+.env.development
 .env.development.local
+.env.test
 .env.test.local
+.env.production
 .env.production.local
-backend/.env
+backend/.env*
+frontend/.env*
+admin-panel/.env*
 
-# Environment files
-.env
-.env.prod
-.env.dev
-backend/.env
-backend/.env.prod
-backend/.env.dev
+# Secret keys and credentials
+**/credentials.*
+**/service-account.*
+**/*-key.*
+**/*.key
+**/*.pem
+**/*.cert
+**/*.password
+**/*secret*
+**/*credential*
+**/.secret.*
+**/.credentials.*
+**/firebase-adminsdk-*.json
+**/firebase-service-account*.json
+
+# Configuration files that might contain secrets
+**/config.*.json
+**/config.*.js
+!config.example.*
 
 # IDEs and editors
 .vscode/

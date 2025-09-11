@@ -42,19 +42,19 @@ cat frontend/src/environments/environment.prod.ts
 
 echo ""
 echo "Updating frontend environment for HTTPS domain..."
-cat > frontend/src/environments/environment.prod.ts << 'EOF'
+cat > frontend/src/environments/environment.prod.ts << EOF
 export const environment = {
   production: true,
   apiUrl: '/api', // Uses HTTPS domain with Nginx proxy
   socketUrl: '', // Uses same origin (HTTPS) - let Nginx handle proxy
   firebase: {
-    apiKey: "AIzaSyCdfNaGNk2PlgHBBM_5IFUnQa3zxAM__NA",
-    authDomain: "nexprepauth.firebaseapp.com",
-    projectId: "nexprepauth",
-    storageBucket: "nexprepauth.firebasestorage.app",
-    messagingSenderId: "1035644349662",
-    appId: "1:1035644349662:web:4bd9378adae4d11df4664f",
-    measurementId: "G-6F331E9GKZ"
+    apiKey: "$FIREBASE_API_KEY",
+    authDomain: "$FIREBASE_AUTH_DOMAIN",
+    projectId: "$FIREBASE_PROJECT_ID",
+    storageBucket: "$FIREBASE_STORAGE_BUCKET",
+    messagingSenderId: "$FIREBASE_MESSAGING_SENDER_ID",
+    appId: "$FIREBASE_APP_ID",
+    measurementId: "$FIREBASE_MEASUREMENT_ID"
   }
 };
 EOF
