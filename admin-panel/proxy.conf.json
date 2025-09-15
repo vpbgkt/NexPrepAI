@@ -1,10 +1,8 @@
 {
-  "/api/*": {
+  "/api": {
     "target": "http://localhost:5000",
     "secure": false,
     "changeOrigin": true,
-    "logLevel": "debug",
-    "onProxyReq": "function(proxyReq, req, res) { console.log('Proxying request:', req.method, req.url); }",
-    "onError": "function(err, req, res) { console.log('Proxy error:', err); }"
+    "logLevel": "debug"
   }
 }
