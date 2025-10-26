@@ -1,0 +1,107 @@
+/* Smart Upload Component Styles */
+
+.smart-upload-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Progress Steps */
+.progress-step {
+  transition: all 0.3s ease;
+}
+
+/* JSON Editor */
+textarea {
+  resize: vertical;
+  min-height: 200px;
+}
+
+/* Image Upload Cards */
+.image-upload-card {
+  transition: all 0.2s ease;
+}
+
+.image-upload-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Preview Content */
+.question-preview {
+  font-family: inherit;
+}
+
+.option-preview {
+  transition: all 0.2s ease;
+}
+
+.option-preview:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Loading Animations */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .smart-upload-container {
+    padding: 1rem;
+  }
+  
+  .progress-steps {
+    flex-direction: column;
+    space-between: 1rem;
+  }
+  
+  .grid-cols-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Validation Error Styles */
+.validation-error {
+  border-left: 4px solid #ef4444;
+}
+
+/* Success States */
+.upload-success {
+  border-left: 4px solid #10b981;
+}
+
+/* Button Styles */
+.btn-primary {
+  @apply px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors;
+}
+
+.btn-secondary {
+  @apply px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors;
+}
+
+.btn-success {
+  @apply px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}

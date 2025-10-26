@@ -49,6 +49,16 @@ router.delete('/:id', verifyToken,              questionCtrl.deleteQuestion);
 // Route to update question status (superadmin only)
 router.put('/:id/status', verifyToken, questionCtrl.updateQuestionStatus);
 
+/* ──────────────── SMART UPLOAD ROUTES ────────────── */
+// Step 1: Process JSON and resolve hierarchy
+router.post('/smart-upload/process', verifyToken, questionCtrl.smartUploadProcess);
+
+// Step 2: Update question with image URLs after upload
+router.post('/smart-upload/update-images', verifyToken, questionCtrl.smartUploadUpdateImages);
+
+// Step 3: Preview and final upload to database
+router.post('/smart-upload/preview', verifyToken, auditFields, questionCtrl.smartUploadPreview);
+
 
 /* ──────────────── CSV IMPORT (kept unchanged) ─── */
 const Question  = require('../models/Question');

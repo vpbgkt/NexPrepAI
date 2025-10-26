@@ -111,4 +111,54 @@ export class ImageUploadService {
       reader.readAsDataURL(file);
     });
   }
+
+  /**
+   * Convert proxy URL to direct S3 URL (since bucket is public)
+   * @param proxyUrl - The proxy URL (e.g., http://localhost:5000/api/images/s3-proxy?key=...)
+   * @returns Direct S3 URL or original URL if conversion fails
+   */
+  convertToDirectS3Url(proxyUrl: string): string {
+    try {
+      // Extract S3 key from proxy URL
+      const urlParams = new URLSearchParams(proxyUrl.split('?')[1]);
+      const s3Key = urlParams.get('key');
+      
+      if (!s3Key) {
+        return proxyUrl; // Return original if can't extract key
+      }
+
+      // Construct direct S3 URL (assuming standard S3 URL format)
+      // Note: You might need to adjust this based on your actual S3 configuration
+      const bucketName = 'nexprepai-storage'; // Your bucket name
+      const region = 'ap-south-1'; // Your AWS region
+      return `https://${bucketName}.s3.${region}.amazonaws.com/${s3Key}`;
+      
+    } catch (error) {
+      console.error('Failed to convert proxy URL to S3 URL:', error);
+      return proxyUrl; // Return original URL if conversion fails
+    }
+  }
+
+  /**
+   * Get signed URL for image (kept for backward compatibility, but not needed for public bucket)
+   * @param proxyUrl - The proxy URL
+   * @returns Observable of signed URL response
+   */
+  getSignedUrl(proxyUrl: string): Observable<{ signedUrl: string }> {
+    // For public bucket, convert to direct S3 URL instead
+    const directUrl = this.convertToDirectS3Url(proxyUrl);
+    return new Observable(observer => {
+      observer.next({ signedUrl: directUrl });
+      observer.complete();
+    });
+  }
+
+  /**
+   * Check if URL is a proxy URL and needs conversion
+   * @param url - Image URL to check
+   * @returns boolean indicating if URL is a proxy URL
+   */
+  isProxyUrl(url: string): boolean {
+    return url.includes('/api/images/s3-proxy');
+  }
 }

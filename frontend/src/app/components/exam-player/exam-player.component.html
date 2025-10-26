@@ -68,9 +68,13 @@
                   <ng-container *ngFor="let translation of currentQuestionDisplayData.translations">
                     <div *ngIf="translation.lang === currentLanguage">
                       <ng-container *ngIf="translation.images && translation.images.length > 0">
-                        <div *ngFor="let imageUrl of translation.images" class="mb-4">
-                          <img *ngIf="imageUrl" [src]="imageUrl" alt="Question Image" 
-                               class="max-w-full h-auto rounded-lg shadow-sm">
+                        <div *ngFor="let imageUrl of translation.images; let imgIndex = index" class="mb-4">
+                          <img *ngIf="imageUrl" 
+                               [src]="imageUrl" 
+                               [alt]="'Question Image ' + (imgIndex + 1)" 
+                               class="max-w-full h-auto rounded-lg shadow-sm"
+                               (error)="onImageError($event, 'question', imageUrl)"
+                               (load)="onImageLoad($event, 'question', imageUrl)">
                         </div>
                       </ng-container>
                     </div>

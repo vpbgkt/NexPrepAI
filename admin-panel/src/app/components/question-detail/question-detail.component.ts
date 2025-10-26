@@ -39,6 +39,7 @@
 import { Component, OnInit, HostListener } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { QuestionService } from '../../services/question.service';
+import { ImageUploadService } from '../../services/image-upload.service';
 import { Question, PopulatedHierarchyField } from '../../models/question.model';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -123,7 +124,8 @@ export class QuestionDetailComponent implements OnInit {
    */
   constructor(
     private route: ActivatedRoute,
-    private questionService: QuestionService
+    private questionService: QuestionService,
+    private imageUploadService: ImageUploadService
   ) {}
 
   /**
@@ -353,13 +355,14 @@ export class QuestionDetailComponent implements OnInit {
 
   /**
    * @method onImageError
-   * @description Handles image loading errors by setting a placeholder or hiding broken images
+   * @description Handles image loading errors by attempting to convert proxy URLs to direct S3 URLs
    * @param {Event} event - Image error event
    * @returns {void}
    * 
    * @description
    * This method is called when an image fails to load (e.g., broken URL, network issue).
-   * It replaces the broken image with a placeholder or error message to improve user experience.
+   * For proxy URLs that fail due to mixed content issues, it converts them to direct S3 URLs.
+   * Since the S3 bucket is public, direct URLs work without authentication.
    * 
    * @example
    * ```html
@@ -368,12 +371,36 @@ export class QuestionDetailComponent implements OnInit {
    */
   onImageError(event: any): void {
     const img = event.target;
+    const originalUrl = img.src;
+    
+    // Check if this is a proxy URL that failed due to mixed content
+    if (this.imageUploadService.isProxyUrl(originalUrl) && !img.dataset['retried']) {
+      // Mark as retried to prevent infinite loops
+      img.dataset['retried'] = 'true';
+      
+      // Convert to direct S3 URL (no API call needed since bucket is public)
+      const directS3Url = this.imageUploadService.convertToDirectS3Url(originalUrl);
+      
+      if (directS3Url !== originalUrl) {
+        img.src = directS3Url;
+      } else {
+        this.handleImageLoadFailure(img, originalUrl);
+      }
+    } else {
+      this.handleImageLoadFailure(img, originalUrl);
+    }
+  }
+
+  /**
+   * Handle final image load failure
+   */
+  private handleImageLoadFailure(img: any, originalUrl: string): void {
     img.style.display = 'none'; // Hide broken image
     
     // Optionally, you could set a placeholder image instead:
     // img.src = 'assets/images/image-placeholder.png';
     
-    console.warn('Failed to load image:', img.src);
+    console.warn('Failed to load image:', originalUrl);
   }
 
   /**
