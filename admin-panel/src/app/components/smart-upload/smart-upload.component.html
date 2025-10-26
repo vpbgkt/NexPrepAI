@@ -1,0 +1,546 @@
+<!-- Smart Question Upload Component -->
+<div class="smart-upload-container p-6 bg-gray-50 min-h-screen">
+  <!-- Header -->
+  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h1 class="text-3xl font-bold text-gray-800 mb-2">🚀 Smart Question Upload</h1>
+    <p class="text-gray-600">Uploa    
+    <!-- Navigation -->sing JSON format with automatic     <!-- Instructions -->
+    <div class="mt-6 bg-blue-50 p-4 rounded-lg">
+      <h4 class="font-medium text-blue-800 mb-2">📝 Instructions:</h4>
+      <ul class="text-sm text-blue-700 space-y-1">
+        <li><strong>Option 1 - Upload Files:</strong> Select image files directly from your computer</li>
+        <li><strong>Option 2 - Use URLs:</strong> Upload images to any hosting service (Google Drive, AWS S3, etc.) and paste URLs</li>
+        <li>• Make sure URLs are publicly accessible if using URL method</li>
+        <li>• Supported formats: JPG, PNG, GIF, WebP</li>
+        <li>• You can add multiple images for the question</li>
+        <li>• Each image will be automatically uploaded to our secure storage</li>
+      </ul>
+    </div>
+    
+    <!-- Progress Steps -->
+    <div class="flex items-center justify-center mt-6 space-x-4">
+      <div class="flex items-center">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold"
+             [class]="currentStep === 'input' ? 'bg-blue-500' : 'bg-green-500'">
+          1
+        </div>
+        <span class="ml-2 text-sm font-medium">JSON Input</span>
+      </div>
+      
+      <div class="w-16 h-1 bg-gray-200 rounded" 
+           [class]="currentStep !== 'input' ? 'bg-green-500' : ''"></div>
+      
+      <div class="flex items-center">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold"
+             [class]="currentStep === 'ask-images' ? 'bg-blue-500' : 
+                     (currentStep === 'images' || currentStep === 'preview' || currentStep === 'complete') ? 'bg-green-500' : 'bg-gray-400'">
+          2
+        </div>
+        <span class="ml-2 text-sm font-medium">Images</span>
+      </div>
+      
+      <div class="w-16 h-1 bg-gray-200 rounded"
+           [class]="currentStep === 'images' || currentStep === 'preview' || currentStep === 'complete' ? 'bg-green-500' : ''"></div>
+      
+      <div class="flex items-center">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold"
+             [class]="currentStep === 'preview' ? 'bg-blue-500' : 
+                     currentStep === 'complete' ? 'bg-green-500' : 'bg-gray-400'">
+          3
+        </div>
+        <span class="ml-2 text-sm font-medium">Preview</span>
+      </div>
+      
+      <div class="w-16 h-1 bg-gray-200 rounded"
+           [class]="currentStep === 'complete' ? 'bg-green-500' : ''"></div>
+      
+      <div class="flex items-center">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold"
+             [class]="currentStep === 'complete' ? 'bg-green-500' : 'bg-gray-400'">
+          4
+        </div>
+        <span class="ml-2 text-sm font-medium">Complete</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 1: JSON Input -->
+  <div *ngIf="currentStep === 'input'" class="bg-white rounded-lg shadow-md p-6">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-4">📝 Step 1: Enter Question JSON</h2>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- JSON Input Area -->
+      <div>
+        <div class="flex justify-between items-center mb-4">
+          <label class="block text-sm font-medium text-gray-700">Question JSON Data:</label>
+          <button type="button" 
+                  class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200"
+                  (click)="loadSampleJson()">
+            Load Sample JSON
+          </button>
+        </div>
+        
+        <textarea [(ngModel)]="jsonInput"
+                  class="w-full h-96 p-4 border border-gray-300 rounded-lg font-mono text-sm"
+                  [class.border-red-500]="jsonError"
+                  placeholder="Paste your question JSON here..."></textarea>
+        
+        <div *ngIf="jsonError" class="mt-2 text-red-600 text-sm">
+          ❌ {{ jsonError }}
+        </div>
+        
+        <div class="mt-4 flex space-x-4">
+          <button type="button"
+                  class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  [disabled]="isLoading"
+                  (click)="processJson()">
+            <span *ngIf="isLoading" class="mr-2">⏳</span>
+            {{ isLoading ? 'Processing...' : 'Process Question' }}
+          </button>
+          
+          <button type="button"
+                  class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                  (click)="resetForm()">
+            Reset
+          </button>
+        </div>
+      </div>
+      
+      <!-- Sample JSON Display -->
+      <div>
+        <h3 class="text-lg font-medium text-gray-800 mb-3">📋 Sample JSON Format:</h3>
+        <div class="bg-gray-100 p-4 rounded-lg overflow-auto h-96">
+          <pre class="text-xs">{{ sampleJson | json }}</pre>
+        </div>
+        
+        <div class="mt-4 bg-blue-50 p-4 rounded-lg">
+          <h4 class="font-medium text-blue-800 mb-2">💡 Key Features:</h4>
+          <ul class="text-sm text-blue-700 space-y-1">
+            <li>• Use hierarchy <strong>names</strong> instead of IDs</li>
+            <li>• Supports both formats: "branch"/"branchId", "subject"/"subjectId"</li>
+            <li>• System auto-creates missing hierarchy items</li>
+            <li>• Supports multiple languages (en/hi)</li>
+            <li>• Automatic image detection and upload</li>
+            <li>• Preview before final save</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Processing Results -->
+  <div *ngIf="currentStep === 'processing'" class="bg-white rounded-lg shadow-md p-6">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-4">⚙️ Processing Question...</h2>
+    
+    <div class="flex items-center justify-center py-12">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p class="text-gray-600">Resolving hierarchy and processing question data...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2.5: Ask About Images -->
+  <div *ngIf="currentStep === 'ask-images'" class="bg-white rounded-lg shadow-md p-6">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-4">🖼️ Step 2: Does your question have images?</h2>
+    
+    <!-- Hierarchy Resolution Summary -->
+    <div class="bg-green-50 p-4 rounded-lg mb-6">
+      <h3 class="font-medium text-green-800 mb-2">✅ Hierarchy Resolved Successfully:</h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div *ngFor="let item of (hierarchyResolution | keyvalue)" class="text-green-700">
+          <strong>{{ item.key | titlecase }}:</strong><br>
+          {{ item.value.name }}
+          <span *ngIf="item.value?.created" class="text-xs bg-blue-100 text-blue-800 px-1 rounded">(NEW)</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Image Question -->
+    <div class="text-center py-8">
+      <div class="mb-6">
+        <div class="text-6xl mb-4">🤔</div>
+        <h3 class="text-xl font-semibold text-gray-800 mb-2">Does your question contain any images?</h3>
+        <p class="text-gray-600">This includes question body images, option images, or diagrams.</p>
+      </div>
+      
+      <div class="flex justify-center space-x-4">
+        <button type="button"
+                class="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 text-lg font-medium"
+                (click)="answerHasImages(true)">
+          📸 Yes, it has images
+        </button>
+        
+        <button type="button"
+                class="px-8 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-lg font-medium"
+                (click)="answerHasImages(false)">
+          📝 No images needed
+        </button>
+      </div>
+    </div>
+    
+    <!-- Navigation -->
+    <div class="mt-6 flex justify-between">
+      <button type="button"
+              class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              (click)="goBack()">
+        ← Back
+      </button>
+      <div></div>
+    </div>
+  </div>
+
+  <!-- Step 3: Image Upload -->
+    <!-- Step 3: Image Upload -->
+  <div *ngIf="currentStep === 'images'" class="bg-white rounded-lg shadow-md p-6">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-4">📸 Step 3: Add Image URLs</h2>
+    
+    <!-- Hierarchy Resolution Summary -->
+    <div class="bg-green-50 p-4 rounded-lg mb-6">
+      <h3 class="font-medium text-green-800 mb-2">✅ Hierarchy Resolved Successfully:</h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div *ngFor="let item of (hierarchyResolution | keyvalue)" class="text-green-700">
+          <strong>{{ item.key | titlecase }}:</strong><br>
+          {{ item.value.name }}
+          <span *ngIf="item.value?.created" class="text-xs bg-blue-100 text-blue-800 px-1 rounded">(NEW)</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Manual Image URL Input -->
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-medium text-gray-800">� Image Assignments:</h3>
+        <button type="button"
+                class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                (click)="addImageAssignment()">
+          + Add Image
+        </button>
+      </div>
+      
+      <div *ngIf="imageAssignments.length === 0" class="text-center py-8 text-gray-500">
+        <div class="text-4xl mb-2">🖼️</div>
+        <p>No images assigned yet. Click "Add Image" to start assigning images to question elements.</p>
+      </div>
+      
+      <!-- Image Assignment Cards -->
+      <div *ngFor="let assignment of imageAssignments; let i = index" 
+           class="border border-gray-200 rounded-lg p-4 space-y-4">
+        
+        <!-- Assignment Header -->
+        <div class="flex items-center justify-between">
+          <h4 class="font-medium text-gray-800">{{ assignment.description }}</h4>
+          <button type="button"
+                  class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                  (click)="removeImageAssignment(i)">
+            🗑️ Remove
+          </button>
+        </div>
+        
+        <!-- Upload Method Selection -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Choose Upload Method:
+          </label>
+          <div class="flex space-x-4">
+            <label class="flex items-center">
+              <input type="radio" 
+                     [value]="'url'" 
+                     [(ngModel)]="assignment.uploadMethod"
+                     name="uploadMethod_{{i}}"
+                     class="mr-2">
+              <span class="text-sm">Image URL</span>
+            </label>
+            <label class="flex items-center">
+              <input type="radio" 
+                     [value]="'file'" 
+                     [(ngModel)]="assignment.uploadMethod"
+                     name="uploadMethod_{{i}}"
+                     class="mr-2">
+              <span class="text-sm">Upload File</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Image URL Input -->
+        <div *ngIf="assignment.uploadMethod === 'url'">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Image URL:
+          </label>
+          <input type="url" 
+                 [(ngModel)]="assignment.url"
+                 (ngModelChange)="updateImageDescription(i)"
+                 class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                 placeholder="https://example.com/image.jpg">
+        </div>
+
+        <!-- File Upload Input -->
+        <div *ngIf="assignment.uploadMethod === 'file'">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Upload Image File:
+          </label>
+          <div class="space-y-3">
+            <input type="file" 
+                   #fileInput
+                   accept="image/*"
+                   (change)="onFileSelected(i, $event)"
+                   class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+            
+            <!-- Upload Progress -->
+            <div *ngIf="assignment.isUploading" class="flex items-center space-x-2">
+              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <span class="text-sm text-gray-600">Uploading...</span>
+            </div>
+            
+            <!-- Upload Error -->
+            <div *ngIf="assignment.uploadError" class="text-sm text-red-600">
+              ❌ {{ assignment.uploadError }}
+            </div>
+            
+            <!-- Upload Button -->
+            <button *ngIf="assignment.file && !assignment.isUploading && !assignment.url"
+                    type="button"
+                    (click)="uploadImage(i)"
+                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+              📤 Upload Image
+            </button>
+          </div>
+        </div>
+        
+        <!-- Assignment Configuration -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          
+          <!-- Image Type -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Assign to:
+            </label>
+            <select [(ngModel)]="assignment.type" 
+                    (ngModelChange)="updateImageType(i)"
+                    class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+              <option value="question">Question Body</option>
+              <option value="option">Answer Option</option>
+              <option value="explanation">Explanation</option>
+            </select>
+          </div>
+          
+          <!-- Option Selection (only for option type) -->
+          <div *ngIf="assignment.type === 'option'">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Which Option:
+            </label>
+            <select [(ngModel)]="assignment.optionIndex"
+                    (ngModelChange)="updateImageDescription(i)"
+                    class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+              <option *ngFor="let optIndex of getAvailableOptions(); let j = index" 
+                      [value]="optIndex">
+                Option {{ getOptionLabel(optIndex) }}
+              </option>
+            </select>
+          </div>
+          
+          <!-- Language Selection -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Language:
+            </label>
+            <select [(ngModel)]="assignment.language"
+                    (ngModelChange)="updateImageDescription(i)"
+                    class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+              <option value="both">English & Hindi</option>
+              <option value="en">English Only</option>
+              <option value="hi">Hindi Only</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Preview -->
+        <div *ngIf="assignment.url || assignment.file" class="mt-3">
+          <p class="text-sm text-gray-600 mb-2">Preview:</p>
+          
+          <!-- URL Preview -->
+          <img *ngIf="assignment.url" 
+               [src]="assignment.url" 
+               alt="Preview"
+               class="max-w-xs max-h-32 object-contain border rounded"
+               (error)="$any($event.target).style.display='none'"
+               style="display: block;">
+          
+          <!-- File Preview -->
+          <div *ngIf="assignment.file && !assignment.url" class="flex items-center space-x-2 p-2 bg-gray-50 rounded border">
+            <div class="text-2xl">📄</div>
+            <div class="flex-1">
+              <p class="text-sm font-medium text-gray-800">{{ assignment.file.name }}</p>
+              <p class="text-xs text-gray-500">{{ (assignment.file.size / 1024 / 1024).toFixed(2) }} MB</p>
+            </div>
+            <div *ngIf="!assignment.isUploading" class="text-xs text-orange-600">Ready to upload</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Instructions -->
+    <div class="mt-6 bg-blue-50 p-4 rounded-lg">
+      <h4 class="font-medium text-blue-800 mb-2">� Instructions:</h4>
+      <ul class="text-sm text-blue-700 space-y-1">
+        <li>• Upload your images to any image hosting service (Google Drive, AWS S3, etc.)</li>
+        <li>• Make sure the URLs are publicly accessible</li>
+        <li>• Supported formats: JPG, PNG, GIF, WebP</li>
+        <li>• You can add multiple images for the question</li>
+      </ul>
+    </div>
+    
+    <!-- Navigation -->
+    <div class="mt-6 flex justify-between items-center">
+      <button type="button"
+              class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              (click)="goBack()">
+        ← Back
+      </button>
+      
+      <div class="text-sm text-gray-600">
+        {{ imageAssignments.length }} image(s) assigned
+      </div>
+      
+      <button type="button"
+              class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              (click)="continueWithImages()">
+        Continue to Preview →
+      </button>
+    </div>
+  </div>
+
+  <!-- Step 4: Preview -->
+  <div *ngIf="currentStep === 'preview'" class="bg-white rounded-lg shadow-md p-6">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-4">👀 Step 3: Preview Question</h2>
+    
+    <!-- Validation Errors -->
+    <div *ngIf="validationErrors.length > 0" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+      <h3 class="font-medium text-red-800 mb-2">❌ Validation Errors:</h3>
+      <ul class="text-sm text-red-700 space-y-1">
+        <li *ngFor="let error of validationErrors">• {{ error }}</li>
+      </ul>
+    </div>
+    
+    <!-- Question Preview -->
+    <div *ngIf="previewData" class="space-y-6">
+      <!-- Hierarchy Info -->
+      <div class="bg-blue-50 p-4 rounded-lg">
+        <h3 class="font-medium text-blue-800 mb-2">📂 Question Hierarchy:</h3>
+        <div class="text-sm text-blue-700">
+          {{ previewData.hierarchy.branch }} → 
+          {{ previewData.hierarchy.subject }} → 
+          {{ previewData.hierarchy.topic }} → 
+          {{ previewData.hierarchy.subTopic }}
+        </div>
+      </div>
+      
+      <!-- Question Summary -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-gray-50 p-3 rounded">
+          <div class="text-xs text-gray-600">Type</div>
+          <div class="font-medium">{{ previewData.summary.questionType | titlecase }}</div>
+        </div>
+        <div class="bg-gray-50 p-3 rounded">
+          <div class="text-xs text-gray-600">Difficulty</div>
+          <div class="font-medium">{{ previewData.summary.difficulty }}</div>
+        </div>
+        <div class="bg-gray-50 p-3 rounded">
+          <div class="text-xs text-gray-600">Languages</div>
+          <div class="font-medium">{{ previewData.summary.languages.join(', ') | uppercase }}</div>
+        </div>
+        <div class="bg-gray-50 p-3 rounded">
+          <div class="text-xs text-gray-600">Tags</div>
+          <div class="font-medium">{{ previewData.summary.tags }} tags</div>
+        </div>
+      </div>
+      
+      <!-- Question Content Preview -->
+      <div class="border border-gray-200 rounded-lg p-4">
+        <h3 class="font-medium text-gray-800 mb-4">📝 Question Content:</h3>
+        
+        <div *ngFor="let translation of previewData.questionData.translations; let i = index" 
+             class="mb-6 last:mb-0">
+          <div class="flex items-center mb-3">
+            <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+              {{ translation.lang | uppercase }}
+            </span>
+          </div>
+          
+          <!-- Question Text -->
+          <div class="mb-4">
+            <div class="font-medium text-gray-800 mb-2">Question:</div>
+            <div class="text-gray-700 bg-gray-50 p-3 rounded">
+              {{ translation.questionText }}
+            </div>
+          </div>
+          
+          <!-- Options -->
+          <div class="mb-4">
+            <div class="font-medium text-gray-800 mb-2">Options:</div>
+            <div class="space-y-2">
+              <div *ngFor="let option of translation.options; let j = index" 
+                   class="flex items-center p-2 rounded"
+                   [class]="option.isCorrect ? 'bg-green-50 border border-green-200' : 'bg-gray-50'">
+                <span class="w-6 h-6 rounded-full border-2 border-gray-400 flex items-center justify-center text-xs font-medium mr-3"
+                      [class]="option.isCorrect ? 'bg-green-500 text-white border-green-500' : ''">
+                  {{ String.fromCharCode(65 + j) }}
+                </span>
+                <span class="flex-1">{{ option.text }}</span>
+                <span *ngIf="option.isCorrect" class="text-green-600 text-sm font-medium">✓ Correct</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Explanations -->
+          <div *ngIf="translation.explanations && translation.explanations.length > 0">
+            <div class="font-medium text-gray-800 mb-2">Explanation:</div>
+            <div class="text-gray-700 bg-yellow-50 p-3 rounded">
+              {{ translation.explanations[0].content }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Navigation -->
+    <div class="mt-6 flex justify-between">
+      <button type="button"
+              class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              (click)="goBack()">
+        ← Back
+      </button>
+      
+      <button type="button"
+              class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+              [disabled]="isLoading || validationErrors.length > 0"
+              (click)="saveQuestion()">
+        <span *ngIf="isLoading" class="mr-2">⏳</span>
+        {{ isLoading ? 'Saving...' : '💾 Save Question' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Step 5: Complete -->
+  <div *ngIf="currentStep === 'complete'" class="bg-white rounded-lg shadow-md p-6 text-center">
+    <div class="py-12">
+      <div class="text-6xl mb-4">🎉</div>
+      <h2 class="text-3xl font-bold text-green-600 mb-4">Question Uploaded Successfully!</h2>
+      <p class="text-gray-600 mb-6">Your question has been processed and saved to the database.</p>
+      
+      <div class="space-y-4">
+        <button type="button"
+                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mx-2"
+                (click)="resetForm()">
+          📝 Upload Another Question
+        </button>
+        
+        <button type="button"
+                class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 mx-2"
+                [routerLink]="['/questions']">
+          📋 View Questions List
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

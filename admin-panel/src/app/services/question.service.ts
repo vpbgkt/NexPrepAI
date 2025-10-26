@@ -643,4 +643,62 @@ export class QuestionService {
     const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
     return this.http.put(`${this.apiUrl}/questions/${questionId}/status`, { status }, { headers });
   }
+
+  /**
+   * Smart Upload Methods
+   * @description Methods for handling smart question upload with automatic hierarchy resolution
+   */
+
+  /**
+   * @method smartUploadProcess
+   * @description Step 1: Process JSON question data and resolve hierarchy names to IDs
+   * @param {any} questionData - Question data with hierarchy names
+   * @returns {Observable<any>} Observable containing processed question with resolved IDs
+   */
+  smartUploadProcess(questionData: any): Observable<any> {
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ 
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    });
+    return this.http.post(`${this.apiUrl}/questions/smart-upload/process`, questionData, { headers });
+  }
+
+  /**
+   * @method smartUploadUpdateImages
+   * @description Step 2: Update processed question with uploaded image URLs
+   * @param {any} questionData - Processed question data from step 1
+   * @param {Array<{path: string, imageUrl: string}>} imageUpdates - Array of image path and URL mappings
+   * @returns {Observable<any>} Observable containing updated question data
+   */
+  smartUploadUpdateImages(questionData: any, imageUpdates: Array<{path: string, imageUrl: string}>): Observable<any> {
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ 
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    });
+    return this.http.post(`${this.apiUrl}/questions/smart-upload/update-images`, { 
+      questionData, 
+      imageUpdates 
+    }, { headers });
+  }
+
+  /**
+   * @method smartUploadPreview
+   * @description Step 3: Generate preview or save final question to database
+   * @param {any} questionData - Final processed question data
+   * @param {boolean} confirm - Whether to actually save to database (true) or just preview (false)
+   * @returns {Observable<any>} Observable containing preview data or saved question
+   */
+  smartUploadPreview(questionData: any, confirm: boolean = false): Observable<any> {
+    const token = localStorage.getItem('token')!;
+    const headers = new HttpHeaders({ 
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    });
+    return this.http.post(`${this.apiUrl}/questions/smart-upload/preview`, { 
+      questionData, 
+      confirm 
+    }, { headers });
+  }
 }

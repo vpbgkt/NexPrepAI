@@ -692,11 +692,11 @@ exports.uploadQuestionImage = async (req, res) => {
       // Removed ACL: 'public-read' since bucket doesn't allow ACLs
     };    const uploadResult = await s3.upload(uploadParams).promise();
     
-    // Store the S3 key and provide a proxy URL for accessing the image
-    const proxyUrl = `${req.protocol}://${req.get('host')}/api/images/s3-proxy?key=${s3Key}`;
+    // Since S3 bucket is public, use direct S3 URL (permanent, never expires)
+    const directS3Url = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
     
     res.status(200).json({
-      imageUrl: proxyUrl,
+      imageUrl: directS3Url,
       s3Key: s3Key,
       message: 'Image uploaded successfully'
     });  } catch (error) {
@@ -733,3 +733,499 @@ exports.deleteQuestionImage = async (req, res) => {
     });
   }
 };
+
+/**
+ * Smart Question Upload - Step 1: Process JSON and Resolve Hierarchy
+ * 
+ * Processes a smart JSON question format where hierarchy items are provided as names.
+ * Automatically resolves existing hierarchy items or creates new ones.
+ * Returns the processed question with resolved ObjectIds and flags for image requirements.
+ * 
+ * @route POST /api/questions/smart-upload/process
+ * @access Private (Authenticated users)
+ * @param {Object} req.body - Smart question JSON with hierarchy names
+ * @param {string} req.body.branchId - Branch name (will be resolved to ObjectId)
+ * @param {string} req.body.subjectId - Subject name (will be resolved to ObjectId)
+ * @param {string} req.body.topicId - Topic name (will be resolved to ObjectId)
+ * @param {string} req.body.subtopicId - SubTopic name (will be resolved to ObjectId)
+ * @param {Array} req.body.translations - Question translations array
+ * @returns {Object} Processed question with resolved IDs and image requirements
+ */
+exports.smartUploadProcess = async (req, res) => {
+  try {
+    const questionData = req.body;
+    
+    // Extract hierarchy names - support both field name formats
+    // Format 1: branchId, subjectId, topicId, subtopicId (original format)
+    // Format 2: branch, subject, topic, subTopic (new format)
+    const branchName = questionData.branchId || questionData.branch;
+    const subjectName = questionData.subjectId || questionData.subject;
+    const topicName = questionData.topicId || questionData.topic;
+    const subtopicName = questionData.subtopicId || questionData.subTopic;
+    
+    if (!branchName) {
+      return res.status(400).json({ message: 'Branch name is required (use "branchId" or "branch" field)' });
+    }
+
+    console.log('🔍 Processing hierarchy names:', { branchName, subjectName, topicName, subtopicName });
+
+    // Step 1: Resolve Branch (create if doesn't exist)
+    let branch = await Branch.findOne({ name: new RegExp(`^${branchName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
+    if (!branch) {
+      console.log('📝 Creating new branch:', branchName);
+      try {
+        branch = await Branch.create({ name: branchName.toLowerCase() });
+      } catch (error) {
+        if (error.code === 11000) {
+          console.log('⚠️ Branch already exists, finding existing one:', branchName);
+          branch = await Branch.findOne({ name: new RegExp(`^${branchName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
+        } else {
+          throw error;
+        }
+      }
+    }
+    
+    // Step 2: Resolve Subject (create if doesn't exist, link to branch)
+    let subject = null;
+    if (subjectName) {
+      subject = await Subject.findOne({ 
+        name: new RegExp(`^${subjectName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
+        branch: branch._id 
+      });
+      if (!subject) {
+        console.log('📝 Creating new subject:', subjectName);
+        try {
+          subject = await Subject.create({ 
+            name: subjectName.toLowerCase(),
+            branch: branch._id 
+          });
+        } catch (error) {
+          if (error.code === 11000) {
+            console.log('⚠️ Subject already exists, finding existing one:', subjectName);
+            subject = await Subject.findOne({ 
+              name: new RegExp(`^${subjectName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
+              branch: branch._id 
+            });
+          } else {
+            throw error;
+          }
+        }
+      }
+    }
+    
+    // Step 3: Resolve Topic (create if doesn't exist, link to subject)
+    let topic = null;
+    if (topicName && subject) {
+      topic = await Topic.findOne({ 
+        name: new RegExp(`^${topicName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
+        subject: subject._id 
+      });
+      if (!topic) {
+        console.log('📝 Creating new topic:', topicName);
+        try {
+          topic = await Topic.create({ 
+            name: topicName.toLowerCase(),
+            subject: subject._id 
+          });
+        } catch (error) {
+          if (error.code === 11000) {
+            console.log('⚠️ Topic already exists, finding existing one:', topicName);
+            topic = await Topic.findOne({ 
+              name: new RegExp(`^${topicName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
+              subject: subject._id 
+            });
+          } else {
+            throw error;
+          }
+        }
+      }
+    }
+    
+    // Step 4: Resolve SubTopic (create if doesn't exist, link to topic)
+    let subTopic = null;
+    if (subtopicName && topic) {
+      subTopic = await SubTopic.findOne({ 
+        name: new RegExp(`^${subtopicName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
+        topic: topic._id 
+      });
+      if (!subTopic) {
+        console.log('📝 Creating new subtopic:', subtopicName);
+        try {
+          subTopic = await SubTopic.create({ 
+            name: subtopicName.toLowerCase(),
+            topic: topic._id 
+          });
+        } catch (error) {
+          // Handle duplicate key error - try to find existing one again
+          if (error.code === 11000) {
+            console.log('⚠️ Subtopic already exists, finding existing one:', subtopicName);
+            subTopic = await SubTopic.findOne({ 
+              name: new RegExp(`^${subtopicName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
+              topic: topic._id 
+            });
+          } else {
+            throw error;
+          }
+        }
+      }
+    }
+
+    // Step 5: Update question data with resolved ObjectIds
+    const processedQuestion = {
+      ...questionData,
+      branchId: branch._id,
+      subjectId: subject?._id || null,
+      topicId: topic?._id || null,
+      subtopicId: subTopic?._id || null
+    };
+
+    // Step 6: Format question history properly
+    const formattedHistory = Array.isArray(questionData.questionHistory) ? 
+      questionData.questionHistory.map(entry => ({
+        title: entry.examName || entry.title || '',
+        askedAt: entry.year ? new Date(entry.year, 0, 1) : (entry.askedAt ? new Date(entry.askedAt) : new Date()),
+      })) : [];
+
+    // Step 7: Check if question contains images (but don't auto-detect, ask user)
+    const hasImages = false; // We'll ask user manually instead of auto-detecting
+    
+    // Step 8: Extract image information for upload tracking
+    const imageRequirements = []; // Empty since we're asking user manually
+
+    const response = {
+      processedQuestion,
+      hierarchyResolution: {
+        branch: { id: branch._id, name: branch.name, created: !branch.createdAt },
+        subject: subject ? { id: subject._id, name: subject.name, created: !subject.createdAt } : null,
+        topic: topic ? { id: topic._id, name: topic.name, created: !topic.createdAt } : null,
+        subTopic: subTopic ? { id: subTopic._id, name: subTopic.name, created: !subTopic.createdAt } : null
+      },
+      imageInfo: {
+        hasImages,
+        imageRequirements,
+        nextStep: 'ask_user_about_images' // Always ask user about images
+      }
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('Error in smart upload process:', error);
+    res.status(500).json({ 
+      message: 'Failed to process smart question upload', 
+      error: error.message 
+    });
+  }
+};
+
+/**
+ * Smart Question Upload - Step 2: Update Question with Image URLs
+ * 
+ * Updates the processed question JSON with uploaded image URLs.
+ * This step is called after images have been uploaded via the image upload endpoint.
+ * 
+ * @route POST /api/questions/smart-upload/update-images
+ * @access Private (Authenticated users)
+ * @param {Object} req.body.questionData - Processed question data from step 1
+ * @param {Array} req.body.imageUpdates - Array of image updates with paths and URLs
+ * @returns {Object} Updated question data with image URLs
+ */
+exports.smartUploadUpdateImages = async (req, res) => {
+  try {
+    const { questionData, imageUpdates } = req.body;
+    
+    if (!questionData || !imageUpdates) {
+      return res.status(400).json({ message: 'Question data and image updates are required' });
+    }
+
+    // Clone the question data to avoid mutation
+    const updatedQuestion = JSON.parse(JSON.stringify(questionData));
+    
+    // Apply image updates
+    imageUpdates.forEach(update => {
+      const { path, imageUrl } = update;
+      
+      if (path.startsWith('translations[')) {
+        // Handle translation images: translations[0].images[0]
+        const match = path.match(/translations\[(\d+)\]\.images\[(\d+)\]/);
+        if (match) {
+          const translationIndex = parseInt(match[1]);
+          const imageIndex = parseInt(match[2]);
+          
+          if (!updatedQuestion.translations[translationIndex].images) {
+            updatedQuestion.translations[translationIndex].images = [];
+          }
+          updatedQuestion.translations[translationIndex].images[imageIndex] = imageUrl;
+        }
+        
+        // Handle option images: translations[0].options[1].img
+        const optionMatch = path.match(/translations\[(\d+)\]\.options\[(\d+)\]\.img/);
+        if (optionMatch) {
+          const translationIndex = parseInt(optionMatch[1]);
+          const optionIndex = parseInt(optionMatch[2]);
+          
+          updatedQuestion.translations[translationIndex].options[optionIndex].img = imageUrl;
+        }
+      }
+    });
+
+    res.status(200).json({
+      updatedQuestion,
+      message: 'Question updated with image URLs successfully'
+    });
+  } catch (error) {
+    console.error('Error updating question with images:', error);
+    res.status(500).json({ 
+      message: 'Failed to update question with images', 
+      error: error.message 
+    });
+  }
+};
+
+/**
+ * Smart Question Upload - Step 3: Preview and Final Upload
+ * 
+ * Provides a preview of the final question and handles the actual database insertion.
+ * This is the final step where the question is saved to the database.
+ * 
+ * @route POST /api/questions/smart-upload/preview
+ * @access Private (Authenticated users)
+ * @param {Object} req.body.questionData - Final processed question data
+ * @param {boolean} req.body.confirm - Whether to actually save to database
+ * @returns {Object} Preview data or saved question
+ */
+exports.smartUploadPreview = async (req, res) => {
+  try {
+    const { questionData, confirm = false } = req.body;
+    
+    if (!questionData) {
+      return res.status(400).json({ message: 'Question data is required' });
+    }
+
+    // Validate the question data
+    const validation = validateSmartQuestion(questionData);
+    if (!validation.isValid) {
+      return res.status(400).json({ 
+        message: 'Question validation failed', 
+        errors: validation.errors 
+      });
+    }
+
+    // If this is just a preview request, return the formatted question
+    if (!confirm) {
+      const preview = await generateQuestionPreview(questionData);
+      return res.status(200).json({
+        preview,
+        validation: validation,
+        message: 'Question preview generated successfully'
+      });
+    }
+
+    // Actually save the question to database
+    const userId = req.user?.userId;
+    
+    // Prepare the question for database insertion
+    const questionForDB = {
+      ...questionData,
+      branch: questionData.branchId,
+      subject: questionData.subjectId,
+      topic: questionData.topicId,
+      subTopic: questionData.subtopicId,
+      createdBy: userId,
+      // Set default values if not provided
+      status: questionData.status || 'draft',
+      tags: questionData.tags || [],
+      difficulty: questionData.difficulty || 'Medium',
+      type: questionData.type || 'single',
+      // Properly format question history
+      questionHistory: questionData.questionHistory ? questionData.questionHistory.map(entry => ({
+        title: entry.examName || entry.title || '',
+        askedAt: entry.year ? new Date(entry.year, 0, 1) : (entry.askedAt ? new Date(entry.askedAt) : new Date()),
+      })) : []
+    };
+
+    // Remove the string ID fields as we now have the proper ObjectId fields
+    delete questionForDB.branchId;
+    delete questionForDB.subjectId;
+    delete questionForDB.topicId;
+    delete questionForDB.subtopicId;
+
+    // Create the question
+    const savedQuestion = await Question.create(questionForDB);
+    
+    // Populate hierarchy fields for response
+    const populatedQuestion = await Question.findById(savedQuestion._id)
+      .populate('branch', 'name')
+      .populate('subject', 'name')
+      .populate('topic', 'name')
+      .populate('subTopic', 'name')
+      .lean();
+
+    res.status(201).json({
+      question: populatedQuestion,
+      message: 'Question uploaded successfully'
+    });
+  } catch (error) {
+    console.error('Error in smart upload preview/save:', error);
+    res.status(500).json({ 
+      message: 'Failed to preview/save question', 
+      error: error.message 
+    });
+  }
+};
+
+/**
+ * Helper Functions for Smart Upload
+ */
+
+/**
+ * Check if question contains any images
+ */
+function checkForImages(questionData) {
+  if (!questionData.translations) return false;
+  
+  for (const translation of questionData.translations) {
+    // Check if there are images in the translation
+    if (translation.images && translation.images.length > 0) {
+      return true;
+    }
+    
+    // Check if any options have images
+    if (translation.options) {
+      for (const option of translation.options) {
+        if (option.img && option.img.trim() !== '') {
+          return true;
+        }
+      }
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Extract image requirements for upload tracking
+ */
+function extractImageRequirements(questionData) {
+  const requirements = [];
+  
+  if (!questionData.translations) return requirements;
+  
+  questionData.translations.forEach((translation, translationIndex) => {
+    // Track main question images
+    if (translation.images && translation.images.length > 0) {
+      translation.images.forEach((img, imageIndex) => {
+        if (img && img.trim() !== '') {
+          requirements.push({
+            type: 'question_image',
+            path: `translations[${translationIndex}].images[${imageIndex}]`,
+            language: translation.lang,
+            description: `Question image ${imageIndex + 1} for ${translation.lang}`
+          });
+        }
+      });
+    }
+    
+    // Track option images
+    if (translation.options) {
+      translation.options.forEach((option, optionIndex) => {
+        if (option.img && option.img.trim() !== '') {
+          requirements.push({
+            type: 'option_image',
+            path: `translations[${translationIndex}].options[${optionIndex}].img`,
+            language: translation.lang,
+            optionText: option.text,
+            description: `Option ${optionIndex + 1} image for ${translation.lang}: "${option.text}"`
+          });
+        }
+      });
+    }
+  });
+  
+  return requirements;
+}
+
+/**
+ * Validate smart question data
+ */
+function validateSmartQuestion(questionData) {
+  const errors = [];
+  
+  // Check required fields
+  if (!questionData.branchId) errors.push('Branch ID is required');
+  if (!questionData.translations || questionData.translations.length === 0) {
+    errors.push('At least one translation is required');
+  }
+  
+  // Validate translations
+  if (questionData.translations) {
+    questionData.translations.forEach((translation, index) => {
+      if (!translation.questionText || translation.questionText.trim() === '') {
+        errors.push(`Translation ${index + 1}: Question text is required`);
+      }
+      
+      if (!translation.options || translation.options.length < 2) {
+        errors.push(`Translation ${index + 1}: At least 2 options are required`);
+      } else {
+        const correctOptions = translation.options.filter(opt => opt.isCorrect);
+        if (correctOptions.length === 0) {
+          errors.push(`Translation ${index + 1}: At least one correct option is required`);
+        }
+        
+        if (questionData.type === 'single' && correctOptions.length > 1) {
+          errors.push(`Translation ${index + 1}: Single choice questions can have only one correct option`);
+        }
+      }
+    });
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
+/**
+ * Generate question preview with hierarchy names
+ */
+async function generateQuestionPreview(questionData) {
+  try {
+    // Get hierarchy names for display
+    const hierarchy = {};
+    
+    if (questionData.branchId) {
+      const branch = await Branch.findById(questionData.branchId);
+      hierarchy.branch = branch?.name || 'Unknown';
+    }
+    
+    if (questionData.subjectId) {
+      const subject = await Subject.findById(questionData.subjectId);
+      hierarchy.subject = subject?.name || 'Unknown';
+    }
+    
+    if (questionData.topicId) {
+      const topic = await Topic.findById(questionData.topicId);
+      hierarchy.topic = topic?.name || 'Unknown';
+    }
+    
+    if (questionData.subtopicId) {
+      const subTopic = await SubTopic.findById(questionData.subtopicId);
+      hierarchy.subTopic = subTopic?.name || 'Unknown';
+    }
+    
+    return {
+      hierarchy,
+      questionData,
+      summary: {
+        totalTranslations: questionData.translations?.length || 0,
+        languages: questionData.translations?.map(t => t.lang) || [],
+        questionType: questionData.type || 'single',
+        difficulty: questionData.difficulty || 'Medium',
+        hasImages: checkForImages(questionData),
+        tags: questionData.tags?.length || 0
+      }
+    };
+  } catch (error) {
+    console.error('Error generating preview:', error);
+    throw error;
+  }
+}

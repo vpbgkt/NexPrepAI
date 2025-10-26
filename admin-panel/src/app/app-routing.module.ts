@@ -16,6 +16,7 @@ import { AddQuestionComponent }       from './components/add-question/add-questi
 import { EditQuestionComponent }      from './components/edit-question/edit-question.component';
 import { QuestionDetailComponent }    from './components/question-detail/question-detail.component'; // ADDED
 import { QuestionReviewComponent }    from './components/question-review/question-review.component'; // Import the review component
+import { SmartUploadComponent }       from './components/smart-upload/smart-upload.component'; // Import smart upload component
 
 import { AddBranchComponent }     from './components/add-branch/add-branch.component';
 import { AddSubjectComponent }    from './components/add-subject.component';
@@ -82,6 +83,7 @@ export const routes: Routes = [
       { path: 'build-paper',          component: BuildPaperComponent },      // Question bank
       { path: 'questions',            component: QuestionListComponent },
       { path: 'add-question',         component: AddQuestionComponent },
+      { path: 'smart-upload',         component: SmartUploadComponent }, // Smart upload route
       { path: 'questions/edit/:id',   component: EditQuestionComponent },
       { path: 'questions/:id/view',   component: QuestionDetailComponent, canActivate: [AdminGuard] }, // ADDED
       { path: 'questions/review',     component: QuestionReviewComponent, canActivate: [superadminGuard] }, // Protected by superadminGuard      // Hierarchy CRUD
