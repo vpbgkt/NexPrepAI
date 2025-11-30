@@ -1,11 +1,132 @@
 <!-- Build Paper Form - Modern Tailwind CSS Design -->
 <div class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8 px-4 sm:px-6 lg:px-8">
+  <!-- Draft Selection Modal -->
+  <div *ngIf="showDraftModal" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+      <!-- Background overlay -->
+      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" (click)="closeDraftModal()"></div>
+
+      <!-- Modal panel -->
+      <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
+        <div class="bg-gradient-to-r from-primary-500 to-secondary-500 px-6 py-4">
+          <h3 class="text-2xl font-bold text-white flex items-center">
+            <svg class="w-7 h-7 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Load Draft or Start New?
+          </h3>
+        </div>
+        
+        <div class="bg-white px-6 py-6">
+          <p class="text-gray-700 mb-6">
+            You have <strong class="text-primary-600">{{availableDrafts.length}}</strong> saved draft(s). 
+            Would you like to continue working on one of them, or start a new test series?
+          </p>
+          
+          <!-- Drafts List -->
+          <div class="space-y-3 max-h-96 overflow-y-auto mb-6">
+            <div *ngFor="let draft of availableDrafts" class="border border-gray-200 rounded-lg p-4 hover:border-primary-300 hover:bg-primary-50 transition-all duration-200">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <h4 class="font-semibold text-gray-900 mb-1">
+                    {{ draft.draftTitle || 'Untitled Draft' }}
+                  </h4>
+                  <div class="text-sm text-gray-600 space-y-1">
+                    <p>
+                      <svg class="w-4 h-4 inline mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      Saved: {{ draft.savedAt | date:'short' }}
+                    </p>
+                    <p>
+                      <svg class="w-4 h-4 inline mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                      </svg>
+                      Sections: {{ draft.sections?.length || 0 }}
+                    </p>
+                  </div>
+                </div>
+                <div class="flex flex-col space-y-2 ml-4">
+                  <button type="button"
+                          (click)="loadDraft(draft.draftId)"
+                          class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 transition-colors duration-200 text-sm font-medium">
+                    Load
+                  </button>
+                  <button type="button"
+                          (click)="deleteDraft(draft.draftId)"
+                          class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 focus:ring-2 focus:ring-red-500 transition-colors duration-200 text-sm font-medium">
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Modal Actions -->
+        <div class="bg-gray-50 px-6 py-4 flex justify-between items-center">
+          <button type="button"
+                  (click)="closeDraftModal()"
+                  class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors duration-200 font-medium">
+            Cancel
+          </button>
+          <button type="button"
+                  (click)="startNewDraft()"
+                  class="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 focus:ring-2 focus:ring-green-500 transition-all duration-200 font-medium flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            Start New Test Series
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="max-w-4xl mx-auto">
     <!-- Header Section -->
     <div class="text-center mb-8">
       <h1 class="text-4xl font-bold text-gray-900 mb-2">Build Paper</h1>
       <p class="text-lg text-gray-600">Create and configure your test series</p>
       <div class="w-24 h-1 bg-gradient-to-r from-primary-500 to-secondary-500 mx-auto mt-4 rounded-full"></div>
+    </div>
+    
+    <!-- Save Progress Info Banner -->
+    <div class="mb-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 border-l-4 border-l-green-500 rounded-lg shadow-sm">
+      <div class="flex items-start">
+        <svg class="w-6 h-6 text-green-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <div class="flex-1">
+          <h3 class="font-semibold text-gray-900 mb-1">💾 Multiple Drafts Support</h3>
+          <p class="text-sm text-gray-700">
+            Creating a test with 100 questions? No problem! Use the <strong>Save Progress</strong> button at the bottom to save your work at any time. 
+            Each draft is saved separately, so <strong>multiple admins can work on different test papers simultaneously</strong> without conflicts.
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Available Drafts Quick Access -->
+    <div *ngIf="availableDrafts.length > 0 && !draftId" class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <div class="flex items-start justify-between">
+        <div>
+          <h3 class="font-semibold text-blue-900 mb-1 flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            You have {{availableDrafts.length}} saved draft(s)
+          </h3>
+          <p class="text-sm text-blue-700">
+            Continue working on your previous test papers or start a new one.
+          </p>
+        </div>
+        <button type="button"
+                (click)="showDraftModal = true"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 transition-colors duration-200 text-sm font-medium">
+          View Drafts
+        </button>
+      </div>
     </div>
 
     <form [formGroup]="seriesForm" (ngSubmit)="onSubmit()" class="space-y-8">
@@ -765,8 +886,56 @@
             </div>
           </div>
 
-          <!-- Submit Button -->
-          <div class="pt-4">
+          <!-- Action Buttons -->
+          <div class="pt-4 space-y-3">
+            <!-- Save Progress Button -->
+            <button type="button" 
+                    (click)="saveDraft()"
+                    [disabled]="isSavingDraft"
+                    class="w-full py-3 px-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-base font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg">
+              <span class="flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                </svg>
+                {{ isSavingDraft ? 'Saving...' : 'Save Progress' }}
+              </span>
+            </button>
+            
+            <!-- Draft Info Banner -->
+            <div *ngIf="draftId" class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center text-sm text-blue-700 mb-1">
+                    <svg class="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span class="font-medium">Draft saved - Your progress is secure</span>
+                  </div>
+                  <p class="text-xs text-blue-600 ml-6">
+                    This draft is unique to this test paper. Other admins can create their own drafts.
+                  </p>
+                </div>
+                <button type="button"
+                        (click)="deleteDraft(draftId)"
+                        class="text-xs text-blue-600 hover:text-blue-800 font-medium underline whitespace-nowrap ml-2">
+                  Clear Draft
+                </button>
+              </div>
+            </div>
+            
+            <!-- View Other Drafts -->
+            <div *ngIf="availableDrafts.length > 1" class="text-center">
+              <button type="button"
+                      (click)="showDraftModal = true"
+                      class="text-sm text-primary-600 hover:text-primary-800 font-medium underline flex items-center justify-center mx-auto">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                View All Drafts ({{availableDrafts.length}})
+              </button>
+            </div>
+            
+            <!-- Submit Button -->
             <button type="submit" 
                     [disabled]="seriesForm.invalid"
                     class="w-full py-4 px-6 bg-gradient-to-r from-primary-600 to-secondary-600 text-white text-lg font-semibold rounded-xl hover:from-primary-700 hover:to-secondary-700 focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl">

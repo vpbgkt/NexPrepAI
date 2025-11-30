@@ -124,6 +124,18 @@ export class BuildPaperComponent implements OnInit, OnDestroy, AfterViewInit { /
   
   /** @property {number} Current year for default date selection */
   currentYear: number = new Date().getFullYear();
+  
+  /** @property {boolean} Flag to track if form is being saved as draft */
+  isSavingDraft: boolean = false;
+  
+  /** @property {string|null} ID of currently loaded draft */
+  draftId: string | null = null;
+  
+  /** @property {any[]} List of all available drafts */
+  availableDrafts: any[] = [];
+  
+  /** @property {boolean} Flag to show/hide draft selection modal */
+  showDraftModal: boolean = false;
   /** @property {any[][]} Array of previewed questions for each section */
 previewedQuestions: any[][] = [];
 
@@ -471,6 +483,16 @@ previewedQuestions: any[][] = [];
         this.questionsList = [];
       }
     });
+    
+    // Load available drafts list
+    this.loadAvailableDrafts();
+    
+    // Check if there are drafts and show modal if any exist
+    setTimeout(() => {
+      if (this.availableDrafts.length > 0) {
+        this.showDraftModal = true;
+      }
+    }, 500);
 
     // Handle mode changes to dynamically update validators for startAt and endAt
     this.seriesForm.get('mode')!.valueChanges.subscribe(mode => {
@@ -1151,7 +1173,11 @@ previewedQuestions: any[][] = [];
     this.tsService.create(formValues as Partial<TestSeries>)
       .subscribe({
         next: (res: any) => { 
-          this.notificationService.showSuccess('Test Series Created!', 'Your test series has been created successfully.'); 
+          this.notificationService.showSuccess('Test Series Created!', 'Your test series has been created successfully.');
+          // Clear the current draft after successful submission
+          if (this.draftId) {
+            this.deleteDraft(this.draftId);
+          }
         },
         error: (err: any) => { 
           this.notificationService.showError('Creation Failed', 'Creation failed: ' + (err.message || 'Unknown error')); 
@@ -1468,6 +1494,280 @@ previewedQuestions: any[][] = [];
    * // - Considers section interaction states
    * ```
    */
+  /**
+   * @method saveDraft
+   * @description Saves the current form state as a draft to local storage with unique ID.
+   * Supports multiple drafts - each admin can have multiple saved papers.
+   * 
+   * @returns {void}
+   */
+  saveDraft(): void {
+    this.isSavingDraft = true;
+    
+    try {
+      // Get raw values (including disabled controls)
+      const formData = this.seriesForm.getRawValue();
+      
+      // Process the question pool from comma-separated string to array
+      if (formData.sections) {
+        formData.sections.forEach((section: any) => {
+          // Ensure questionPool is an array of strings
+          if (typeof section.questionPool === 'string') {
+            section.questionPool = section.questionPool.split(',')
+              .map((id: string) => id.trim())
+              .filter((id: string) => id && id.length > 0);
+          } else if (section.questionPool === null || section.questionPool === undefined) {
+            section.questionPool = [];
+          }
+        });
+      }
+      
+      // Generate or use existing draft ID
+      const draftId = this.draftId || `draft-${Date.now()}`;
+      
+      // Add timestamp and draft status
+      const draftData = {
+        ...formData,
+        isDraft: true,
+        savedAt: new Date().toISOString(),
+        draftId: draftId,
+        draftTitle: formData.title || `Untitled Draft (${new Date().toLocaleString()})`
+      };
+      
+      // Get all existing drafts
+      const allDrafts = this.getAllDrafts();
+      
+      // Find and update existing draft or add new one
+      const existingIndex = allDrafts.findIndex(d => d.draftId === draftId);
+      if (existingIndex >= 0) {
+        allDrafts[existingIndex] = draftData;
+      } else {
+        allDrafts.push(draftData);
+      }
+      
+      // Save updated drafts list
+      localStorage.setItem('testSeriesDrafts', JSON.stringify(allDrafts));
+      this.draftId = draftId;
+      
+      // Reload drafts list
+      this.loadAvailableDrafts();
+      
+      this.notificationService.showSuccess(
+        'Progress Saved',
+        `Draft "${draftData.draftTitle}" saved successfully. You can continue later.`
+      );
+      
+      console.log('[BuildPaperComponent] Draft saved successfully:', draftId);
+    } catch (error) {
+      console.error('[BuildPaperComponent] Error saving draft:', error);
+      this.notificationService.showError(
+        'Save Failed',
+        'Failed to save draft. Please try again.'
+      );
+    } finally {
+      this.isSavingDraft = false;
+    }
+  }
+  
+  /**
+   * @method loadAvailableDrafts
+   * @description Loads list of all available drafts from localStorage.
+   * 
+   * @returns {void}
+   */
+  loadAvailableDrafts(): void {
+    try {
+      const drafts = this.getAllDrafts();
+      // Sort by savedAt descending (newest first)
+      this.availableDrafts = drafts.sort((a, b) => 
+        new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
+      );
+      console.log('[BuildPaperComponent] Loaded', this.availableDrafts.length, 'available drafts');
+    } catch (error) {
+      console.error('[BuildPaperComponent] Error loading drafts:', error);
+      this.availableDrafts = [];
+    }
+  }
+  
+  /**
+   * @method getAllDrafts
+   * @description Retrieves all drafts from localStorage.
+   * 
+   * @returns {any[]} Array of draft objects
+   */
+  private getAllDrafts(): any[] {
+    try {
+      const draftsJson = localStorage.getItem('testSeriesDrafts');
+      return draftsJson ? JSON.parse(draftsJson) : [];
+    } catch (error) {
+      console.error('[BuildPaperComponent] Error parsing drafts:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * @method loadDraft
+   * @description Loads a specific draft by ID and populates the form.
+   * 
+   * @param {string} draftId - The unique ID of the draft to load
+   * @returns {void}
+   */
+  loadDraft(draftId: string): void {
+    try {
+      const allDrafts = this.getAllDrafts();
+      const draftData = allDrafts.find(d => d.draftId === draftId);
+      
+      if (!draftData) {
+        this.notificationService.showError('Draft Not Found', 'The selected draft could not be found.');
+        return;
+      }
+      
+      console.log('[BuildPaperComponent] Loading draft:', draftId);
+      
+      // Store draft ID
+      this.draftId = draftData.draftId;
+      
+      // Process sections first - need to create FormArrays
+      if (draftData.sections && Array.isArray(draftData.sections)) {
+        // Clear existing sections
+        while (this.sections.length > 0) {
+          this.sections.removeAt(0);
+        }
+        
+        // Add sections from draft
+        draftData.sections.forEach((section: any) => {
+          // Convert questionPool array back to comma-separated string for the form
+          if (Array.isArray(section.questionPool)) {
+            section.questionPool = section.questionPool.join(', ');
+          }
+          
+          const sectionForm = this.fb.group({
+            title: [section.title || '', Validators.required],
+            order: [section.order || this.sections.length + 1, Validators.required],
+            questions: this.fb.array([]),
+            questionPool: [section.questionPool || ''],
+            questionsToSelectFromPool: [section.questionsToSelectFromPool || 0, Validators.min(0)],
+            defaultMarksForPooledQuestion: [section.defaultMarksForPooledQuestion || 1, Validators.min(0)],
+            defaultNegativeMarksForPooledQuestion: [section.defaultNegativeMarksForPooledQuestion || 0, Validators.min(0)],
+            randomizeQuestionOrderInSection: [section.randomizeQuestionOrderInSection || false],
+            questionIndexing: [section.questionIndexing || 'continue']
+          });
+          
+          // Add questions to the section
+          if (section.questions && Array.isArray(section.questions)) {
+            const questionsArray = sectionForm.get('questions') as FormArray;
+            section.questions.forEach((q: any) => {
+              questionsArray.push(this.fb.group({
+                question: [q.question || '', Validators.required],
+                marks: [q.marks || 1, [Validators.required, Validators.min(0)]],
+                negativeMarks: [q.negativeMarks || 0, [Validators.required, Validators.min(0)]]
+              }));
+            });
+          }
+          
+          this.sections.push(sectionForm);
+          const newIndex = this.sections.length - 1;
+          
+          // Initialize supporting arrays for the new section
+          this.previewedQuestions[newIndex] = [];
+          this.sectionSearchTerms[newIndex] = '';
+          this.sectionSearchResults[newIndex] = [];
+          this.sectionPoolConfigVisible[newIndex] = false;
+          this.sectionDefaultSearchMarks[newIndex] = 1;
+          this.sectionDefaultSearchNegativeMarks[newIndex] = 0.33;
+          
+          // Setup search debouncer and interaction logic
+          this.setupSearchDebouncer(newIndex);
+          this.setupSectionInteractionLogic(newIndex);
+        });
+      }
+      
+      // Remove sections and metadata from data before patching
+      const { sections: _, draftId: __, isDraft: ___, savedAt: ____, draftTitle: _____, ...formOnlyData } = draftData;
+      
+      // Patch the rest of the form
+      this.seriesForm.patchValue(formOnlyData);
+      
+      // Close modal
+      this.showDraftModal = false;
+      
+      this.notificationService.showInfo(
+        'Draft Loaded',
+        `Loaded "${draftData.draftTitle}" from ${new Date(draftData.savedAt).toLocaleString()}`
+      );
+    } catch (error) {
+      console.error('[BuildPaperComponent] Error loading draft:', error);
+      this.notificationService.showError('Load Failed', 'Failed to load draft. Please try again.');
+    }
+  }
+  
+  /**
+   * @method deleteDraft
+   * @description Deletes a specific draft from localStorage.
+   * 
+   * @param {string} draftId - The unique ID of the draft to delete
+   * @returns {void}
+   */
+  deleteDraft(draftId: string): void {
+    try {
+      const allDrafts = this.getAllDrafts();
+      const filteredDrafts = allDrafts.filter(d => d.draftId !== draftId);
+      
+      localStorage.setItem('testSeriesDrafts', JSON.stringify(filteredDrafts));
+      
+      // If deleting current draft, reset draftId
+      if (this.draftId === draftId) {
+        this.draftId = null;
+      }
+      
+      // Reload drafts list
+      this.loadAvailableDrafts();
+      
+      this.notificationService.showSuccess('Draft Deleted', 'The draft has been removed.');
+      console.log('[BuildPaperComponent] Draft deleted:', draftId);
+    } catch (error) {
+      console.error('[BuildPaperComponent] Error deleting draft:', error);
+      this.notificationService.showError('Delete Failed', 'Failed to delete draft. Please try again.');
+    }
+  }
+  
+  /**
+   * @method startNewDraft
+   * @description Starts a new draft by clearing current form.
+   * 
+   * @returns {void}
+   */
+  startNewDraft(): void {
+    this.draftId = null;
+    this.seriesForm.reset({
+      duration: 60,
+      type: 'Practice_Exam',
+      mode: 'practice',
+      maxAttempts: 5,
+      year: this.currentYear,
+      randomizeSectionOrder: false,
+      enablePublicLeaderboard: false
+    });
+    
+    // Clear sections
+    while (this.sections.length > 0) {
+      this.sections.removeAt(0);
+    }
+    
+    this.showDraftModal = false;
+    this.notificationService.showInfo('New Paper', 'Starting a fresh test series.');
+  }
+  
+  /**
+   * @method closeDraftModal
+   * @description Closes the draft selection modal without loading.
+   * 
+   * @returns {void}
+   */
+  closeDraftModal(): void {
+    this.showDraftModal = false;
+  }
+  
   /**
    * Validates that the test series has at least the minimum required number of questions
    * @param minQuestions Minimum number of questions required
